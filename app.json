@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Carpooling",
+    "slug": "carpooling-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/logo/1024x1024.jpg",
+    "splash": {
+      "image": "./assets/logo/1284x1284.jpg",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "notification": {
+      "icon": "./assets/logo/192x192.jpg",
+      "color": "#000000",
+      "sounds": ["default"]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carpooling.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
+        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
+      }
+    },
+    "android": {
+      "package": "com.carpooling.app",
+      "permissions": [
+        "INTERNET",
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4d708d9a-a38b-47cc-8ebe-0b1d6576a565"
+      },
+      "API_BASE_URL": "https://appcarpuling.cloud/api"
+    }
+  }
+}

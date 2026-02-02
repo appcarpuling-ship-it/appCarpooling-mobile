@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version)",
+      "Bash(npm:*)",
+      "Bash(dir:*)",
+      "Bash(npx expo start:*)",
+      "Bash(ipconfig:*)",
+      "Bash(findstr:*)",
+      "Bash(tree:*)",
+      "Bash(printf:*)",
+      "Bash(\"C:\\Users\\Benja\\Desktop\\proyectos\\carpuling\\mobile\\RELACIONES_MODULOS.md\")",
+      "Bash(cat:*)",
+      "Bash(\"C:\\Users\\Benja\\Desktop\\proyectos\\carpuling\\mobile\\DIAGRAMA_ARQUITECTURA.md\")",
+      "Bash(\"C:\\Users\\Benja\\Desktop\\proyectos\\carpuling\\mobile\\TABLA_SCREENS.md\")",
+      "Bash(\"C:\\Users\\Benja\\Desktop\\proyectos\\carpuling\\mobile\\RESUMEN_EJECUTIVO.txt\")",
+      "Bash(find:*)",
+      "Bash(node -c:*)",
+      "Bash(node test_colors.js:*)",
+      "Bash(npx react-native start --reset-cache)",
+      "Bash(npx @expo/metro-runtime --clear-cache)",
+      "Bash(node fix_colors_script.js:*)",
+      "Bash(node fix_home_colors.js:*)",
+      "Bash(node fix_all_colors.js:*)",
+      "Bash(grep:*)",
+      "Bash(node fix_nav_colors.js:*)",
+      "Bash(node fix_tripdetail.js:*)",
+      "Bash(node debug_test.js:*)",
+      "Bash(node:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

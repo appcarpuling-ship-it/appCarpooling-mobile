@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx nodemon:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm start)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose exec api npm run seed:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(curl:*)",
+      "Bash(npx expo start:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic process where \"processid=15216\" delete)",
+      "Bash(wmic process where \"processid=26796\" delete)",
+      "Bash(wmic process where \"processid=5412\" delete)",
+      "Bash(wmic process:*)"
+    ]
+  }
+}
