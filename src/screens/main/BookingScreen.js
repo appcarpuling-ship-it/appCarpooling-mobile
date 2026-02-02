@@ -15,12 +15,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { calculateReservationPrice, createSeatReservation, createSeatReservationPayment, confirmPaymentIntentPayment } from '../../services/seatReservationService';
+import { calculateReservationPrice, createSeatReservation } from '../../services/seatReservationService';
+import { Linking } from 'react-native';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
-import PaymentBrickWebView from '../../components/PaymentBrickWebView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -43,16 +43,10 @@ const BookingScreen = ({ route, navigation }) => {
       </LinearGradient>
     );
   }
-  const [showPaymentBrick, setShowPaymentBrick] = useState(false);
-  const [brickData, setBrickData] = useState(null);
   const [seats, setSeats] = useState(1);
   const [loading, setLoading] = useState(false);
   const [calculatingPrice, setCalculatingPrice] = useState(true);
   const [priceData, setPriceData] = useState(null);
-  const [showPaymentQR, setShowPaymentQR] = useState(false);
-  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-  const [paymentData, setPaymentData] = useState(null);
   const [error, setError] = useState('');
 
   // Banner states
@@ -109,7 +103,7 @@ const BookingScreen = ({ route, navigation }) => {
       bannerAutoScrollTimer.current = setInterval(() => {
         setActiveBannerIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % banners.length;
-          
+
           // Validar que el índice sea válido antes de hacer scroll
           if (nextIndex >= 0 && nextIndex < banners.length && bannerScrollRef.current) {
             try {
@@ -131,7 +125,7 @@ const BookingScreen = ({ route, navigation }) => {
               }
             }
           }
-          
+
           return nextIndex;
         });
       }, 5000);
@@ -265,164 +259,40 @@ const BookingScreen = ({ route, navigation }) => {
   const handleCreateReservation = async () => {
     if (!priceData) return;
 
-    // Mostrar selector de método de pago
-    setShowPaymentSelector(true);
-  };
-
-  const handlePaymentMethodSelection = async (paymentMethod) => {
-    setShowPaymentSelector(false);
-    setSelectedPaymentMethod(paymentMethod);
     setLoading(true);
     setError('');
 
     try {
       const tripId = trip._id || trip.id;
-      let reservationResponse;
 
-      if (existingReservation) {
-        console.log('📝 [Booking] Usando reserva existente:', existingReservation._id);
-
-        // Para reserva existente, crear pago directamente
-        const seatReservationId = existingReservation.seatReservation ||
-          existingReservation._id ||
-          existingReservation.id;
-
-        const paymentResponse = await createSeatReservationPayment(
-          seatReservationId,
-          paymentMethod
-        );
-
-        console.log('💳 [Booking] Respuesta del pago:', paymentResponse);
-
-        // Procesar según el método de pago
-        if (paymentMethod === 'brick') {
-          // Para reserva existente con Brick
-          const preferenceId = paymentResponse.data?.payment?.preferenceId ||
-            paymentResponse.data?.preferenceId;
-          const amount = paymentResponse.data?.feeBreakdown?.totalToPay ||
-            existingReservation.reservationAmount;
-          const intentId = paymentResponse.data?.seatReservation?.id ||
-            seatReservationId;
-
-          console.log('🔑 [Booking] Datos del Brick (reserva existente):', {
-            preferenceId,
-            amount,
-            intentId
-          });
-
-          if (!preferenceId) {
-            throw new Error('No se recibió el ID de preferencia de pago');
-          }
-
-          setBrickData({
-            preferenceId,
-            amount: parseFloat(amount),
-            intentId,
-          });
-
-          setShowPaymentBrick(true);
-        } else {
-          setPaymentData(paymentResponse);
-          setShowPaymentQR(true);
-        }
-
-      } else {
-        // ✅ Crear reserva Y pago en UN SOLO PASO
-        console.log('📝 [Booking] Creando reserva con método:', paymentMethod);
-
-        reservationResponse = await createSeatReservation({
-          tripId,
-          seatsBooked: seats,
-          message: '',
-          paymentMethod
-        });
-
-        console.log('📋 [Booking] Reserva creada:', reservationResponse);
-
-        if (!reservationResponse?.success) {
-          throw new Error('Error creando la reserva');
-        }
-
-        // Extraer los datos de pago de la respuesta
-        const paymentData = reservationResponse.data.paymentData;
-
-        if (!paymentData) {
-          throw new Error('No se recibieron datos de pago del backend');
-        }
-
-        // El paymentIntentId es el que usaremos para confirmar
-        const paymentIntentId = reservationResponse.data.paymentIntentId;
-
-        if (!paymentIntentId) {
-          throw new Error('No se recibió el payment intent ID');
-        }
-
-        console.log('🔑 [Booking] Payment Intent ID:', paymentIntentId);
-        console.log('💳 [Booking] Payment Data completo:', paymentData);
-
-        // Procesar según el método de pago
-        if (paymentMethod === 'brick') {
-          // ✅ CORRECCIÓN: Usar variable correcta 'preferenceId' en lugar de 'prefId'
-          const preferenceId = paymentData.preferenceId;
-          const amount = reservationResponse.data.reservationAmount;
-
-          console.log('🔑 [Booking] Datos del Brick:', {
-            preferenceId,  // ✅ Corregido: era 'prefId'
-            amount,
-            paymentIntentId
-          });
-
-          // Validaciones
-          if (!preferenceId) {
-            throw new Error('No se recibió el ID de preferencia de pago');
-          }
-
-          if (!amount || isNaN(amount) || amount <= 0) {
-            throw new Error(`El monto de la reserva no es válido (${amount})`);
-          }
-
-          // ✅ Configurar datos del Brick
-          setBrickData({
-            preferenceId,  // ✅ Corregido: usar 'preferenceId' en lugar de variable incorrecta
-            amount: parseFloat(amount),
-            intentId: paymentIntentId,
-          });
-
-          setShowPaymentBrick(true);
-
-        } else {
-          // Para QR, usar los datos de pago directamente
-          const amount = reservationResponse.data.reservationAmount;
-
-          setPaymentData({
-            data: {
-              payment: {
-                url: paymentData.initPoint,
-                qrCode: paymentData.initPoint,
-                paymentId: paymentData.preferenceId
-              },
-              feeBreakdown: {
-                totalToPay: amount
-              }
-            },
-            paymentMethod: 'qr'
-          });
-          setShowPaymentQR(true);
-        }
-      }
-
-    } catch (err) {
-      console.error('❌ [Booking] Error creando reserva:', err);
-      console.error('❌ [Booking] Error completo:', {
-        message: err?.message,
-        response: err?.response?.data,
-        status: err?.response?.status,
+      // Crear solicitud de reserva (sin pago inmediato)
+      const reservationResponse = await createSeatReservation({
+        tripId,
+        seatsBooked: seats,
+        message: ''
       });
 
+      if (!reservationResponse?.success) {
+        throw new Error(reservationResponse?.message || 'Error creando la reserva');
+      }
+
+      Alert.alert(
+        '✅ Solicitud Enviada',
+        'Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              navigation.goBack();
+            }
+          }
+        ]
+      );
+    } catch (err) {
+      console.error('❌ [Booking] Error creando reserva:', err);
       Alert.alert(
         'Error',
         err?.response?.data?.message ||
-        err?.response?.data?.error ||
         err?.message ||
         'Error al procesar la reserva'
       );
@@ -432,151 +302,13 @@ const BookingScreen = ({ route, navigation }) => {
   };
 
 
-
-  const handleBrickPaymentSuccess = async (intentId, formData) => {
-    console.log('💳 [Booking] Confirmando pago con Payment Intent ID:', intentId);
-    console.log('💳 [Booking] Form Data:', formData);
-
-    try {
-      // Llamar al endpoint de confirmación usando el paymentIntentId
-      const response = await confirmPaymentIntentPayment(intentId, formData);
-
-      console.log('✅ [Booking] Pago confirmado:', response);
-
-      Alert.alert(
-        '¡Pago exitoso!',
-        'Tu reserva ha sido confirmada.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowPaymentBrick(false);
-              navigation.goBack();
-            }
-          }
-        ]
-      );
-
-      return response;
-    } catch (error) {
-      console.error('❌ [Booking] Error confirmando pago:', error);
-      console.error('❌ [Booking] Error response data:', error?.response?.data);
-      console.error('❌ [Booking] Error completo:', JSON.stringify(error?.response?.data, null, 2));
-      
-      // Extraer información del error para mostrar mensaje más claro
-      const statusMP = error?.response?.data?.statusMP;
-      const statusDetail = error?.response?.data?.statusDetail;
-      const errorMessage = error?.response?.data?.message || error?.message || 'Error al procesar el pago';
-      
-      console.log('🔍 [Booking] Estado del pago:', { statusMP, statusDetail, errorMessage });
-      
-      // Si el pago está en proceso o pendiente de revisión, tratarlo como éxito parcial
-      // El webhook lo procesará cuando se apruebe
-      // También verificar si el mensaje contiene indicadores de pago en proceso
-      const isPending = statusMP === 'in_process' || 
-                       statusMP === 'pending' || 
-                       statusDetail === 'pending_review_manual' ||
-                       errorMessage.toLowerCase().includes('en proceso') ||
-                       errorMessage.toLowerCase().includes('pending');
-      
-      if (isPending) {
-        console.log('✅ [Booking] Pago en proceso, tratando como éxito parcial');
-        Alert.alert(
-          'Pago en proceso',
-          'Tu pago está siendo procesado por MercadoPago. Te notificaremos cuando se confirme. Puedes cerrar esta ventana.',
-          [
-            {
-              text: 'Entendido',
-              onPress: () => {
-                setShowPaymentBrick(false);
-                navigation.goBack();
-              }
-            }
-          ]
-        );
-        // Retornar como éxito parcial para que el WebView no muestre error
-        return { success: true, pending: true, status: statusMP || 'in_process' };
-      }
-      
-      console.log('❌ [Booking] Pago rechazado o error real');
-      
-      // Para otros errores, mostrar mensaje específico
-      let userMessage = errorMessage;
-      
-      if (statusDetail === 'cc_rejected_high_risk') {
-        userMessage = 'El pago fue rechazado por medidas de seguridad. Por favor intenta con otro método de pago o contacta a tu banco.';
-      } else if (statusDetail) {
-        userMessage = `El pago fue ${statusDetail.replace(/_/g, ' ')}. Por favor intenta nuevamente o usa otro método de pago.`;
-      }
-      
-      // Mostrar alerta con el mensaje mejorado
-      Alert.alert(
-        'Error en el pago',
-        userMessage,
-        [{ text: 'Entendido' }]
-      );
-      
-      throw error;
-    }
-  };
-
-  const handleBrickPaymentError = (error) => {
-    console.error('❌ Payment Brick error:', error);
-    Alert.alert(
-      'Error en el pago',
-      error?.message || 'Hubo un problema al procesar tu pago'
-    );
-  };
-
-  const handleBrickClose = () => {
-    setShowPaymentBrick(false);
-    setBrickData(null);
-  };
-  const handleOpenPaymentLink = async () => {
-    // Log para debug
-    console.log('📱 PaymentData estructura completa:', JSON.stringify(paymentData, null, 2));
-
-    // Buscar URL de pago en el nuevo formato
-    const paymentUrl =
-      paymentData?.data?.payment?.url ||
-      paymentData?.data?.payment?.qrCode ||
-      paymentData?.data?.payment?.initPoint ||
-      paymentData?.payment?.payment?.url ||
-      paymentData?.payment?.payment?.qrCode ||
-      paymentData?.payment?.payment?.initPoint ||
-      paymentData?.payment?.data?.payment?.url ||
-      paymentData?.payment?.data?.payment?.paymentUrl ||
-      paymentData?.payment?.data?.payment?.initPoint ||
-      paymentData?.payment?.paymentUrl ||
-      paymentData?.payment?.initPoint;
-
-    console.log('🔗 URL de pago encontrada:', paymentUrl);
-    console.log('💳 Método de pago:', paymentData?.paymentMethod || selectedPaymentMethod);
-
-    if (!paymentUrl) {
-      Alert.alert(
-        'Información de pago',
-        selectedPaymentMethod === 'qr'
-          ? 'Se abrirá MercadoPago donde podrás:\n\n• Escanear un QR con la app\n• Pagar con tarjeta como invitado\n• No necesitas crear cuenta obligatoriamente\n\n¿Intentar nuevamente?'
-          : 'No se pudo obtener el link de pago. Por favor intenta nuevamente.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Reintentar', onPress: () => handlePaymentMethodSelection(selectedPaymentMethod) }
-        ]
-      );
-      return;
-    }
-
-    try {
-      await Linking.openURL(paymentUrl);
-    } catch (err) {
-      console.error('❌ Error abriendo link:', err);
-      Alert.alert('Error', 'No se pudo abrir el link de pago');
-    }
-  };
-
-  // Modal de selección de método de pago
-  if (showPaymentSelector) {
+  // Pantalla principal de booking (sin modales de pago - el flujo es: solicitar -> aprobar -> pagar)
+  // Los modales de pago se eliminaron porque ahora el flujo es:
+  // 1. Usuario solicita reserva (pending_approval)
+  // 2. Conductor aprueba -> se crea PaymentIntent y se retorna paymentUrl
+  // 3. Usuario paga usando paymentUrl (redirect a Checkout Pro)
+  // 4. Webhook procesa el pago automáticamente
+  if (false) { // Eliminado: showPaymentSelector
     return (
       <LinearGradient colors={gradients_hook?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
         <Animated.View
@@ -738,8 +470,8 @@ const BookingScreen = ({ route, navigation }) => {
     );
   }
 
-  // Si está mostrando QR de pago
-  if (showPaymentQR && paymentData) {
+  // Eliminado: Modal de QR de pago (ya no se usa)
+  if (false) { // Eliminado: showPaymentQR
     return (
       <LinearGradient colors={gradients_hook?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
         <Animated.View
@@ -1359,8 +1091,8 @@ const BookingScreen = ({ route, navigation }) => {
               ) : (
                 <>
                   <View style={styles.confirmButtonContent}>
-                    <Ionicons name="card-outline" size={24} color="#FFFFFF" />
-                    <Text style={styles.confirmButtonText}>Elegir método de pago</Text>
+                    <Ionicons name="send-outline" size={24} color="#FFFFFF" />
+                    <Text style={styles.confirmButtonText}>Solicitar Reserva</Text>
                   </View>
                   {priceData && (
                     <Text style={styles.confirmButtonPrice}>
@@ -1373,21 +1105,7 @@ const BookingScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Payment Brick Modal - AGREGADO */}
-        {showPaymentBrick && brickData && (
-          <PaymentBrickWebView
-            visible={showPaymentBrick}
-            onClose={handleBrickClose}
-            preferenceId={brickData.preferenceId}
-            amount={brickData.amount}
-            intentId={brickData.intentId}
-            seats={seats}
-            trip={trip}
-            onPaymentSuccess={handleBrickPaymentSuccess}
-            onPaymentError={handleBrickPaymentError}
-            publicKey={process.env.EXPO_PUBLIC_MP_PUBLIC_KEY || 'TEST-your-public-key'}
-          />
-        )}
+        {/* Eliminado: Payment Brick Modal (ya no se usa, se usa Checkout Pro con redirect) */}
       </Animated.View>
     </LinearGradient>
   );

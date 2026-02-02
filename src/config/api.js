@@ -1,9 +1,13 @@
 import Constants from 'expo-constants';
 
 // Leer configuración desde .env o usar valores por defecto
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 
-                     process.env.API_BASE_URL || 
-                     'http://192.168.1.6:5000/api';
+// Para producción: https://appcarpuling.cloud/api
+// Para desarrollo local: http://TU_IP:5000/api (ej: http://192.168.1.6:5000/api)
+// Para Android Emulator: http://10.0.2.2:5000/api
+const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL ||
+  process.env.API_BASE_URL ||
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  'https://appcarpuling.cloud/api';
 
 // Configuración de la API
 export const API_CONFIG = {

@@ -1,9 +1,12 @@
 import { ENDPOINTS } from '../config/api';
-import { post_withauth, get_withauth } from './apiService';
+import { post_withauth, get_withauth, delete_withauth, put_withauth } from './apiService';
 
 /**
  * Servicio para operaciones de reserva de asientos con precio dinámico
  * Basado en distancia del viaje
+ * 
+ * IMPORTANTE: Los pagos se procesan automáticamente vía webhook de MercadoPago.
+ * El usuario paga en MercadoPago Checkout Pro (redirect) y el webhook procesa el pago.
  */
 
 /**
@@ -25,13 +28,13 @@ export const calculateReservationPrice = async (tripId, seatsBooked = 1) => {
 };
 
 /**
- * Crear una nueva reserva de asiento
+ * Crear una nueva solicitud de reserva de asiento (SOLO SOLICITUD, sin pago inmediato)
+ * El flujo es: Solicitar -> Conductor Aprueba -> Usuario Paga
  * @param {Object} data - Datos de la reserva
  * @param {string} data.tripId - ID del viaje
  * @param {number} data.seatsBooked - Número de asientos
  * @param {string} data.message - Mensaje opcional al conductor
- * @param {string} data.paymentMethod - Método de pago: 'qr' | 'checkout_pro'
- * @returns {Promise<Object>} - Objeto con datos de reserva y opciones de pago
+ * @returns {Promise<Object>} - Objeto con datos de la reserva creada (estado: pending_approval)
  */
 export const createSeatReservation = async (data) => {
   try {
@@ -40,8 +43,7 @@ export const createSeatReservation = async (data) => {
       {
         tripId: data.tripId,
         seatsBooked: data.seatsBooked,
-        message: data.message || '',
-        paymentMethod: data.paymentMethod || 'qr'
+        message: data.message || ''
       }
     );
     return response;
@@ -52,27 +54,11 @@ export const createSeatReservation = async (data) => {
 };
 
 /**
- * Confirmar pago de una reserva de asiento
- * @param {string} reservationId - ID de la reserva
- * @param {Object} paymentData - Datos del pago de Mercado Pago
- * @returns {Promise<Object>} - Datos de la reserva confirmada
- */
-export const confirmReservationPayment = async (reservationId, paymentData) => {
-  try {
-    const response = await post_withauth(
-      `${ENDPOINTS.SEAT_RESERVATIONS}/${reservationId}/confirm-payment`,
-      paymentData
-    );
-    return response;
-  } catch (error) {
-    console.error('Error confirmando pago de reserva:', error);
-    throw error;
-  }
-};
-
-/**
  * Obtener mis reservas de asiento
  * @param {Object} options - Opciones de búsqueda
+ * @param {string} options.status - Estado de la reserva (pending_approval, pending_payment, reserved, rejected)
+ * @param {number} options.page - Página actual
+ * @param {number} options.limit - Número de elementos por página
  * @returns {Promise<Object>} - Lista de reservas del usuario
  */
 export const getMyReservations = async (options = {}) => {
@@ -82,8 +68,8 @@ export const getMyReservations = async (options = {}) => {
     // Agregar parámetros de query
     const params = new URLSearchParams();
     if (options.status) params.append('status', options.status);
-    if (options.page) params.append('page', options.page);
-    if (options.limit) params.append('limit', options.limit);
+    if (options.page) params.append('page', options.page.toString());
+    if (options.limit) params.append('limit', options.limit.toString());
 
     if (params.toString()) {
       url += `?${params.toString()}`;
@@ -93,6 +79,20 @@ export const getMyReservations = async (options = {}) => {
     return response;
   } catch (error) {
     console.error('Error obteniendo reservas:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener reservas pendientes de pago (que van a expirar)
+ * @returns {Promise<Object>} - Reservas con pago pendiente
+ */
+export const getPendingPaymentReservations = async () => {
+  try {
+    const response = await get_withauth(`${ENDPOINTS.SEAT_RESERVATIONS}/pending-payment`);
+    return response;
+  } catch (error) {
+    console.error('Error obteniendo reservas pendientes:', error);
     throw error;
   }
 };
@@ -112,69 +112,16 @@ export const getReservationConfig = async () => {
 };
 
 /**
- * Obtener reservas pendientes de pago
- * @returns {Promise<Object>} - Reservas con pago pendiente
- */
-export const getPendingPaymentReservations = async () => {
-  try {
-    const response = await get_withauth(`${ENDPOINTS.SEAT_RESERVATIONS}/pending-payment`);
-    return response;
-  } catch (error) {
-    console.error('Error obteniendo reservas pendientes:', error);
-    throw error;
-  }
-};
-// En seatReservationService.js
-
-/**
- * Confirmar el pago de una reserva usando Payment Brick
- * @param {string} intentId - ID del PaymentIntent (no del seatReservation)
- * @param {object} formData - Datos del formulario del Payment Brick
- * @returns {Promise<object>} - Respuesta con los datos de la reserva confirmada
- */
-export const confirmPaymentIntentPayment = async (intentId, formData) => {
-  try {
-    console.log('🔄 [Service] Confirmando pago del PaymentIntent:', intentId);
-    console.log('🔄 [Service] Form data:', formData);
-
-    // Endpoint correcto según el backend: /api/seat-reservations/payment-intent/:intentId/confirm-payment
-    const response = await post_withauth(
-      `${ENDPOINTS.SEAT_RESERVATIONS}/payment-intent/${intentId}/confirm-payment`,
-      { formData } // El backend espera recibir { formData: {...} }
-    );
-
-    console.log('✅ [Service] Pago confirmado:', response);
-    return response;
-  } catch (error) {
-    console.error('❌ [Service] Error confirmando pago:', error);
-    console.error('❌ [Service] Error completo:', {
-      message: error?.message,
-      response: error?.response?.data,
-      statusMP: error?.response?.data?.statusMP,
-      statusDetail: error?.response?.data?.statusDetail,
-    });
-    // Asegurar que el error tenga toda la información del backend
-    if (error.response?.data) {
-      error.response.data = {
-        ...error.response.data,
-        statusMP: error.response.data.statusMP,
-        statusDetail: error.response.data.statusDetail,
-      };
-    }
-    throw error;
-  }
-};
-
-/**
- * Cancelar una reserva de asiento (solo si está pendiente de pago)
- * @param {string} reservationId - ID de la reserva
+ * Cancelar reserva de asiento (solo si está pendiente de pago o aprobación)
+ * @param {string} reservationId - ID de la reserva (seatReservation._id)
+ * @param {string} reason - Motivo de cancelación (opcional)
  * @returns {Promise<Object>} - Confirmación de cancelación
  */
-export const cancelSeatReservation = async (reservationId) => {
+export const cancelSeatReservation = async (reservationId, reason = '') => {
   try {
-    const response = await post_withauth(
-      `${ENDPOINTS.SEAT_RESERVATIONS}/${reservationId}/cancel`,
-      {}
+    const response = await delete_withauth(
+      `${ENDPOINTS.SEAT_RESERVATIONS}/${reservationId}`,
+      { reason }
     );
     return response;
   } catch (error) {
@@ -184,23 +131,75 @@ export const cancelSeatReservation = async (reservationId) => {
 };
 
 /**
- * Crear pago para reserva de asiento con método específico
- * @param {string} seatReservationId - ID de la reserva de asiento
- * @param {string} paymentMethod - 'qr' o 'checkout_pro'
- * @returns {Promise<Object>} - Datos del pago creado
+ * Aprobar o rechazar una solicitud de reserva (solo conductor)
+ * @param {string} reservationId - ID de la reserva (seatReservation._id)
+ * @param {string} action - 'approve' o 'reject'
+ * @param {string} reason - Razón opcional para rechazar
+ * @returns {Promise<Object>} - Resultado de la acción. Si aprueba, incluye paymentUrl para Checkout Pro
  */
-export const createSeatReservationPayment = async (seatReservationId, paymentMethod) => {
+export const approveOrRejectReservation = async (reservationId, action, reason = '') => {
   try {
-    const response = await post_withauth(
-      `${ENDPOINTS.CREATE_PAYMENT}/seat-reservation`,
+    const response = await put_withauth(
+      `${ENDPOINTS.SEAT_RESERVATIONS}/${reservationId}/approve`,
       {
-        seatReservationId,
-        paymentMethod
+        action,
+        reason
       }
     );
     return response;
   } catch (error) {
-    console.error('Error creando pago para reserva:', error);
+    console.error('Error aprobando/rechazando reserva:', error);
     throw error;
   }
+};
+
+/**
+ * Obtener reservas pendientes de aprobación (solo conductor)
+ * @returns {Promise<Object>} - Lista de reservas pendientes de aprobación
+ */
+export const getPendingApprovalReservations = async () => {
+  try {
+    const response = await get_withauth(`${ENDPOINTS.SEAT_RESERVATIONS}/pending-approval`);
+    return response;
+  } catch (error) {
+    console.error('Error obteniendo reservas pendientes de aprobación:', error);
+    throw error;
+  }
+};
+
+/**
+ * Endpoint de diagnóstico para verificar el estado de una reserva
+ * @param {string} reservationId - ID de la reserva
+ * @returns {Promise<Object>} - Información de diagnóstico de la reserva
+ */
+export const debugReservation = async (reservationId) => {
+  try {
+    const response = await get_withauth(`${ENDPOINTS.SEAT_RESERVATIONS}/${reservationId}/debug`);
+    return response;
+  } catch (error) {
+    console.error('Error en diagnóstico de reserva:', error);
+    throw error;
+  }
+};
+
+/**
+ * @deprecated Este endpoint ya no está disponible. Los pagos solo se procesan automáticamente vía webhook de MercadoPago.
+ * El usuario paga en MercadoPago Checkout Pro (redirect) y el webhook procesa el pago automáticamente.
+ */
+export const confirmReservationPayment = async (reservationId, paymentInfo) => {
+  throw new Error('Este endpoint ya no está disponible. Los pagos solo se procesan automáticamente vía webhook de MercadoPago.');
+};
+
+/**
+ * @deprecated Ya no se usa Payment Brick. Se usa Checkout Pro con redirect.
+ */
+export const confirmPaymentIntentPayment = async (intentId, formData) => {
+  throw new Error('Este método ya no está disponible. Se usa MercadoPago Checkout Pro con redirect.');
+};
+
+/**
+ * @deprecated Ya no se crean pagos separados. El pago se crea cuando el conductor aprueba la reserva.
+ */
+export const createSeatReservationPayment = async (seatReservationId, paymentMethod) => {
+  throw new Error('Este método ya no está disponible. El pago se crea automáticamente cuando el conductor aprueba la reserva.');
 };

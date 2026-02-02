@@ -127,7 +127,7 @@ const ProfileScreen = () => {
   const performLogout = async () => {
     try {
       console.log('🔄 performLogout - INICIANDO');
-      
+
       // Ejecutar logout
       console.log('🔄 performLogout - Ejecutando función logout()...');
       await logout();
@@ -202,6 +202,17 @@ const ProfileScreen = () => {
           title: 'Ayuda',
           icon: 'help-circle-outline',
           onPress: () => navigation.navigate('Help'),
+        },
+      ],
+    },
+    {
+      title: 'Reservas',
+      items: [
+        {
+          id: 6,
+          title: 'Mis Reservas de Asiento',
+          icon: 'calendar-outline',
+          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' }),
         },
       ],
     },

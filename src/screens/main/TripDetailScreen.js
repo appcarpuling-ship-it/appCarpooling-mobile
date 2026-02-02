@@ -293,13 +293,43 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   // Función para completar pago de reserva pendiente
-  const handleCompletePendingPayment = () => {
-    if (userBooking?.paymentStatus === 'pending_payment') {
-      // Navegar a BookingScreen con la reserva existente
-      navigation.navigate('Booking', {
-        trip: trip,
-        existingReservation: userBooking
-      });
+  const handleCompletePendingPayment = async () => {
+    try {
+      const seatReservation = userBooking?.seatReservation;
+      const reservationStatus = seatReservation?.reservationStatus;
+
+      // Verificar si está pendiente de pago
+      if (reservationStatus === 'pending_payment') {
+        // Obtener URL de pago desde la reserva
+        const paymentUrl = seatReservation?.paymentUrl ||
+          seatReservation?.reservationPayment?.paymentUrl ||
+          seatReservation?.initPoint;
+
+        if (paymentUrl) {
+          // Abrir Checkout Pro en el navegador
+          const canOpen = await Linking.canOpenURL(paymentUrl);
+          if (canOpen) {
+            await Linking.openURL(paymentUrl);
+          } else {
+            Alert.alert('Error', 'No se pudo abrir el link de pago');
+          }
+        } else {
+          Alert.alert(
+            'Error',
+            'No se encontró la URL de pago. Por favor, contacta al soporte o intenta crear una nueva reserva.'
+          );
+        }
+      } else if (reservationStatus === 'pending_approval') {
+        Alert.alert(
+          'Pendiente de Aprobación',
+          'Tu solicitud está esperando la aprobación del conductor. Te notificaremos cuando sea aprobada.'
+        );
+      } else {
+        Alert.alert('Información', 'Esta reserva no requiere pago en este momento.');
+      }
+    } catch (error) {
+      console.error('Error procesando pago:', error);
+      Alert.alert('Error', 'No se pudo procesar el pago');
     }
   };
 
@@ -316,8 +346,14 @@ const TripDetailScreen = ({ route, navigation }) => {
           onPress: async () => {
             try {
               setPaymentLoading(true);
-              // Aquí implementaríamos la llamada para cancelar la reserva
-              // await cancelSeatReservation(userBooking.seatReservation);
+              // Cancelar reserva de asiento
+              const { cancelSeatReservation } = require('../../services/seatReservationService');
+              const seatReservationId = userBooking.seatReservation?._id || userBooking.seatReservation?.id;
+              if (seatReservationId) {
+                await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
+              } else {
+                throw new Error('No se encontró la reserva de asiento');
+              }
 
               // Por ahora, simplemente recargamos el viaje para actualizar el estado
               await loadTripDetail();
@@ -623,7 +659,9 @@ const TripDetailScreen = ({ route, navigation }) => {
           >
             {userBooking ? (
               // Mostrar estado de reserva existente
-              userBooking.paymentStatus === 'pending_payment' ? (
+              // Verificar si es reserva de asiento pendiente de pago o reserva tradicional pendiente
+              (userBooking.seatReservation?.reservationStatus === 'pending_payment' || 
+               userBooking.paymentStatus === 'pending_payment') ? (
                 // Reserva pendiente de pago
                 <View style={styles.pendingPaymentContainer}>
                   <LinearGradient

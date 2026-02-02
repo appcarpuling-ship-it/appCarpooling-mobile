@@ -11,10 +11,11 @@ const colors = themeColors || {
 import CarpoolingsScreen from '../../screens/main/CarpoolingsScreen';
 import CreateTripScreen from '../../screens/main/CreateTripScreen';
 // import CreateTripGoogleMaps from '../../screens/main/CreateTripGoogleMaps';
-import TripDetails from '../../screens/main/TripDetails'; 
+import TripDetails from '../../screens/main/TripDetails';
 import EditTripScreen from '../../screens/main/EditTripScreen';
 import MyTripsScreen from '../../screens/main/MyTripsScreen';
 import MyBookingsScreen from '../../screens/main/MyBookingsScreen';
+import MySeatReservationsScreen from '../../screens/main/MySeatReservationsScreen';
 import TripDetailScreen from '../../screens/main/TripDetailScreen';
 import TripRequestsScreen from '../../screens/main/TripRequestsScreen';
 import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
@@ -72,6 +73,11 @@ const CarpoolingsStackNavigator = () => {
         name="MyBookings"
         component={MyBookingsScreen}
         options={{ title: 'Mis Reservas' }}
+      />
+      <Stack.Screen
+        name="MySeatReservations"
+        component={MySeatReservationsScreen}
+        options={{ title: 'Mis Reservas de Asiento' }}
       />
       <Stack.Screen
         name="TripDetailFromCarpoolings"

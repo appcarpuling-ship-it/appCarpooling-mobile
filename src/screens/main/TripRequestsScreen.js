@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
+import { approveOrRejectReservation, getPendingApprovalReservations } from '../../services/seatReservationService';
+import { Linking } from 'react-native';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 import { useNavigation } from '@react-navigation/native';
@@ -102,23 +104,40 @@ const TripRequestsScreen = ({ route }) => {
     }
   };
 
-  const handleAccept = (requestId) => {
+  const handleAccept = async (request) => {
+    const requestId = request._id || request.id;
+    const isSeatReservation = request.bookingType === 'seat_reservation';
+    const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
+
     Alert.alert(
       'Aceptar Solicitud',
-      '¿Estás seguro de aceptar esta solicitud?',
+      `¿Estás seguro de aceptar esta solicitud de ${request.seatsBooked || request.seatsRequested} asiento(s)?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Aceptar',
           onPress: async () => {
             try {
-              const response = await put_withauth(`/bookings/${requestId}/confirm`);
-              if (response.success) {
-                Alert.alert('Éxito', 'Solicitud aceptada');
-                loadRequests();
+              if (isSeatReservation && seatReservationId) {
+                // Reserva de asiento: usar el nuevo endpoint
+                const response = await approveOrRejectReservation(seatReservationId, 'approve');
+                if (response.success) {
+                  Alert.alert(
+                    '✅ Solicitud Aprobada',
+                    'La reserva ha sido aprobada. El pasajero recibirá una notificación para completar el pago.',
+                    [{ text: 'OK', onPress: () => loadRequests() }]
+                  );
+                }
+              } else {
+                // Reserva tradicional
+                const response = await put_withauth(`/bookings/${requestId}/confirm`);
+                if (response.success) {
+                  Alert.alert('Éxito', 'Solicitud aceptada');
+                  loadRequests();
+                }
               }
             } catch (error) {
-              Alert.alert('Error', error.message);
+              Alert.alert('Error', error?.response?.data?.message || error.message);
             }
           },
         },
@@ -133,19 +152,37 @@ const TripRequestsScreen = ({ route }) => {
     }
 
     try {
-      const response = await put_withauth(`/bookings/${selectedRequest}/reject`, {
-        reason: rejectReason,
-      });
+      // Buscar la solicitud completa para determinar si es seat reservation
+      const request = requests.find(r => (r._id || r.id) === selectedRequest);
+      const isSeatReservation = request?.bookingType === 'seat_reservation';
+      const seatReservationId = request?.seatReservation?._id || request?.seatReservation?.id;
 
-      if (response.success) {
-        Alert.alert('Éxito', 'Solicitud rechazada');
-        setRejectModalVisible(false);
-        setRejectReason('');
-        setSelectedRequest(null);
-        loadRequests();
+      if (isSeatReservation && seatReservationId) {
+        // Reserva de asiento: usar el nuevo endpoint
+        const response = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
+        if (response.success) {
+          Alert.alert('Éxito', 'Solicitud rechazada');
+          setRejectModalVisible(false);
+          setRejectReason('');
+          setSelectedRequest(null);
+          loadRequests();
+        }
+      } else {
+        // Reserva tradicional
+        const response = await put_withauth(`/bookings/${selectedRequest}/reject`, {
+          reason: rejectReason,
+        });
+
+        if (response.success) {
+          Alert.alert('Éxito', 'Solicitud rechazada');
+          setRejectModalVisible(false);
+          setRejectReason('');
+          setSelectedRequest(null);
+          loadRequests();
+        }
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error?.response?.data?.message || error.message);
     }
   };
 
@@ -155,23 +192,49 @@ const TripRequestsScreen = ({ route }) => {
   };
 
   const getStatusColor = (status) => {
+    // Manejar estados de seat reservation
+    if (status === 'pending_approval') return '#F59E0B';
+    if (status === 'pending_payment') return '#F97316';
+    if (status === 'reserved') return '#10B981';
+    if (status === 'rejected') return colors.error;
+
+    // Estados tradicionales
     switch (status) {
       case 'pending':
-        return colors.warning;
+        return colors.warning || '#F59E0B';
       case 'accepted':
-        return colors.success;
+      case 'confirmed':
+        return colors.success || '#10B981';
       case 'rejected':
-        return colors.error;
+        return colors.error || '#EF4444';
       default:
-        return colors.textSecondary;
+        return colors.textSecondary || '#6B7280';
     }
   };
 
-  const getStatusText = (status) => {
+  const getStatusText = (status, seatReservationStatus) => {
+    // Priorizar estado de seat reservation si existe
+    if (seatReservationStatus) {
+      switch (seatReservationStatus) {
+        case 'pending_approval':
+          return 'Pendiente de Aprobación';
+        case 'pending_payment':
+          return 'Pendiente de Pago';
+        case 'reserved':
+          return 'Reserva Confirmada';
+        case 'rejected':
+          return 'Rechazada';
+        default:
+          return seatReservationStatus;
+      }
+    }
+
+    // Estado tradicional
     switch (status) {
       case 'pending':
         return 'Pendiente';
       case 'accepted':
+      case 'confirmed':
         return 'Aceptada';
       case 'rejected':
         return 'Rechazada';
@@ -232,8 +295,8 @@ const TripRequestsScreen = ({ route }) => {
 
         <View style={styles.userSection}>
           {avatarUrl ? (
-            <Image 
-              source={{ uri: avatarUrl }} 
+            <Image
+              source={{ uri: avatarUrl }}
               style={styles.avatar}
               onError={() => console.log('Error loading passenger avatar from:', item.passenger.avatar)}
             />
@@ -284,9 +347,9 @@ const TripRequestsScreen = ({ route }) => {
               colors={createColorArray(getStatusColor(item.status) + '20', getStatusColor(item.status) + '10') || ['#F3F4F6', '#E5E7EB']}
               style={styles.statusBadge}
             >
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                {getStatusText(item.status)}
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.seatReservation?.reservationStatus || item.status) }]} />
+              <Text style={[styles.statusText, { color: getStatusColor(item.seatReservation?.reservationStatus || item.status) }]}>
+                {getStatusText(item.status, item.seatReservation?.reservationStatus)}
               </Text>
             </LinearGradient>
           </View>
@@ -294,9 +357,49 @@ const TripRequestsScreen = ({ route }) => {
           <View style={styles.seatsInfo}>
             <Ionicons name="people" size={16} color={colors.textSecondary} />
             <Text style={styles.seatsText}>
-              {item.seatsRequested} {item.seatsRequested === 1 ? 'asiento' : 'asientos'}
+              {item.seatsBooked || item.seatsRequested} {(item.seatsBooked || item.seatsRequested) === 1 ? 'asiento' : 'asientos'}
             </Text>
           </View>
+
+          {/* Mostrar estado de reserva de asiento si existe */}
+          {item.seatReservation && (
+            <View style={styles.seatReservationStatus}>
+              <Ionicons
+                name={
+                  item.seatReservation.reservationStatus === 'pending_approval' ? 'time-outline' :
+                    item.seatReservation.reservationStatus === 'pending_payment' ? 'card-outline' :
+                      item.seatReservation.reservationStatus === 'reserved' ? 'checkmark-circle-outline' :
+                        item.seatReservation.reservationStatus === 'rejected' ? 'close-circle-outline' :
+                          'help-circle-outline'
+                }
+                size={14}
+                color={
+                  item.seatReservation.reservationStatus === 'pending_approval' ? '#F59E0B' :
+                    item.seatReservation.reservationStatus === 'pending_payment' ? '#F97316' :
+                      item.seatReservation.reservationStatus === 'reserved' ? '#10B981' :
+                        item.seatReservation.reservationStatus === 'rejected' ? '#EF4444' :
+                          '#6B7280'
+                }
+              />
+              <Text style={[
+                styles.seatReservationStatusText,
+                {
+                  color:
+                    item.seatReservation.reservationStatus === 'pending_approval' ? '#F59E0B' :
+                      item.seatReservation.reservationStatus === 'pending_payment' ? '#F97316' :
+                        item.seatReservation.reservationStatus === 'reserved' ? '#10B981' :
+                          item.seatReservation.reservationStatus === 'rejected' ? '#EF4444' :
+                            '#6B7280'
+                }
+              ]}>
+                {item.seatReservation.reservationStatus === 'pending_approval' ? 'Pendiente de Aprobación' :
+                  item.seatReservation.reservationStatus === 'pending_payment' ? 'Pendiente de Pago' :
+                    item.seatReservation.reservationStatus === 'reserved' ? 'Reserva Confirmada' :
+                      item.seatReservation.reservationStatus === 'rejected' ? 'Rechazada' :
+                        item.seatReservation.reservationStatus}
+              </Text>
+            </View>
+          )}
 
           {item.message && (
             <View style={styles.messageContainer}>
@@ -313,11 +416,11 @@ const TripRequestsScreen = ({ route }) => {
           </View>
         </View>
 
-        {item.status === 'pending' && (
+        {(item.status === 'pending' || (item.seatReservation?.reservationStatus === 'pending_approval')) && (
           <View style={styles.actionsContainer}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => handleAccept(item._id)}
+              onPress={() => handleAccept(item)}
               activeOpacity={0.7}
             >
               <LinearGradient
@@ -659,6 +762,19 @@ const styles = StyleSheet.create({
   seatsText: {
     fontSize: fontSize.md,
     color: '#000000',
+    fontWeight: fontWeight.medium,
+  },
+  seatReservationStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    padding: spacing.sm,
+    backgroundColor: '#F3F4F6',
+    borderRadius: borderRadius.sm,
+  },
+  seatReservationStatusText: {
+    fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
   },
   messageContainer: {
