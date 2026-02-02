@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Easing,
   Dimensions,
   Image,
   FlatList,
@@ -20,6 +21,8 @@ import { get_public, get_withauth, post_withauth } from '../../services/apiServi
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations } from '../../services/seatReservationService';
 import NativeCheckout from '../../components/NativeCheckout';
+import Toast from '../../components/Toast';
+import AnimatedCard from '../../components/AnimatedCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -64,6 +67,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
     loadTripDetail(); // Esto ahora incluye checkUserBooking() internamente
@@ -112,16 +116,22 @@ const TripDetailScreen = ({ route, navigation }) => {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 600,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration: 600,
+          tension: 50,
+          friction: 7,
           useNativeDriver: true,
         }),
       ]).start();
     }
   }, [loading, trip]);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+  };
 
   const loadTripDetail = async () => {
     try {
@@ -423,29 +433,21 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handlePaymentSuccess = async (paymentData) => {
     console.log('✅ [TripDetail] Pago exitoso:', paymentData);
-
-    Alert.alert(
-      '✅ Pago Completado',
-      'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.',
-      [
-        {
-          text: 'OK',
-          onPress: async () => {
-            // Recargar la reserva para mostrar los datos actualizados
-            await checkUserBooking();
-            // Recargar el viaje también
-            await loadTripDetail();
-          }
-        }
-      ]
-    );
+    
+    showToast('✅ Pago completado exitosamente', 'success');
+    
+    // Recargar la reserva después de un breve delay
+    setTimeout(async () => {
+      await checkUserBooking();
+      await loadTripDetail();
+    }, 1000);
   };
 
   const handlePaymentError = (error) => {
     console.error('❌ [TripDetail] Error en pago:', error);
-    Alert.alert(
-      'Error en el Pago',
-      error.message || 'Hubo un problema procesando tu pago. Por favor, intenta nuevamente.'
+    showToast(
+      error.message || 'Error al procesar el pago. Intenta nuevamente.',
+      'error'
     );
   };
 
@@ -539,6 +541,14 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
+      {/* Toast para feedback */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
+
       <Animated.View
         style={[
           styles.animatedContainer,
@@ -1361,10 +1371,10 @@ const styles = StyleSheet.create({
   },
   payButton: {
     shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   actionButtonGradient: {
     flexDirection: 'row',

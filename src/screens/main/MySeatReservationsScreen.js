@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Linking,
   Image,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,8 @@ import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 import NativeCheckout from '../../components/NativeCheckout';
+import Toast from '../../components/Toast';
+import AnimatedCard from '../../components/AnimatedCard';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
@@ -32,6 +35,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
     loadReservations();
@@ -92,26 +96,19 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const handlePaymentSuccess = async (paymentData) => {
     console.log('✅ [MySeatReservations] Pago exitoso:', paymentData);
 
-    Alert.alert(
-      '✅ Pago Completado',
-      'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.',
-      [
-        {
-          text: 'OK',
-          onPress: async () => {
-            // Recargar las reservas para mostrar los datos actualizados
-            await Promise.all([loadReservations(), loadPendingPayments()]);
-          }
-        }
-      ]
-    );
+    showToast('✅ Pago completado exitosamente', 'success');
+
+    // Recargar las reservas después de un breve delay para que se vea el toast
+    setTimeout(async () => {
+      await Promise.all([loadReservations(), loadPendingPayments()]);
+    }, 1000);
   };
 
   const handlePaymentError = (error) => {
     console.error('❌ [MySeatReservations] Error en pago:', error);
-    Alert.alert(
-      'Error en el Pago',
-      error.message || 'Hubo un problema procesando tu pago. Por favor, intenta nuevamente.'
+    showToast(
+      error.message || 'Error al procesar el pago. Intenta nuevamente.',
+      'error'
     );
   };
 
@@ -134,11 +131,16 @@ const MySeatReservationsScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-              Alert.alert('Éxito', 'Reserva cancelada');
-              loadReservations();
-              loadPendingPayments();
+              showToast('Reserva cancelada exitosamente', 'success');
+              setTimeout(() => {
+                loadReservations();
+                loadPendingPayments();
+              }, 500);
             } catch (error) {
-              Alert.alert('Error', error?.response?.data?.message || error.message);
+              showToast(
+                error?.response?.data?.message || error.message || 'Error al cancelar la reserva',
+                'error'
+              );
             }
           },
         },
@@ -190,14 +192,21 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    if (!loading && reservations.length > 0) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
+    if (!loading) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [loading, reservations]);
+  }, [loading]);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+  };
 
   const renderReservationItem = ({ item, index }) => {
     const status = item.seatReservation?.reservationStatus;
@@ -214,163 +223,196 @@ const MySeatReservationsScreen = ({ navigation }) => {
     }
 
     return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <LinearGradient
-          colors={safeGradients.card}
-          style={styles.reservationCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.cardBorder}>
-            {/* Header con ruta y estado */}
-            <View style={styles.reservationHeader}>
-              <View style={styles.routeInfo}>
-                <View style={styles.routePoint}>
-                  <Ionicons name="location" size={16} color="#1F2937" />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.trip?.from || 'Origen'}
-                  </Text>
-                </View>
-                <Ionicons name="arrow-forward" size={16} color={staticColors.textTertiary} />
-                <View style={styles.routePoint}>
-                  <Ionicons name="location" size={16} color="#EF4444" />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.trip?.to || 'Destino'}
-                  </Text>
-                </View>
+      <AnimatedCard
+        delay={index * 50}
+        gradientColors={safeGradients.card}
+        style={styles.reservationCard}
+      >
+        <View style={styles.cardBorder}>
+          {/* Header con ruta y estado */}
+          <View style={styles.reservationHeader}>
+            <View style={styles.routeInfo}>
+              <View style={styles.routePoint}>
+                <Ionicons name="location" size={16} color="#1F2937" />
+                <Text style={styles.routeText} numberOfLines={1}>
+                  {item.trip?.from || 'Origen'}
+                </Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
-                <Ionicons name={StatusIcon} size={14} color={statusConfig.color} />
-                <Text style={[styles.statusText, { color: statusConfig.color }]}>
-                  {statusConfig.text}
+              <Ionicons name="arrow-forward" size={16} color={staticColors.textTertiary} />
+              <View style={styles.routePoint}>
+                <Ionicons name="location" size={16} color="#EF4444" />
+                <Text style={styles.routeText} numberOfLines={1}>
+                  {item.trip?.to || 'Destino'}
                 </Text>
               </View>
             </View>
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
+              <Ionicons name={StatusIcon} size={14} color={statusConfig.color} />
+              <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                {statusConfig.text}
+              </Text>
+            </View>
+          </View>
 
-            {/* Información del viaje */}
-            <View style={styles.tripInfo}>
+          {/* Información del viaje */}
+          <View style={styles.tripInfo}>
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={14} color={staticColors.textSecondary} />
+              <Text style={styles.infoText}>
+                {formatDate(item.trip?.date || item.trip?.departureDate)}
+              </Text>
+            </View>
+            {item.trip?.time && (
               <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.infoText}>
-                  {formatDate(item.trip?.date || item.trip?.departureDate)}
+                <Ionicons name="time-outline" size={14} color={staticColors.textSecondary} />
+                <Text style={styles.infoText}>{item.trip.time}</Text>
+              </View>
+            )}
+            <View style={styles.infoRow}>
+              <Ionicons name="people-outline" size={14} color={staticColors.textSecondary} />
+              <Text style={styles.infoText}>
+                {item.booking?.seatsBooked || 1} asiento{item.booking?.seatsBooked > 1 ? 's' : ''}
+              </Text>
+            </View>
+          </View>
+
+          {/* Información financiera */}
+          {item.seatReservation && (
+            <View style={styles.financialInfo}>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Reserva Pagada:</Text>
+                <Text style={[styles.priceValue, { color: '#10B981' }]}>
+                  {formatCurrency(item.seatReservation.reservationAmount)}
                 </Text>
               </View>
-              {item.trip?.time && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="time-outline" size={14} color={staticColors.textSecondary} />
-                  <Text style={styles.infoText}>{item.trip.time}</Text>
+              {item.seatReservation.remainingPayment?.amountToPay ? (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Resto a Pagar:</Text>
+                  <Text style={[styles.priceValue, { color: '#3B82F6' }]}>
+                    {formatCurrency(item.seatReservation.remainingPayment.amountToPay)}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Costo Total Viaje:</Text>
+                  <Text style={[styles.priceValue, { color: '#3B82F6' }]}>
+                    {formatCurrency(item.booking?.totalPrice || 0)}
+                  </Text>
                 </View>
               )}
-              <View style={styles.infoRow}>
-                <Ionicons name="people-outline" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.infoText}>
-                  {item.booking?.seatsBooked || 1} asiento{item.booking?.seatsBooked > 1 ? 's' : ''}
-                </Text>
-              </View>
             </View>
+          )}
 
-            {/* Información financiera */}
-            {item.seatReservation && (
-              <View style={styles.financialInfo}>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Reserva Pagada:</Text>
-                  <Text style={[styles.priceValue, { color: '#10B981' }]}>
-                    {formatCurrency(item.seatReservation.reservationAmount)}
+          {/* Información del conductor - Solo para reservas confirmadas y pagadas */}
+          {status === 'reserved' && (
+            <View>
+              {item.trip?.driver ? (
+                <LinearGradient
+                  colors={['#E0F2FE', '#BAE6FD']}
+                  style={styles.driverInfoCard}
+                >
+                  <View style={styles.driverInfoHeader}>
+                    <Ionicons name="person-circle" size={24} color="#0EA5E9" />
+                    <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                  </View>
+                  <View style={styles.driverDetails}>
+                    <View style={styles.driverNameRow}>
+                      <Ionicons name="person-outline" size={18} color="#0369A1" />
+                      <Text style={styles.driverName}>
+                        {item.trip.driver.name ||
+                          `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim() ||
+                          'Conductor'}
+                      </Text>
+                    </View>
+                    {item.trip.driver.phone && (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
+                        style={styles.contactButtonLarge}
+                      >
+                        <LinearGradient
+                          colors={['#3B82F6', '#2563EB']}
+                          style={styles.contactButtonGradient}
+                        >
+                          <Ionicons name="call" size={18} color="#FFFFFF" />
+                          <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                    {item.trip.driver.email && (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
+                        style={styles.emailButton}
+                      >
+                        <Ionicons name="mail-outline" size={16} color="#0369A1" />
+                        <Text style={styles.emailText}>{item.trip.driver.email}</Text>
+                      </TouchableOpacity>
+                    )}
+                    {item.trip.driver.avatar && (
+                      <View style={styles.avatarContainer}>
+                        <Image
+                          source={{ uri: item.trip.driver.avatar }}
+                          style={styles.driverAvatar}
+                        />
+                      </View>
+                    )}
+                  </View>
+                </LinearGradient>
+              ) : (
+                <View style={styles.driverInfoCard}>
+                  <View style={styles.driverInfoHeader}>
+                    <Ionicons name="person-circle-outline" size={24} color="#6B7280" />
+                    <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                  </View>
+                  <Text style={styles.driverInfoPlaceholder}>
+                    Los datos del conductor se cargarán en breve...
                   </Text>
                 </View>
-                {item.seatReservation.remainingPayment?.amountToPay ? (
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Resto a Pagar:</Text>
-                    <Text style={[styles.priceValue, { color: '#3B82F6' }]}>
-                      {formatCurrency(item.seatReservation.remainingPayment.amountToPay)}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Costo Total Viaje:</Text>
-                    <Text style={[styles.priceValue, { color: '#3B82F6' }]}>
-                      {formatCurrency(item.booking?.totalPrice || 0)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
+              )}
+            </View>
+          )}
 
-            {/* Información del conductor - Solo para reservas confirmadas y pagadas */}
-            {status === 'reserved' && (
-              <View>
-                {item.trip?.driver ? (
-                  <LinearGradient
-                    colors={['#E0F2FE', '#BAE6FD']}
-                    style={styles.driverInfoCard}
-                  >
-                    <View style={styles.driverInfoHeader}>
-                      <Ionicons name="person-circle" size={24} color="#0EA5E9" />
-                      <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
-                    </View>
-                    <View style={styles.driverDetails}>
-                      <View style={styles.driverNameRow}>
-                        <Ionicons name="person-outline" size={18} color="#0369A1" />
-                        <Text style={styles.driverName}>
-                          {item.trip.driver.name ||
-                            `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim() ||
-                            'Conductor'}
-                        </Text>
-                      </View>
-                      {item.trip.driver.phone && (
-                        <TouchableOpacity
-                          onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
-                          style={styles.contactButtonLarge}
-                        >
-                          <LinearGradient
-                            colors={['#3B82F6', '#2563EB']}
-                            style={styles.contactButtonGradient}
-                          >
-                            <Ionicons name="call" size={18} color="#FFFFFF" />
-                            <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      )}
-                      {item.trip.driver.email && (
-                        <TouchableOpacity
-                          onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
-                          style={styles.emailButton}
-                        >
-                          <Ionicons name="mail-outline" size={16} color="#0369A1" />
-                          <Text style={styles.emailText}>{item.trip.driver.email}</Text>
-                        </TouchableOpacity>
-                      )}
-                      {item.trip.driver.avatar && (
-                        <View style={styles.avatarContainer}>
-                          <Image
-                            source={{ uri: item.trip.driver.avatar }}
-                            style={styles.driverAvatar}
-                          />
-                        </View>
-                      )}
-                    </View>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.driverInfoCard}>
-                    <View style={styles.driverInfoHeader}>
-                      <Ionicons name="person-circle-outline" size={24} color="#6B7280" />
-                      <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
-                    </View>
-                    <Text style={styles.driverInfoPlaceholder}>
-                      Los datos del conductor se cargarán en breve...
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
+          {/* Acciones según el estado */}
+          {status === 'pending_approval' && (
+            <View style={styles.pendingApprovalBox}>
+              <Ionicons name="time-outline" size={16} color="#F59E0B" />
+              <Text style={styles.pendingText}>
+                Esperando respuesta del conductor
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleCancelReservation(item)}
+                style={styles.cancelButtonSmall}
+              >
+                <Text style={styles.cancelButtonTextSmall}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-            {/* Acciones según el estado */}
-            {status === 'pending_approval' && (
-              <View style={styles.pendingApprovalBox}>
-                <Ionicons name="time-outline" size={16} color="#F59E0B" />
-                <Text style={styles.pendingText}>
-                  Esperando respuesta del conductor
+          {status === 'pending_payment' && (
+            <View style={styles.pendingPaymentBox}>
+              <View style={styles.pendingPaymentHeader}>
+                <Ionicons name="alert-circle" size={16} color="#F97316" />
+                <Text style={styles.pendingPaymentTitle}>
+                  ¡Solicitud aprobada! - Pago pendiente
                 </Text>
+              </View>
+              {item.seatReservation?.expiresAt && (
+                <Text style={styles.expiresText}>
+                  Expira en: {getTimeRemaining(item.seatReservation.expiresAt)}
+                </Text>
+              )}
+              <View style={styles.paymentActions}>
+                <TouchableOpacity
+                  onPress={() => handlePayReservation(item)}
+                  style={styles.payButton}
+                >
+                  <LinearGradient
+                    colors={['#F97316', '#EA580C']}
+                    style={styles.payButtonGradient}
+                  >
+                    <Ionicons name="card-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.payButtonText}>Pagar Ahora</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleCancelReservation(item)}
                   style={styles.cancelButtonSmall}
@@ -378,64 +420,28 @@ const MySeatReservationsScreen = ({ navigation }) => {
                   <Text style={styles.cancelButtonTextSmall}>Cancelar</Text>
                 </TouchableOpacity>
               </View>
-            )}
+            </View>
+          )}
 
-            {status === 'pending_payment' && (
-              <View style={styles.pendingPaymentBox}>
-                <View style={styles.pendingPaymentHeader}>
-                  <Ionicons name="alert-circle" size={16} color="#F97316" />
-                  <Text style={styles.pendingPaymentTitle}>
-                    ¡Solicitud aprobada! - Pago pendiente
-                  </Text>
-                </View>
-                {item.seatReservation?.expiresAt && (
-                  <Text style={styles.expiresText}>
-                    Expira en: {getTimeRemaining(item.seatReservation.expiresAt)}
-                  </Text>
-                )}
-                <View style={styles.paymentActions}>
-                  <TouchableOpacity
-                    onPress={() => handlePayReservation(item)}
-                    style={styles.payButton}
-                  >
-                    <LinearGradient
-                      colors={['#F97316', '#EA580C']}
-                      style={styles.payButtonGradient}
-                    >
-                      <Ionicons name="card-outline" size={18} color="#FFFFFF" />
-                      <Text style={styles.payButtonText}>Pagar Ahora</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleCancelReservation(item)}
-                    style={styles.cancelButtonSmall}
-                  >
-                    <Text style={styles.cancelButtonTextSmall}>Cancelar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+          {status === 'reserved' && (
+            <View style={styles.confirmedBox}>
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Text style={styles.confirmedText}>
+                Reserva confirmada. El costo de reserva ({formatCurrency(item.seatReservation.reservationAmount)}) es aparte del costo del viaje ({formatCurrency(item.booking?.totalPrice || 0)}). El día del viaje pagarás el resto directamente al conductor.
+              </Text>
+            </View>
+          )}
 
-            {status === 'reserved' && (
-              <View style={styles.confirmedBox}>
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                <Text style={styles.confirmedText}>
-                  Reserva confirmada. El costo de reserva ({formatCurrency(item.seatReservation.reservationAmount)}) es aparte del costo del viaje ({formatCurrency(item.booking?.totalPrice || 0)}). El día del viaje pagarás el resto directamente al conductor.
-                </Text>
-              </View>
-            )}
-
-            {status === 'rejected' && (
-              <View style={styles.rejectedBox}>
-                <Ionicons name="close-circle" size={16} color="#EF4444" />
-                <Text style={styles.rejectedText}>
-                  El conductor rechazó tu solicitud de reserva.
-                </Text>
-              </View>
-            )}
-          </View>
-        </LinearGradient>
-      </Animated.View>
+          {status === 'rejected' && (
+            <View style={styles.rejectedBox}>
+              <Ionicons name="close-circle" size={16} color="#EF4444" />
+              <Text style={styles.rejectedText}>
+                El conductor rechazó tu solicitud de reserva.
+              </Text>
+            </View>
+          )}
+        </View>
+      </AnimatedCard>
     );
   };
 
@@ -450,23 +456,47 @@ const MySeatReservationsScreen = ({ navigation }) => {
   return (
     <LinearGradient colors={safeGradients.dark} style={styles.container}>
       {/* Alertas urgentes de reservas pendientes de pago */}
+      {/* Toast para feedback */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
+
+      {/* Alertas urgentes de reservas pendientes de pago */}
       {pendingPayments.length > 0 && (
-        <View style={styles.urgentAlert}>
+        <Animated.View
+          style={[
+            styles.urgentAlert,
+            {
+              opacity: fadeAnim,
+              transform: [{
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                }),
+              }],
+            },
+          ]}
+        >
           <LinearGradient
             colors={['#F97316', '#EA580C']}
             style={styles.urgentAlertGradient}
           >
-            <Ionicons name="alert-triangle" size={24} color="#FFFFFF" />
             <View style={styles.urgentAlertContent}>
-              <Text style={styles.urgentAlertTitle}>
-                ⚠️ Tienes {pendingPayments.length} reserva(s) pendiente(s) de pago
-              </Text>
-              <Text style={styles.urgentAlertSubtitle}>
-                Completa el pago antes de que expire para confirmar tu reserva.
-              </Text>
+              <Ionicons name="alert-circle" size={24} color="#FFFFFF" />
+              <View style={styles.urgentAlertTextContainer}>
+                <Text style={styles.urgentAlertTitle}>
+                  Tienes {pendingPayments.length} reserva(s) pendiente(s) de pago
+                </Text>
+                <Text style={styles.urgentAlertSubtitle}>
+                  Completa el pago antes de que expire para confirmar tu reserva
+                </Text>
+              </View>
             </View>
           </LinearGradient>
-        </View>
+        </Animated.View>
       )}
 
       {reservations.length > 0 ? (
@@ -540,14 +570,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   reservationCard: {
-    borderRadius: borderRadius.lg,
-    padding: 1.5,
     marginBottom: spacing.md,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   cardBorder: {
     backgroundColor: staticColors.cardBackground || '#FFFFFF',
@@ -759,6 +787,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   payButtonGradient: {
     flexDirection: 'row',

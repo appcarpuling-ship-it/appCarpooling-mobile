@@ -27,6 +27,7 @@ import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 import { fontFamily, typography } from '../../theme/typography';
+import AnimatedCard from '../../components/AnimatedCard';
 const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 
 // Safe colors for styles (fallbacks in case theme colors fail to load)
@@ -310,16 +311,17 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
-  const renderTripCard = (trip) => (
-    <TouchableOpacity
+  const renderTripCard = (trip, index) => (
+    <AnimatedCard
       key={trip._id}
+      delay={index * 50}
+      gradientColors={createColorArray(colors.surfaceElevated, colors.surface)}
       style={styles.tripCard}
-      onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
-      activeOpacity={0.7}
     >
-      <LinearGradient
-        colors={createColorArray(colors.surfaceElevated, colors.surface)}
-        style={styles.tripCardGradient}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
+        activeOpacity={0.8}
+        style={styles.tripCardContent}
       >
         <View style={styles.tripHeader}>
           <LinearGradient
@@ -372,8 +374,8 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </AnimatedCard>
   );
 
   return (
@@ -612,7 +614,7 @@ const HomeScreen = ({ navigation }) => {
                   <ActivityIndicator size="large" color={colors.primary} />
                 </View>
               ) : recentTrips.length > 0 ? (
-                recentTrips.map(renderTripCard)
+                recentTrips.map((trip, index) => renderTripCard(trip, index))
               ) : (
                 <View style={styles.emptyContainer}>
                   <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
@@ -710,11 +712,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    padding: spacing.md + 2,
     marginBottom: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   input: {
     flex: 1,
@@ -771,6 +778,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  tripCardContent: {
+    padding: spacing.md,
   },
   tripCardGradient: {
     padding: spacing.md,
