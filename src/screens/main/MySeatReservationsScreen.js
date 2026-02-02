@@ -10,6 +10,7 @@ import {
   Animated,
   RefreshControl,
   Linking,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -203,6 +204,15 @@ const MySeatReservationsScreen = ({ navigation }) => {
     const statusConfig = getStatusConfig(status);
     const StatusIcon = statusConfig.icon;
 
+    // Debug: Log para verificar datos del conductor
+    if (status === 'reserved') {
+      console.log('🔍 [MySeatReservations] Reserva confirmada - Datos del conductor:', {
+        hasDriver: !!item.trip?.driver,
+        driver: item.trip?.driver,
+        tripId: item.trip?.id
+      });
+    }
+
     return (
       <Animated.View style={{ opacity: fadeAnim }}>
         <LinearGradient
@@ -286,48 +296,72 @@ const MySeatReservationsScreen = ({ navigation }) => {
               </View>
             )}
 
-            {/* Información del conductor - Solo para reservas confirmadas */}
-            {status === 'reserved' && item.trip?.driver && (
-              <LinearGradient
-                colors={['#E0F2FE', '#BAE6FD']}
-                style={styles.driverInfoCard}
-              >
-                <View style={styles.driverInfoHeader}>
-                  <Ionicons name="person-circle" size={24} color="#0EA5E9" />
-                  <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
-                </View>
-                <View style={styles.driverDetails}>
-                  <View style={styles.driverNameRow}>
-                    <Ionicons name="person-outline" size={18} color="#0369A1" />
-                    <Text style={styles.driverName}>
-                      {item.trip.driver.name || `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim()}
+            {/* Información del conductor - Solo para reservas confirmadas y pagadas */}
+            {status === 'reserved' && (
+              <View>
+                {item.trip?.driver ? (
+                  <LinearGradient
+                    colors={['#E0F2FE', '#BAE6FD']}
+                    style={styles.driverInfoCard}
+                  >
+                    <View style={styles.driverInfoHeader}>
+                      <Ionicons name="person-circle" size={24} color="#0EA5E9" />
+                      <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                    </View>
+                    <View style={styles.driverDetails}>
+                      <View style={styles.driverNameRow}>
+                        <Ionicons name="person-outline" size={18} color="#0369A1" />
+                        <Text style={styles.driverName}>
+                          {item.trip.driver.name ||
+                            `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim() ||
+                            'Conductor'}
+                        </Text>
+                      </View>
+                      {item.trip.driver.phone && (
+                        <TouchableOpacity
+                          onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
+                          style={styles.contactButtonLarge}
+                        >
+                          <LinearGradient
+                            colors={['#3B82F6', '#2563EB']}
+                            style={styles.contactButtonGradient}
+                          >
+                            <Ionicons name="call" size={18} color="#FFFFFF" />
+                            <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      )}
+                      {item.trip.driver.email && (
+                        <TouchableOpacity
+                          onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
+                          style={styles.emailButton}
+                        >
+                          <Ionicons name="mail-outline" size={16} color="#0369A1" />
+                          <Text style={styles.emailText}>{item.trip.driver.email}</Text>
+                        </TouchableOpacity>
+                      )}
+                      {item.trip.driver.avatar && (
+                        <View style={styles.avatarContainer}>
+                          <Image
+                            source={{ uri: item.trip.driver.avatar }}
+                            style={styles.driverAvatar}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.driverInfoCard}>
+                    <View style={styles.driverInfoHeader}>
+                      <Ionicons name="person-circle-outline" size={24} color="#6B7280" />
+                      <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                    </View>
+                    <Text style={styles.driverInfoPlaceholder}>
+                      Los datos del conductor se cargarán en breve...
                     </Text>
                   </View>
-                  {item.trip.driver.phone && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
-                      style={styles.contactButtonLarge}
-                    >
-                      <LinearGradient
-                        colors={['#3B82F6', '#2563EB']}
-                        style={styles.contactButtonGradient}
-                      >
-                        <Ionicons name="call" size={18} color="#FFFFFF" />
-                        <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                  {item.trip.driver.email && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
-                      style={styles.emailButton}
-                    >
-                      <Ionicons name="mail-outline" size={16} color="#0369A1" />
-                      <Text style={styles.emailText}>{item.trip.driver.email}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </LinearGradient>
+                )}
+              </View>
             )}
 
             {/* Acciones según el estado */}
@@ -663,6 +697,23 @@ const styles = StyleSheet.create({
   emailText: {
     fontSize: fontSize.sm,
     color: '#0369A1',
+  },
+  avatarContainer: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+  },
+  driverAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#0EA5E9',
+  },
+  driverInfoPlaceholder: {
+    fontSize: fontSize.sm,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    marginTop: spacing.xs,
   },
   pendingApprovalBox: {
     flexDirection: 'row',

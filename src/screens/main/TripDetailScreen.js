@@ -423,7 +423,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handlePaymentSuccess = async (paymentData) => {
     console.log('✅ [TripDetail] Pago exitoso:', paymentData);
-    
+
     Alert.alert(
       '✅ Pago Completado',
       'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.',
@@ -830,16 +830,72 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               ) : (
                 // Reserva confirmada o en otro estado
-                <View style={styles.bookingStatus}>
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={styles.bookingStatusGradient}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={24} color="#FFFFFF" />
-                    <Text style={styles.bookingStatusText}>
-                      {userBooking.status === 'confirmed' ? 'Reserva Confirmada' : 'Reserva Activa'}
-                    </Text>
-                  </LinearGradient>
+                <View>
+                  <View style={styles.bookingStatus}>
+                    <LinearGradient
+                      colors={['#10B981', '#059669']}
+                      style={styles.bookingStatusGradient}
+                    >
+                      <Ionicons name="checkmark-circle-outline" size={24} color="#FFFFFF" />
+                      <Text style={styles.bookingStatusText}>
+                        {userBooking.seatReservation?.reservationStatus === 'reserved'
+                          ? 'Reserva Confirmada y Pagada'
+                          : userBooking.status === 'confirmed'
+                            ? 'Reserva Confirmada'
+                            : 'Reserva Activa'}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+
+                  {/* Información del conductor - Solo para reservas confirmadas y pagadas */}
+                  {(userBooking.seatReservation?.reservationStatus === 'reserved' ||
+                    (userBooking.status === 'confirmed' && userBooking.seatReservation?.reservationStatus === 'reserved')) &&
+                    trip?.driver && (
+                      <View style={styles.driverInfoSection}>
+                        <LinearGradient
+                          colors={['#E0F2FE', '#BAE6FD']}
+                          style={styles.driverInfoCard}
+                        >
+                          <View style={styles.driverInfoHeader}>
+                            <Ionicons name="person-circle" size={24} color="#0EA5E9" />
+                            <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                          </View>
+                          <View style={styles.driverDetails}>
+                            <View style={styles.driverNameRow}>
+                              <Ionicons name="person-outline" size={18} color="#0369A1" />
+                              <Text style={styles.driverName}>
+                                {trip.driver.firstName && trip.driver.lastName
+                                  ? `${trip.driver.firstName} ${trip.driver.lastName}`
+                                  : trip.driver.name || 'Conductor'}
+                              </Text>
+                            </View>
+                            {trip.driver.phone && (
+                              <TouchableOpacity
+                                onPress={() => Linking.openURL(`tel:${trip.driver.phone}`)}
+                                style={styles.contactButtonLarge}
+                              >
+                                <LinearGradient
+                                  colors={['#3B82F6', '#2563EB']}
+                                  style={styles.contactButtonGradient}
+                                >
+                                  <Ionicons name="call" size={18} color="#FFFFFF" />
+                                  <Text style={styles.contactTextLarge}>Llamar: {trip.driver.phone}</Text>
+                                </LinearGradient>
+                              </TouchableOpacity>
+                            )}
+                            {trip.driver.email && (
+                              <TouchableOpacity
+                                onPress={() => Linking.openURL(`mailto:${trip.driver.email}`)}
+                                style={styles.emailButton}
+                              >
+                                <Ionicons name="mail-outline" size={16} color="#0369A1" />
+                                <Text style={styles.emailText}>{trip.driver.email}</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </LinearGradient>
+                      </View>
+                    )}
                 </View>
               )
             ) : (
@@ -1354,6 +1410,68 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
+  },
+  // Estilos para información del conductor
+  driverInfoSection: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  driverInfoCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#0EA5E9',
+  },
+  driverInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  driverInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0369A1',
+  },
+  driverDetails: {
+    gap: 12,
+  },
+  driverNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  driverName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0369A1',
+  },
+  contactButtonLarge: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  contactButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 8,
+  },
+  contactTextLarge: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  emailText: {
+    fontSize: 14,
+    color: '#0369A1',
   },
 });
 
