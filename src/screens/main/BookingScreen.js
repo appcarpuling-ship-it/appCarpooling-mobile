@@ -16,7 +16,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { calculateReservationPrice, createSeatReservation } from '../../services/seatReservationService';
-import { Linking } from 'react-native';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
