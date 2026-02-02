@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
+import { getPendingPaymentReservations } from '../../services/seatReservationService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -295,41 +296,133 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Función para completar pago de reserva pendiente
   const handleCompletePendingPayment = async () => {
     try {
-      const seatReservation = userBooking?.seatReservation;
-      const reservationStatus = seatReservation?.reservationStatus;
+      setPaymentLoading(true);
+      console.log('💳 [TripDetail] handleCompletePendingPayment llamado');
+
+      // Primero recargar la reserva para obtener la información más actualizada
+      let updatedBooking = null;
+      try {
+        const response = await get_withauth('/bookings/my-bookings');
+        if (response.success && response.data) {
+          const bookings = response.data || [];
+          updatedBooking = bookings.find(
+            booking => {
+              const bookingTripId = booking.trip?._id || booking.trip;
+              return bookingTripId === tripId;
+            }
+          );
+          if (updatedBooking) {
+            setUserBooking(updatedBooking);
+            console.log('✅ [TripDetail] Reserva actualizada:', updatedBooking);
+          }
+        }
+      } catch (err) {
+        console.error('❌ [TripDetail] Error recargando reserva:', err);
+      }
+
+      // Usar la reserva actualizada o la existente
+      const currentBooking = updatedBooking || userBooking;
+
+      console.log('💳 [TripDetail] userBooking actual:', JSON.stringify(currentBooking, null, 2));
+
+      const seatReservation = currentBooking?.seatReservation;
+      const reservationStatus = seatReservation?.reservationStatus || currentBooking?.paymentStatus;
+      const seatReservationId = seatReservation?._id || seatReservation?.id;
+
+      console.log('💳 [TripDetail] reservationStatus:', reservationStatus);
+      console.log('💳 [TripDetail] seatReservationId:', seatReservationId);
+      console.log('💳 [TripDetail] seatReservation completo:', JSON.stringify(seatReservation, null, 2));
 
       // Verificar si está pendiente de pago
       if (reservationStatus === 'pending_payment') {
-        // Obtener URL de pago desde la reserva
-        const paymentUrl = seatReservation?.paymentUrl ||
-          seatReservation?.reservationPayment?.paymentUrl ||
-          seatReservation?.initPoint;
+        // Obtener URL de pago desde la reserva - buscar en múltiples ubicaciones
+        let paymentUrl = seatReservation?.reservationPayment?.paymentUrl ||
+          seatReservation?.paymentUrl ||
+          seatReservation?.initPoint ||
+          currentBooking?.paymentUrl ||
+          currentBooking?.seatReservation?.paymentUrl ||
+          currentBooking?.seatReservation?.reservationPayment?.paymentUrl;
+
+        console.log('💳 [TripDetail] paymentUrl encontrada en userBooking:', paymentUrl);
+
+        // Si no encontramos la URL, intentar obtenerla desde el endpoint de reservas pendientes
+        if (!paymentUrl && seatReservationId) {
+          console.log('💳 [TripDetail] No se encontró paymentUrl localmente, buscando en endpoint...');
+          try {
+            const pendingResponse = await getPendingPaymentReservations();
+            console.log('💳 [TripDetail] Respuesta de pending payments:', JSON.stringify(pendingResponse, null, 2));
+
+            if (pendingResponse.success && pendingResponse.data?.pendingReservations) {
+              // Buscar por ID de booking o seatReservation
+              const bookingId = currentBooking?._id || currentBooking?.id;
+              const pendingReservation = pendingResponse.data.pendingReservations.find(
+                (r) => r.id === seatReservationId ||
+                  r._id === seatReservationId ||
+                  r.bookingId === bookingId ||
+                  r.seatReservation?._id === seatReservationId ||
+                  (r.trip && (r.trip.id === tripId || r.trip._id === tripId))
+              );
+
+              if (pendingReservation) {
+                paymentUrl = pendingReservation.paymentUrl ||
+                  pendingReservation.seatReservation?.paymentUrl ||
+                  pendingReservation.seatReservation?.reservationPayment?.paymentUrl;
+                console.log('💳 [TripDetail] paymentUrl encontrada en endpoint:', paymentUrl);
+              } else {
+                console.log('⚠️ [TripDetail] No se encontró la reserva en pending payments');
+              }
+            }
+          } catch (err) {
+            console.error('❌ [TripDetail] Error obteniendo reservas pendientes:', err);
+          }
+        }
 
         if (paymentUrl) {
+          // Validar que la URL sea válida
+          if (!paymentUrl.startsWith('http://') && !paymentUrl.startsWith('https://')) {
+            console.error('❌ [TripDetail] URL inválida:', paymentUrl);
+            Alert.alert('Error', 'La URL de pago no es válida');
+            return;
+          }
+
           // Abrir Checkout Pro en el navegador
+          console.log('💳 [TripDetail] Intentando abrir URL:', paymentUrl);
           const canOpen = await Linking.canOpenURL(paymentUrl);
+          console.log('💳 [TripDetail] canOpen:', canOpen);
+
           if (canOpen) {
             await Linking.openURL(paymentUrl);
+            console.log('✅ [TripDetail] URL abierta exitosamente');
           } else {
-            Alert.alert('Error', 'No se pudo abrir el link de pago');
+            console.error('❌ [TripDetail] No se pudo abrir la URL');
+            Alert.alert('Error', 'No se pudo abrir el link de pago. Verifica que la URL sea válida.');
           }
         } else {
+          console.error('❌ [TripDetail] No se encontró paymentUrl');
+          console.error('❌ [TripDetail] Estructura completa currentBooking:', JSON.stringify(currentBooking, null, 2));
+          console.error('❌ [TripDetail] Estructura seatReservation:', JSON.stringify(seatReservation, null, 2));
+
           Alert.alert(
             'Error',
-            'No se encontró la URL de pago. Por favor, contacta al soporte o intenta crear una nueva reserva.'
+            'No se encontró la URL de pago. Esto puede ocurrir si la reserva aún no ha sido aprobada por el conductor. Por favor, intenta recargar la página o contacta al soporte.'
           );
         }
       } else if (reservationStatus === 'pending_approval') {
+        console.log('⏳ [TripDetail] Reserva pendiente de aprobación');
         Alert.alert(
           'Pendiente de Aprobación',
           'Tu solicitud está esperando la aprobación del conductor. Te notificaremos cuando sea aprobada.'
         );
       } else {
-        Alert.alert('Información', 'Esta reserva no requiere pago en este momento.');
+        console.log('ℹ️ [TripDetail] Estado de reserva:', reservationStatus);
+        Alert.alert('Información', `Esta reserva no requiere pago en este momento. Estado: ${reservationStatus || 'desconocido'}`);
       }
     } catch (error) {
-      console.error('Error procesando pago:', error);
-      Alert.alert('Error', 'No se pudo procesar el pago');
+      console.error('❌ [TripDetail] Error procesando pago:', error);
+      console.error('❌ [TripDetail] Error completo:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `No se pudo procesar el pago: ${error.message}`);
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -660,8 +753,8 @@ const TripDetailScreen = ({ route, navigation }) => {
             {userBooking ? (
               // Mostrar estado de reserva existente
               // Verificar si es reserva de asiento pendiente de pago o reserva tradicional pendiente
-              (userBooking.seatReservation?.reservationStatus === 'pending_payment' || 
-               userBooking.paymentStatus === 'pending_payment') ? (
+              (userBooking.seatReservation?.reservationStatus === 'pending_payment' ||
+                userBooking.paymentStatus === 'pending_payment') ? (
                 // Reserva pendiente de pago
                 <View style={styles.pendingPaymentContainer}>
                   <LinearGradient
