@@ -8,6 +8,8 @@ const api = axios.create({
   timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
+    'X-Platform': 'mobile', // Identificar que las peticiones vienen de la app móvil
+    'X-Client-Platform': 'mobile', // Header alternativo
   },
 });
 

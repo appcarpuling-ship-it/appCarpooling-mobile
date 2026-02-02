@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations } from '../../services/seatReservationService';
+import NativeCheckout from '../../components/NativeCheckout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -385,18 +386,12 @@ const TripDetailScreen = ({ route, navigation }) => {
             return;
           }
 
-          // Abrir Checkout Pro en el navegador
-          console.log('💳 [TripDetail] Intentando abrir URL:', paymentUrl);
-          const canOpen = await Linking.canOpenURL(paymentUrl);
-          console.log('💳 [TripDetail] canOpen:', canOpen);
-
-          if (canOpen) {
-            await Linking.openURL(paymentUrl);
-            console.log('✅ [TripDetail] URL abierta exitosamente');
-          } else {
-            console.error('❌ [TripDetail] No se pudo abrir la URL');
-            Alert.alert('Error', 'No se pudo abrir el link de pago. Verifica que la URL sea válida.');
-          }
+          // Abrir checkout nativo (Custom Tabs/Safari View Controller)
+          console.log('💳 [TripDetail] Abriendo checkout nativo');
+          await NativeCheckout.openCheckout(paymentUrl, {
+            onPaymentSuccess: handlePaymentSuccess,
+            onPaymentError: handlePaymentError
+          });
         } else {
           console.error('❌ [TripDetail] No se encontró paymentUrl');
           console.error('❌ [TripDetail] Estructura completa currentBooking:', JSON.stringify(currentBooking, null, 2));
@@ -424,6 +419,34 @@ const TripDetailScreen = ({ route, navigation }) => {
     } finally {
       setPaymentLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    console.log('✅ [TripDetail] Pago exitoso:', paymentData);
+    
+    Alert.alert(
+      '✅ Pago Completado',
+      'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.',
+      [
+        {
+          text: 'OK',
+          onPress: async () => {
+            // Recargar la reserva para mostrar los datos actualizados
+            await checkUserBooking();
+            // Recargar el viaje también
+            await loadTripDetail();
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePaymentError = (error) => {
+    console.error('❌ [TripDetail] Error en pago:', error);
+    Alert.alert(
+      'Error en el Pago',
+      error.message || 'Hubo un problema procesando tu pago. Por favor, intenta nuevamente.'
+    );
   };
 
   // Función para cancelar reserva pendiente

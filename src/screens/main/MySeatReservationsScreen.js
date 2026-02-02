@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation } from '../../services/seatReservationService';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import NativeCheckout from '../../components/NativeCheckout';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
@@ -73,12 +74,11 @@ const MySeatReservationsScreen = ({ navigation }) => {
         reservation.paymentUrl;
 
       if (paymentUrl) {
-        const canOpen = await Linking.canOpenURL(paymentUrl);
-        if (canOpen) {
-          await Linking.openURL(paymentUrl);
-        } else {
-          Alert.alert('Error', 'No se pudo abrir el link de pago');
-        }
+        // Abrir checkout nativo (Custom Tabs/Safari View Controller)
+        await NativeCheckout.openCheckout(paymentUrl, {
+          onPaymentSuccess: handlePaymentSuccess,
+          onPaymentError: handlePaymentError
+        });
       } else {
         Alert.alert('Error', 'No se encontró la URL de pago');
       }
@@ -86,6 +86,32 @@ const MySeatReservationsScreen = ({ navigation }) => {
       console.error('Error opening payment URL:', error);
       Alert.alert('Error', 'No se pudo procesar el pago');
     }
+  };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    console.log('✅ [MySeatReservations] Pago exitoso:', paymentData);
+
+    Alert.alert(
+      '✅ Pago Completado',
+      'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.',
+      [
+        {
+          text: 'OK',
+          onPress: async () => {
+            // Recargar las reservas para mostrar los datos actualizados
+            await Promise.all([loadReservations(), loadPendingPayments()]);
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePaymentError = (error) => {
+    console.error('❌ [MySeatReservations] Error en pago:', error);
+    Alert.alert(
+      'Error en el Pago',
+      error.message || 'Hubo un problema procesando tu pago. Por favor, intenta nuevamente.'
+    );
   };
 
   const handleCancelReservation = (reservation) => {
@@ -262,21 +288,46 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
             {/* Información del conductor - Solo para reservas confirmadas */}
             {status === 'reserved' && item.trip?.driver && (
-              <View style={styles.driverInfo}>
-                <Text style={styles.driverLabel}>Conductor:</Text>
-                <Text style={styles.driverName}>
-                  {item.trip.driver.name || `${item.trip.driver.firstName} ${item.trip.driver.lastName}`}
-                </Text>
-                {item.trip.driver.phone && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
-                    style={styles.contactButton}
-                  >
-                    <Ionicons name="call-outline" size={14} color="#3B82F6" />
-                    <Text style={styles.contactText}>{item.trip.driver.phone}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <LinearGradient
+                colors={['#E0F2FE', '#BAE6FD']}
+                style={styles.driverInfoCard}
+              >
+                <View style={styles.driverInfoHeader}>
+                  <Ionicons name="person-circle" size={24} color="#0EA5E9" />
+                  <Text style={styles.driverInfoTitle}>Información del Conductor</Text>
+                </View>
+                <View style={styles.driverDetails}>
+                  <View style={styles.driverNameRow}>
+                    <Ionicons name="person-outline" size={18} color="#0369A1" />
+                    <Text style={styles.driverName}>
+                      {item.trip.driver.name || `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim()}
+                    </Text>
+                  </View>
+                  {item.trip.driver.phone && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
+                      style={styles.contactButtonLarge}
+                    >
+                      <LinearGradient
+                        colors={['#3B82F6', '#2563EB']}
+                        style={styles.contactButtonGradient}
+                      >
+                        <Ionicons name="call" size={18} color="#FFFFFF" />
+                        <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                  {item.trip.driver.email && (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
+                      style={styles.emailButton}
+                    >
+                      <Ionicons name="mail-outline" size={16} color="#0369A1" />
+                      <Text style={styles.emailText}>{item.trip.driver.email}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </LinearGradient>
             )}
 
             {/* Acciones según el estado */}
@@ -546,25 +597,72 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  driverLabel: {
-    fontSize: fontSize.xs,
-    color: staticColors.textSecondary || '#6B7280',
-    marginBottom: spacing.xs,
+  driverInfoCard: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: '#0EA5E9',
+  },
+  driverInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  driverInfoTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: '#0369A1',
+  },
+  driverDetails: {
+    gap: spacing.sm,
+  },
+  driverNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   driverName: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#000000',
-    marginBottom: spacing.xs,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: '#0369A1',
   },
   contactButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
+  contactButtonLarge: {
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    marginTop: spacing.xs,
+  },
+  contactButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
   contactText: {
     fontSize: fontSize.sm,
     color: '#3B82F6',
+  },
+  contactTextLarge: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semiBold,
+    color: '#FFFFFF',
+  },
+  emailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  emailText: {
+    fontSize: fontSize.sm,
+    color: '#0369A1',
   },
   pendingApprovalBox: {
     flexDirection: 'row',
