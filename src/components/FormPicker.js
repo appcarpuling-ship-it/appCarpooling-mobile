@@ -14,6 +14,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors as themeColors,  spacing, borderRadius, fontSize, fontWeight } from '../theme/colors';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 
 // Safe colors for styles (fallbacks in case theme colors fail to load)
 const styleColors = themeColors || {
@@ -232,6 +244,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semibold,
     color: styleColors.textSecondary,
     marginBottom: spacing.xs,
@@ -239,6 +252,7 @@ const styles = StyleSheet.create({
   required: {
     color: styleColors.error || '#EF4444',
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   pickerButton: {
@@ -260,10 +274,12 @@ const styles = StyleSheet.create({
   pickerText: {
     flex: 1,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: styleColors.textPrimary,
   },
   placeholder: {
     color: styleColors.textTertiary,
+    fontFamily: SORA_FONTS.regular,
   },
   textWithIcon: {
     marginLeft: 0,
@@ -276,6 +292,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: styleColors.error || '#EF4444',
     marginLeft: spacing.xs,
     flex: 1,
@@ -306,6 +323,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
     color: '#000000',
   },
@@ -333,11 +351,13 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: fontWeight.medium,
     color: '#000000',
   },
   optionTextSelected: {
     color: '#1F2937',
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   emptyContainer: {

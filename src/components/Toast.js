@@ -3,6 +3,11 @@ import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  semiBold: 'Sora_600SemiBold',
+};
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const Toast = ({ visible, message, type = 'success', duration = 3000, onHide }) => {
@@ -140,6 +145,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#FFFFFF',
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
 });

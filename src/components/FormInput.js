@@ -11,6 +11,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../theme/colors';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 
 // Safe colors fallback to prevent 'colors is not defined' errors
 const safeColors = (() => {
@@ -229,16 +241,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semibold,
     color: safeColors.textSecondary,
   },
   required: {
     color: safeColors.error || '#EF4444',
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   characterCount: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: fontWeight.medium,
   },
   inputContainer: {
@@ -267,6 +282,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: safeColors.textPrimary,
     paddingVertical: spacing.sm,
   },
@@ -282,6 +298,7 @@ const styles = StyleSheet.create({
   },
   helper: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: safeColors.textTertiary,
     marginTop: spacing.xs,
     marginLeft: spacing.xs,
@@ -294,6 +311,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: safeColors.error || '#EF4444',
     marginLeft: spacing.xs,
     flex: 1,

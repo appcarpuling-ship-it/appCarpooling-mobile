@@ -21,9 +21,25 @@ import { post_withauth, get_withauth, put_withauth } from '../../services/apiSer
 import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import ConfirmationModal from '../../components/ConfirmationModal';
+
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
 
 const EditTripScreen = ({ navigation, route }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   
   // Dynamic styles that depend on colors hook
   const dynamicStyles = StyleSheet.create({
@@ -483,7 +499,8 @@ const EditTripScreen = ({ navigation, route }) => {
       !departureTime ||
       !availableSeats
     ) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
+      setModalMessage('Por favor completa todos los campos obligatorios');
+      setShowErrorModal(true);
       return;
     }
 
@@ -513,15 +530,12 @@ const EditTripScreen = ({ navigation, route }) => {
       const response = await put_withauth(ENDPOINTS.UPDATE_TRIP(tripId), tripData);
 
       if (response.success) {
-        Alert.alert('Éxito', 'Viaje actualizado exitosamente', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        setModalMessage('Viaje actualizado exitosamente');
+        setShowSuccessModal(true);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al actualizar el viaje');
+      setModalMessage(error.message || 'Error al actualizar el viaje');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -976,6 +990,31 @@ const EditTripScreen = ({ navigation, route }) => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+        type="success"
+        title="Éxito"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
+
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        type="error"
+        title="Error"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
     </LinearGradient>
   );
 };
@@ -1011,12 +1050,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#000000',
     marginLeft: spacing.sm,
   },
   label: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: '500',
     color: '#6B7280',
     marginBottom: spacing.md,
@@ -1035,6 +1076,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#000000',
     marginLeft: spacing.sm,
     paddingVertical: spacing.sm,
@@ -1056,6 +1098,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: spacing.sm,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#000000',
   },
   dateTimeTextContainer: {
@@ -1065,6 +1108,7 @@ const styles = StyleSheet.create({
   },
   dateTimeText: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#000000',
     paddingVertical: spacing.sm,
   },

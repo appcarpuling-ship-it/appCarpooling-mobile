@@ -1,7 +1,22 @@
 import { useMemo } from 'react';
 
 // Importación directa - Metro bundler maneja esto correctamente
-import { colors as baseColors, gradients as baseGradients, fontFamily as baseFontFamily } from '../theme/colors';
+import { colors as baseColors, gradients as baseGradients } from '../theme/colors';
+
+// Usar valores directos para evitar problemas de carga
+const BASE_FONTFAMILY = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+  normal: 'Sora_400Regular',
+  primary: 'Sora_500Medium',
+  heading: 'Sora_700Bold',
+};
 
 // Fallback colors in case the main colors object fails to load
 const FALLBACK_COLORS = {
@@ -72,10 +87,8 @@ export const useColors = () => {
   }, []);
 
   const fontFamily = useMemo(() => {
-    if (!baseFontFamily || typeof baseFontFamily !== 'object') {
-      return { ...FALLBACK_FONTFAMILY };
-    }
-    return { ...FALLBACK_FONTFAMILY, ...baseFontFamily };
+    // Siempre usar los valores directos para evitar problemas de carga
+    return { ...FALLBACK_FONTFAMILY, ...BASE_FONTFAMILY };
   }, []);
 
   // Helper robusto: nunca retorna undefined

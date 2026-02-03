@@ -20,9 +20,25 @@ import {  spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors
 import useColors from '../../hooks/useColors';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/PermissionModal';
+import ConfirmationModal from '../../components/ConfirmationModal';
+
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   // Fallbacks para gradientes
   const safeGradients = {
     background: Array.isArray(colors?.background) && colors.background.length > 0 ? colors.background : ['#FFFFFF', '#F8F9FA'],
@@ -151,31 +167,36 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const handleSubmit = async () => {
     // Validaciones
     if (!formData.brand || !formData.model || !formData.year || !formData.color || !formData.licensePlate || !formData.capacity) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      setModalMessage('Por favor completa todos los campos');
+      setShowErrorModal(true);
       return;
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
 
     if (!isEdit && photos.length < 3) {
-      Alert.alert('Error', 'Debes subir al menos 3 fotos del vehículo');
+      setModalMessage('Debes subir al menos 3 fotos del vehículo');
+      setShowErrorModal(true);
       return;
     }
 
     if (totalPhotos > 10) {
-      Alert.alert('Error', 'Puedes tener máximo 10 fotos');
+      setModalMessage('Puedes tener máximo 10 fotos');
+      setShowErrorModal(true);
       return;
     }
 
     const yearNum = parseInt(formData.year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      Alert.alert('Error', 'El año no es válido');
+      setModalMessage('El año no es válido');
+      setShowErrorModal(true);
       return;
     }
 
     const capacityNum = parseInt(formData.capacity);
     if (capacityNum < 1 || capacityNum > 8) {
-      Alert.alert('Error', 'La capacidad debe estar entre 1 y 8 pasajeros');
+      setModalMessage('La capacidad debe estar entre 1 y 8 pasajeros');
+      setShowErrorModal(true);
       return;
     }
 
@@ -221,22 +242,15 @@ const VehicleFormScreen = ({ navigation, route }) => {
       }
 
       if (response.success) {
-        Alert.alert(
-          'Éxito',
-          isEdit ? 'Vehículo actualizado' : 'Vehículo creado exitosamente',
-          [{
-            text: 'OK',
-            onPress: () => {
-              // Pasar parámetro para indicar que debe refrescar
-              navigation.navigate('Vehicles', { refreshVehicles: true });
-            }
-          }]
-        );
+        setModalMessage(isEdit ? 'Vehículo actualizado exitosamente' : 'Vehículo creado exitosamente');
+        setShowSuccessModal(true);
       } else {
-        Alert.alert('Error', response.message || 'Error al guardar vehículo');
+        setModalMessage(response.message || 'Error al guardar vehículo');
+        setShowErrorModal(true);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al guardar vehículo');
+      setModalMessage(error.message || 'Error al guardar vehículo');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -487,6 +501,31 @@ const VehicleFormScreen = ({ navigation, route }) => {
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
+
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('Vehicles', { refreshVehicles: true });
+        }}
+        type="success"
+        title="Éxito"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
+
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        type="error"
+        title="Error"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
     </View>
   );
 };
@@ -512,6 +551,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxl,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
     color: '#000000',
   },
@@ -520,12 +560,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semibold,
     color: '#000000',
     marginBottom: spacing.xs,
   },
   sectionSubtitle: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: spacing.md,
   },
@@ -563,6 +605,7 @@ const styles = StyleSheet.create({
   photoNumberText: {
     color: '#FFF',
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   addPhotoButton: {
@@ -579,6 +622,7 @@ const styles = StyleSheet.create({
   addPhotoText: {
     marginTop: spacing.xs,
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: '#9CA3AF',
   },
   inputWrapper: {
@@ -598,6 +642,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#1A1A1A',
   },
   row: {
@@ -629,11 +674,13 @@ const styles = StyleSheet.create({
   featureText: {
     marginLeft: spacing.sm,
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     flex: 1,
   },
   featureTextActive: {
     color: '#FFF',
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semibold,
   },
   submitButton: {
@@ -645,6 +692,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFF',
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
 });

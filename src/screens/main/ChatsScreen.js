@@ -19,6 +19,18 @@ import socketService from '../../services/socketService';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 const ChatsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
   const { user } = useAuth();
@@ -397,6 +409,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
     color: '#000000',
     letterSpacing: 0.5,

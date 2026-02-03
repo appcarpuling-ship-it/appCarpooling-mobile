@@ -1,5 +1,13 @@
 import { StyleSheet } from 'react-native';
-import { fontFamily, fontSize } from './colors';
+import { fontSize } from './colors';
+
+// Usar valores directos de fontFamily para evitar problemas de carga
+const SORA_FONTS = {
+  bold: 'Sora_700Bold',
+  regular: 'Sora_400Regular',
+  semiBold: 'Sora_600SemiBold',
+  medium: 'Sora_500Medium',
+};
 
 /**
  * Global text styles con tipografía Sora
@@ -9,87 +17,87 @@ export const globalTextStyles = {
   // Headings
   h1: {
     fontSize: fontSize.xxxl,
-    fontFamily: fontFamily.bold,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: '700',
   },
   h2: {
     fontSize: fontSize.xxl,
-    fontFamily: fontFamily.bold,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: '700',
   },
   h3: {
     fontSize: fontSize.xl,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   h4: {
     fontSize: fontSize.lg,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
 
   // Body text
   body: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.regular,
+    fontFamily: SORA_FONTS.regular,
     fontWeight: '400',
   },
   bodySmall: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.regular,
+    fontFamily: SORA_FONTS.regular,
     fontWeight: '400',
   },
   bodyXSmall: {
     fontSize: fontSize.xs,
-    fontFamily: fontFamily.regular,
+    fontFamily: SORA_FONTS.regular,
     fontWeight: '400',
   },
 
   // Emphasis
   bodyBold: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   bodyBoldSmall: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
 
   // Labels
   label: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.medium,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: '500',
   },
   labelSmall: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.medium,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: '500',
   },
 
   // Buttons
   button: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   buttonSmall: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
 
   // Captions
   caption: {
     fontSize: fontSize.xs,
-    fontFamily: fontFamily.regular,
+    fontFamily: SORA_FONTS.regular,
     fontWeight: '400',
   },
   captionBold: {
     fontSize: fontSize.xs,
-    fontFamily: fontFamily.medium,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: '500',
   },
 };

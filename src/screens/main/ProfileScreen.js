@@ -14,6 +14,19 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 
 import useColors from '../../hooks/useColors';
+
+// Usar valores directos para evitar problemas de carga en estilos estáticos
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, logout, isAuthenticated } = useAuth();
@@ -345,11 +358,13 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#FFFFFF',
     fontSize: 44,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
     letterSpacing: 2,
   },
   name: {
     fontSize: 28,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 6,
@@ -357,6 +372,7 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: 28,
   },

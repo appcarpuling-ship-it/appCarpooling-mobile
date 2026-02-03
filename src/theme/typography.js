@@ -38,60 +38,61 @@ export const fontFamily = {
 };
 
 // Typography styles with Sora font
+// Usar valores directos para evitar problemas de carga
 export const typography = {
   display: {
     fontSize: 48,
     lineHeight: 56,
-    fontFamily: fontFamily.bold,
+    fontFamily: 'Sora_700Bold',
     letterSpacing: -1,
   },
   h1: {
     fontSize: 32,
     lineHeight: 40,
-    fontFamily: fontFamily.bold,
+    fontFamily: 'Sora_700Bold',
     letterSpacing: -0.5,
   },
   h2: {
     fontSize: 24,
     lineHeight: 32,
-    fontFamily: fontFamily.bold,
+    fontFamily: 'Sora_700Bold',
     letterSpacing: -0.25,
   },
   h3: {
     fontSize: 20,
     lineHeight: 28,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
   h4: {
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
   body1: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamily.regular,
+    fontFamily: 'Sora_400Regular',
   },
   body2: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: fontFamily.regular,
+    fontFamily: 'Sora_400Regular',
   },
   caption: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: fontFamily.medium,
+    fontFamily: 'Sora_500Medium',
   },
   button: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
   },
   label: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: fontFamily.medium,
+    fontFamily: 'Sora_500Medium',
     letterSpacing: 0.25,
   },
 };

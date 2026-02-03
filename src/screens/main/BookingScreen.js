@@ -20,6 +20,7 @@ import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -28,6 +29,9 @@ const BANNER_HEIGHT = 200;
 const BookingScreen = ({ route, navigation }) => {
   const colorHook = useColors();
   const colors = colorHook?.colors || {};
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   const gradients_hook = colorHook?.gradients || {};
 
   const { trip, existingReservation } = route.params;
@@ -286,26 +290,16 @@ const BookingScreen = ({ route, navigation }) => {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
       }
 
-      Alert.alert(
-        '✅ Solicitud Enviada',
-        'Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.goBack();
-            }
-          }
-        ]
-      );
+      setModalMessage('Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.');
+      setShowSuccessModal(true);
     } catch (err) {
       console.error('❌ [Booking] Error creando reserva:', err);
-      Alert.alert(
-        'Error',
+      setModalMessage(
         err?.response?.data?.message ||
         err?.message ||
         'Error al procesar la reserva'
       );
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -1133,6 +1127,31 @@ const BookingScreen = ({ route, navigation }) => {
 
         {/* Eliminado: Payment Brick Modal (ya no se usa, se usa Checkout Pro con redirect) */}
       </Animated.View>
+
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+        type="success"
+        title="Solicitud Enviada"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
+
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        type="error"
+        title="Error"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
     </LinearGradient>
   );
 };

@@ -22,9 +22,13 @@ import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const CreateTripScreen = ({ navigation }) => {
   const { colors, gradients, fontFamily, createColorArray } = useColors();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   
   // Dynamic styles that depend on colors hook
   const dynamicStyles = StyleSheet.create({
@@ -444,7 +448,8 @@ const CreateTripScreen = ({ navigation }) => {
       !departureTime ||
       !availableSeats
     ) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
+      setModalMessage('Por favor completa todos los campos obligatorios');
+      setShowErrorModal(true);
       return;
     }
 
@@ -474,15 +479,12 @@ const CreateTripScreen = ({ navigation }) => {
       const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
 
       if (response.success) {
-        Alert.alert('Éxito', 'Viaje creado exitosamente', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        setModalMessage('Viaje creado exitosamente');
+        setShowSuccessModal(true);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al crear el viaje');
+      setModalMessage(error.message || 'Error al crear el viaje');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -1080,6 +1082,31 @@ const CreateTripScreen = ({ navigation }) => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+        type="success"
+        title="Éxito"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
+
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        type="error"
+        title="Error"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
     </LinearGradient>
   );
 };

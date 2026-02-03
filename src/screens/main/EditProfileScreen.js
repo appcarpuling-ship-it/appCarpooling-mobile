@@ -23,6 +23,7 @@ import useColors from '../../hooks/useColors';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/PermissionModal';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const PROVINCIAS = [
   'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba',
@@ -34,6 +35,9 @@ const PROVINCIAS = [
 
 const EditProfileScreen = ({ navigation }) => {
   const { colors, gradients, fontFamily, createColorArray } = useColors();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   // Fallbacks para gradientes
   const safeGradients = {
     dark: Array.isArray(gradients?.dark) && gradients.dark.length > 0 ? gradients.dark : ['#F8F9FA', '#E5E7EB'],
@@ -184,22 +188,26 @@ const EditProfileScreen = ({ navigation }) => {
   const handleSave = async () => {
     // Validaciones
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      Alert.alert('Error', 'Nombre y apellido son obligatorios');
+      setModalMessage('Nombre y apellido son obligatorios');
+      setShowErrorModal(true);
       return;
     }
 
     if (!formData.phone.trim()) {
-      Alert.alert('Error', 'El teléfono es obligatorio');
+      setModalMessage('El teléfono es obligatorio');
+      setShowErrorModal(true);
       return;
     }
 
     if (formData.age && (parseInt(formData.age) < 18 || parseInt(formData.age) > 100)) {
-      Alert.alert('Error', 'La edad debe estar entre 18 y 100 años');
+      setModalMessage('La edad debe estar entre 18 y 100 años');
+      setShowErrorModal(true);
       return;
     }
 
     if (!formData.city.trim() || !formData.province) {
-      Alert.alert('Error', 'Ciudad y provincia son obligatorios');
+      setModalMessage('Ciudad y provincia son obligatorios');
+      setShowErrorModal(true);
       return;
     }
 
@@ -238,14 +246,15 @@ const EditProfileScreen = ({ navigation }) => {
 
       if (response.success) {
         await refreshUser();
-        Alert.alert('Éxito', 'Perfil actualizado exitosamente', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        setModalMessage('Perfil actualizado exitosamente');
+        setShowSuccessModal(true);
       } else {
-        Alert.alert('Error', response.message || 'Error al actualizar el perfil');
+        setModalMessage(response.message || 'Error al actualizar el perfil');
+        setShowErrorModal(true);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al actualizar el perfil');
+      setModalMessage(error.message || 'Error al actualizar el perfil');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -521,6 +530,31 @@ const EditProfileScreen = ({ navigation }) => {
         message="Para seleccionar una foto de perfil necesitamos acceso a tu galería. Ve a configuración y habilita los permisos para esta aplicación."
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
+      />
+
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+        type="success"
+        title="Éxito"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
+      />
+
+      <ConfirmationModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        type="error"
+        title="Error"
+        message={modalMessage}
+        confirmText="OK"
+        showCancel={false}
       />
     </LinearGradient>
   );

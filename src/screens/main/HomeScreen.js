@@ -28,7 +28,7 @@ import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
-import { fontFamily, typography } from '../../theme/typography';
+import { typography } from '../../theme/typography';
 import AnimatedCard from '../../components/AnimatedCard';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';

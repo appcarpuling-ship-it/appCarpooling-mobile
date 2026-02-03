@@ -23,6 +23,18 @@ import { ENDPOINTS } from '../../config/api';
 import { gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 
+// Usar valores directos para evitar problemas de carga en estilos estáticos
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 const TripDetails = ({ navigation, route }) => {
     const { colors, gradients, fontFamily, createColorArray } = useColors();
     const { origin, destination, distance, duration, vehicles } = route.params;
@@ -701,6 +713,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: fontSize.xl || 20,
+        fontFamily: SORA_FONTS.bold,
         fontWeight: '700',
         color: '#000000',
     },

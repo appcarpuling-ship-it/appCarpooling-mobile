@@ -10,6 +10,11 @@ import {
 } from 'react-native';
 import { useColors } from '../hooks/useColors';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  semiBold: 'Sora_600SemiBold',
+};
+
 const PermissionModal = ({ 
   visible, 
   onClose, 
@@ -108,6 +113,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -147,6 +153,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
 });
