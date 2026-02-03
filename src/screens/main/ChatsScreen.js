@@ -8,7 +8,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
-  Animated
+  Animated,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +39,8 @@ const ChatsScreen = ({ navigation }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('all'); // 'all', 'trips', 'direct'
+  const [searchTerm, setSearchTerm] = useState('');
   const conversationsRef = useRef([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -256,6 +260,20 @@ const ChatsScreen = ({ navigation }) => {
     return messageDate.toLocaleDateString();
   };
 
+  // Filtrar conversaciones según el filtro seleccionado y búsqueda
+  const filteredConversations = conversations.filter(conv => {
+    const otherUser = getOtherParticipant(conv);
+    const matchesSearch = !searchTerm || 
+      otherUser?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      otherUser?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${otherUser?.firstName} ${otherUser?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Aplicar filtro de tipo
+    if (filter === 'trips') return matchesSearch && !!conv.trip; // Solo conversaciones con viaje
+    if (filter === 'direct') return matchesSearch && !conv.trip; // Solo conversaciones sin viaje (directos)
+    return matchesSearch; // 'all' - todas las conversaciones que coincidan con la búsqueda
+  });
+
   const renderConversation = ({ item }) => {
     const otherUser = getOtherParticipant(item);
     const lastMessagePreview = item.lastMessage?.content || 'Sin mensajes';
@@ -367,19 +385,107 @@ const ChatsScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {conversations.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No tienes conversaciones</Text>
-            <Text style={styles.emptySubtext}>
-              Comienza a chatear con otros usuarios desde los detalles de un viaje
-            </Text>
+        {/* Campo de búsqueda */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search-outline" size={20} color="#9CA3AF" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar conversaciones..."
+              placeholderTextColor="#9CA3AF"
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchTerm.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchTerm('')}
+                style={styles.clearSearchButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
           </View>
+        </View>
+
+        {/* Filtros */}
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+            onPress={() => setFilter('all')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterButtonText, filter === 'all' && styles.filterButtonTextActive]}>
+              Todos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, filter === 'trips' && styles.filterButtonActive]}
+            onPress={() => setFilter('trips')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterButtonText, filter === 'trips' && styles.filterButtonTextActive]}>
+              Viajes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, filter === 'direct' && styles.filterButtonActive]}
+            onPress={() => setFilter('direct')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterButtonText, filter === 'direct' && styles.filterButtonTextActive]}>
+              Mensajes Directos
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredConversations.length === 0 ? (
+          <ScrollView
+            contentContainerStyle={styles.emptyScrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+              />
+            }
+          >
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {conversations.length === 0 
+                  ? 'No tienes conversaciones' 
+                  : searchTerm
+                    ? 'No se encontraron conversaciones'
+                    : filter === 'trips' 
+                      ? 'No tienes conversaciones de viajes'
+                      : filter === 'direct'
+                        ? 'No tienes mensajes directos'
+                        : 'No hay conversaciones'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {conversations.length === 0
+                  ? 'Comienza a chatear con otros usuarios desde los detalles de un viaje'
+                  : searchTerm
+                    ? 'Intenta con otro término de búsqueda'
+                    : 'Intenta cambiar el filtro para ver más conversaciones'}
+              </Text>
+            </View>
+          </ScrollView>
         ) : (
           <FlatList
-            data={conversations}
+            data={filteredConversations}
             renderItem={renderConversation}
             keyExtractor={item => item._id}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+              />
+            }
           />
         )}
       </Animated.View>
@@ -416,6 +522,79 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
+    color: '#000000',
+    paddingVertical: 0,
+    minHeight: 20,
+  },
+  clearSearchButton: {
+    padding: spacing.xs,
+    marginLeft: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: borderRadius.xl,
+    padding: spacing.xs,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterButtonText: {
+    fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.medium,
+    fontWeight: fontWeight.medium,
+    color: '#6B7280',
+  },
+  filterButtonTextActive: {
+    color: '#1F2937',
+    fontFamily: SORA_FONTS.semiBold,
+    fontWeight: fontWeight.semiBold,
   },
   listContent: {
     padding: spacing.md,
@@ -514,8 +693,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semiBold,
     color: '#000000',
   },
+  emptyScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: '100%',
+  },
   emptyContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
