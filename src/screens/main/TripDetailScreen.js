@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Easing,
   Dimensions,
   Image,
   FlatList,
@@ -19,6 +20,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations } from '../../services/seatReservationService';
+import NativeCheckout from '../../components/NativeCheckout';
+import Toast from '../../components/Toast';
+import AnimatedCard from '../../components/AnimatedCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -63,6 +67,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
     loadTripDetail(); // Esto ahora incluye checkUserBooking() internamente
@@ -111,16 +116,22 @@ const TripDetailScreen = ({ route, navigation }) => {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 600,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration: 600,
+          tension: 50,
+          friction: 7,
           useNativeDriver: true,
         }),
       ]).start();
     }
   }, [loading, trip]);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+  };
 
   const loadTripDetail = async () => {
     try {
@@ -385,18 +396,12 @@ const TripDetailScreen = ({ route, navigation }) => {
             return;
           }
 
-          // Abrir Checkout Pro en el navegador
-          console.log('💳 [TripDetail] Intentando abrir URL:', paymentUrl);
-          const canOpen = await Linking.canOpenURL(paymentUrl);
-          console.log('💳 [TripDetail] canOpen:', canOpen);
-
-          if (canOpen) {
-            await Linking.openURL(paymentUrl);
-            console.log('✅ [TripDetail] URL abierta exitosamente');
-          } else {
-            console.error('❌ [TripDetail] No se pudo abrir la URL');
-            Alert.alert('Error', 'No se pudo abrir el link de pago. Verifica que la URL sea válida.');
-          }
+          // Abrir checkout nativo (Custom Tabs/Safari View Controller)
+          console.log('💳 [TripDetail] Abriendo checkout nativo');
+          await NativeCheckout.openCheckout(paymentUrl, {
+            onPaymentSuccess: handlePaymentSuccess,
+            onPaymentError: handlePaymentError
+          });
         } else {
           console.error('❌ [TripDetail] No se encontró paymentUrl');
           console.error('❌ [TripDetail] Estructura completa currentBooking:', JSON.stringify(currentBooking, null, 2));
@@ -424,6 +429,26 @@ const TripDetailScreen = ({ route, navigation }) => {
     } finally {
       setPaymentLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    console.log('✅ [TripDetail] Pago exitoso:', paymentData);
+    
+    showToast('✅ Pago completado exitosamente', 'success');
+    
+    // Recargar la reserva después de un breve delay
+    setTimeout(async () => {
+      await checkUserBooking();
+      await loadTripDetail();
+    }, 1000);
+  };
+
+  const handlePaymentError = (error) => {
+    console.error('❌ [TripDetail] Error en pago:', error);
+    showToast(
+      error.message || 'Error al procesar el pago. Intenta nuevamente.',
+      'error'
+    );
   };
 
   // Función para cancelar reserva pendiente
@@ -516,6 +541,14 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
+      {/* Toast para feedback */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
+
       <Animated.View
         style={[
           styles.animatedContainer,
@@ -1325,6 +1358,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   confirmedBookingCard: {
     borderRadius: 16,

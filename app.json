@@ -17,7 +17,9 @@
     "notification": {
       "icon": "./assets/logo/192x192.jpg",
       "color": "#000000",
-      "sounds": ["default"]
+      "sounds": [
+        "default"
+      ]
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +27,14 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
-        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
+        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "carpooling"
+            ]
+          }
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
@@ -38,6 +47,22 @@
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "carpooling",
+              "host": "payments",
+              "pathPrefix": "/confirmation"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ],
       "config": {
         "googleMaps": {
@@ -53,6 +78,7 @@
         }
       ]
     ],
+    "scheme": "carpooling",
     "extra": {
       "eas": {
         "projectId": "4d708d9a-a38b-47cc-8ebe-0b1d6576a565"
