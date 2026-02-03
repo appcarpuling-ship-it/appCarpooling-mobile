@@ -129,6 +129,20 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
   }, [loading, trip]);
 
+  // Debug: Log del trip cuando se renderiza
+  useEffect(() => {
+    if (trip) {
+      console.log('💰 [TripDetail] Render - Datos del trip:', {
+        status: trip.status,
+        actualCost: trip.actualCost,
+        estimatedCost: trip.estimatedCost,
+        currency: trip.currency,
+        tripId: trip._id,
+        shouldShowCost: (trip.status === 'started' || trip.status === 'completed') && trip.actualCost && trip.actualCost > 0
+      });
+    }
+  }, [trip]);
+
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
   };
@@ -139,6 +153,13 @@ const TripDetailScreen = ({ route, navigation }) => {
       if (response.success) {
         setTrip(response.data);
         console.log('✅ [TripDetail] Viaje cargado, verificando reserva del usuario...');
+        console.log('💰 [TripDetail] Datos del viaje:', {
+          status: response.data.status,
+          actualCost: response.data.actualCost,
+          estimatedCost: response.data.estimatedCost,
+          currency: response.data.currency,
+          tripId: response.data._id
+        });
         // Verificar reserva del usuario después de cargar el viaje exitosamente
         await checkUserBooking();
       }
@@ -594,28 +615,41 @@ const TripDetailScreen = ({ route, navigation }) => {
 
           {/* Trip Status */}
           {!!trip.status && (
-            <View style={styles.tripStatusBanner}>
-              <View style={[
-                styles.tripStatusDot,
-                { backgroundColor: trip.status === 'started' ? '#3B82F6'
-                  : trip.status === 'completed' ? '#10B981'
-                  : trip.status === 'cancelled' ? '#EF4444'
-                  : '#6B7280' }
-              ]} />
-              <Text style={styles.tripStatusLabel}>
-                {trip.status === 'started' ? 'Viaje en curso'
-                  : trip.status === 'completed' ? 'Viaje finalizado'
-                  : trip.status === 'cancelled' ? 'Viaje cancelado'
-                  : trip.status === 'active' ? 'Viaje programado'
-                  : trip.status === 'pending' ? 'Viaje pendiente'
-                  : `Estado: ${trip.status}`}
-              </Text>
-              {trip.status === 'started' && !!trip.startedAt && (
-                <Text style={styles.tripStatusTime}>
-                  {`· ${new Date(trip.startedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} hs`}
+            <>
+              <View style={styles.tripStatusBanner}>
+                <View style={[
+                  styles.tripStatusDot,
+                  { backgroundColor: trip.status === 'started' ? '#3B82F6'
+                    : trip.status === 'completed' ? '#10B981'
+                    : trip.status === 'cancelled' ? '#EF4444'
+                    : '#6B7280' }
+                ]} />
+                <Text style={styles.tripStatusLabel}>
+                  {trip.status === 'started' ? 'Viaje en curso'
+                    : trip.status === 'completed' ? 'Viaje finalizado'
+                    : trip.status === 'cancelled' ? 'Viaje cancelado'
+                    : trip.status === 'active' ? 'Viaje programado'
+                    : trip.status === 'pending' ? 'Viaje pendiente'
+                    : `Estado: ${trip.status}`}
                 </Text>
+                {trip.status === 'started' && !!trip.startedAt && (
+                  <Text style={styles.tripStatusTime}>
+                    {`· ${new Date(trip.startedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} hs`}
+                  </Text>
+                )}
+              </View>
+
+              {/* Mostrar costo real cuando el viaje está completado o en progreso */}
+              {(trip.status === 'started' || trip.status === 'completed') && trip.actualCost && trip.actualCost > 0 && (
+                <View style={styles.actualCostBanner}>
+                  <Ionicons name="cash-outline" size={18} color="#10b981" />
+                  <Text style={styles.actualCostBannerLabel}>Costo final del viaje:</Text>
+                  <Text style={styles.actualCostBannerValue}>
+                    ${typeof trip.actualCost === 'number' ? trip.actualCost.toFixed(2) : trip.actualCost} ARS
+                  </Text>
+                </View>
               )}
-            </View>
+            </>
           )}
 
           {/* Route Info */}
@@ -1414,6 +1448,30 @@ const styles = StyleSheet.create({
   tripStatusTime: {
     fontSize: 13,
     color: '#6B7280',
+  },
+  actualCostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 8,
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#10b981' + '30',
+    gap: 8,
+  },
+  actualCostBannerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#065F46',
+    flex: 1,
+  },
+  actualCostBannerValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10b981',
   },
 });
 

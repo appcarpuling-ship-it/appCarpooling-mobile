@@ -210,10 +210,19 @@ const MyTripsScreen = ({ navigation }) => {
 
   const getFilteredTrips = () => {
     if (activeTab === 'upcoming') {
-      return (Array.isArray(trips) ? trips : []).filter(trip => {
+      const filtered = (Array.isArray(trips) ? trips : []).filter(trip => {
         // Viajes activos y en progreso siempre van en próximos
         if (trip.status === 'active' || trip.status === 'started') return true;
         return false;
+      });
+      
+      // Ordenar: primero los viajes "started" (en progreso), luego los "active" (pendientes)
+      return filtered.sort((a, b) => {
+        // Prioridad: started > active
+        if (a.status === 'started' && b.status === 'active') return -1;
+        if (a.status === 'active' && b.status === 'started') return 1;
+        // Si tienen el mismo estado, mantener el orden original (por fecha de salida)
+        return new Date(a.departureDate) - new Date(b.departureDate);
       });
     } else {
       return (Array.isArray(trips) ? trips : []).filter(trip => {
@@ -248,12 +257,7 @@ const MyTripsScreen = ({ navigation }) => {
             </Text>
           </LinearGradient>
 
-          <LinearGradient
-            colors={['#1F2937', '#111827']}
-            style={styles.priceContainer}
-          >
-            <Text style={styles.price}>${item.pricePerSeat}</Text>
-          </LinearGradient>
+         
         </View>
 
         <View style={styles.routeContainer}>
@@ -298,6 +302,19 @@ const MyTripsScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
+
+        {/* Mostrar costo real cuando el viaje está en progreso */}
+        {item.status === 'started' && item.actualCost && item.actualCost > 0 && (
+          <View style={styles.actualCostContainer}>
+            <View style={styles.actualCostItem}>
+              <Ionicons name="cash-outline" size={16} color="#10b981" />
+              <Text style={styles.actualCostLabel}>Costo real del viaje:</Text>
+              <Text style={styles.actualCostValue}>
+                ${typeof item.actualCost === 'number' ? item.actualCost.toFixed(2) : item.actualCost} {item.currency || 'ARS'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {item.status === 'active' && (
           <View style={styles.actionsContainer}>
@@ -379,7 +396,7 @@ const MyTripsScreen = ({ navigation }) => {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#10b981', '#059669']}
+                colors={['#1F2937', '#111827']}
                 style={styles.primaryActionGradient}
               >
                 <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
@@ -702,6 +719,37 @@ const styles = StyleSheet.create({
   seats: {
     fontSize: 13,
     color: '#6B7280',
+  },
+
+  // Actual Cost Container
+  actualCostContainer: {
+    marginTop: 8,
+    marginBottom: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  actualCostItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10b981' + '30',
+  },
+  actualCostLabel: {
+    fontSize: 13,
+    color: '#065F46',
+    fontWeight: '600',
+    flex: 1,
+  },
+  actualCostValue: {
+    fontSize: 15,
+    color: '#10b981',
+    fontWeight: '700',
   },
 
   // Actions Container
