@@ -713,10 +713,18 @@ const BookingScreen = ({ route, navigation }) => {
 
               <View style={styles.routeContainer}>
                 <View style={styles.routePoint}>
-                  <View style={styles.iconContainer}>
+                  {/* <View style={styles.iconContainer}>
                     <Ionicons name="location" size={20} color={colors.primary || '#1F2937'} />
+                  </View> */}
+                  <View style={styles.routeTextContainer}>
+                    <Text style={styles.routeText}>{trip.origin?.city || 'Origen'}</Text>
+                    {!!trip.origin?.province && (
+                      <Text style={styles.routeProvince}>{trip.origin.province}</Text>
+                    )}
+                    {!!trip.origin?.address && (
+                      <Text style={styles.routeAddress}>{trip.origin.address}</Text>
+                    )}
                   </View>
-                  <Text style={styles.routeText}>{trip.origin?.city || 'Origen'}</Text>
                 </View>
 
                 <View style={styles.arrowContainer}>
@@ -724,10 +732,18 @@ const BookingScreen = ({ route, navigation }) => {
                 </View>
 
                 <View style={styles.routePoint}>
-                  <View style={styles.iconContainer}>
+                  {/* <View style={styles.iconContainer}>
                     <Ionicons name="location" size={20} color={colors.accentRed || '#EF4444'} />
+                  </View> */}
+                  <View style={styles.routeTextContainer}>
+                    <Text style={styles.routeText}>{trip.destination?.city || 'Destino'}</Text>
+                    {!!trip.destination?.province && (
+                      <Text style={styles.routeProvince}>{trip.destination.province}</Text>
+                    )}
+                    {!!trip.destination?.address && (
+                      <Text style={styles.routeAddress}>{trip.destination.address}</Text>
+                    )}
                   </View>
-                  <Text style={styles.routeText}>{trip.destination?.city || 'Destino'}</Text>
                 </View>
               </View>
 
@@ -744,7 +760,7 @@ const BookingScreen = ({ route, navigation }) => {
                 </View>
                 <View style={styles.dateTimeRow}>
                   <Ionicons name="time-outline" size={18} color={colors.primary || '#1F2937'} />
-                  <Text style={styles.tripDate}>{trip.departureTime || 'N/A'}</Text>
+                  <Text style={styles.tripDate}>{trip.departureTime || 'N/A'} Hs</Text>
                 </View>
               </View>
             </View>
@@ -926,7 +942,7 @@ const BookingScreen = ({ route, navigation }) => {
                 </View>
               </View>
 
-              <View style={styles.detailRow}>
+              {/* <View style={styles.detailRow}>
                 <View style={styles.detailIconWrapper}>
                   <Ionicons name="cash" size={20} color="#1F2937" />
                 </View>
@@ -934,7 +950,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Text style={styles.detailLabel}>Precio por Asiento</Text>
                   <Text style={styles.detailValue}>${trip.pricePerSeat || 0} ARS</Text>
                 </View>
-              </View>
+              </View> */}
 
               {priceData?.distanceKm && (
                 <View style={styles.detailRow}>
@@ -1184,12 +1200,24 @@ const styles = StyleSheet.create({
   arrowContainer: {
     paddingHorizontal: spacing.sm,
   },
-  routeText: {
+  routeTextContainer: {
     marginLeft: spacing.sm,
+    flex: 1,
+  },
+  routeText: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
-    flex: 1,
+  },
+  routeProvince: {
+    fontSize: fontSize.xs,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  routeAddress: {
+    fontSize: fontSize.xs,
+    color: '#9CA3AF',
+    marginTop: 2,
   },
   dateTimeContainer: {
     marginTop: spacing.md,

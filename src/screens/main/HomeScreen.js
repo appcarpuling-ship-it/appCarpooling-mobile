@@ -338,14 +338,14 @@ const HomeScreen = ({ navigation }) => {
               {new Date(trip.departureDate).toLocaleDateString('es-ES')} • {trip.departureTime}
             </Text>
           </View>
-          <LinearGradient
+          {/* <LinearGradient
             colors={createColorArray('#1F2937', '#111827')}
             style={styles.priceContainer}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
             <Text style={styles.price}>${trip.pricePerSeat}</Text>
-          </LinearGradient>
+          </LinearGradient> */}
         </View>
 
         <View style={styles.routeContainer}>

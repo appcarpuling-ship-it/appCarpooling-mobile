@@ -238,14 +238,6 @@ const MyBookingsScreen = ({ navigation }) => {
                   {getStatusText(item.status)}
                 </Text>
               </LinearGradient>
-              <LinearGradient
-                colors={safeGradients.primary}
-                style={styles.priceContainer}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.price}>${item.totalPrice}</Text>
-              </LinearGradient>
             </View>
 
             <View style={styles.routeContainer}>

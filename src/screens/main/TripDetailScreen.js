@@ -471,9 +471,9 @@ const TripDetailScreen = ({ route, navigation }) => {
         tripId: trip._id
       });
 
-      if (response.data.success) {
-        const conversation = response.data.data;
-        const otherUser = conversation.participants.find(p => p._id !== user._id);
+      if (response.success) {
+        const conversation = response.data;
+        const otherUser = conversation.participants?.find(p => p._id !== user._id);
 
         navigation.navigate('ChatsTab', {
           screen: 'ChatDetail',
@@ -559,6 +559,32 @@ const TripDetailScreen = ({ route, navigation }) => {
             </View>
           </LinearGradient>
 
+          {/* Trip Status */}
+          {!!trip.status && (
+            <View style={styles.tripStatusBanner}>
+              <View style={[
+                styles.tripStatusDot,
+                { backgroundColor: trip.status === 'started' ? '#3B82F6'
+                  : trip.status === 'completed' ? '#10B981'
+                  : trip.status === 'cancelled' ? '#EF4444'
+                  : '#6B7280' }
+              ]} />
+              <Text style={styles.tripStatusLabel}>
+                {trip.status === 'started' ? 'Viaje en curso'
+                  : trip.status === 'completed' ? 'Viaje finalizado'
+                  : trip.status === 'cancelled' ? 'Viaje cancelado'
+                  : trip.status === 'active' ? 'Viaje programado'
+                  : trip.status === 'pending' ? 'Viaje pendiente'
+                  : `Estado: ${trip.status}`}
+              </Text>
+              {trip.status === 'started' && !!trip.startedAt && (
+                <Text style={styles.tripStatusTime}>
+                  {`· ${new Date(trip.startedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} hs`}
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* Route Info */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ruta</Text>
@@ -637,7 +663,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
 
           {/* Price Highlight - Solo mostrar si hay precio */}
-          {trip.pricePerSeat > 0 && (
+          {/* {trip.pricePerSeat > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Precio</Text>
               <LinearGradient
@@ -651,7 +677,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               </LinearGradient>
             </View>
-          )}
+          )} */}
 
           {/* Notes */}
           {!!trip.notes && (
@@ -758,66 +784,62 @@ const TripDetailScreen = ({ route, navigation }) => {
                 // Reserva pendiente de pago
                 <View style={styles.pendingPaymentContainer}>
                   <LinearGradient
-                    colors={['#F59E0B', '#D97706']}
+                    colors={['#1F2937', '#111827']}
                     style={styles.pendingPaymentCard}
                   >
-                    <View style={styles.pendingPaymentHeader}>
-                      <Ionicons name="time-outline" size={24} color="#FFFFFF" />
-                      <View style={styles.pendingPaymentInfo}>
-                        <Text style={styles.pendingPaymentTitle}>Pago Pendiente</Text>
-                        <Text style={styles.pendingPaymentSubtitle}>
-                          Tienes una reserva esperando el pago
-                        </Text>
+                    <View style={styles.pendingPaymentBadge}>
+                      <View style={styles.pendingPaymentDot} />
+                      <Text style={styles.pendingPaymentBadgeText}>Pago Pendiente</Text>
+                    </View>
+
+                    <Text style={styles.pendingPaymentMessage}>
+                      Tu reserva está esperando el pago para confirmarse.
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.payButton}
+                      onPress={handleCompletePendingPayment}
+                      disabled={paymentLoading}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.payButtonGradient}>
+                        {paymentLoading ? (
+                          <ActivityIndicator size="small" color="#1F2937" />
+                        ) : (
+                          <>
+                            <Ionicons name="card-outline" size={20} color="#1F2937" />
+                            <Text style={styles.payButtonText}>Completar Pago</Text>
+                          </>
+                        )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
 
-                    <View style={styles.pendingPaymentActions}>
-                      <TouchableOpacity
-                        style={[styles.paymentActionButton, styles.payButton]}
-                        onPress={handleCompletePendingPayment}
-                        disabled={paymentLoading}
-                      >
-                        <LinearGradient
-                          colors={['#10B981', '#059669']}
-                          style={styles.actionButtonGradient}
-                        >
-                          {paymentLoading ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <>
-                              <Ionicons name="card-outline" size={20} color="#FFFFFF" />
-                              <Text style={styles.actionButtonText}>Completar Pago</Text>
-                            </>
-                          )}
-                        </LinearGradient>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.paymentActionButton, styles.cancelButton]}
-                        onPress={handleCancelPendingReservation}
-                        disabled={paymentLoading}
-                      >
-                        <View style={styles.cancelButtonContent}>
-                          <Ionicons name="close-outline" size={20} color="#EF4444" />
-                          <Text style={styles.cancelButtonText}>Cancelar</Text>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={handleCancelPendingReservation}
+                      disabled={paymentLoading}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancelar reserva</Text>
+                    </TouchableOpacity>
                   </LinearGradient>
                 </View>
               ) : (
                 // Reserva confirmada o en otro estado
-                <View style={styles.bookingStatus}>
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={styles.bookingStatusGradient}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={24} color="#FFFFFF" />
-                    <Text style={styles.bookingStatusText}>
-                      {userBooking.status === 'confirmed' ? 'Reserva Confirmada' : 'Reserva Activa'}
+                <LinearGradient
+                  colors={['#1F2937', '#111827']}
+                  style={styles.confirmedBookingCard}
+                >
+                  <View style={styles.confirmedBookingBadge}>
+                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    <Text style={styles.confirmedBookingBadgeText}>
+                      {userBooking.status === 'confirmed' ? 'Confirmada' : 'Activa'}
                     </Text>
-                  </LinearGradient>
-                </View>
+                  </View>
+                  <Text style={styles.confirmedBookingTitle}>
+                    {userBooking.status === 'confirmed' ? 'Tu reserva está confirmada' : 'Tu reserva está activa'}
+                  </Text>
+                </LinearGradient>
               )
             ) : (
               // Botón de reservar nuevo viaje
@@ -1245,92 +1267,119 @@ const styles = StyleSheet.create({
   },
   pendingPaymentCard: {
     borderRadius: 16,
-    padding: 20,
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    padding: 24,
+    alignItems: 'center',
   },
-  pendingPaymentHeader: {
+  pendingPaymentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginBottom: 12,
   },
-  pendingPaymentInfo: {
-    marginLeft: 12,
-    flex: 1,
+  pendingPaymentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    marginRight: 8,
   },
-  pendingPaymentTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  pendingPaymentBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 2,
   },
-  pendingPaymentSubtitle: {
+  pendingPaymentMessage: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
-  },
-  pendingPaymentActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  paymentActionButton: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
   },
   payButton: {
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
   },
-  actionButtonGradient: {
+  payButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     gap: 8,
   },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+  payButtonText: {
+    color: '#1F2937',
+    fontSize: 16,
+    fontWeight: '700',
   },
   cancelButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 12,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  cancelButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingVertical: 10,
   },
   cancelButtonText: {
-    color: '#EF4444',
-    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 14,
     fontWeight: '600',
   },
-  bookingStatusGradient: {
+  confirmedBookingCard: {
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  confirmedBookingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    gap: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginBottom: 12,
+    gap: 6,
   },
-  bookingStatusText: {
-    color: '#FFFFFF',
-    fontSize: 17,
+  confirmedBookingBadgeText: {
+    fontSize: 13,
     fontWeight: '700',
+    color: '#10B981',
+  },
+  confirmedBookingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  confirmedBookingSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  tripStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 8,
+  },
+  tripStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  tripStatusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  tripStatusTime: {
+    fontSize: 13,
+    color: '#6B7280',
   },
 });
 
