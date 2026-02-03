@@ -16,6 +16,7 @@ import {
   Dimensions,
   Image,
   Linking,
+  FlatList,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,8 @@ import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } fr
 import useColors from '../../hooks/useColors';
 import { fontFamily, typography } from '../../theme/typography';
 import AnimatedCard from '../../components/AnimatedCard';
+import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 
 // Safe colors for styles (fallbacks in case theme colors fail to load)
@@ -135,6 +138,8 @@ const ContinuousCarousel = ({ banners, onBannerPress, createColorArray }) => {
 
 const HomeScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const { isAuthenticated } = useAuth();
+  const { unreadCount = 0 } = useNotifications();
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
@@ -280,6 +285,10 @@ const HomeScreen = ({ navigation }) => {
     loadBannersPremium();
   };
 
+  const handleNotificationsPress = () => {
+    navigation.navigate('ProfileTab', { screen: 'Notifications' });
+  };
+
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
@@ -378,6 +387,7 @@ const HomeScreen = ({ navigation }) => {
     </AnimatedCard>
   );
 
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
@@ -403,6 +413,26 @@ const HomeScreen = ({ navigation }) => {
           >
             {/* Header */}
             <View style={styles.header}>
+              {/* Notification Icon Header */}
+              {isAuthenticated && (
+                <View style={styles.notificationHeader}>
+                  <TouchableOpacity
+                    onPress={handleNotificationsPress}
+                    style={styles.notificationIconButton}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="notifications-outline" size={24} color="#1F2937" />
+                    {unreadCount > 0 && (
+                      <View style={styles.notificationBadge}>
+                        <Text style={styles.notificationBadgeText}>
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+              
               <LinearGradient
                 colors={createColorArray('#1F2937', '#111827')}
                 style={styles.logoIcon}
@@ -633,7 +663,6 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-
             {/* Banner Carousel VIP */}
             {bannersVip.length > 0 && (
               <View style={styles.bannerSection}>
@@ -681,7 +710,50 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: spacing.lg,
+    paddingTop: spacing.xl + spacing.md,
     alignItems: 'center',
+    position: 'relative',
+  },
+  notificationHeader: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.lg,
+    zIndex: 10,
+  },
+  notificationIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: fontWeight.bold,
   },
   logoIcon: {
     width: 56,

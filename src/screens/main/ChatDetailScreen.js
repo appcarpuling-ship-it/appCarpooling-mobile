@@ -164,7 +164,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
   // Separar en un useEffect para los listeners del socket
   useEffect(() => {
     // Escuchar mensajes en tiempo real
-    const handleMessageReceived = (message) => {
+    const handleMessageReceived = async (message) => {
       if (message.conversation === conversation._id) {
         setMessages(prev => {
           // Evitar duplicados: remover mensaje temporal si existe
@@ -178,8 +178,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
         });
         scrollToBottom();
 
-        // Marcar como leído automáticamente cuando llega un mensaje nuevo
-        socketService.markMessagesAsRead(conversation._id);
+        // Marcar como leído automáticamente cuando llega un mensaje nuevo mientras está en el chat
+        // Usar API directamente para asegurar que se marca correctamente
+        try {
+          await apiService.put(`/chat/conversation/${conversation._id}/read`);
+          console.log('✅ [ChatDetailScreen] Mensaje marcado como leído al recibir');
+        } catch (error) {
+          console.error('❌ [ChatDetailScreen] Error al marcar mensaje como leído:', error);
+          // Fallback: usar socket
+          socketService.markMessagesAsRead(conversation._id);
+        }
 
         // Recargar contador después de marcar como leído
         setTimeout(() => {
@@ -213,6 +221,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
       if (response.data.success) {
         setMessages(response.data.data);
+
+        // Marcar todos los mensajes como leídos cuando se carga el chat
+        try {
+          await apiService.put(`/chat/conversation/${conversation._id}/read`);
+          console.log('✅ [ChatDetailScreen] Mensajes marcados como leídos al cargar');
+        } catch (error) {
+          console.error('❌ [ChatDetailScreen] Error al marcar mensajes como leídos:', error);
+        }
 
         // Recargar contador de no leídos después de un delay
         setTimeout(() => {

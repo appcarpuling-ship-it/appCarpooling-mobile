@@ -205,17 +205,17 @@ const ProfileScreen = () => {
         },
       ],
     },
-    {
-      title: 'Reservas',
-      items: [
-        {
-          id: 6,
-          title: 'Mis Reservas de Asiento',
-          icon: 'calendar-outline',
-          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' }),
-        },
-      ],
-    },
+    // {
+    //   title: 'Reservas',
+    //   items: [
+    //     {
+    //       id: 6,
+    //       title: 'Mis Reservas de Asiento',
+    //       icon: 'calendar-outline',
+    //       onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' }),
+    //     },
+    //   ],
+    // },
     {
       title: 'Sesión',
       items: [

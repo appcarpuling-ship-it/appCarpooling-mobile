@@ -14,7 +14,17 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    // Retornar valores por defecto en lugar de lanzar error para evitar problemas con hooks
+    console.warn('useAuth: AuthContext no disponible, usando valores por defecto');
+    return {
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      login: () => Promise.resolve({ success: false }),
+      register: () => Promise.resolve({ success: false }),
+      logout: () => {},
+      updateProfile: () => Promise.resolve({ success: false }),
+    };
   }
   return context;
 };

@@ -37,7 +37,7 @@ const ChatStackNavigator = () => {
         name="Chats"
         component={ChatsScreen}
         options={{
-          headerShown: false
+          title: 'Mensajes'
         }}
       />
       <Stack.Screen

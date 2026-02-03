@@ -60,6 +60,8 @@ export const ENDPOINTS = {
   GET_NOTIFICATIONS: '/notifications',
   MARK_AS_READ: (id) => `/notifications/${id}/read`,
   MARK_ALL_AS_READ: '/notifications/mark-all-read',
+  DELETE_NOTIFICATION: (id) => `/notifications/${id}`,
+  CLEAR_READ_NOTIFICATIONS: '/notifications/clear-read',
 
   // Vehicles
   GET_VEHICLES: '/vehicles',

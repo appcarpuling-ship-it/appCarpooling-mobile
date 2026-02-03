@@ -9,6 +9,7 @@ export const useUnreadMessages = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const listenersSetup = useRef(false);
   const userRef = useRef(user);
+  const setUnreadCountRef = useRef(setUnreadCount);
 
   // Obtener el estado de navegación para saber si estamos en un chat activo
   const navigationState = useNavigationState(state => state);
@@ -18,6 +19,11 @@ export const useUnreadMessages = () => {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  // Update setUnreadCount ref when it changes
+  useEffect(() => {
+    setUnreadCountRef.current = setUnreadCount;
+  }, []);
 
   // Stable handlers que siempre tienen acceso a los valores más recientes
   const handleNewMessage = useRef((message) => {
@@ -50,7 +56,7 @@ export const useUnreadMessages = () => {
       }
 
       console.log('✅ [useUnreadMessages] Incrementando contador de no leídos');
-      setUnreadCount(prev => {
+      setUnreadCountRef.current(prev => {
         const newCount = prev + 1;
         console.log('📊 [useUnreadMessages] Contador anterior:', prev, '→ Nuevo contador:', newCount);
         return newCount;
@@ -62,7 +68,7 @@ export const useUnreadMessages = () => {
 
   const handleConversationUpdate = useRef(() => {
     console.log('🔄 [useUnreadMessages] Conversación actualizada, recargando contador');
-    loadUnreadCount();
+    loadUnreadCountRef.current();
   });
 
   const handleMessagesRead = useRef((data) => {
@@ -71,41 +77,47 @@ export const useUnreadMessages = () => {
     // Agregar un delay para dar tiempo a que el servidor actualice
     setTimeout(() => {
       console.log('⏰ [useUnreadMessages] Ejecutando loadUnreadCount después del delay');
-      loadUnreadCount();
+      loadUnreadCountRef.current();
     }, 200);
   });
 
   const handleSocketConnect = useRef(() => {
     console.log('🔌 [useUnreadMessages] Socket conectado, recargando contador');
-    loadUnreadCount();
+    loadUnreadCountRef.current();
   });
 
-  // Función para cargar contador
-  const loadUnreadCount = async () => {
+  // Ref para mantener el valor actual de unreadCount
+  const unreadCountRef = useRef(unreadCount);
+  useEffect(() => {
+    unreadCountRef.current = unreadCount;
+  }, [unreadCount]);
+
+  // Función para cargar contador - usar ref para evitar problemas con hooks en callbacks
+  const loadUnreadCountRef = useRef(async () => {
     try {
       console.log('🔄 [useUnreadMessages] Cargando contador de no leídos...');
       const response = await get_withauth('/chat/unread-count');
       if (response.success) {
         const newCount = response.data.count || 0;
-        console.log('✅ [useUnreadMessages] Contador cargado:', newCount, '(anterior:', unreadCount, ')');
-        setUnreadCount(newCount);
+        console.log('✅ [useUnreadMessages] Contador cargado:', newCount, '(anterior:', unreadCountRef.current, ')');
+        setUnreadCountRef.current(newCount);
         console.log('📊 [useUnreadMessages] Estado actualizado a:', newCount);
       }
     } catch (error) {
       console.error('❌ [useUnreadMessages] Error al cargar mensajes no leídos:', error);
     }
-  };
+  });
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
       console.log('🚫 [useUnreadMessages] No autenticado o sin usuario, reseteando contador');
-      setUnreadCount(0);
+      setUnreadCountRef.current(0);
       return;
     }
 
     // Cargar contador inicial
     console.log('🔄 [useUnreadMessages] Cargando contador inicial');
-    loadUnreadCount();
+    loadUnreadCountRef.current();
 
     // Limpiar listeners existentes antes de configurar nuevos
     if (socketService.socket) {
@@ -170,7 +182,7 @@ export const useUnreadMessages = () => {
 
   const markAsRead = (conversationId) => {
     // Disminuir el contador cuando se marca una conversación como leída
-    loadUnreadCount();
+    loadUnreadCountRef.current();
   };
 
   const setActiveConversation = (conversationId) => {
@@ -186,7 +198,7 @@ export const useUnreadMessages = () => {
   return {
     unreadCount,
     markAsRead,
-    loadUnreadCount,
+    loadUnreadCount: loadUnreadCountRef.current,
     setActiveConversation,
     clearActiveConversation
   };

@@ -25,6 +25,7 @@ const ChatsScreen = ({ navigation }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const conversationsRef = useRef([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -41,23 +42,63 @@ const ChatsScreen = ({ navigation }) => {
     // Conectar socket
     socketService.connect();
 
+    // Escuchar mensajes recibidos para detectar nuevas conversaciones
+    const handleMessageReceived = (message) => {
+      console.log('📨 [ChatsScreen] Mensaje recibido:', message);
+      const conversationId = message.conversation;
+      
+      // Verificar si la conversación existe en la lista usando el ref
+      const conversationExists = conversationsRef.current.some(conv => conv._id === conversationId);
+      
+      if (!conversationExists) {
+        console.log('🆕 [ChatsScreen] Nueva conversación detectada, recargando lista...');
+        // Recargar todas las conversaciones para incluir la nueva
+        loadConversations();
+      } else {
+        // Si existe, actualizar con el último mensaje
+        updateConversation(conversationId, message);
+      }
+    };
+
     // Escuchar actualizaciones de conversaciones
-    socketService.onConversationUpdated((data) => {
+    const handleConversationUpdated = (data) => {
       console.log('🔄 [ChatsScreen] Conversación actualizada:', data);
-      updateConversation(data.conversationId, data.lastMessage);
-    });
+      const conversationId = data.conversationId;
+      
+      // Verificar si la conversación existe en la lista usando el ref
+      const conversationExists = conversationsRef.current.some(conv => conv._id === conversationId);
+      
+      if (!conversationExists) {
+        console.log('🆕 [ChatsScreen] Nueva conversación en actualización, recargando lista...');
+        // Recargar todas las conversaciones para incluir la nueva
+        loadConversations();
+      } else {
+        // Si existe, actualizar con el último mensaje
+        updateConversation(conversationId, data.lastMessage);
+      }
+    };
 
     // Escuchar cuando se marcan mensajes como leídos
-    socketService.onMessagesRead((data) => {
+    const handleMessagesRead = (data) => {
       console.log('👀 [ChatsScreen] Mensajes marcados como leídos:', data);
       markConversationAsRead(data.conversationId);
-    });
+    };
+
+    socketService.onMessageReceived(handleMessageReceived);
+    socketService.onConversationUpdated(handleConversationUpdated);
+    socketService.onMessagesRead(handleMessagesRead);
 
     return () => {
+      socketService.removeListener('message:received');
       socketService.removeListener('conversation:updated');
       socketService.removeListener('messages:read');
     };
   }, []);
+
+  // Mantener el ref actualizado cuando cambien las conversaciones
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Recargar conversaciones cuando la pantalla se enfoca (solo si es necesario)
   useFocusEffect(
@@ -81,6 +122,7 @@ const ChatsScreen = ({ navigation }) => {
       const response = await apiService.get('/chat/conversations');
       if (response.data.success) {
         setConversations(response.data.data);
+        conversationsRef.current = response.data.data;
       }
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
@@ -99,9 +141,12 @@ const ChatsScreen = ({ navigation }) => {
         return conv;
       });
       // Reordenar por fecha de actualización
-      return updated.sort((a, b) =>
+      const sorted = updated.sort((a, b) =>
         new Date(b.updatedAt) - new Date(a.updatedAt)
       );
+      // Actualizar el ref también
+      conversationsRef.current = sorted;
+      return sorted;
     });
   };
 
@@ -263,15 +308,6 @@ const ChatsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={createColorArray(colors.surfaceElevated, colors.surface)}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      >
-        <Text style={styles.headerTitle}>Mensajes</Text>
-      </LinearGradient>
-
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {conversations.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -305,20 +341,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    paddingTop: spacing.xl + 16,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    padding: 24,
+    paddingTop: 80,
+    paddingBottom: 32,
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.bold,
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#000000',
     letterSpacing: 0.5,
   },

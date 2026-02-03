@@ -160,26 +160,26 @@ const NotificationsScreen = ({ navigation }) => {
 
   const getNotificationGradient = (type, isRead) => {
     if (isRead) {
-      return ['#1A1A1A', '#0F0F0F'];
+      return ['#F8F9FA', '#E5E7EB'];
     }
 
     switch (type) {
       case 'booking':
-        return ['#6366F1', '#4F46E5'];
+        return ['#E0E7FF', '#C7D2FE'];
       case 'trip':
-        return ['#10B981', '#059669'];
+        return ['#D1FAE5', '#A7F3D0'];
       case 'payment':
-        return ['#F59E0B', '#D97706'];
+        return ['#FEF3C7', '#FDE68A'];
       case 'review':
-        return ['#A855F7', '#9333EA'];
+        return ['#E0E7FF', '#C7D2FE'];
       case 'message':
-        return ['#3B82F6', '#2563EB'];
+        return ['#DBEAFE', '#BFDBFE'];
       case 'user':
-        return ['#EC4899', '#DB2777'];
+        return ['#E0E7FF', '#C7D2FE'];
       case 'system':
-        return ['#6B7280', '#4B5563'];
+        return ['#F3F4F6', '#E5E7EB'];
       default:
-        return ['#6366F1', '#8B5CF6'];
+        return ['#E0E7FF', '#C7D2FE'];
     }
   };
 
@@ -202,7 +202,8 @@ const NotificationsScreen = ({ navigation }) => {
     });
   };
 
-  const renderNotificationItem = ({ item, index }) => {
+  // Componente separado para evitar problemas con hooks
+  const NotificationItem = React.memo(({ item, index, onPress, getNotificationIcon, getNotificationGradient, getRelativeTime, createColorArray, colors }) => {
     const itemFadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -212,13 +213,13 @@ const NotificationsScreen = ({ navigation }) => {
         delay: index * 50,
         useNativeDriver: true,
       }).start();
-    }, []);
+    }, [index]);
 
     return (
       <Animated.View style={{ opacity: itemFadeAnim }}>
         <TouchableOpacity
           style={styles.notificationCard}
-          onPress={() => handleNotificationPress(item)}
+          onPress={() => onPress(item)}
           activeOpacity={0.9}
         >
           <LinearGradient
@@ -228,34 +229,44 @@ const NotificationsScreen = ({ navigation }) => {
             style={styles.notificationGradient}
           >
             <View style={styles.notificationRow}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, item.read && styles.iconContainerRead]}>
                 <Ionicons
                   name={getNotificationIcon(item.type)}
                   size={24}
-                  color={colors.textPrimary}
+                  color={item.read ? '#1F2937' : '#3B82F6'}
                 />
               </View>
 
               <View style={styles.notificationContent}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.message}>{item.message}</Text>
-                <Text style={styles.time}>{getRelativeTime(item.createdAt)}</Text>
+                <Text style={[styles.title, item.read && styles.titleRead]}>{item.title}</Text>
+                <Text style={[styles.message, item.read && styles.messageRead]}>{item.message}</Text>
+                <Text style={[styles.time, item.read && styles.timeRead]}>{getRelativeTime(item.createdAt)}</Text>
               </View>
 
               {!item.read && (
-                <LinearGradient
-                  colors={createColorArray('#6366F1', '#A855F7')}
-                  style={styles.unreadBadge}
-                >
+                <View style={styles.unreadBadge}>
                   <View style={styles.unreadGlow} />
-                </LinearGradient>
+                </View>
               )}
             </View>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
     );
-  };
+  });
+
+  const renderNotificationItem = ({ item, index }) => (
+    <NotificationItem
+      item={item}
+      index={index}
+      onPress={handleNotificationPress}
+      getNotificationIcon={getNotificationIcon}
+      getNotificationGradient={getNotificationGradient}
+      getRelativeTime={getRelativeTime}
+      createColorArray={createColorArray}
+      colors={colors}
+    />
+  );
 
   if (loading) {
     return (
@@ -269,15 +280,14 @@ const NotificationsScreen = ({ navigation }) => {
     <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
       <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Notificaciones</Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close" size={24} color="#1F2937" />
+          </TouchableOpacity>
           <View style={styles.headerButtons}>
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={sendTestNotification}
-            >
-              <Ionicons name="flask-outline" size={16} color="#1F2937" />
-              <Text style={styles.testButtonText}>Prueba</Text>
-            </TouchableOpacity>
             {notifications.length > 0 && (
               <TouchableOpacity
                 style={styles.markAllButton}
@@ -316,7 +326,7 @@ const NotificationsScreen = ({ navigation }) => {
         ) : (
           <View style={styles.emptyContainer}>
             <LinearGradient
-              colors={createColorArray('#6366F1', '#A855F7')}
+              colors={['#1F2937', '#111827']}
               style={styles.emptyIconContainer}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -324,7 +334,7 @@ const NotificationsScreen = ({ navigation }) => {
               <Ionicons
                 name="notifications-outline"
                 size={48}
-                color={colors.textPrimary}
+                color="#FFFFFF"
               />
             </LinearGradient>
             <Text style={styles.emptyText}>No tienes notificaciones</Text>
@@ -355,11 +365,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: spacing.lg,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
   },
   headerTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: '#000000',
+    flex: 1,
+    textAlign: 'center',
+    marginLeft: -40, // Compensar el espacio del botón de cerrar para centrar el título
   },
   headerButtons: {
     flexDirection: 'row',
@@ -393,7 +415,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   markAllText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semiBold,
   },
@@ -417,10 +439,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F8F9FA' + '40',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+  },
+  iconContainerRead: {
+    backgroundColor: 'rgba(31, 41, 55, 0.1)',
   },
   notificationContent: {
     flex: 1,
@@ -428,16 +453,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
+    color: '#1F2937',
     marginBottom: spacing.xs,
+  },
+  titleRead: {
+    color: '#000000',
   },
   message: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
+    color: '#374151',
     marginBottom: spacing.xs,
+  },
+  messageRead: {
+    color: '#6B7280',
   },
   time: {
     fontSize: fontSize.xs,
+    color: '#6B7280',
+  },
+  timeRead: {
     color: '#9CA3AF',
   },
   unreadBadge: {
@@ -445,6 +479,12 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     marginLeft: spacing.sm,
+    backgroundColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unreadGlow: {
     width: '100%',
@@ -464,7 +504,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-    shadowColor: '#6366F1',
+    shadowColor: '#1F2937',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,

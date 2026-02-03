@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS } from '../config/api';
 import socketService from '../services/socketService';
@@ -9,75 +9,41 @@ const NotificationContext = createContext();
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error('useNotifications debe ser usado dentro de un NotificationProvider');
+    // Retornar valores por defecto en lugar de lanzar error para evitar problemas con hooks
+    console.warn('useNotifications: NotificationContext no disponible, usando valores por defecto');
+    return {
+      notifications: [],
+      unreadCount: 0,
+      loading: false,
+      loadNotifications: () => {},
+      markAsRead: () => {},
+      markAllAsRead: () => {},
+      clearNotification: () => {},
+      clearAllNotifications: () => {},
+      getNotificationsByType: () => [],
+    };
   }
   return context;
 };
 
 export const NotificationProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated = false } = useAuth();
+  
   const [notifications, setNotifications] = useState([]); // ✅ Inicializado como array
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-
+  
+  // Usar refs para mantener referencias estables a las funciones de estado
+  const setNotificationsRef = useRef(setNotifications);
+  const setUnreadCountRef = useRef(setUnreadCount);
+  
+  // Actualizar refs cuando cambian las funciones
   useEffect(() => {
-    if (isAuthenticated) {
-      loadNotifications();
-      setupSocketListeners();
-    }
+    setNotificationsRef.current = setNotifications;
+    setUnreadCountRef.current = setUnreadCount;
+  }, []);
 
-    return () => {
-      cleanupSocketListeners();
-    };
-  }, [isAuthenticated]);
-
-  const setupSocketListeners = () => {
-    console.log('📡 [NotificationContext] Configurando listeners de socket...');
-
-    // Escuchar nuevas notificaciones
-    socketService.onNotificationReceived((notification) => {
-      console.log('🔔 [NotificationContext] Nueva notificación recibida:', notification);
-      // ✅ Validación defensiva
-      setNotifications(prev => {
-        const prevArray = Array.isArray(prev) ? prev : [];
-        return [notification, ...prevArray];
-      });
-      setUnreadCount(prev => prev + 1);
-    });
-
-    // Escuchar actualizaciones de solicitudes de viaje
-    socketService.onBookingStatusUpdate((data) => {
-      console.log('🚗 [NotificationContext] Actualización de booking recibida:', data);
-      // Crear notificación local
-      const notification = {
-        _id: Date.now().toString(),
-        type: 'booking_update',
-        title: 'Actualización de Solicitud',
-        message: data.message || `Tu solicitud ha sido ${data.status}`,
-        data: data,
-        read: false,
-        createdAt: new Date(),
-      };
-      // ✅ Validación defensiva
-      setNotifications(prev => {
-        const prevArray = Array.isArray(prev) ? prev : [];
-        return [notification, ...prevArray];
-      });
-      setUnreadCount(prev => prev + 1);
-    });
-
-    // NOTA: No escuchar mensajes aquí para evitar conflictos con useUnreadMessages
-    // El hook useUnreadMessages maneja específicamente los mensajes no leídos para el tab badge
-  };
-
-  const cleanupSocketListeners = () => {
-    console.log('🧹 [NotificationContext] Limpiando listeners de socket...');
-    socketService.removeListener('notification:new');
-    socketService.removeListener('booking:statusUpdate');
-    // Ya no limpiamos message:received aquí
-  };
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await get_withauth(ENDPOINTS.GET_NOTIFICATIONS);
@@ -93,7 +59,7 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(notificationsData);
         
         // ✅ Contar no leídas de forma segura
-        const unread = notificationsData.filter(n => n && !n.read).length;
+        const unread = notificationsData.filter(n => n && !n.read && !n.isRead).length;
         setUnreadCount(unread);
       } else {
         console.warn('⚠️ [NotificationContext] Respuesta inválida:', response);
@@ -108,7 +74,66 @@ export const NotificationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const setupSocketListeners = useCallback(() => {
+    console.log('📡 [NotificationContext] Configurando listeners de socket...');
+
+    // Escuchar nuevas notificaciones
+    socketService.onNotificationReceived((notification) => {
+      console.log('🔔 [NotificationContext] Nueva notificación recibida:', notification);
+      // ✅ Usar refs para evitar problemas con hooks en callbacks
+      setNotificationsRef.current(prev => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        return [notification, ...prevArray];
+      });
+      setUnreadCountRef.current(prev => prev + 1);
+    });
+
+    // Escuchar actualizaciones de solicitudes de viaje
+    socketService.onBookingStatusUpdate((data) => {
+      console.log('🚗 [NotificationContext] Actualización de booking recibida:', data);
+      // Crear notificación local
+      const notification = {
+        _id: Date.now().toString(),
+        type: 'booking_update',
+        title: 'Actualización de Solicitud',
+        message: data.message || `Tu solicitud ha sido ${data.status}`,
+        data: data,
+        read: false,
+        createdAt: new Date(),
+      };
+      // ✅ Usar refs para evitar problemas con hooks en callbacks
+      setNotificationsRef.current(prev => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        return [notification, ...prevArray];
+      });
+      setUnreadCountRef.current(prev => prev + 1);
+    });
+
+    // NOTA: No escuchar mensajes aquí para evitar conflictos con useUnreadMessages
+    // El hook useUnreadMessages maneja específicamente los mensajes no leídos para el tab badge
+  }, []);
+
+  const cleanupSocketListeners = useCallback(() => {
+    console.log('🧹 [NotificationContext] Limpiando listeners de socket...');
+    socketService.removeListener('notification:new');
+    socketService.removeListener('booking:statusUpdate');
+    // Ya no limpiamos message:received aquí
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadNotifications();
+      setupSocketListeners();
+    }
+
+    return () => {
+      cleanupSocketListeners();
+    };
+  }, [isAuthenticated, loadNotifications, setupSocketListeners, cleanupSocketListeners]);
+
+
 
   const markAsRead = async (notificationId) => {
     try {
