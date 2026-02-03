@@ -72,7 +72,7 @@ export const NotificationProvider = ({ children }) => {
 
   const cleanupSocketListeners = () => {
     console.log('🧹 [NotificationContext] Limpiando listeners de socket...');
-    socketService.removeListener('notification:received');
+    socketService.removeListener('notification:new');
     socketService.removeListener('booking:statusUpdate');
     // Ya no limpiamos message:received aquí
   };

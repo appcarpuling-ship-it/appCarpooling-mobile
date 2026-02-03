@@ -26,7 +26,8 @@
       "Bash(node fix_nav_colors.js:*)",
       "Bash(node fix_tripdetail.js:*)",
       "Bash(node debug_test.js:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx expo install:*)"
     ],
     "deny": [],
     "ask": []

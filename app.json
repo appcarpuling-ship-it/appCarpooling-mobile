@@ -76,7 +76,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "scheme": "carpooling",
     "extra": {

@@ -186,8 +186,8 @@ class SocketService {
    */
   onNotificationReceived(callback) {
     if (this.socket) {
-      this.socket.on('notification:received', callback);
-      this.listeners.set('notification:received', callback);
+      this.socket.on('notification:new', callback);
+      this.listeners.set('notification:new', callback);
     }
   }
 

@@ -9,6 +9,8 @@ import {
   Alert,
   Animated,
   RefreshControl,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +28,10 @@ const MyTripsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
+  const [startingTripId, setStartingTripId] = useState(null);
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [completingTripId, setCompletingTripId] = useState(null);
+  const [actualCost, setActualCost] = useState('');
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -115,26 +121,28 @@ const MyTripsScreen = ({ navigation }) => {
     );
   };
 
-  const handleCompleteTrip = (tripId) => {
+  const handleStartTrip = (tripId) => {
     Alert.alert(
-      'Completar Viaje',
-      '¿Confirmas que este viaje se ha completado?',
+      'Iniciar Viaje',
+      '¿Confirmas que deseas iniciar este viaje? Los pasajeros serán notificados.',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí',
+          text: 'Sí, iniciar',
           onPress: async () => {
+            setStartingTripId(tripId);
             try {
-              const response = await put_withauth(`/trips/${tripId}/complete`);
+              const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
               if (response.success) {
-                Alert.alert('Éxito', 'Viaje marcado como completado');
+                Alert.alert('Viaje Iniciado', 'El viaje ha comenzado. Los pasajeros han sido notificados.');
                 loadMyTrips();
-                // Actualizar contador de viajes completados en el perfil
-                await refreshUser();
-                console.log('✅ Usuario actualizado después de completar viaje');
+              } else {
+                Alert.alert('Error', response.message || 'No se pudo iniciar el viaje');
               }
             } catch (error) {
-              Alert.alert('Error', error.message);
+              Alert.alert('Error', error.message || 'Error al iniciar el viaje');
+            } finally {
+              setStartingTripId(null);
             }
           },
         },
@@ -142,10 +150,40 @@ const MyTripsScreen = ({ navigation }) => {
     );
   };
 
+  const handleCompleteTrip = (tripId) => {
+    setCompletingTripId(tripId);
+    setActualCost('');
+    setShowCostModal(true);
+  };
+
+  const submitCompleteTrip = async () => {
+    const cost = parseFloat(actualCost);
+    if (!actualCost || isNaN(cost) || cost <= 0) {
+      Alert.alert('Error', 'Ingresa un costo válido mayor a 0');
+      return;
+    }
+
+    try {
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost });
+      if (response.success) {
+        setShowCostModal(false);
+        Alert.alert('Viaje Completado', `Viaje completado. Costo final: $${cost.toFixed(2)}. Los pasajeros han sido notificados para realizar el pago.`);
+        loadMyTrips();
+        await refreshUser();
+      } else {
+        Alert.alert('Error', response.message || 'No se pudo completar el viaje');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Error al completar el viaje');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active':
         return '#10b981';
+      case 'started':
+        return '#f59e0b';
       case 'completed':
         return '#2563eb';
       case 'cancelled':
@@ -159,6 +197,8 @@ const MyTripsScreen = ({ navigation }) => {
     switch (status) {
       case 'active':
         return 'Activo';
+      case 'started':
+        return 'En Progreso';
       case 'completed':
         return 'Completado';
       case 'cancelled':
@@ -169,16 +209,16 @@ const MyTripsScreen = ({ navigation }) => {
   };
 
   const getFilteredTrips = () => {
-    const now = new Date();
     if (activeTab === 'upcoming') {
       return (Array.isArray(trips) ? trips : []).filter(trip => {
-        const tripDate = new Date(trip.departureDate);
-        return tripDate >= now && trip.status !== 'cancelled' && trip.status !== 'completed';
+        // Viajes activos y en progreso siempre van en próximos
+        if (trip.status === 'active' || trip.status === 'started') return true;
+        return false;
       });
     } else {
       return (Array.isArray(trips) ? trips : []).filter(trip => {
-        const tripDate = new Date(trip.departureDate);
-        return tripDate < now || trip.status === 'cancelled' || trip.status === 'completed';
+        // Solo completados y cancelados van en pasados
+        return trip.status === 'completed' || trip.status === 'cancelled';
       });
     }
   };
@@ -296,16 +336,21 @@ const MyTripsScreen = ({ navigation }) => {
                 <Text style={[styles.iconActionText, { color: '#1F2937' }]}>Editar</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.iconActionButton}
-                onPress={() => handleCompleteTrip(item._id)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconActionCircle, { backgroundColor: '#10b981' + '20' }]}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color="#10b981" />
-                </View>
-                <Text style={[styles.iconActionText, { color: '#10b981' }]}>Completar</Text>
-              </TouchableOpacity>
+              {item.occupiedSeats > 0 && (
+                <TouchableOpacity
+                  style={styles.iconActionButton}
+                  onPress={() => handleStartTrip(item._id)}
+                  disabled={startingTripId === item._id}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.iconActionCircle, { backgroundColor: '#f59e0b' + '20' }]}>
+                    <Ionicons name="play-circle-outline" size={18} color="#f59e0b" />
+                  </View>
+                  <Text style={[styles.iconActionText, { color: '#f59e0b' }]}>
+                    {startingTripId === item._id ? 'Iniciando...' : 'Iniciar'}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.iconActionButton}
@@ -318,6 +363,31 @@ const MyTripsScreen = ({ navigation }) => {
                 <Text style={[styles.iconActionText, { color: '#EF4444' }]}>Cancelar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        )}
+
+        {item.status === 'started' && (
+          <View style={styles.actionsContainer}>
+            <View style={styles.inProgressBanner}>
+              <Ionicons name="play-circle" size={18} color="#f59e0b" />
+              <Text style={styles.inProgressText}>Viaje en progreso</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryActionButton}
+              onPress={() => handleCompleteTrip(item._id)}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#10b981', '#059669']}
+                style={styles.primaryActionGradient}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryActionText}>
+                  Completar Viaje
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
       </LinearGradient>
@@ -413,6 +483,56 @@ const MyTripsScreen = ({ navigation }) => {
           </View>
         )}
       </Animated.View>
+
+      {/* Modal para ingresar costo real al completar viaje */}
+      <Modal
+        visible={showCostModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCostModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Completar Viaje</Text>
+            <Text style={styles.modalSubtitle}>
+              Ingresa el costo real del viaje para que los pasajeros realicen el pago
+            </Text>
+
+            <TextInput
+              style={styles.costInput}
+              placeholder="Ej: 1500.00"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="decimal-pad"
+              value={actualCost}
+              onChangeText={setActualCost}
+              autoFocus
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowCostModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalConfirmButton}
+                onPress={submitCompleteTrip}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#10b981', '#059669']}
+                  style={styles.modalConfirmGradient}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.modalConfirmText}>Completar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 };
@@ -729,6 +849,99 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // In Progress Banner
+  inProgressBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f59e0b' + '15',
+    borderWidth: 1,
+    borderColor: '#f59e0b' + '30',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 8,
+    marginBottom: 8,
+  },
+  inProgressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#b45309',
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  costInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalConfirmGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  modalConfirmText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

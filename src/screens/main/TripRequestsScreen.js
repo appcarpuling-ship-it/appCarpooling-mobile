@@ -79,6 +79,7 @@ const TripRequestsScreen = ({ route }) => {
       return;
     }
 
+    setLoading(true);
     try {
       console.log('📋 [TripRequests] Cargando solicitudes para viaje:', selectedTripId);
       const response = await get_withauth(`/bookings/trip/${selectedTripId}`);
@@ -416,7 +417,10 @@ const TripRequestsScreen = ({ route }) => {
           </View>
         </View>
 
-        {(item.status === 'pending' || (item.seatReservation?.reservationStatus === 'pending_approval')) && (
+        {(item.seatReservation
+          ? item.seatReservation.reservationStatus === 'pending_approval'
+          : item.status === 'pending'
+        ) && (
           <View style={styles.actionsContainer}>
             <TouchableOpacity
               style={styles.actionButton}
