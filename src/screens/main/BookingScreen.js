@@ -144,6 +144,17 @@ const BookingScreen = ({ route, navigation }) => {
     }
   }, [seats]);
 
+  // Función para formatear números con separadores de miles (formato argentino, sin decimales)
+  const formatNumber = (num) => {
+    if (typeof num !== 'number') {
+      num = parseFloat(num);
+    }
+    if (isNaN(num)) return num;
+    // Redondear a número entero y agregar puntos como separadores de miles
+    const integerPart = Math.round(num).toString();
+    return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   const calculatePrice = async () => {
     try {
       setCalculatingPrice(true);
@@ -1111,7 +1122,7 @@ const BookingScreen = ({ route, navigation }) => {
                   </View>
                   {priceData && (
                     <Text style={styles.confirmButtonPrice}>
-                      ${priceData.pricing.totalPrice} ARS
+                      ${formatNumber(priceData.pricing.totalPrice)} ARS
                     </Text>
                   )}
                 </>

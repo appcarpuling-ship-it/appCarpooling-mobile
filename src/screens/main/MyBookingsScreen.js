@@ -180,34 +180,27 @@ const MyBookingsScreen = ({ navigation }) => {
     );
   };
 
-  const getStatusGradient = (status) => {
+  const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
-        return ['#F59E0B', '#D97706'];
+        return { color: '#F59E0B', text: 'Pendiente', icon: 'time-outline' };
       case 'confirmed':
-        return ['#10B981', '#059669'];
+        return { color: '#10B981', text: 'Confirmado', icon: 'checkmark-circle-outline' };
       case 'cancelled':
-        return ['#EF4444', '#DC2626'];
+        return { color: '#EF4444', text: 'Cancelado', icon: 'close-circle-outline' };
       case 'completed':
-        return ['#3B82F6', '#2563EB'];
+        return { color: '#3B82F6', text: 'Completado', icon: 'checkmark-done-outline' };
       default:
-        return ['#6B7280', '#4B5563'];
+        return { color: '#6B7280', text: status, icon: 'help-circle-outline' };
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'Pendiente';
-      case 'confirmed':
-        return 'Confirmado';
-      case 'cancelled':
-        return 'Cancelado';
-      case 'completed':
-        return 'Completado';
-      default:
-        return status;
-    }
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   const renderBookingItem = ({ item, index }) => {
@@ -217,105 +210,102 @@ const MyBookingsScreen = ({ navigation }) => {
       return null;
     }
 
+    const statusConfig = getStatusConfig(item.status);
+    const StatusIcon = statusConfig.icon;
+
     return (
       <Animated.View style={{ opacity: fadeAnim }}>
         <LinearGradient
           colors={safeGradients.card}
           style={styles.bookingCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
         >
           <View style={styles.cardBorder}>
-            <View style={styles.bookingHeader}>
-              <LinearGradient
-                colors={Array.isArray(getStatusGradient(item.status)) && getStatusGradient(item.status).length > 0 ? getStatusGradient(item.status) : ['#6B7280', '#4B5563']}
-                style={styles.statusBadge}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>
-                  {getStatusText(item.status)}
-                </Text>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.routeContainer}>
-              <View style={styles.routePoint}>
-                <LinearGradient
-                  colors={['#1F2937', '#111827']}
-                  style={styles.iconGradient}
-                >
-                  <Ionicons name="location" size={16} color="#FFFFFF" />
-                </LinearGradient>
-                <Text style={styles.routeText} numberOfLines={1}>
-                  {item.trip?.origin?.city}
-                </Text>
+            {/* Header con ruta y estado */}
+            <View style={styles.reservationHeader}>
+              <View style={styles.routeInfo}>
+                <View style={styles.routePoint}>
+                  <Ionicons name="location" size={16} color="#1F2937" />
+                  <Text style={styles.routeText} numberOfLines={1}>
+                    {item.trip?.origin?.city}
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward" size={16} color={staticColors.textTertiary} />
+                <View style={styles.routePoint}>
+                  <Ionicons name="location" size={16} color="#EF4444" />
+                  <Text style={styles.routeText} numberOfLines={1}>
+                    {item.trip?.destination?.city}
+                  </Text>
+                </View>
               </View>
-              <Ionicons name="arrow-forward" size={16} color={staticColors.textTertiary} />
-              <View style={styles.routePoint}>
-                <LinearGradient
-                  colors={createColorArray('#EF4444', '#DC2626')}
-                  style={styles.iconGradient}
-                >
-                  <Ionicons name="location" size={16} color={staticColors.textPrimary} />
-                </LinearGradient>
-                <Text style={styles.routeText} numberOfLines={1}>
-                  {item.trip?.destination?.city}
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
+                <Ionicons name={StatusIcon} size={14} color={statusConfig.color} />
+                <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                  {statusConfig.text}
                 </Text>
               </View>
             </View>
 
+            {/* Información del viaje */}
+            <View style={styles.tripInfo}>
+              <View style={styles.infoRow}>
+                <Ionicons name="calendar-outline" size={14} color={staticColors.textSecondary} />
+                <Text style={styles.infoText}>
+                  {formatDate(item.trip?.departureDate)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="time-outline" size={14} color={staticColors.textSecondary} />
+                <Text style={styles.infoText}>{item.trip?.departureTime}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="people-outline" size={14} color={staticColors.textSecondary} />
+                <Text style={styles.infoText}>
+                  {item.seats || item.seatsBooked || 1} asiento{(item.seats || item.seatsBooked || 1) > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Información del conductor */}
             <View style={styles.driverInfo}>
-                <LinearGradient
-                  colors={safeGradients.primary}
-                  style={styles.avatarPlaceholder}
-                >
-                <Text style={styles.avatarText}>
-                  {item.trip.driver.firstName[0]}{item.trip.driver.lastName[0]}
-                </Text>
-              </LinearGradient>
-              <View style={styles.driverDetails}>
-                <Text style={styles.driverName}>
-                  {item.trip.driver.firstName} {item.trip.driver.lastName}
-                </Text>
-                <Text style={styles.tripDate}>
-                  {new Date(item.trip?.departureDate).toLocaleDateString('es-ES')} •{' '}
-                  {item.trip?.departureTime}
-                </Text>
-              </View>
-              <View style={styles.seatsContainer}>
-                <Ionicons name="people" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.seats}>{item.seats}</Text>
+              <View style={styles.driverInfoRow}>
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>
+                    {item.trip.driver.firstName[0]}{item.trip.driver.lastName[0]}
+                  </Text>
+                </View>
+                <View style={styles.driverDetails}>
+                  <Text style={styles.driverName}>
+                    {item.trip.driver.firstName} {item.trip.driver.lastName}
+                  </Text>
+                  <Text style={styles.driverSubtext}>Conductor</Text>
+                </View>
               </View>
             </View>
 
+            {/* Botones de acción */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })
                 }
+                style={styles.detailButton}
               >
                 <LinearGradient
                   colors={safeGradients.primary}
-                  style={styles.detailButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                  style={styles.detailButtonGradient}
                 >
                   <Text style={styles.detailButtonText}>Ver Detalles</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
               {item.status === 'pending' && (
-                <TouchableOpacity onPress={() => handleCancelBooking(item._id)}>
-                  <LinearGradient
-                    colors={createColorArray('#EF4444', '#DC2626')}
-                    style={styles.cancelButton}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
+                <TouchableOpacity
+                  onPress={() => handleCancelBooking(item._id)}
+                  style={styles.cancelButton}
+                >
+                  <View style={styles.cancelButtonView}>
                     <Text style={styles.cancelButtonText}>Cancelar</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -328,7 +318,7 @@ const MyBookingsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <LinearGradient
-      colors={safeGradients.dark} style={styles.centerContainer}>
+        colors={safeGradients.dark} style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#1F2937" />
       </LinearGradient>
     );
@@ -392,84 +382,74 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: staticColors.cardBorder,
   },
-  bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  reservationHeader: {
     marginBottom: spacing.md,
   },
-  statusBadge: {
+  routeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: staticColors.textPrimary,
-    marginRight: spacing.sm,
-  },
-  statusText: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semiBold,
-    color: staticColors.textPrimary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  priceContainer: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  price: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: '#FFFFFF',
-  },
-  routeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
   },
   routePoint: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  iconGradient: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: spacing.xs,
   },
   routeText: {
-    marginLeft: spacing.sm,
-    fontSize: fontSize.sm,
-    color: staticColors.textPrimary,
-    fontWeight: fontWeight.medium,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semiBold,
+    color: '#000000',
   },
-  driverInfo: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+    gap: spacing.xs,
+  },
+  statusText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semiBold,
+  },
+  tripInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
     marginBottom: spacing.md,
-    padding: spacing.sm,
-    backgroundColor: staticColors.surfaceElevated,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: staticColors.border,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  infoText: {
+    fontSize: fontSize.sm,
+    color: staticColors.textSecondary || '#6B7280',
+  },
+  driverInfo: {
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  driverInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatarPlaceholder: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: spacing.md,
   },
   avatarText: {
     color: '#FFFFFF',
@@ -478,31 +458,16 @@ const styles = StyleSheet.create({
   },
   driverDetails: {
     flex: 1,
-    marginLeft: spacing.md,
   },
   driverName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
     color: staticColors.textPrimary,
+    marginBottom: 2,
   },
-  tripDate: {
-    fontSize: fontSize.sm,
+  driverSubtext: {
+    fontSize: fontSize.xs,
     color: staticColors.textSecondary,
-    marginTop: 2,
-  },
-  seatsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: staticColors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-    gap: 4,
-  },
-  seats: {
-    fontSize: fontSize.sm,
-    color: staticColors.textSecondary,
-    fontWeight: fontWeight.medium,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -511,6 +476,9 @@ const styles = StyleSheet.create({
   detailButton: {
     flex: 1,
     borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  detailButtonGradient: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
@@ -524,13 +492,17 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  cancelButtonView: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButtonText: {
-    color: '#FFFFFF',
+    color: '#EF4444',
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
   },

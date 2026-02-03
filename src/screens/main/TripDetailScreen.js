@@ -147,6 +147,17 @@ const TripDetailScreen = ({ route, navigation }) => {
     setToast({ visible: true, message, type });
   };
 
+  // Función para formatear números con separadores de miles (formato argentino, sin decimales)
+  const formatNumber = (num) => {
+    if (typeof num !== 'number') {
+      num = parseFloat(num);
+    }
+    if (isNaN(num)) return num;
+    // Redondear a número entero y agregar puntos como separadores de miles
+    const integerPart = Math.round(num).toString();
+    return integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   const loadTripDetail = async () => {
     try {
       const response = await get_public(ENDPOINTS.GET_TRIP(tripId));
@@ -645,7 +656,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <Ionicons name="cash-outline" size={18} color="#10b981" />
                   <Text style={styles.actualCostBannerLabel}>Costo final del viaje:</Text>
                   <Text style={styles.actualCostBannerValue}>
-                    ${typeof trip.actualCost === 'number' ? trip.actualCost.toFixed(2) : trip.actualCost} ARS
+                    ${formatNumber(trip.actualCost)} ARS
                   </Text>
                 </View>
               )}
