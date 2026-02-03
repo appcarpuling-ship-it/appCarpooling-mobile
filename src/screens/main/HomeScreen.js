@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
@@ -31,6 +32,7 @@ import { fontFamily, typography } from '../../theme/typography';
 import AnimatedCard from '../../components/AnimatedCard';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import NotificationsScreen from './NotificationsScreen';
 const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 
 // Safe colors for styles (fallbacks in case theme colors fail to load)
@@ -156,9 +158,11 @@ const HomeScreen = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  
   useEffect(() => {
     loadRecentTrips();
     loadBannersEnterprise();
@@ -177,6 +181,17 @@ const HomeScreen = ({ navigation }) => {
       }),
     ]).start();
   }, []);
+
+  // Cerrar el modal de notificaciones cuando se cambia de tab o se desenfoca la pantalla
+  useFocusEffect(
+    React.useCallback(() => {
+      // Cuando la pantalla se enfoca, no hacer nada
+      return () => {
+        // Cuando la pantalla se desenfoca, cerrar el modal si está abierto
+        setShowNotificationsModal(false);
+      };
+    }, [])
+  );
 
   const loadRecentTrips = async (isRefreshing = false) => {
     if (isRefreshing) {
@@ -286,7 +301,8 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleNotificationsPress = () => {
-    navigation.navigate('ProfileTab', { screen: 'Notifications' });
+    // Abrir como modal para no cambiar el tab activo
+    setShowNotificationsModal(true);
   };
 
   const handleDateChange = (event, date) => {
@@ -687,6 +703,30 @@ const HomeScreen = ({ navigation }) => {
           </Animated.View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Modal de Notificaciones */}
+      <Modal
+        visible={showNotificationsModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowNotificationsModal(false)}
+        statusBarTranslucent={false}
+        transparent={false}
+      >
+        <NotificationsScreen 
+          navigation={{
+            ...navigation,
+            goBack: () => setShowNotificationsModal(false),
+            navigate: (screen, params) => {
+              setShowNotificationsModal(false);
+              // Pequeño delay para que el modal se cierre antes de navegar
+              setTimeout(() => {
+                navigation.navigate(screen, params);
+              }, 300);
+            }
+          }}
+        />
+      </Modal>
     </SafeAreaView>
   );
 };

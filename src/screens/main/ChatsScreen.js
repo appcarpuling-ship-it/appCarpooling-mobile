@@ -46,6 +46,11 @@ const ChatsScreen = ({ navigation }) => {
     const handleMessageReceived = (message) => {
       console.log('📨 [ChatsScreen] Mensaje recibido:', message);
       const conversationId = message.conversation;
+      const userId = user?._id || user?.id;
+      
+      // IMPORTANTE: Cuando estás en ChatsScreen (lista de conversaciones), NO marcar como leído
+      // Solo actualizar el mensaje pero preservar el estado de no leído si el mensaje es de otro usuario
+      // El mensaje solo se marcará como leído cuando el usuario entre al chat específico
       
       // Verificar si la conversación existe en la lista usando el ref
       const conversationExists = conversationsRef.current.some(conv => conv._id === conversationId);
@@ -56,7 +61,25 @@ const ChatsScreen = ({ navigation }) => {
         loadConversations();
       } else {
         // Si existe, actualizar con el último mensaje
-        updateConversation(conversationId, message);
+        // Asegurarse de que si el mensaje es de otro usuario y no está en readBy, se mantenga como no leído
+        const messageSenderId = message.sender?._id || message.sender;
+        const messageReadBy = message.readBy || [];
+        const isFromOtherUser = messageSenderId && messageSenderId.toString() !== userId.toString();
+        const isAlreadyRead = messageReadBy.some(id => id.toString() === userId.toString());
+        
+        if (isFromOtherUser && !isAlreadyRead) {
+          // Asegurarse de que el mensaje NO se marque como leído cuando estás en la lista
+          // Remover al usuario del readBy si está presente (no debería estar, pero por seguridad)
+          const unreadMessage = {
+            ...message,
+            readBy: messageReadBy.filter(id => id.toString() !== userId.toString())
+          };
+          console.log('⏸️ [ChatsScreen] Preservando estado de no leído para mensaje de otro usuario');
+          updateConversation(conversationId, unreadMessage);
+        } else {
+          // Si es del usuario actual o ya está marcado como leído, actualizar normalmente
+          updateConversation(conversationId, message);
+        }
       }
     };
 
@@ -64,6 +87,8 @@ const ChatsScreen = ({ navigation }) => {
     const handleConversationUpdated = (data) => {
       console.log('🔄 [ChatsScreen] Conversación actualizada:', data);
       const conversationId = data.conversationId;
+      const userId = user?._id || user?.id;
+      const lastMessage = data.lastMessage;
       
       // Verificar si la conversación existe en la lista usando el ref
       const conversationExists = conversationsRef.current.some(conv => conv._id === conversationId);
@@ -74,7 +99,28 @@ const ChatsScreen = ({ navigation }) => {
         loadConversations();
       } else {
         // Si existe, actualizar con el último mensaje
-        updateConversation(conversationId, data.lastMessage);
+        // Asegurarse de que si el mensaje es de otro usuario y no está en readBy, se mantenga como no leído
+        if (lastMessage) {
+          const messageSenderId = lastMessage.sender?._id || lastMessage.sender;
+          const messageReadBy = lastMessage.readBy || [];
+          const isFromOtherUser = messageSenderId && messageSenderId.toString() !== userId.toString();
+          const isAlreadyRead = messageReadBy.some(id => id.toString() === userId.toString());
+          
+          if (isFromOtherUser && !isAlreadyRead) {
+            // Asegurarse de que el mensaje NO se marque como leído cuando estás en la lista
+            const unreadMessage = {
+              ...lastMessage,
+              readBy: messageReadBy.filter(id => id.toString() !== userId.toString())
+            };
+            console.log('⏸️ [ChatsScreen] Preservando estado de no leído en conversation:updated');
+            updateConversation(conversationId, unreadMessage);
+          } else {
+            // Si es del usuario actual o ya está marcado como leído, actualizar normalmente
+            updateConversation(conversationId, lastMessage);
+          }
+        } else {
+          updateConversation(conversationId, lastMessage);
+        }
       }
     };
 

@@ -58,8 +58,8 @@ export const NotificationProvider = ({ children }) => {
         console.log('✅ [NotificationContext] Notificaciones cargadas:', notificationsData.length);
         setNotifications(notificationsData);
         
-        // ✅ Contar no leídas de forma segura
-        const unread = notificationsData.filter(n => n && !n.read && !n.isRead).length;
+        // ✅ Contar no leídas de forma segura - usar isRead (backend usa isRead)
+        const unread = notificationsData.filter(n => n && !n.isRead).length;
         setUnreadCount(unread);
       } else {
         console.warn('⚠️ [NotificationContext] Respuesta inválida:', response);
@@ -93,14 +93,14 @@ export const NotificationProvider = ({ children }) => {
     // Escuchar actualizaciones de solicitudes de viaje
     socketService.onBookingStatusUpdate((data) => {
       console.log('🚗 [NotificationContext] Actualización de booking recibida:', data);
-      // Crear notificación local
+      // Crear notificación local - usar isRead (backend usa isRead)
       const notification = {
         _id: Date.now().toString(),
         type: 'booking_update',
         title: 'Actualización de Solicitud',
         message: data.message || `Tu solicitud ha sido ${data.status}`,
         data: data,
-        read: false,
+        isRead: false,
         createdAt: new Date(),
       };
       // ✅ Usar refs para evitar problemas con hooks en callbacks
@@ -139,11 +139,11 @@ export const NotificationProvider = ({ children }) => {
     try {
       const response = await put_withauth(ENDPOINTS.MARK_AS_READ(notificationId));
       if (response && response.success) {
-        // ✅ Actualizar estado local de forma segura
+        // ✅ Actualizar estado local usando isRead (backend usa isRead)
         setNotifications(prev => {
           if (!Array.isArray(prev)) return [];
           return prev.map(n =>
-            n && n._id === notificationId ? { ...n, read: true } : n
+            n && n._id === notificationId ? { ...n, isRead: true, readAt: new Date() } : n
           );
         });
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -157,10 +157,10 @@ export const NotificationProvider = ({ children }) => {
     try {
       const response = await put_withauth(ENDPOINTS.MARK_ALL_AS_READ);
       if (response && response.success) {
-        // ✅ Actualizar estado local de forma segura
+        // ✅ Actualizar estado local usando isRead (backend usa isRead)
         setNotifications(prev => {
           if (!Array.isArray(prev)) return [];
-          return prev.map(n => n ? { ...n, read: true } : n);
+          return prev.map(n => n ? { ...n, isRead: true, readAt: new Date() } : n);
         });
         setUnreadCount(0);
       }
@@ -176,10 +176,10 @@ export const NotificationProvider = ({ children }) => {
       return prevArray.filter(n => n && n._id !== notificationId);
     });
     
-    // Actualizar contador si era no leída
+    // Actualizar contador si era no leída - usar isRead (backend usa isRead)
     const notificationsArray = Array.isArray(notifications) ? notifications : [];
     const notification = notificationsArray.find(n => n && n._id === notificationId);
-    if (notification && !notification.read) {
+    if (notification && !notification.isRead) {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
   };

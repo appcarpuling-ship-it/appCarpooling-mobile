@@ -9,7 +9,10 @@ import {
   Animated,
   RefreshControl,
   Alert,
+  StatusBar,
+  Platform,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
@@ -19,6 +22,7 @@ import useColors from '../../hooks/useColors';
 
 const NotificationsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const insets = useSafeAreaInsets();
   const {
     notifications = [],
     unreadCount = 0,
@@ -48,8 +52,8 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const handleNotificationPress = async (notification) => {
-    // Marcar como leída
-    if (!notification.read) {
+    // Marcar como leída - usar isRead (backend usa isRead)
+    if (!notification.isRead) {
       await markAsRead(notification._id);
     }
 
@@ -223,27 +227,27 @@ const NotificationsScreen = ({ navigation }) => {
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={getNotificationGradient(item.type, item.read)}
+            colors={getNotificationGradient(item.type, item.isRead)}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.notificationGradient}
           >
             <View style={styles.notificationRow}>
-              <View style={[styles.iconContainer, item.read && styles.iconContainerRead]}>
+              <View style={[styles.iconContainer, item.isRead && styles.iconContainerRead]}>
                 <Ionicons
                   name={getNotificationIcon(item.type)}
                   size={24}
-                  color={item.read ? '#1F2937' : '#3B82F6'}
+                  color={item.isRead ? '#1F2937' : '#3B82F6'}
                 />
               </View>
 
               <View style={styles.notificationContent}>
-                <Text style={[styles.title, item.read && styles.titleRead]}>{item.title}</Text>
-                <Text style={[styles.message, item.read && styles.messageRead]}>{item.message}</Text>
-                <Text style={[styles.time, item.read && styles.timeRead]}>{getRelativeTime(item.createdAt)}</Text>
+                <Text style={[styles.title, { color: item.isRead ? '#000000' : '#1F2937' }]}>{item.title}</Text>
+                <Text style={[styles.message, { color: item.isRead ? '#6B7280' : '#374151' }]}>{item.message}</Text>
+                <Text style={[styles.time, { color: item.isRead ? '#9CA3AF' : '#6B7280' }]}>{getRelativeTime(item.createdAt)}</Text>
               </View>
 
-              {!item.read && (
+              {!item.isRead && (
                 <View style={styles.unreadBadge}>
                   <View style={styles.unreadGlow} />
                 </View>
@@ -277,9 +281,11 @@ const NotificationsScreen = ({ navigation }) => {
   }
 
   return (
-    <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
-      <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
-        <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.gradientContainer}>
+        <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
+          <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.closeButton}
@@ -343,13 +349,18 @@ const NotificationsScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-      </Animated.View>
-    </LinearGradient>
+        </Animated.View>
+      </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  gradientContainer: {
     flex: 1,
   },
   contentWrapper: {

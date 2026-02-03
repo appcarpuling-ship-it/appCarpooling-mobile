@@ -150,6 +150,41 @@ const MainTabNavigator = () => {
         name="ProfileTab"
         component={ProfileStackNavigator}
         options={{ tabBarLabel: 'Perfil' }}
+        listeners={({ navigation, route }) => ({
+          tabPress: (e) => {
+            // Prevenir navegación por defecto
+            e.preventDefault();
+
+            console.log('🔄 [ProfileTab] Tab pressed');
+            const state = navigation.getState();
+            const currentRoute = state.routes[state.index];
+
+            console.log('📍 [ProfileTab] Current route:', currentRoute.name);
+
+            // Si ya estamos en ProfileTab, verificar stack interno
+            if (currentRoute.name === 'ProfileTab') {
+              const profileTabState = currentRoute.state;
+              console.log('📚 [ProfileTab] Internal state:', profileTabState);
+
+              // Si estamos en una pantalla anidada (como Notifications), volver al inicio del stack (Profile)
+              if (profileTabState && profileTabState.index > 0) {
+                console.log('↩️ [ProfileTab] Navegando a inicio del stack (Profile)');
+                navigation.navigate('ProfileTab', {
+                  screen: 'Profile',
+                  params: { reset: true }
+                });
+              } else {
+                console.log('🏠 [ProfileTab] Ya en pantalla principal');
+                // Permitir navegación normal si ya estamos en Profile
+                navigation.navigate('ProfileTab', { screen: 'Profile' });
+              }
+            } else {
+              // Navegar al tab normalmente
+              console.log('🔄 [ProfileTab] Navegando al tab');
+              navigation.navigate('ProfileTab', { screen: 'Profile' });
+            }
+          },
+        })}
       />
     </Tab.Navigator>
   );
