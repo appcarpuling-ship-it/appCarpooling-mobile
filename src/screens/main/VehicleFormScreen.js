@@ -137,15 +137,28 @@ const VehicleFormScreen = ({ navigation, route }) => {
         quality: 0.8,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log('📸 [VehicleForm] Imágenes seleccionadas:', result.assets.length);
+        
         // Comprimir todas las imágenes seleccionadas
         const compressedUris = await Promise.all(
           result.assets.map(asset => compressImage(asset.uri))
         );
 
+        console.log('📸 [VehicleForm] URIs comprimidas:', compressedUris.length);
+
         const newPhotos = [...photos, ...compressedUris];
-        if (newPhotos.length > 10) {
-          Alert.alert('Límite', 'Puedes subir máximo 10 fotos');
+        const totalAfterAdd = existingPhotos.length + newPhotos.length;
+        
+        console.log('📸 [VehicleForm] Estado después de agregar:', {
+          existingPhotos: existingPhotos.length,
+          currentPhotos: photos.length,
+          newPhotos: compressedUris.length,
+          totalAfterAdd,
+        });
+        
+        if (totalAfterAdd > 10) {
+          Alert.alert('Límite', 'Puedes tener máximo 10 fotos en total');
           return;
         }
         setPhotos(newPhotos);
@@ -173,9 +186,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
+    
+    console.log('📸 [VehicleForm] Validando fotos:', {
+      isEdit,
+      existingPhotos: existingPhotos.length,
+      newPhotos: photos.length,
+      totalPhotos,
+    });
 
-    if (!isEdit && photos.length < 3) {
-      setModalMessage('Debes subir al menos 3 fotos del vehículo');
+    // Validar mínimo de fotos solo al crear (no al editar)
+    if (!isEdit && totalPhotos < 3) {
+      setModalMessage(`Debes subir al menos 3 fotos del vehículo. Actualmente tienes ${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}`);
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Si está editando, debe tener al menos 1 foto en total
+    if (isEdit && totalPhotos === 0) {
+      setModalMessage('Debes tener al menos 1 foto del vehículo');
       setShowErrorModal(true);
       return;
     }
@@ -260,12 +288,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <LinearGradient colors={createColorArray(colors.background, colors.surface) || ['#FFFFFF', '#F8F9FA']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
+          {/* <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.title}>{isEdit ? 'Editar' : 'Agregar'} Vehículo</Text>
-          </View>
+          </View> */}
 
           {/* Photos */}
           <View style={styles.section}>

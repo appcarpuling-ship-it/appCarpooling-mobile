@@ -132,6 +132,7 @@ const EditProfileScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
+    email: user?.email || '',
     phone: user?.phone || '',
     age: user?.age?.toString() || '',
     city: user?.city || '',
@@ -140,6 +141,28 @@ const EditProfileScreen = ({ navigation }) => {
   });
   const [avatarUri, setAvatarUri] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Actualizar formData cuando el usuario cambia
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        age: user.age?.toString() || '',
+        city: user.city || '',
+        province: user.province || '',
+        bio: user.bio || '',
+      });
+      
+      // Si el usuario tiene avatar del servidor y no hay avatarUri local, mantener el avatar del servidor
+      // Si hay avatarUri local, mantenerlo (es la nueva imagen seleccionada)
+      if (user.avatar && !avatarUri) {
+        // No hacer nada, el avatar del servidor se mostrará
+      }
+    }
+  }, [user]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -173,15 +196,42 @@ const EditProfileScreen = ({ navigation }) => {
   } = useGalleryPermissions();
 
   const pickImage = async () => {
-    const imageAsset = await pickImageFromGallery({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+    try {
+      console.log('📸 [EditProfile] Iniciando selección de imagen...');
+      const imageAsset = await pickImageFromGallery({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    if (imageAsset) {
-      setAvatarUri(imageAsset.uri);
+      console.log('📸 [EditProfile] Resultado completo de pickImageFromGallery:', JSON.stringify(imageAsset, null, 2));
+
+      if (imageAsset) {
+        // El hook puede retornar el asset directamente o dentro de assets[0]
+        let uri = null;
+        
+        if (imageAsset.uri) {
+          uri = imageAsset.uri;
+        } else if (imageAsset.assets && imageAsset.assets[0] && imageAsset.assets[0].uri) {
+          uri = imageAsset.assets[0].uri;
+        }
+        
+        if (uri) {
+          console.log('✅ [EditProfile] Imagen seleccionada, URI:', uri);
+          // Actualizar el estado inmediatamente para mostrar la imagen
+          setAvatarUri(uri);
+          console.log('✅ [EditProfile] avatarUri actualizado en estado, debería mostrarse ahora');
+        } else {
+          console.log('⚠️ [EditProfile] Imagen seleccionada pero sin URI válida. Estructura:', imageAsset);
+          Alert.alert('Error', 'No se pudo obtener la imagen seleccionada');
+        }
+      } else {
+        console.log('⚠️ [EditProfile] No se seleccionó imagen (usuario canceló)');
+      }
+    } catch (error) {
+      console.error('❌ [EditProfile] Error al seleccionar imagen:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen. Intenta nuevamente.');
     }
   };
 
@@ -189,6 +239,20 @@ const EditProfileScreen = ({ navigation }) => {
     // Validaciones
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       setModalMessage('Nombre y apellido son obligatorios');
+      setShowErrorModal(true);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setModalMessage('El email es obligatorio');
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setModalMessage('Por favor ingresa un email válido');
       setShowErrorModal(true);
       return;
     }
@@ -217,6 +281,7 @@ const EditProfileScreen = ({ navigation }) => {
       const formDataToSend = new FormData();
       formDataToSend.append('firstName', formData.firstName.trim());
       formDataToSend.append('lastName', formData.lastName.trim());
+      formDataToSend.append('email', formData.email.trim());
       formDataToSend.append('phone', formData.phone.trim());
 
       if (formData.age) {
@@ -242,10 +307,20 @@ const EditProfileScreen = ({ navigation }) => {
         });
       }
 
+      console.log('📤 [EditProfile] Enviando datos:', {
+        hasAvatar: !!avatarUri,
+        email: formData.email,
+      });
+
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
 
+      console.log('📥 [EditProfile] Respuesta del servidor:', response);
+
       if (response.success) {
+        // Refrescar usuario para obtener datos actualizados del servidor (incluyendo avatar)
         await refreshUser();
+        // NO limpiar avatarUri aquí - mantenerlo hasta que el usuario se actualice
+        // El avatarUri se limpiará cuando el usuario se actualice y tenga el nuevo avatar del servidor
         setModalMessage('Perfil actualizado exitosamente');
         setShowSuccessModal(true);
       } else {
@@ -332,6 +407,12 @@ const EditProfileScreen = ({ navigation }) => {
                   source={{ uri: avatarUri }}
                   style={styles.avatarImage}
                   resizeMode="cover"
+                  onError={(error) => {
+                    console.error('❌ [EditProfile] Error cargando avatarUri:', avatarUri, error);
+                  }}
+                  onLoad={() => {
+                    console.log('✅ [EditProfile] Avatar cargado exitosamente desde:', avatarUri);
+                  }}
                 />
               ) : user?.avatar ? (
                 <Image
@@ -345,14 +426,20 @@ const EditProfileScreen = ({ navigation }) => {
               ) : (
                 <View style={styles.avatarContainer}>
                   <Text style={styles.avatarText}>
-                    {formData.firstName?.[0]}{formData.lastName?.[0]}
+                    {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
                   </Text>
                 </View>
               )}
             </LinearGradient>
-            <TouchableOpacity style={styles.changePhotoButton} onPress={pickImage}>
+            <TouchableOpacity 
+              style={styles.changePhotoButton} 
+              onPress={pickImage}
+              activeOpacity={0.7}
+            >
               <Ionicons name="camera-outline" size={20} color="#1F2937" />
-              <Text style={styles.changePhotoText}>Cambiar foto de perfil</Text>
+              <Text style={styles.changePhotoText}>
+                {avatarUri ? 'Cambiar foto' : 'Cambiar foto de perfil'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -414,17 +501,20 @@ const EditProfileScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <View style={[styles.inputContainer, styles.inputDisabled]}>
-                <Ionicons name="mail-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+              <Text style={styles.label}>Email *</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.inputTextDisabled]}
-                  value={user?.email}
-                  editable={false}
+                  style={dynamicStyles.input}
+                  placeholder="Email"
                   placeholderTextColor={colors.placeholder}
+                  value={formData.email}
+                  onChangeText={(value) => handleChange('email', value)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
                 />
               </View>
-              <Text style={dynamicStyles.helperText}>El email no se puede modificar</Text>
             </View>
 
             <View style={styles.inputGroup}>

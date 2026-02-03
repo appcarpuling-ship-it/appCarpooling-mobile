@@ -220,7 +220,10 @@ const LoginScreen = ({ navigation }) => {
               {/* Register Link */}
               <View style={styles.registerContainer}>
                 <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('Register')}
+                  activeOpacity={0.7}
+                >
                   <LinearGradient
                     colors={['#1F2937', '#111827']}
                     start={{ x: 0, y: 0 }}
@@ -354,14 +357,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   registerLinkGradient: {
-    paddingHorizontal: 1,
-    paddingVertical: 1,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: borderRadius.md,
+    shadowColor: '#1F2937',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   registerLink: {
     color: '#FFFFFF',
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semiBold,
+    letterSpacing: 0.3,
   },
 });
 

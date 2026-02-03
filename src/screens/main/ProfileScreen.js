@@ -12,7 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-
+import { buildImageUri } from '../../services/apiService';
+import { Image } from 'react-native';
 import useColors from '../../hooks/useColors';
 
 // Usar valores directos para evitar problemas de carga en estilos estáticos
@@ -259,16 +260,24 @@ const ProfileScreen = () => {
           ]}
         >
           <View style={styles.avatarContainer}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.avatar}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Text style={styles.avatarText}>
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </Text>
-            </LinearGradient>
+            {user?.avatar ? (
+              <Image
+                source={{ uri: buildImageUri(user.avatar) || undefined }}
+                style={styles.avatarImage}
+                onError={() => console.log('Error loading avatar from:', user.avatar)}
+              />
+            ) : (
+              <LinearGradient
+                colors={['#1F2937', '#111827']}
+                style={styles.avatar}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.avatarText}>
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </Text>
+              </LinearGradient>
+            )}
           </View>
           <Text style={styles.name}>
             {user?.firstName} {user?.lastName}
@@ -352,6 +361,13 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#F8F9FA',
+  },
+  avatarImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     borderWidth: 3,
     borderColor: '#F8F9FA',
   },
