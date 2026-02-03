@@ -22,6 +22,18 @@ import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fon
 import useColors from '../../hooks/useColors';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 200;
@@ -1169,6 +1181,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: fontSize.lg,
     color: '#EF4444',
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     textAlign: 'center',
   },
@@ -1187,6 +1200,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginLeft: spacing.md,
@@ -1204,6 +1218,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginBottom: spacing.md,
@@ -1236,16 +1251,19 @@ const styles = StyleSheet.create({
   },
   routeText: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
   },
   routeProvince: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginTop: 2,
   },
   routeAddress: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: '#9CA3AF',
     marginTop: 2,
   },
@@ -1260,10 +1278,12 @@ const styles = StyleSheet.create({
   },
   tripDate: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   loadingText: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     marginTop: spacing.md,
     textAlign: 'center',
   },
@@ -1286,11 +1306,13 @@ const styles = StyleSheet.create({
   },
   seatCount: {
     fontSize: fontSize.xxxl,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
     color: '#000000',
   },
   seatLabel: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginTop: spacing.xs,
   },
@@ -1303,6 +1325,7 @@ const styles = StyleSheet.create({
   },
   availableSeats: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   priceBreakdown: {
@@ -1316,16 +1339,19 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     color: '#6B7280',
     fontWeight: fontWeight.semiBold,
   },
   breakdownValue: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     color: '#000000',
     fontWeight: fontWeight.semiBold,
   },
   formulaText: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.semiBold,
     color: '#374151',
     fontWeight: fontWeight.semiBold,
   },
@@ -1344,17 +1370,20 @@ const styles = StyleSheet.create({
   },
   importantTitle: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#1E40AF',
     marginBottom: spacing.xs,
   },
   importantText: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#1E40AF',
     lineHeight: 18,
   },
   errorMessage: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     color: '#EF4444',
     fontWeight: fontWeight.semiBold,
   },
@@ -1372,6 +1401,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#FFFFFF',
     fontSize: fontSize.xl,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   driverDetails: {
@@ -1380,6 +1410,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginBottom: spacing.xs,
@@ -1391,6 +1422,7 @@ const styles = StyleSheet.create({
   rating: {
     marginLeft: spacing.xs,
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   footer: {
@@ -1414,11 +1446,13 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
   },
   confirmButtonPrice: {
     color: '#FFFFFF',
     fontSize: fontSize.xl,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   summaryItem: {
@@ -1435,10 +1469,12 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   summaryValue: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginTop: spacing.xs,
@@ -1458,10 +1494,12 @@ const styles = StyleSheet.create({
   paymentButtonText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
   },
   paymentHint: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -1476,6 +1514,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   instructionStep: {
@@ -1495,10 +1534,12 @@ const styles = StyleSheet.create({
   stepNumberText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
   },
   stepText: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.regular,
     color: '#374151',
     flex: 1,
   },
@@ -1510,6 +1551,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
   },
   // Vehicle Styles
@@ -1532,12 +1574,14 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginBottom: spacing.xs,
   },
   vehicleYear: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: spacing.xs,
   },
@@ -1556,6 +1600,7 @@ const styles = StyleSheet.create({
   },
   vehicleColor: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   plateContainer: {
@@ -1568,6 +1613,7 @@ const styles = StyleSheet.create({
   },
   plateText: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: fontWeight.bold,
     color: '#1F2937',
     letterSpacing: 1,
@@ -1595,11 +1641,13 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: 2,
   },
   detailValue: {
     fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
   },
@@ -1617,6 +1665,7 @@ const styles = StyleSheet.create({
   },
   preferenceText: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#374151',
     marginLeft: spacing.sm,
     flex: 1,
@@ -1631,6 +1680,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#374151',
     lineHeight: 20,
     flex: 1,
@@ -1674,12 +1724,14 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 18,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
   },
   bannerDescription: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.regular,
     color: 'rgba(255, 255, 255, 0.85)',
     marginBottom: 12,
   },
@@ -1694,6 +1746,7 @@ const styles = StyleSheet.create({
   },
   bannerCtaText: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#FFFFFF',
     marginRight: 4,
@@ -1710,6 +1763,7 @@ const styles = StyleSheet.create({
   },
   bannerOverlayTitle: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -1736,12 +1790,14 @@ const styles = StyleSheet.create({
   },
   paymentMethodTitle: {
     fontSize: fontSize.lg,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginBottom: 4,
   },
   paymentMethodDescription: {
     fontSize: fontSize.sm,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: spacing.sm,
   },
@@ -1754,6 +1810,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodBadgeText: {
     fontSize: fontSize.xs,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: fontWeight.medium,
     color: '#FFFFFF',
   },

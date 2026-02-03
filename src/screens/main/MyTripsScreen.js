@@ -21,6 +21,18 @@ import useColors from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
 import socketService from '../../services/socketService';
 
+// Usar valores directos para evitar problemas de carga
+const SORA_FONTS = {
+  thin: 'Sora_100Thin',
+  extraLight: 'Sora_200ExtraLight',
+  light: 'Sora_300Light',
+  regular: 'Sora_400Regular',
+  medium: 'Sora_500Medium',
+  semiBold: 'Sora_600SemiBold',
+  bold: 'Sora_700Bold',
+  extraBold: 'Sora_800ExtraBold',
+};
+
 const MyTripsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
   const { refreshUser } = useAuth();
@@ -601,11 +613,13 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#6B7280',
   },
   tabTextActive: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#F3F4F6',
   },
@@ -659,6 +673,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   priceContainer: {
@@ -668,6 +683,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 18,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
     color: '#F3F4F6',
   },
@@ -695,6 +711,7 @@ const styles = StyleSheet.create({
   },
   routeText: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.medium,
     color: '#000000',
     fontWeight: '500',
     flex: 1,
@@ -714,10 +731,12 @@ const styles = StyleSheet.create({
   },
   tripDate: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
   seats: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
   },
 
@@ -742,12 +761,14 @@ const styles = StyleSheet.create({
   },
   actualCostLabel: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.semiBold,
     color: '#065F46',
     fontWeight: '600',
     flex: 1,
   },
   actualCostValue: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.bold,
     color: '#10b981',
     fontWeight: '700',
   },
@@ -794,10 +815,12 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   actionButtonTextLarge: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   primaryActionButton: {
@@ -814,6 +837,7 @@ const styles = StyleSheet.create({
   },
   primaryActionText: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#F3F4F6',
   },
@@ -829,6 +853,7 @@ const styles = StyleSheet.create({
   primaryBadgeText: {
     color: '#6366F1',
     fontSize: 11,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
   },
   secondaryActionsRow: {
@@ -849,6 +874,7 @@ const styles = StyleSheet.create({
   },
   iconActionText: {
     fontSize: 12,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
   },
   requestsBadge: {
@@ -868,6 +894,7 @@ const styles = StyleSheet.create({
   requestsBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
   },
 
@@ -888,12 +915,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
@@ -914,6 +943,7 @@ const styles = StyleSheet.create({
   },
   inProgressText: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#b45309',
   },
@@ -935,12 +965,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
+    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: 20,
     lineHeight: 20,
@@ -952,6 +984,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 18,
+    fontFamily: SORA_FONTS.regular,
     color: '#111827',
     backgroundColor: '#F9FAFB',
     marginBottom: 20,
@@ -971,6 +1004,7 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#6B7280',
   },
@@ -988,6 +1022,7 @@ const styles = StyleSheet.create({
   },
   modalConfirmText: {
     fontSize: 15,
+    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#FFFFFF',
   },
