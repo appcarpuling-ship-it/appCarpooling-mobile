@@ -11,6 +11,8 @@ import {
   Keyboard,
   StatusBar,
   Animated,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -48,6 +50,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [activeAutocomplete, setActiveAutocomplete] = useState(null); // 'origin' | 'destination' | null
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
+  const originResultsRef = useRef([]);
+  const destinationResultsRef = useRef([]);
 
   const [region, setRegion] = useState({
     latitude: -34.6037,
@@ -102,26 +109,31 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       useNativeDriver: false,
     }).start();
 
-    // Keyboard listeners con altura real
+    // Keyboard listeners para ajustar la posición cuando aparece el teclado
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       setKeyboardVisible(true);
-      Animated.spring(keyboardOffset, {
-        toValue: -e.endCoordinates.height,
-        tension: 80,
-        friction: 12,
+      // Ajustar manualmente en ambas plataformas
+      // Mover el bottom sheet hacia arriba solo lo necesario para que los inputs sean visibles
+      const keyboardHeight = e.endCoordinates.height;
+      // Ajustar el offset para que se vean ambos inputs bien
+      // Mover aproximadamente el 70% de la altura del teclado, pero un poco menos para que quede más abajo
+      const offset = -keyboardHeight * 0.7 - 10;
+      Animated.timing(keyboardOffset, {
+        toValue: offset,
+        duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
         useNativeDriver: true,
       }).start();
     });
 
-    const hideSub = Keyboard.addListener(hideEvent, () => {
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
       setKeyboardVisible(false);
-      Animated.spring(keyboardOffset, {
+      // Restaurar posición en ambas plataformas
+      Animated.timing(keyboardOffset, {
         toValue: 0,
-        tension: 80,
-        friction: 12,
+        duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
         useNativeDriver: true,
       }).start();
     });
@@ -456,24 +468,38 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   const hasRoute = originMarker && destinationMarker;
 
-  // Estilos para listView que aparecen ARRIBA del contenedor de inputs
-  const listViewAbove = {
-    position: 'absolute',
-    bottom: 50,
-    left: -44,
-    right: -20,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -6 },
-    maxHeight: 280,
-    zIndex: 2000,
+  // Estilos para listView - ambos inputs comparten el mismo estilo
+  // El contenedor de predicciones debe estar justo arriba del contenedor completo de inputs (inputsWrapper)
+  // Calculamos valores adaptativos basados en las dimensiones de la pantalla
+  // El inputsWrapper tiene aproximadamente: timelineContainer (28px) + inputsContainer (97px) = 125px
+  // Usamos un factor proporcional para adaptarse a diferentes tamaños de pantalla
+  const getListViewStyle = () => {
+    // Calcular altura del contenedor de inputs de forma adaptativa
+    // timelineContainer: paddingTop (14) + paddingBottom (14) = 28px
+    // inputsContainer: 2 inputs (48px cada uno) + divider (1px) = 97px
+    // Total base: ~125px, pero ajustamos proporcionalmente según el ancho de pantalla
+    const baseInputsHeight = 125;
+    const scaleFactor = width / 375; // Factor de escala basado en iPhone estándar (375px)
+    const adjustedBottom = baseInputsHeight * scaleFactor + 35; // +35 para espacio adicional arriba
+    
+    return {
+      position: 'absolute',
+      bottom: adjustedBottom, // Adaptativo según el tamaño de pantalla
+      left: -44 * scaleFactor, // Adaptativo
+      right: -20 * scaleFactor, // Adaptativo
+      backgroundColor: '#F5F5F5', // Mismo color que el inputsContainer
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      borderBottomLeftRadius: 12, // Mismo radio que el contenedor de inputs para continuidad visual
+      borderBottomRightRadius: 12,
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: -6 },
+      maxHeight: Math.min(280, height * 0.35), // Máximo 35% de la altura de pantalla o 280px
+      zIndex: 5000,
+    };
   };
 
   if (loadingVehicles) {
@@ -559,20 +585,99 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           },
         ]}
       >
-        <View style={[
-          styles.bottomSheet,
-          keyboardVisible && styles.bottomSheetExpanded,
-        ]}>
-          {/* Handle animado */}
+            <View style={[
+              styles.bottomSheet,
+              keyboardVisible && styles.bottomSheetExpanded,
+            ]}>
+              {/* Handle animado */}
           {!keyboardVisible && (
             <View style={styles.handleBarContainer}>
               <Animated.View style={[styles.handleBar, { width: handleBarWidth }]} />
             </View>
           )}
 
-          {/* Título */}
-          {!keyboardVisible && !hasRoute && (
-            <Text style={styles.sheetTitle}>¿A dónde vamos?</Text>
+         
+
+          {/* Contenedor único compartido para resultados de autocompletado - ARRIBA del contenedor completo de inputs */}
+          {activeAutocomplete && autocompleteResults.length > 0 && (
+            <View 
+              style={getListViewStyle()}
+            >
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={false}
+              >
+                {autocompleteResults.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      minHeight: 52,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F2F2F2',
+                    }}
+                    onPress={() => {
+                      if (activeAutocomplete === 'origin') {
+                        // Obtener detalles
+                        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
+                        fetch(detailsUrl)
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data && data.result) {
+                              handleOriginSelect({ description: item.description }, data.result);
+                            }
+                          });
+                      } else {
+                        // Obtener detalles
+                        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
+                        fetch(detailsUrl)
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data && data.result) {
+                              handleDestinationSelect({ description: item.description }, data.result);
+                            }
+                          });
+                      }
+                      setActiveAutocomplete(null);
+                      setAutocompleteResults([]);
+                    }}
+                    activeOpacity={0.6}
+                  >
+                    <View style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: '#F0F0F0',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 12,
+                    }}>
+                      <Ionicons name="location-sharp" size={18} color="#666" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '500',
+                        color: '#000',
+                      }} numberOfLines={1}>
+                        {item.structured_formatting?.main_text || item.description}
+                      </Text>
+                      <Text style={{
+                        fontSize: 13,
+                        color: '#888',
+                        marginTop: 2,
+                      }} numberOfLines={1}>
+                        {item.structured_formatting?.secondary_text || ''}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
 
           {/* Contenedor de inputs con timeline */}
@@ -594,6 +699,28 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   onPress={handleOriginSelect}
                   apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={2000}
+                  inputType="origin"
+                  onFocusChange={(type) => {
+                    // Cuando este input recibe el foco, activarlo y mostrar sus resultados
+                    if (type === 'origin') {
+                      setActiveAutocomplete('origin');
+                      setAutocompleteResults(originResultsRef.current);
+                    } else {
+                      // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
+                      setActiveAutocomplete(null);
+                      setAutocompleteResults([]);
+                    }
+                  }}
+                  onResultsChange={(results) => {
+                    // Guardar resultados en el ref correspondiente
+                    originResultsRef.current = results;
+                    // Si este input está activo, actualizar los resultados mostrados
+                    if (activeAutocomplete === 'origin') {
+                      setAutocompleteResults(results);
+                    }
+                  }}
+                  externalResults={[]}
+                  externalLoading={false}
                   styles={{
                     container: { flex: 1, zIndex: 3000 },
                     textInput: {
@@ -605,7 +732,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       paddingHorizontal: 12,
                       paddingVertical: 0,
                     },
-                    listView: listViewAbove,
                   }}
                 />
                 {formData.origin.address ? (
@@ -625,6 +751,28 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   onPress={handleDestinationSelect}
                   apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={2000}
+                  inputType="destination"
+                  onFocusChange={(type) => {
+                    // Cuando este input recibe el foco, activarlo y mostrar sus resultados
+                    if (type === 'destination') {
+                      setActiveAutocomplete('destination');
+                      setAutocompleteResults(destinationResultsRef.current);
+                    } else {
+                      // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
+                      setActiveAutocomplete(null);
+                      setAutocompleteResults([]);
+                    }
+                  }}
+                  onResultsChange={(results) => {
+                    // Guardar resultados en el ref correspondiente
+                    destinationResultsRef.current = results;
+                    // Si este input está activo, actualizar los resultados mostrados
+                    if (activeAutocomplete === 'destination') {
+                      setAutocompleteResults(results);
+                    }
+                  }}
+                  externalResults={[]}
+                  externalLoading={false}
                   styles={{
                     container: { flex: 1, zIndex: 2000 },
                     textInput: {
@@ -636,7 +784,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       paddingHorizontal: 12,
                       paddingVertical: 0,
                     },
-                    listView: listViewAbove,
                   }}
                 />
                 {formData.destination.address ? (
@@ -688,10 +835,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               </View>
             </View>
           )}
-        </View>
-        {/* Extensión blanca que tapa cualquier gap entre el sheet y el teclado */}
-        <View style={styles.sheetBottomFill} />
-      </Animated.View>
+            </View>
+          </Animated.View>
 
       {/* Loading overlay */}
       {loadingRoute && (
@@ -764,18 +909,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-  },
-  sheetBottomFill: {
-    height: 100,
     backgroundColor: '#fff',
-    marginTop: -1,
+    width: '100%',
   },
   bottomSheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 36,
     paddingTop: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -787,7 +929,8 @@ const styles = StyleSheet.create({
   bottomSheetExpanded: {
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    paddingBottom: 0,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 36,
+    marginBottom: 0,
   },
   handleBarContainer: {
     alignItems: 'center',

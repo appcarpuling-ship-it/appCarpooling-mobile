@@ -7,13 +7,25 @@ const SafePlacesAutocomplete = ({
   onPress, 
   apiKey, 
   inputRef,
-  styles: customStyles = {}
+  styles: customStyles = {},
+  inputType, // 'origin' | 'destination'
+  onFocusChange, // Callback cuando el input recibe/pierde el foco
+  onResultsChange, // Callback cuando cambian los resultados
+  externalResults, // Resultados externos (si se manejan desde el padre)
+  externalLoading, // Loading externo
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef(null);
+  
+  // Usar resultados externos si están disponibles (array), sino usar los internos
+  const displayResults = Array.isArray(externalResults) ? externalResults : results;
+  const displayLoading = typeof externalLoading === 'boolean' ? externalLoading : loading;
+  const displayShowResults = Array.isArray(externalResults)
+    ? (externalResults.length > 0 && showResults)
+    : (results.length > 0 && showResults);
 
   const searchPlaces = async (text) => {
     if (!text || text.length < 2) {
@@ -32,24 +44,39 @@ const SafePlacesAutocomplete = ({
       const response = await fetch(url);
       const data = await response.json();
 
-      console.log('📍 Resultados:', data);
 
       // ✅ VALIDACIÓN SEGURA
       if (data && Array.isArray(data.predictions) && data.predictions.length > 0) {
         console.log('✅ Se encontraron', data.predictions.length, 'resultados');
         setResults(data.predictions);
         setShowResults(true);
+        // Notificar al padre si hay callback y este input está activo
+        if (onResultsChange) {
+          onResultsChange(data.predictions);
+        }
       } else {
         console.log('⚠️ No se encontraron resultados');
         setResults([]);
         setShowResults(false);
+        // Notificar al padre que no hay resultados
+        if (onResultsChange) {
+          onResultsChange([]);
+        }
       }
     } catch (error) {
       console.error('❌ Error searching places:', error);
       setResults([]);
       setShowResults(false);
+      // Notificar al padre que no hay resultados
+      if (onResultsChange) {
+        onResultsChange([]);
+      }
     } finally {
       setLoading(false);
+      // Notificar el estado de loading al padre
+      if (onResultsChange && externalLoading === undefined) {
+        // El loading se maneja internamente
+      }
     }
   };
 
@@ -64,6 +91,10 @@ const SafePlacesAutocomplete = ({
     if (!text || text.length < 2) {
       setResults([]);
       setShowResults(false);
+      // Notificar al padre que no hay resultados
+      if (onResultsChange) {
+        onResultsChange([]);
+      }
       return;
     }
     
@@ -110,11 +141,36 @@ const SafePlacesAutocomplete = ({
     }
   }, [inputRef]);
 
+  const handleBlur = () => {
+    // Ocultar resultados cuando el input pierde el foco
+    setShowResults(false);
+    // Notificar al padre que este input perdió el foco
+    if (onFocusChange) {
+      onFocusChange(null);
+    }
+  };
+
+  const handleFocus = () => {
+    // Notificar al padre que este input recibió el foco
+    if (onFocusChange && inputType) {
+      onFocusChange(inputType);
+    }
+    // Si hay query y resultados, mostrar resultados cuando el input recibe el foco
+    if (query && query.length >= 2 && results.length > 0) {
+      setShowResults(true);
+      if (onResultsChange) {
+        onResultsChange(results);
+      }
+    }
+  };
+
   return (
     <View style={[styles.container, customStyles.container]}>
       <TextInput
         value={query}
         onChangeText={handleChangeText}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
         placeholder={placeholder}
         placeholderTextColor="#999"
         style={[styles.input, customStyles.textInput]}
@@ -122,7 +178,7 @@ const SafePlacesAutocomplete = ({
         autoCorrect={false}
       />
       
-      {loading && (
+      {displayLoading && (
         <ActivityIndicator 
           size="small" 
           color="#007AFF" 
@@ -130,14 +186,15 @@ const SafePlacesAutocomplete = ({
         />
       )}
       
-      {showResults && results.length > 0 && (
+      {/* No renderizar resultados aquí si se manejan externamente */}
+      {externalResults === undefined && displayShowResults && (
         <View style={[styles.resultsContainer, customStyles.listView]}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={false}
           >
-            {results.map((item, index) => (
+            {displayResults.map((item, index) => (
               <TouchableOpacity
                 key={item.place_id}
                 style={[styles.resultItem, customStyles.row]}
