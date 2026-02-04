@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
 const SafePlacesAutocomplete = ({ 
   placeholder, 
@@ -131,22 +131,18 @@ const SafePlacesAutocomplete = ({
       
       {showResults && results.length > 0 && (
         <View style={[styles.resultsContainer, customStyles.listView]}>
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.place_id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.resultItem, customStyles.row]}
-                onPress={() => handleSelectPlace(item)}
-              >
-                <Text style={[styles.resultText, customStyles.description]}>
-                  {item.description}
-                </Text>
-              </TouchableOpacity>
-            )}
-            ItemSeparatorComponent={() => <View style={[styles.separator, customStyles.separator]} />}
-            keyboardShouldPersistTaps="handled"
-          />
+          {results.map((item, index) => (
+            <TouchableOpacity
+              key={item.place_id}
+              style={[styles.resultItem, customStyles.row]}
+              onPress={() => handleSelectPlace(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.resultText, customStyles.description]}>
+                {item.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
     </View>
@@ -164,23 +160,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   resultsContainer: {
-    position: 'absolute',
-    top: 50,
-    left: -40,
-    right: 0,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    marginTop: 4,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
     maxHeight: 200,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 5,
-    zIndex: 1000,
   },
   resultItem: {
-    padding: 13,
-    height: 50,
+    paddingVertical: 14,
+    paddingHorizontal: 0,
+    minHeight: 48,
     justifyContent: 'center',
   },
   resultText: {

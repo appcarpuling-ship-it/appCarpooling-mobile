@@ -9,8 +9,8 @@ const colors = themeColors || {
   textPrimary: '#000000',
 };
 import CarpoolingsScreen from '../../screens/main/CarpoolingsScreen';
-import CreateTripScreen from '../../screens/main/CreateTripScreen';
-// import CreateTripGoogleMaps from '../../screens/main/CreateTripGoogleMaps';
+// import CreateTripScreen from '../../screens/main/CreateTripScreen';
+import CreateTripGoogleMaps from '../../screens/main/CreateTripGoogleMaps';
 import TripDetails from '../../screens/main/TripDetails';
 import EditTripScreen from '../../screens/main/EditTripScreen';
 import MyTripsScreen from '../../screens/main/MyTripsScreen';
@@ -50,8 +50,8 @@ const CarpoolingsStackNavigator = () => {
       />
       <Stack.Screen
         name="CreateTrip"
-        // component={CreateTripGoogleMaps}
-        component={CreateTripScreen}
+        component={CreateTripGoogleMaps}
+        // component={CreateTripScreen}
         options={{ title: 'Crear Viaje' }}
       />
       <Stack.Screen

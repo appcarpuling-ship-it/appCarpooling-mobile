@@ -740,6 +740,50 @@ const TripDetailScreen = ({ route, navigation }) => {
             </LinearGradient>
           </View>
 
+          {/* Vehicle Features */}
+          {trip.vehicle?.features && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Características del Vehículo</Text>
+              <LinearGradient
+                colors={createColorArray('#F8F9FA', '#E5E7EB')}
+                style={styles.infoCard}
+              >
+                <View style={styles.featuresContainer}>
+                  {trip.vehicle.features.ac && (
+                    <View style={styles.featureItem}>
+                      <Ionicons name="snow-outline" size={20} color="#1F2937" />
+                      <Text style={styles.featureText}>Aire Acondicionado</Text>
+                    </View>
+                  )}
+                  {trip.vehicle.features.music && (
+                    <View style={styles.featureItem}>
+                      <Ionicons name="musical-notes-outline" size={20} color="#1F2937" />
+                      <Text style={styles.featureText}>Música / Radio</Text>
+                    </View>
+                  )}
+                  {trip.vehicle.features.smoking && (
+                    <View style={styles.featureItem}>
+                      <Ionicons name="ban-outline" size={20} color="#1F2937" />
+                      <Text style={styles.featureText}>Se Permite Fumar</Text>
+                    </View>
+                  )}
+                  {trip.vehicle.features.pets && (
+                    <View style={styles.featureItem}>
+                      <Ionicons name="paw-outline" size={20} color="#1F2937" />
+                      <Text style={styles.featureText}>Mascotas</Text>
+                    </View>
+                  )}
+                  {trip.vehicle.features.luggage && (
+                    <View style={styles.featureItem}>
+                      <Ionicons name="bag-handle-outline" size={20} color="#1F2937" />
+                      <Text style={styles.featureText}>Equipaje Grande</Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </View>
+          )}
+
           {/* Price Highlight - Solo mostrar si hay precio */}
           {/* {trip.pricePerSeat > 0 && (
             <View style={styles.section}>
@@ -1188,6 +1232,22 @@ const styles = StyleSheet.create({
   preferenceText: {
     marginLeft: 12,
     fontSize: 15,
+    color: styleColors.textPrimary,
+    fontWeight: '500',
+  },
+  featuresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  featureText: {
+    fontSize: 14,
     color: styleColors.textPrimary,
     fontWeight: '500',
   },
