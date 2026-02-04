@@ -285,14 +285,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           />
         ) : (
           <View style={styles.bannerContent}>
-            <Text style={styles.bannerTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            {!!item.description && (
-              <Text style={styles.bannerDescription} numberOfLines={2}>
-                {item.description}
-              </Text>
-            )}
+       
             {!!item.clickUrl && (
               <View style={styles.bannerCta}>
                 <Text style={styles.bannerCtaText}>Ver más</Text>
@@ -306,9 +299,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.bannerOverlay}
           >
-            <Text style={styles.bannerOverlayTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
+          
           </LinearGradient>
         )}
       </LinearGradient>
@@ -741,7 +732,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
 
           {/* Vehicle Features */}
-          {trip.vehicle?.features && (
+          {trip.vehicle?.features && (trip.vehicle.features.ac || trip.vehicle.features.music || trip.vehicle.features.smoking || trip.vehicle.features.pets || trip.vehicle.features.luggage) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Características del Vehículo</Text>
               <LinearGradient

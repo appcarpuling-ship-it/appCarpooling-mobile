@@ -176,6 +176,12 @@ const SafePlacesAutocomplete = ({
         style={[styles.input, customStyles.textInput]}
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="search"
+        blurOnSubmit={false}
+        onSubmitEditing={() => {
+          // Evitar que el teclado se cierre al presionar intro
+          // Las predicciones permanecen visibles
+        }}
       />
       
       {displayLoading && (

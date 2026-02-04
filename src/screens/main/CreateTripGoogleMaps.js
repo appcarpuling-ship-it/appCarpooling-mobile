@@ -192,8 +192,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       : Math.min(height * 0.35, 350); // 35% de altura o máximo 350px
     
     // Subir el contenedor más para que los inputs queden más arriba
-    // Mover hacia arriba aproximadamente 150px (más que antes)
-    const offset = -150;
+    // Mover hacia arriba aproximadamente 170px (un poco más para iOS)
+    const offset = -170;
     
     Animated.timing(keyboardOffset, {
       toValue: offset,
@@ -257,15 +257,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     if (hasRoute && !keyboardVisible && !activeAutocomplete) {
       // Cuando hay ruta completa, subir el contenedor un poco para que los botones sean más visibles
       Animated.timing(keyboardOffset, {
-        toValue: -60, // Subir 60px para que los botones queden visibles
+        toValue: -80, // Subir 80px para que los botones queden visibles
         duration: 250,
         useNativeDriver: true,
       }).start();
       
       // Ajustar altura del contenedor para que los botones se vean bien
-      // Necesitamos espacio para: handle (~20px) + inputs (~100px) + divider (~1px) + info ruta (~60px) + botones (~60px) + padding (~40px) = ~280px
+      // Necesitamos espacio para: handle (~20px) + inputs (~100px) + divider (~1px) + info ruta (~60px) + botones (~60px) + padding (~60px) = ~300px
       Animated.timing(bottomSheetHeight, {
-        toValue: 300, // Altura suficiente para mostrar todo el contenido incluyendo botones
+        toValue: 320, // Aumentar más la altura para asegurar que los botones sean visibles
         duration: 250,
         useNativeDriver: false,
       }).start();
@@ -474,10 +474,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
         let city = '';
         let province = '';
+        let street = '';
 
         if (Array.isArray(details.address_components)) {
           details.address_components.forEach(component => {
             if (Array.isArray(component?.types)) {
+              if (component.types.includes('route')) {
+                street = component.long_name || '';
+              }
               if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
                 city = component.long_name || '';
               }
@@ -488,6 +492,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           });
         }
 
+        // Construir el texto completo para el input: dirección, ciudad, provincia
+        const fullAddressText = [
+          street || data?.description?.split(',')[0] || '',
+          city,
+          province
+        ].filter(Boolean).join(', ');
+
         setFormData(prev => ({
           ...prev,
           origin: {
@@ -497,6 +508,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             coordinates: coords,
           },
         }));
+
+        // Actualizar el texto del input con la dirección completa
+        if (originInputRef.current && originInputRef.current.setAddressText) {
+          try {
+            originInputRef.current.setAddressText(fullAddressText);
+          } catch (e) {
+            console.log('Error setting origin address text:', e);
+          }
+        }
 
         if (mapRef.current && isMounted.current) {
           setTimeout(() => {
@@ -552,10 +572,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
         let city = '';
         let province = '';
+        let street = '';
 
         if (Array.isArray(details.address_components)) {
           details.address_components.forEach(component => {
             if (Array.isArray(component?.types)) {
+              if (component.types.includes('route')) {
+                street = component.long_name || '';
+              }
               if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
                 city = component.long_name || '';
               }
@@ -566,6 +590,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           });
         }
 
+        // Construir el texto completo para el input: dirección, ciudad, provincia
+        const fullAddressText = [
+          street || data?.description?.split(',')[0] || '',
+          city,
+          province
+        ].filter(Boolean).join(', ');
+
         setFormData(prev => ({
           ...prev,
           destination: {
@@ -575,6 +606,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             coordinates: coords,
           },
         }));
+
+        // Actualizar el texto del input con la dirección completa
+        if (destinationInputRef.current && destinationInputRef.current.setAddressText) {
+          try {
+            destinationInputRef.current.setAddressText(fullAddressText);
+          } catch (e) {
+            console.log('Error setting destination address text:', e);
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error en handleDestinationSelect:', error);
@@ -687,6 +727,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         onRegionChangeComplete={setRegion}
         showsUserLocation={false}
         showsMyLocationButton={false}
+        onPress={() => {
+          // Al presionar en el mapa, cerrar el teclado pero mantener el estado activo
+          // para que las predicciones aparezcan cuando lleguen
+          Keyboard.dismiss();
+          // NO limpiar activeAutocomplete ni autocompleteResults
+          // para permitir que las predicciones en proceso de carga se muestren
+        }}
       >
         {originMarker && (
           <Marker coordinate={originMarker} title="Origen">
@@ -735,7 +782,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               styles.bottomSheet,
               keyboardVisible && styles.bottomSheetExpanded,
               {
-                height: bottomSheetHeight, // Altura fija animada (crece hacia abajo)
+                minHeight: bottomSheetHeight, // Altura mínima animada (crece hacia abajo)
               },
             ]}>
               {/* Contenedor interno con flex column para mantener inputs arriba */}
@@ -750,7 +797,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                 {/* Contenedor de inputs con timeline - posición fija arriba (sin flex) */}
                 <View style={styles.inputsWrapper}>
             {/* Timeline dots */}
-            <View style={styles.timelineContainer}>
+            <View style={[
+              styles.timelineContainer,
+              activeAutocomplete && autocompleteResults.length > 0 && {
+                borderBottomLeftRadius: 0, // Quitar el radio cuando hay predicciones para evitar espacio blanco
+              },
+            ]}>
               <View style={styles.originDot} />
               <View style={styles.timelineLine} />
               <View style={styles.destinationSquare} />
@@ -780,6 +832,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       setAutocompleteResults(originResultsRef.current);
                       // Subir el contenedor y prepararlo cuando se activa el input
                       moveSheetUpOnInputFocus();
+                    } else if (type === null) {
+                      // Si el input pierde el foco pero hay predicciones guardadas, mantener el estado
+                      // para que las predicciones aparezcan cuando lleguen
+                      // NO limpiar activeAutocomplete ni autocompleteResults
                     } else {
                       // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
                       setActiveAutocomplete(null);
@@ -845,6 +901,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       setAutocompleteResults(destinationResultsRef.current);
                       // Subir el contenedor y prepararlo cuando se activa el input (igual que origen)
                       moveSheetUpOnInputFocus();
+                    } else if (type === null) {
+                      // Si el input pierde el foco pero hay predicciones guardadas, mantener el estado
+                      // para que las predicciones aparezcan cuando lleguen
+                      // NO limpiar activeAutocomplete ni autocompleteResults
                     } else {
                       // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
                       setActiveAutocomplete(null);
@@ -900,10 +960,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                <ScrollView
                  keyboardShouldPersistTaps="handled"
                  nestedScrollEnabled={true}
-                 showsVerticalScrollIndicator={false}
-                 style={{ 
-                   flex: 1, // Usar flex para que ocupe el espacio disponible sin afectar los inputs
-                 }}
+                 showsVerticalScrollIndicator={true}
+                 contentContainerStyle={{ paddingBottom: 10 }}
                >
                 {autocompleteResults.map((item) => (
                   <TouchableOpacity
@@ -964,7 +1022,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               )}
 
               <View style={styles.routeButtons}>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.editRouteBtn}
                   onPress={() => {
                     clearOrigin();
@@ -972,7 +1030,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   }}
                 >
                   <Text style={styles.editRouteBtnText}>Editar</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity
                   style={styles.continueBtn}
@@ -1104,12 +1162,21 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     overflow: 'visible',
     zIndex: 1000,
+    backgroundColor: '#F6F6F6', // Color de fondo para todo el contenedor
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   timelineContainer: {
     width: 24,
     alignItems: 'center',
     paddingTop: 14,
     paddingBottom: 14,
+    paddingLeft: 8,
+    backgroundColor: '#F6F6F6', // Mismo color que inputsContainer
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12, // Se quitará dinámicamente cuando hay predicciones
   },
   originDot: {
     width: 10,
@@ -1160,7 +1227,7 @@ const styles = StyleSheet.create({
     marginLeft: 0, // Sin margen izquierdo para que quede alineado con los inputs
     marginRight: 0,
     overflow: 'hidden',
-    flex: 1, // Usar flex para ocupar el espacio disponible sin afectar los inputs arriba
+    maxHeight: 280, // Altura máxima fija para las predicciones
   },
   resultRow: {
     flexDirection: 'row',

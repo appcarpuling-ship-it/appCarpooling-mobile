@@ -383,6 +383,59 @@ const TripDetails = ({ navigation, route }) => {
                                 </TouchableOpacity>
                             </LinearGradient>
 
+                            {/* Características del Vehículo Seleccionado */}
+                            {formData.vehicle && (() => {
+                                const selectedVehicle = vehicles.find(v => v && v._id === formData.vehicle);
+                                // Solo mostrar si hay características Y al menos una está activa
+                                const hasActiveFeatures = selectedVehicle?.features && (
+                                    selectedVehicle.features.ac || 
+                                    selectedVehicle.features.music || 
+                                    selectedVehicle.features.smoking || 
+                                    selectedVehicle.features.pets || 
+                                    selectedVehicle.features.luggage
+                                );
+                                return hasActiveFeatures ? (
+                                    <LinearGradient
+                                        colors={createColorArray(colors.surfaceElevated, colors.surface)}
+                                        style={dynamicStyles.section}
+                                    >
+                                        <Text style={dynamicStyles.label}>Características del Vehículo</Text>
+                                        <View style={styles.featuresContainer}>
+                                            {selectedVehicle.features.ac && (
+                                                <View style={styles.featureItem}>
+                                                    <Ionicons name="snow-outline" size={20} color="#1F2937" />
+                                                    <Text style={styles.featureText}>Aire Acondicionado</Text>
+                                                </View>
+                                            )}
+                                            {selectedVehicle.features.music && (
+                                                <View style={styles.featureItem}>
+                                                    <Ionicons name="musical-notes-outline" size={20} color="#1F2937" />
+                                                    <Text style={styles.featureText}>Música / Radio</Text>
+                                                </View>
+                                            )}
+                                            {selectedVehicle.features.smoking && (
+                                                <View style={styles.featureItem}>
+                                                    <Ionicons name="ban-outline" size={20} color="#1F2937" />
+                                                    <Text style={styles.featureText}>Se Permite Fumar</Text>
+                                                </View>
+                                            )}
+                                            {selectedVehicle.features.pets && (
+                                                <View style={styles.featureItem}>
+                                                    <Ionicons name="paw-outline" size={20} color="#1F2937" />
+                                                    <Text style={styles.featureText}>Mascotas</Text>
+                                                </View>
+                                            )}
+                                            {selectedVehicle.features.luggage && (
+                                                <View style={styles.featureItem}>
+                                                    <Ionicons name="bag-handle-outline" size={20} color="#1F2937" />
+                                                    <Text style={styles.featureText}>Equipaje Grande</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </LinearGradient>
+                                ) : null;
+                            })()}
+
                             {/* Detalles del Viaje */}
                             <LinearGradient
                                 colors={createColorArray(colors.surfaceElevated, colors.surface)}
@@ -435,7 +488,7 @@ const TripDetails = ({ navigation, route }) => {
                                     />
                                 </View>
 
-                                <View style={dynamicStyles.inputWrapper}>
+                                {/* <View style={dynamicStyles.inputWrapper}>
                                     <Ionicons name="cash-outline" size={18} color="#000000" />
                                     <TextInput
                                         style={dynamicStyles.input}
@@ -445,7 +498,7 @@ const TripDetails = ({ navigation, route }) => {
                                         onChangeText={(value) => handleChange('pricePerSeat', value)}
                                         keyboardType="decimal-pad"
                                     />
-                                </View>
+                                </View> */}
 
                                 <View style={[dynamicStyles.inputWrapper, styles.textAreaWrapper]}>
                                     <View style={styles.textAreaIconContainer}>
@@ -758,6 +811,28 @@ const styles = StyleSheet.create({
         fontSize: fontSize.sm || 14,
         color: '#6B7280',
         marginTop: 2,
+    },
+
+    // Features del vehículo
+    featuresContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.sm || 8,
+        marginTop: spacing.sm || 8,
+    },
+    featureItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        paddingVertical: spacing.xs || 6,
+        paddingHorizontal: spacing.sm || 10,
+        borderRadius: borderRadius.md || 12,
+        gap: spacing.xs || 6,
+    },
+    featureText: {
+        fontSize: fontSize.sm || 14,
+        color: '#1F2937',
+        fontWeight: '500',
     },
     
     // Pickers de Fecha y Hora
