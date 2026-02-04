@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -382,10 +383,15 @@ const EditProfileScreen = ({ navigation }) => {
         </Modal>
       )}
       
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.scrollView}
+      >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Animated.View
           style={[
@@ -604,7 +610,6 @@ const EditProfileScreen = ({ navigation }) => {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="save-outline" size={22} color="#FFFFFF" />
                   <Text style={dynamicStyles.saveButtonText}>Guardar Cambios</Text>
                 </>
               )}
@@ -612,7 +617,8 @@ const EditProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
-      
+      </KeyboardAvoidingView>
+
       <PermissionModal
         visible={showPermissionModal}
         onClose={() => setShowPermissionModal(false)}

@@ -391,15 +391,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          <LinearGradient
-            colors={createColorArray('#1F2937', '#111827')}
-            style={dynamicStyles.priceTag}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Text style={dynamicStyles.priceValue}>${trip.pricePerSeat}</Text>
-            <Text style={dynamicStyles.priceLabel}>/asiento</Text>
-          </LinearGradient>
+       
         </View>
 
         {/* Ruta */}

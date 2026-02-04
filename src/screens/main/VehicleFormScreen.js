@@ -9,6 +9,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -287,7 +289,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <LinearGradient colors={createColorArray(colors.background, colors.surface) || ['#FFFFFF', '#F8F9FA']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.gradient}
+        >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -519,6 +525,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
       
       <PermissionModal

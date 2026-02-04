@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Keyboard, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +46,19 @@ const Tab = createBottomTabNavigator();
 const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
   const { unreadCount } = useUnreadMessages();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   return (
     <Tab.Navigator
@@ -82,7 +95,7 @@ const MainTabNavigator = () => {
         },
         tabBarActiveTintColor: '#1F2937',
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
+        tabBarStyle: keyboardVisible ? { display: 'none' } : {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,

@@ -712,14 +712,6 @@ const TripDetailScreen = ({ route, navigation }) => {
                     : 'Fecha no especificada'}
                 </Text>
               </View>
-              {/* <View style={styles.detailRow}>
-                <View style={styles.iconWrapper}>
-                  <Ionicons name="people-outline" size={20} color="#1F2937" />
-                </View>
-                <Text style={styles.detailText}>
-                  {`${trip.availableSeats || 0} asiento${(trip.availableSeats || 0) > 1 ? 's' : ''} disponible${(trip.availableSeats || 0) > 1 ? 's' : ''}`}
-                </Text>
-              </View> */}
               <View style={styles.detailRow}>
                 <View style={styles.iconWrapper}>
                   <Ionicons name="car-outline" size={20} color="#1F2937" />

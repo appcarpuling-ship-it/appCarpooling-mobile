@@ -337,13 +337,14 @@ const TripDetails = ({ navigation, route }) => {
         <SafeAreaView style={styles.container} edges={[]}>
             <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.gradientContainer}>
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={styles.keyboardView}
                 >
                     <ScrollView
                         style={styles.scrollView}
                         contentContainerStyle={styles.scrollContent}
                         showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
                         <Animated.View
                             style={[
@@ -480,7 +481,7 @@ const TripDetails = ({ navigation, route }) => {
                                     <Ionicons name="people-outline" size={18} color="#000000" />
                                     <TextInput
                                         style={dynamicStyles.input}
-                                        placeholder="¿Cuántos asientos disponibles? *"
+                                        placeholder="Asientos disponibles*"
                                         placeholderTextColor={colors.placeholder}
                                         value={formData.availableSeats}
                                         onChangeText={(value) => handleChange('availableSeats', value)}
@@ -637,7 +638,16 @@ const TripDetails = ({ navigation, route }) => {
                 </Modal>
 
                 {/* Date Picker */}
-                {showDatePicker && (
+                {showDatePicker && Platform.OS === 'android' && (
+                    <DateTimePicker
+                        value={tempDate}
+                        mode="date"
+                        display="default"
+                        onChange={onDateChange}
+                        minimumDate={new Date()}
+                    />
+                )}
+                {showDatePicker && Platform.OS === 'ios' && (
                     <View style={styles.pickerOverlay}>
                         <View style={styles.pickerContainer}>
                             <View style={styles.pickerHeader}>
@@ -649,27 +659,33 @@ const TripDetails = ({ navigation, route }) => {
                             <DateTimePicker
                                 value={tempDate}
                                 mode="date"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                display="spinner"
                                 onChange={onDateChange}
                                 minimumDate={new Date()}
                                 textColor="#000000"
                             />
-                            {Platform.OS === 'ios' && (
-                                <View style={styles.pickerButtons}>
-                                    <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.pickerButton}>
-                                        <Text style={styles.pickerButtonCancel}>Cancelar</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => confirmDate(tempDate)} style={styles.pickerButtonPrimary}>
-                                        <Text style={styles.pickerButtonText}>Confirmar</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
+                            <View style={styles.pickerButtons}>
+                                <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.pickerButton}>
+                                    <Text style={styles.pickerButtonCancel}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => confirmDate(tempDate)} style={styles.pickerButtonPrimary}>
+                                    <Text style={styles.pickerButtonText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 )}
 
                 {/* Time Picker */}
-                {showTimePicker && (
+                {showTimePicker && Platform.OS === 'android' && (
+                    <DateTimePicker
+                        value={tempTime}
+                        mode="time"
+                        display="default"
+                        onChange={onTimeChange}
+                    />
+                )}
+                {showTimePicker && Platform.OS === 'ios' && (
                     <View style={styles.pickerOverlay}>
                         <View style={styles.pickerContainer}>
                             <View style={styles.pickerHeader}>
@@ -681,20 +697,18 @@ const TripDetails = ({ navigation, route }) => {
                             <DateTimePicker
                                 value={tempTime}
                                 mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                display="spinner"
                                 onChange={onTimeChange}
                                 textColor="#000000"
                             />
-                            {Platform.OS === 'ios' && (
-                                <View style={styles.pickerButtons}>
-                                    <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerButton}>
-                                        <Text style={styles.pickerButtonCancel}>Cancelar</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => confirmTime(tempTime)} style={styles.pickerButtonPrimary}>
-                                        <Text style={styles.pickerButtonText}>Confirmar</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
+                            <View style={styles.pickerButtons}>
+                                <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerButton}>
+                                    <Text style={styles.pickerButtonCancel}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => confirmTime(tempTime)} style={styles.pickerButtonPrimary}>
+                                    <Text style={styles.pickerButtonText}>Confirmar</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 )}

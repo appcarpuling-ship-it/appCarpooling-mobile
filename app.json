@@ -41,6 +41,7 @@
       }
     },
     "android": {
+      "softwareKeyboardLayoutMode": "adjustResize",
       "package": "com.carpooling.app",
       "permissions": [
         "INTERNET",
