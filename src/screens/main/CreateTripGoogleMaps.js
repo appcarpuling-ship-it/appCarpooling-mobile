@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -180,6 +181,45 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       getDirections();
     }
   }, [originMarker, destinationMarker]);
+
+  // Restaurar estado inicial cuando la pantalla se enfoca (solo al volver de otra pantalla)
+  const screenWasBlurred = useRef(false);
+  
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 [CreateTripGoogleMaps] Pantalla enfocada');
+      
+      // Solo restaurar si la pantalla había sido desenfocada (volvimos de otra pantalla)
+      if (screenWasBlurred.current) {
+        console.log('🔄 [CreateTripGoogleMaps] Restaurando estado inicial');
+        
+        // Restaurar animaciones a estado inicial
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }).start();
+        
+        Animated.timing(bottomSheetHeight, {
+          toValue: MIN_SHEET_HEIGHT,
+          duration: 0,
+          useNativeDriver: false,
+        }).start();
+        
+        // Limpiar predicciones
+        setActiveAutocomplete(null);
+        setAutocompleteResults([]);
+        
+        screenWasBlurred.current = false;
+      }
+      
+      // Función de cleanup que se ejecuta cuando la pantalla se desenfoca
+      return () => {
+        console.log('🔄 [CreateTripGoogleMaps] Pantalla desenfocada');
+        screenWasBlurred.current = true;
+      };
+    }, [])
+  );
 
   // Constantes para minHeight y maxHeight del contenedor
   const MIN_SHEET_HEIGHT = 200; // Altura mínima (posición inicial)
