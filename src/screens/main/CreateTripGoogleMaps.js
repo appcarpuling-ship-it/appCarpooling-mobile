@@ -8,6 +8,9 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
+  Keyboard,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -25,7 +28,6 @@ const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
-// API Key
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const CreateTripGoogleMaps = ({ navigation, route }) => {
@@ -37,12 +39,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const originDebounceTimer = useRef(null);
   const destinationDebounceTimer = useRef(null);
 
-  // Estados principales
+  // Animated values
+  const sheetTranslateY = useRef(new Animated.Value(300)).current;
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const handleBarWidth = useRef(new Animated.Value(0)).current;
+
   const [vehicles, setVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Estados del mapa
   const [region, setRegion] = useState({
     latitude: -34.6037,
     longitude: -58.3816,
@@ -55,7 +61,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const [distance, setDistance] = useState(null);
   const [duration, setDuration] = useState(null);
 
-  // Estado del formulario (solo origen y destino)
   const [formData, setFormData] = useState({
     origin: {
       address: '',
@@ -81,8 +86,50 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       Alert.alert('Error', 'La API Key de Google Maps no está configurada');
     }
 
+    // Animación de entrada del bottom sheet
+    Animated.spring(sheetTranslateY, {
+      toValue: 0,
+      tension: 50,
+      friction: 9,
+      useNativeDriver: true,
+    }).start();
+
+    // Animación del handle bar
+    Animated.timing(handleBarWidth, {
+      toValue: 40,
+      duration: 600,
+      delay: 300,
+      useNativeDriver: false,
+    }).start();
+
+    // Keyboard listeners con altura real
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardVisible(true);
+      Animated.spring(keyboardOffset, {
+        toValue: -e.endCoordinates.height,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      Animated.spring(keyboardOffset, {
+        toValue: 0,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    });
+
     return () => {
       isMounted.current = false;
+      showSub.remove();
+      hideSub.remove();
     };
   }, []);
 
@@ -156,11 +203,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     if (!originMarker || !destinationMarker || !isMounted.current) return;
 
     setLoadingRoute(true);
-    
+
     try {
       const origin = `${originMarker.latitude},${originMarker.longitude}`;
       const destination = `${destinationMarker.latitude},${destinationMarker.longitude}`;
-      
+
       const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
 
       const response = await fetch(url);
@@ -187,7 +234,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             setTimeout(() => {
               if (mapRef.current && isMounted.current) {
                 mapRef.current.fitToCoordinates(points, {
-                  edgePadding: { top: 100, right: 50, bottom: 200, left: 50 },
+                  edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
                   animated: true,
                 });
               }
@@ -347,8 +394,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       Alert.alert('Datos incompletos', 'Por favor selecciona origen y destino');
       return;
     }
-    
-    // Navegar a la nueva pantalla con los datos de origen y destino
+
     navigation.navigate('TripDetails', {
       origin: formData.origin,
       destination: formData.destination,
@@ -408,6 +454,28 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     }
   };
 
+  const hasRoute = originMarker && destinationMarker;
+
+  // Estilos para listView que aparecen ARRIBA del contenedor de inputs
+  const listViewAbove = {
+    position: 'absolute',
+    bottom: 50,
+    left: -44,
+    right: -20,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -6 },
+    maxHeight: 280,
+    zIndex: 2000,
+  };
+
   if (loadingVehicles) {
     return (
       <LinearGradient colors={[colors.background, colors.surface]} style={styles.emptyContainer}>
@@ -435,290 +503,482 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
-      <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          region={region}
-          onRegionChangeComplete={setRegion}
-          showsUserLocation={false}
-          showsMyLocationButton={false}
-        >
-          {originMarker && (
-            <Marker
-              coordinate={originMarker}
-              title="Origen"
-              pinColor="#007AFF"
-            />
-          )}
-          {destinationMarker && (
-            <Marker
-              coordinate={destinationMarker}
-              title="Destino"
-              pinColor="#FF3B30"
-            />
-          )}
-          {routeCoordinates && routeCoordinates.length > 0 && (
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeWidth={4}
-              strokeColor="#007AFF"
-            />
-          )}
-        </MapView>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
 
-        <View style={styles.searchContainer}>
-          <View style={styles.searchCard}>
-            <View style={styles.searchRow}>
-              <Ionicons name="location" size={20} color="#007AFF" style={styles.searchIcon} />
-              <SafePlacesAutocomplete
-                inputRef={originInputRef}
-                placeholder="¿Desde dónde sales?"
-                onPress={handleOriginSelect}
-                apiKey={GOOGLE_MAPS_API_KEY}
-                debounce={2000}
-                styles={{
-                  container: { flex: 1 },
-                  textInput: {
-                    height: 40,
-                    color: '#000',
-                    fontSize: 15,
-                    backgroundColor: 'transparent',
-                    paddingHorizontal: 8,
-                  },
-                  listView: {
-                    position: 'absolute',
-                    top: 50,
-                    left: -40,
-                    right: 0,
-                    backgroundColor: 'white',
-                    borderRadius: 8,
-                    elevation: 5,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.2,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 2 },
-                    maxHeight: 200,
-                    zIndex: 1000,
-                  },
-                  row: { padding: 13, height: 50 },
-                  separator: { height: 1, backgroundColor: '#E5E5E5' },
-                  description: { fontSize: 14, color: '#000' },
-                }}
-              />
-              {formData.origin.address && (
-                <TouchableOpacity onPress={clearOrigin} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color="#999" />
-                </TouchableOpacity>
-              )}
+      {/* Mapa full screen */}
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        region={region}
+        onRegionChangeComplete={setRegion}
+        showsUserLocation={false}
+        showsMyLocationButton={false}
+      >
+        {originMarker && (
+          <Marker coordinate={originMarker} title="Origen">
+            <View style={styles.originMarkerContainer}>
+              <View style={styles.originMarkerDot} />
+            </View>
+          </Marker>
+        )}
+        {destinationMarker && (
+          <Marker coordinate={destinationMarker} title="Destino">
+            <View style={styles.destinationMarkerContainer}>
+              <View style={styles.destinationMarkerSquare} />
+            </View>
+          </Marker>
+        )}
+        {routeCoordinates && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeWidth={5}
+            strokeColor="#000"
+          />
+        )}
+      </MapView>
+
+
+      {/* Botón mi ubicación */}
+      {!keyboardVisible && (
+        <TouchableOpacity style={styles.myLocationButton} onPress={getCurrentLocation}>
+          <Ionicons name="navigate" size={20} color="#000" />
+        </TouchableOpacity>
+      )}
+
+      {/* Panel inferior estilo Uber - Animated */}
+      <Animated.View
+        style={[
+          styles.bottomSheetWrapper,
+          {
+            transform: [
+              { translateY: sheetTranslateY },
+              { translateY: keyboardOffset },
+            ],
+          },
+        ]}
+      >
+        <View style={[
+          styles.bottomSheet,
+          keyboardVisible && styles.bottomSheetExpanded,
+        ]}>
+          {/* Handle animado */}
+          {!keyboardVisible && (
+            <View style={styles.handleBarContainer}>
+              <Animated.View style={[styles.handleBar, { width: handleBarWidth }]} />
+            </View>
+          )}
+
+          {/* Título */}
+          {!keyboardVisible && !hasRoute && (
+            <Text style={styles.sheetTitle}>¿A dónde vamos?</Text>
+          )}
+
+          {/* Contenedor de inputs con timeline */}
+          <View style={styles.inputsWrapper}>
+            {/* Timeline dots */}
+            <View style={styles.timelineContainer}>
+              <View style={styles.originDot} />
+              <View style={styles.timelineLine} />
+              <View style={styles.destinationSquare} />
             </View>
 
-            <View style={styles.searchRow}>
-              <Ionicons name="flag" size={20} color="#FF3B30" style={styles.searchIcon} />
-              <SafePlacesAutocomplete
-                inputRef={destinationInputRef}
-                placeholder="¿A dónde vas?"
-                onPress={handleDestinationSelect}
-                apiKey={GOOGLE_MAPS_API_KEY}
-                debounce={2000}
-                styles={{
-                  container: { flex: 1 },
-                  textInput: {
-                    height: 40,
-                    color: '#000',
-                    fontSize: 15,
-                    backgroundColor: 'transparent',
-                    paddingHorizontal: 8,
-                  },
-                  listView: {
-                    position: 'absolute',
-                    top: 50,
-                    left: -40,
-                    right: 0,
-                    backgroundColor: 'white',
-                    borderRadius: 8,
-                    elevation: 5,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.2,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 2 },
-                    maxHeight: 200,
-                    zIndex: 1000,
-                  },
-                  row: { padding: 13, height: 50 },
-                  separator: { height: 1, backgroundColor: '#E5E5E5' },
-                  description: { fontSize: 14, color: '#000' },
-                }}
-              />
-              {formData.destination.address && (
-                <TouchableOpacity onPress={clearDestination} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color="#999" />
-                </TouchableOpacity>
-              )}
+            {/* Inputs */}
+            <View style={styles.inputsContainer}>
+              {/* Origen */}
+              <View style={[styles.inputRow, { zIndex: 3000 }]}>
+                <SafePlacesAutocomplete
+                  inputRef={originInputRef}
+                  placeholder="¿Desde dónde sales?"
+                  onPress={handleOriginSelect}
+                  apiKey={GOOGLE_MAPS_API_KEY}
+                  debounce={2000}
+                  styles={{
+                    container: { flex: 1, zIndex: 3000 },
+                    textInput: {
+                      height: 44,
+                      color: '#000',
+                      fontSize: 16,
+                      fontWeight: '500',
+                      backgroundColor: 'transparent',
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                    },
+                    listView: listViewAbove,
+                  }}
+                />
+                {formData.origin.address ? (
+                  <TouchableOpacity onPress={clearOrigin} style={styles.clearBtn}>
+                    <Ionicons name="close-circle" size={18} color="#CACACA" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View style={styles.inputDivider} />
+
+              {/* Destino */}
+              <View style={[styles.inputRow, { zIndex: 2000 }]}>
+                <SafePlacesAutocomplete
+                  inputRef={destinationInputRef}
+                  placeholder="¿A dónde vas?"
+                  onPress={handleDestinationSelect}
+                  apiKey={GOOGLE_MAPS_API_KEY}
+                  debounce={2000}
+                  styles={{
+                    container: { flex: 1, zIndex: 2000 },
+                    textInput: {
+                      height: 44,
+                      color: '#000',
+                      fontSize: 16,
+                      fontWeight: '500',
+                      backgroundColor: 'transparent',
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                    },
+                    listView: listViewAbove,
+                  }}
+                />
+                {formData.destination.address ? (
+                  <TouchableOpacity onPress={clearDestination} style={styles.clearBtn}>
+                    <Ionicons name="close-circle" size={18} color="#CACACA" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
+          </View>
+
+          {/* Info de ruta + botones cuando hay ruta */}
+          {hasRoute && !keyboardVisible && (
+            <View style={styles.routeSection}>
+              <View style={styles.routeDivider} />
+
+              {distance && duration && (
+                <View style={styles.routeInfoRow}>
+                  <View style={styles.routeInfoItem}>
+                    <Ionicons name="car-outline" size={20} color="#000" />
+                    <Text style={styles.routeInfoValue}>{distance}</Text>
+                  </View>
+                  <View style={styles.routeInfoDot} />
+                  <View style={styles.routeInfoItem}>
+                    <Ionicons name="time-outline" size={20} color="#000" />
+                    <Text style={styles.routeInfoValue}>{duration}</Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.routeButtons}>
+                <TouchableOpacity
+                  style={styles.editRouteBtn}
+                  onPress={() => {
+                    clearOrigin();
+                    clearDestination();
+                  }}
+                >
+                  <Text style={styles.editRouteBtnText}>Editar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.continueBtn}
+                  onPress={handleContinueToDetails}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.continueBtnText}>Confirmar ruta</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+        {/* Extensión blanca que tapa cualquier gap entre el sheet y el teclado */}
+        <View style={styles.sheetBottomFill} />
+      </Animated.View>
+
+      {/* Loading overlay */}
+      {loadingRoute && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#000" />
+            <Text style={styles.loadingText}>Calculando ruta...</Text>
           </View>
         </View>
-
-        <TouchableOpacity style={styles.locationButton} onPress={getCurrentLocation}>
-          <Ionicons name="locate" size={24} color="#007AFF" />
-        </TouchableOpacity>
-
-        {originMarker && destinationMarker && (
-          <View style={styles.routeInfoCard}>
-            {distance && duration && (
-              <View style={styles.routeInfoRow}>
-                <View style={styles.routeInfoItem}>
-                  <Ionicons name="navigate" size={24} color="#007AFF" />
-                  <Text style={styles.routeInfoValue}>{distance}</Text>
-                  <Text style={styles.routeInfoLabel}>Distancia</Text>
-                </View>
-                <View style={styles.routeInfoItem}>
-                  <Ionicons name="time" size={24} color="#FF3B30" />
-                  <Text style={styles.routeInfoValue}>{duration}</Text>
-                  <Text style={styles.routeInfoLabel}>Duración estimada</Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.routeInfoButtons}>
-              <TouchableOpacity 
-                style={styles.editRouteButton} 
-                onPress={() => {
-                  clearOrigin();
-                  clearDestination();
-                }}
-              >
-                <Ionicons name="create-outline" size={20} color="#007AFF" />
-                <Text style={styles.editRouteButtonText}>Editar Ruta</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.continueButton} onPress={handleContinueToDetails}>
-                <Text style={styles.continueButtonText}>Continuar</Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {loadingRoute && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#007AFF" />
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  mapContainer: { flex: 1 },
-  map: { ...StyleSheet.absoluteFillObject },
-  searchContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 20,
-    left: 16,
-    right: 16,
-    zIndex: 100,
-  },
-  searchCard: {
+  container: {
+    flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    minHeight: 44,
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
-  searchIcon: { marginRight: 8 },
-  clearButton: { padding: 4, marginLeft: 8 },
-  locationButton: {
+
+  // Top bar
+  topBar: {
     position: 'absolute',
-    bottom: 180,
-    right: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  backButton: {
+    marginLeft: 16,
+    marginTop: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#fff',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  routeInfoCard: {
+
+  // My location
+  myLocationButton: {
     position: 'absolute',
-    bottom: 20,
-    left: 16,
     right: 16,
+    bottom: 280,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  routeInfoRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 },
-  routeInfoItem: { alignItems: 'center' },
-  routeInfoValue: { fontSize: 18, fontWeight: '600', color: '#000', marginTop: 4 },
-  routeInfoLabel: { fontSize: 12, color: '#666', marginTop: 2 },
-  routeInfoButtons: {
+
+  // Bottom sheet
+  bottomSheetWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  sheetBottomFill: {
+    height: 100,
+    backgroundColor: '#fff',
+    marginTop: -1,
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+    overflow: 'visible',
+  },
+  bottomSheetExpanded: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    paddingBottom: 0,
+  },
+  handleBarContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  handleBar: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E0E0E0',
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 20,
+  },
+
+  // Inputs with timeline
+  inputsWrapper: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    overflow: 'visible',
+    zIndex: 1000,
+  },
+  timelineContainer: {
+    width: 24,
+    alignItems: 'center',
+    paddingTop: 14,
+    paddingBottom: 14,
+  },
+  originDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#000',
+  },
+  timelineLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 4,
+  },
+  destinationSquare: {
+    width: 10,
+    height: 10,
+    backgroundColor: '#000',
+  },
+  inputsContainer: {
+    flex: 1,
+    backgroundColor: '#F6F6F6',
+    borderRadius: 12,
+    overflow: 'visible',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 48,
+    paddingRight: 8,
+    overflow: 'visible',
+  },
+  inputDivider: {
+    height: 1,
+    backgroundColor: '#E8E8E8',
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  clearBtn: {
+    padding: 6,
+  },
+
+  // Route section
+  routeSection: {
+    marginTop: 16,
+  },
+  routeDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 16,
+  },
+  routeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  routeInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  routeInfoDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CCC',
+    marginHorizontal: 12,
+  },
+  routeInfoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  routeButtons: {
     flexDirection: 'row',
     gap: 12,
   },
-  editRouteButton: {
-    flex: 1,
-    flexDirection: 'row',
+  editRouteBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    paddingVertical: 14,
-    backgroundColor: '#F0F0F0',
-    borderWidth: 1,
-    borderColor: '#007AFF',
   },
-  editRouteButtonText: {
-    color: '#007AFF',
+  editRouteBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    color: '#000',
   },
-  continueButton: {
+  continueBtn: {
     flex: 1,
-    backgroundColor: '#007AFF',
-    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    paddingVertical: 14,
   },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600', marginRight: 8 },
+  continueBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // Custom markers
+  originMarkerContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  originMarkerDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#000',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  destinationMarkerContainer: {
+    width: 24,
+    height: 24,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  destinationMarkerSquare: {
+    width: 12,
+    height: 12,
+    backgroundColor: '#000',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+
+  // Loading
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 200,
   },
-  emptyContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  loadingBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+
+  // Empty states
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 32,
   },
   emptyText: {

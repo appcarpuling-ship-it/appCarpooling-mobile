@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const SafePlacesAutocomplete = ({ 
   placeholder, 
@@ -131,18 +132,32 @@ const SafePlacesAutocomplete = ({
       
       {showResults && results.length > 0 && (
         <View style={[styles.resultsContainer, customStyles.listView]}>
-          {results.map((item, index) => (
-            <TouchableOpacity
-              key={item.place_id}
-              style={[styles.resultItem, customStyles.row]}
-              onPress={() => handleSelectPlace(item)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.resultText, customStyles.description]}>
-                {item.description}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+          >
+            {results.map((item, index) => (
+              <TouchableOpacity
+                key={item.place_id}
+                style={[styles.resultItem, customStyles.row]}
+                onPress={() => handleSelectPlace(item)}
+                activeOpacity={0.6}
+              >
+                <View style={styles.resultIconContainer}>
+                  <Ionicons name="location-sharp" size={18} color="#666" />
+                </View>
+                <View style={styles.resultTextContainer}>
+                  <Text style={[styles.resultText, customStyles.description]} numberOfLines={1}>
+                    {item.structured_formatting?.main_text || item.description}
+                  </Text>
+                  <Text style={styles.resultSubtext} numberOfLines={1}>
+                    {item.structured_formatting?.secondary_text || ''}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
     </View>
@@ -161,23 +176,41 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     marginTop: 4,
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    maxHeight: 200,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    maxHeight: 220,
+    overflow: 'hidden',
   },
   resultItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 0,
-    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    minHeight: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F2',
+  },
+  resultIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  resultTextContainer: {
+    flex: 1,
   },
   resultText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
     color: '#000',
   },
-  separator: {
-    height: 1,
-    backgroundColor: '#E5E5E5',
+  resultSubtext: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
   },
 });
 
