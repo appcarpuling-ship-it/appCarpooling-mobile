@@ -45,6 +45,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const sheetTranslateY = useRef(new Animated.Value(300)).current;
   const keyboardOffset = useRef(new Animated.Value(0)).current;
   const handleBarWidth = useRef(new Animated.Value(0)).current;
+  const bottomSheetHeight = useRef(new Animated.Value(0)).current; // Controla la altura desde abajo (paddingBottom)
 
   const [vehicles, setVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
@@ -95,11 +96,23 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     }
 
     // Animación de entrada del bottom sheet
+    // Posición inicial: 3 (de 0 a 10)
+    // Esto significa que el bottom sheet está a una altura inicial desde abajo
     Animated.spring(sheetTranslateY, {
       toValue: 0,
       tension: 50,
       friction: 9,
       useNativeDriver: true,
+    }).start();
+    
+    // Altura inicial del bottom (posición 3)
+    // Calculamos que posición 3 = aproximadamente altura base del contenedor
+    // El contenedor tiene una altura base que incluye: handle + inputs + padding
+    const baseSheetHeight = 200; // Altura base aproximada del contenedor
+    Animated.timing(bottomSheetHeight, {
+      toValue: baseSheetHeight,
+      duration: 0,
+      useNativeDriver: false,
     }).start();
 
     // Animación del handle bar
@@ -118,21 +131,41 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       const kbHeight = e.endCoordinates.height;
       setKeyboardVisible(true);
       setKeyboardHeight(kbHeight);
-      // Mover el sheet para que su base quede pegada al teclado
-      Animated.timing(keyboardOffset, {
-        toValue: -kbHeight,
-        duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-        useNativeDriver: true,
-      }).start();
+      
+      // NO mover el contenedor hacia arriba, solo expandirlo hacia abajo
+      // El contenedor se queda en su posición inicial y solo crece hacia abajo
+      
+      // Si hay predicciones, expandir el bottom hasta el teclado
+      if (activeAutocomplete && autocompleteResults.length > 0) {
+        // Altura = desde el bottom hasta el teclado
+        Animated.timing(bottomSheetHeight, {
+          toValue: kbHeight,
+          duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
+          useNativeDriver: false,
+        }).start();
+      } else {
+        // Si no hay predicciones, mantener altura base pero preparar espacio
+        const baseSheetHeight = 200;
+        Animated.timing(bottomSheetHeight, {
+          toValue: baseSheetHeight,
+          duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
+          useNativeDriver: false,
+        }).start();
+      }
     });
 
     const hideSub = Keyboard.addListener(hideEvent, (e) => {
       setKeyboardVisible(false);
       setKeyboardHeight(0);
-      Animated.timing(keyboardOffset, {
-        toValue: 0,
+      
+      // Restaurar altura inicial (posición 3)
+      const baseSheetHeight = 200;
+      
+      // NO necesitamos restaurar keyboardOffset porque nunca lo movimos
+      Animated.timing(bottomSheetHeight, {
+        toValue: baseSheetHeight,
         duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     });
 
@@ -148,6 +181,58 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       getDirections();
     }
   }, [originMarker, destinationMarker]);
+
+  // Función para expandir el contenedor hacia abajo cuando se activa un input
+  // El contenedor NO se mueve, solo crece hacia abajo aumentando su altura
+  const expandSheetDownward = () => {
+    // Si el teclado está visible, usar su altura real
+    // Si no, usar una altura estimada para preparar el espacio
+    const estimatedKbHeight = keyboardHeight > 0 
+      ? keyboardHeight 
+      : Math.min(height * 0.35, 350); // 35% de altura o máximo 350px
+    
+    // Si hay predicciones, expandir el bottom hasta el teclado
+    if (activeAutocomplete && autocompleteResults.length > 0) {
+      // Altura = desde el bottom hasta el teclado
+      Animated.timing(bottomSheetHeight, {
+        toValue: estimatedKbHeight,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      // Si no hay predicciones pero el input está activo, mantener altura base
+      // pero preparar para cuando aparezcan las predicciones
+      const baseSheetHeight = 200;
+      Animated.timing(bottomSheetHeight, {
+        toValue: baseSheetHeight,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+  };
+
+  // Efecto para manejar la expansión del bottom sheet cuando hay predicciones
+  useEffect(() => {
+    if (keyboardVisible && keyboardHeight > 0) {
+      if (activeAutocomplete && autocompleteResults.length > 0) {
+        // Hay predicciones: expandir bottom hasta el teclado
+        // Altura = desde el bottom hasta el teclado
+        Animated.timing(bottomSheetHeight, {
+          toValue: keyboardHeight,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      } else {
+        // No hay predicciones: mantener altura base
+        const baseSheetHeight = 200;
+        Animated.timing(bottomSheetHeight, {
+          toValue: baseSheetHeight,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    }
+  }, [activeAutocomplete, autocompleteResults.length, keyboardVisible, keyboardHeight]);
 
   const getCurrentLocation = async () => {
     try {
@@ -304,6 +389,21 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const handleOriginSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
+      
+      // Cuando seleccionas una dirección: restaurar altura inicial (posición 3)
+      const baseSheetHeight = 200; // Posición inicial 3
+      Animated.timing(bottomSheetHeight, {
+        toValue: baseSheetHeight,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+      
+      // NO necesitamos restaurar keyboardOffset porque nunca lo movimos
+      
+      // Limpiar predicciones
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+      
       Keyboard.dismiss();
 
       if (details?.geometry?.location) {
@@ -360,6 +460,21 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const handleDestinationSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
+      
+      // Cuando seleccionas una dirección: restaurar altura inicial (posición 3)
+      const baseSheetHeight = 200; // Posición inicial 3
+      Animated.timing(bottomSheetHeight, {
+        toValue: baseSheetHeight,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+      
+      // NO necesitamos restaurar keyboardOffset porque nunca lo movimos
+      
+      // Limpiar predicciones
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+      
       Keyboard.dismiss();
 
       if (details?.geometry?.location) {
@@ -546,15 +661,17 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           {
             transform: [
               { translateY: sheetTranslateY },
-              { translateY: keyboardOffset },
+              // Ya no movemos el contenedor con keyboardOffset, solo crece hacia abajo
             ],
           },
         ]}
       >
-            <View style={[
+            <Animated.View style={[
               styles.bottomSheet,
               keyboardVisible && styles.bottomSheetExpanded,
-              keyboardVisible && { maxHeight: height - keyboardHeight - 50 },
+              {
+                minHeight: bottomSheetHeight, // Expandir hacia abajo usando minHeight
+              },
             ]}>
               {/* Handle animado */}
           {!keyboardVisible && (
@@ -594,6 +711,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     if (type === 'origin') {
                       setActiveAutocomplete('origin');
                       setAutocompleteResults(originResultsRef.current);
+                      // Expandir el contenedor hacia abajo cuando se activa el input
+                      expandSheetDownward();
                     } else {
                       // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
                       setActiveAutocomplete(null);
@@ -606,6 +725,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     // Si este input está activo, actualizar los resultados mostrados
                     if (activeAutocomplete === 'origin') {
                       setAutocompleteResults(results);
+                      // Si hay resultados, expandir el contenedor hacia abajo
+                      if (results.length > 0) {
+                        expandSheetDownward();
+                      }
                     }
                   }}
                   externalResults={[]}
@@ -646,6 +769,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     if (type === 'destination') {
                       setActiveAutocomplete('destination');
                       setAutocompleteResults(destinationResultsRef.current);
+                      // Expandir el contenedor hacia abajo cuando se activa el input
+                      expandSheetDownward();
                     } else {
                       // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
                       setActiveAutocomplete(null);
@@ -658,6 +783,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     // Si este input está activo, actualizar los resultados mostrados
                     if (activeAutocomplete === 'destination') {
                       setAutocompleteResults(results);
+                      // Si hay resultados, expandir el contenedor hacia abajo
+                      if (results.length > 0) {
+                        expandSheetDownward();
+                      }
                     }
                   }}
                   externalResults={[]}
@@ -684,15 +813,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* Contenedor de resultados de autocompletado - debajo de los inputs */}
-          {activeAutocomplete && autocompleteResults.length > 0 && (
-            <View style={styles.resultsContainer}>
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={false}
-                style={{ maxHeight: height - keyboardHeight - 180 }}
-              >
+           {/* Contenedor de resultados de autocompletado - debajo de los inputs */}
+           {activeAutocomplete && autocompleteResults.length > 0 && (
+             <View style={styles.resultsContainer}>
+               <ScrollView
+                 keyboardShouldPersistTaps="handled"
+                 nestedScrollEnabled={true}
+                 showsVerticalScrollIndicator={false}
+                 style={{ 
+                   maxHeight: keyboardVisible && keyboardHeight > 0 
+                     ? keyboardHeight - 20 // Altura hasta el teclado menos un pequeño margen
+                     : height * 0.4 // Si no hay teclado, usar 40% de la pantalla
+                 }}
+               >
                 {autocompleteResults.map((item) => (
                   <TouchableOpacity
                     key={item.place_id}
@@ -770,9 +903,9 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   <Text style={styles.continueBtnText}>Confirmar ruta</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
-            </View>
+              </View>
+            )}
+            </Animated.View>
           </Animated.View>
 
       {/* Loading overlay */}

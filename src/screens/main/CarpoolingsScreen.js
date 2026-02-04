@@ -26,7 +26,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   const { colors, createColorArray } = useColors();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  
+
   // Banner states
   const [banners, setBanners] = useState([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -35,7 +35,7 @@ const CarpoolingsScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadBanners();
-    
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -138,14 +138,6 @@ const CarpoolingsScreen = ({ navigation }) => {
           />
         ) : (
           <View style={styles.bannerContent}>
-            <Text style={styles.bannerTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            {item.description && (
-              <Text style={styles.bannerDescription} numberOfLines={2}>
-                {item.description}
-              </Text>
-            )}
             {item.clickUrl && (
               <View style={styles.bannerCta}>
                 <Text style={styles.bannerCtaText}>Ver más</Text>
@@ -159,9 +151,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.bannerOverlay}
           >
-            <Text style={styles.bannerOverlayTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
+
           </LinearGradient>
         )}
       </LinearGradient>
@@ -265,14 +255,14 @@ const CarpoolingsScreen = ({ navigation }) => {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                     >
-                        <LinearGradient
-                          colors={Array.isArray(item.gradient) && item.gradient.length > 0 ? item.gradient : ['#1F2937', '#111827']}
-                          style={styles.iconContainer}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                        >
-                          <Ionicons name={item.icon} size={32} color="#FFFFFF" />
-                        </LinearGradient>
+                      <LinearGradient
+                        colors={Array.isArray(item.gradient) && item.gradient.length > 0 ? item.gradient : ['#1F2937', '#111827']}
+                        style={styles.iconContainer}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        <Ionicons name={item.icon} size={32} color="#FFFFFF" />
+                      </LinearGradient>
                       <View style={styles.menuInfo}>
                         <Text style={styles.menuTitle}>{item.title}</Text>
                         <Text style={styles.menuDescription}>{item.description}</Text>
