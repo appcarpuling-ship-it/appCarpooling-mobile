@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -9,161 +9,19 @@ import {
     Alert,
     ActivityIndicator,
     Switch,
-    Animated,
     KeyboardAvoidingView,
     Platform,
     Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import { gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
-
-// Usar valores directos para evitar problemas de carga en estilos estáticos
-const SORA_FONTS = {
-  thin: 'Sora_100Thin',
-  extraLight: 'Sora_200ExtraLight',
-  light: 'Sora_300Light',
-  regular: 'Sora_400Regular',
-  medium: 'Sora_500Medium',
-  semiBold: 'Sora_600SemiBold',
-  bold: 'Sora_700Bold',
-  extraBold: 'Sora_800ExtraBold',
-};
+import { colors } from '../../theme/colors';
 
 const TripDetails = ({ navigation, route }) => {
-    const { colors, gradients, fontFamily, createColorArray } = useColors();
     const { origin, destination, distance, duration, vehicles } = route.params;
-
-    // Helpers defensivos para estilos
-    const safeSpacing = typeof spacing === 'object' ? spacing : { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
-    const safeBorderRadius = typeof borderRadius === 'object' ? borderRadius : { sm: 8, md: 12, lg: 16, xl: 24, full: 9999 };
-    const safeFontSize = typeof fontSize === 'object' ? fontSize : { xs: 12, sm: 14, md: 16, lg: 18, xl: 20, xxl: 24, xxxl: 32, display: 48 };
-
-    const dynamicStyles = StyleSheet.create({
-        section: {
-            marginBottom: safeSpacing.lg,
-            padding: safeSpacing.lg,
-            borderRadius: safeBorderRadius.lg,
-            borderWidth: 1,
-            borderColor: colors.borderLight,
-            overflow: 'hidden',
-        },
-        sectionTitle: {
-            fontSize: safeFontSize.lg,
-            fontFamily: fontFamily.semiBold,
-            fontWeight: '600',
-            color: colors.textPrimary,
-            marginLeft: safeSpacing.sm,
-        },
-        label: {
-            fontSize: safeFontSize.md,
-            fontFamily: fontFamily.medium,
-            fontWeight: '500',
-            color: colors.textSecondary,
-            marginBottom: safeSpacing.md,
-        },
-        inputWrapper: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.surface,
-            borderRadius: safeBorderRadius.md,
-            paddingHorizontal: safeSpacing.md,
-            paddingVertical: safeSpacing.sm,
-            marginBottom: safeSpacing.sm,
-            borderWidth: 1,
-            borderColor: colors.borderLight,
-        },
-        input: {
-            flex: 1,
-            fontSize: safeFontSize.md,
-            fontFamily: fontFamily.regular,
-            color: colors.textPrimary,
-            marginLeft: safeSpacing.sm,
-            paddingVertical: safeSpacing.sm,
-        },
-        dateTimeText: {
-            fontSize: safeFontSize.md,
-            fontFamily: fontFamily.regular,
-            color: colors.textSecondary,
-            paddingVertical: safeSpacing.sm,
-        },
-        placeholderText: {
-            color: colors.textTertiary,
-        },
-        switchRow: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingVertical: safeSpacing.sm,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.borderLight,
-            marginBottom: safeSpacing.xs,
-        },
-        switchLabel: {
-            fontSize: safeFontSize.md,
-            fontFamily: fontFamily.regular,
-            color: colors.textPrimary,
-            marginLeft: safeSpacing.sm,
-        },
-        createButton: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: safeBorderRadius.lg,
-            paddingVertical: safeSpacing.lg,
-            marginTop: safeSpacing.md,
-            shadowColor: colors.primary,
-            shadowOffset: {
-                width: 0,
-                height: 8,
-            },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 8,
-        },
-        createButtonText: {
-            color: '#ffffff',
-            fontSize: safeFontSize.lg,
-            fontFamily: fontFamily.semiBold,
-            fontWeight: '600',
-            marginLeft: safeSpacing.sm,
-        },
-        vehicleItem: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: colors.surface,
-            borderRadius: safeBorderRadius.md,
-            padding: safeSpacing.md,
-            marginBottom: safeSpacing.sm,
-            borderWidth: 1,
-            borderColor: colors.borderLight,
-        },
-        vehicleItemSelected: {
-            backgroundColor: colors.primary + '20',
-            borderColor: colors.primary,
-        },
-        vehicleName: {
-            fontSize: safeFontSize.md,
-            fontFamily: fontFamily.semiBold,
-            fontWeight: '600',
-            color: colors.textPrimary,
-            marginBottom: safeSpacing.xs,
-        },
-        vehicleNameSelected: {
-            color: colors.primary,
-        },
-        vehiclePlate: {
-            fontSize: safeFontSize.sm,
-            fontFamily: fontFamily.regular,
-            color: colors.textSecondary,
-        },
-    });
 
     // Estados
     const [loading, setLoading] = useState(false);
@@ -173,8 +31,6 @@ const TripDetails = ({ navigation, route }) => {
 
     const [date, setDate] = useState(new Date());
     const [time, setTime] = useState(new Date());
-    const [tempDate, setTempDate] = useState(new Date());
-    const [tempTime, setTempTime] = useState(new Date());
 
     const [formData, setFormData] = useState({
         vehicle: '',
@@ -187,39 +43,30 @@ const TripDetails = ({ navigation, route }) => {
         allowPets: false,
     });
 
-    // Animation refs
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
-
-    React.useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 600,
-                useNativeDriver: true,
-            }),
-            Animated.timing(slideAnim, {
-                toValue: 0,
-                duration: 600,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, []);
-
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const onDateChange = (event, selectedDate) => {
-        if (Platform.OS === 'android') {
-            setShowDatePicker(false);
-            if (selectedDate && event.type === 'set') {
-                confirmDate(selectedDate);
-            }
-        } else {
-            if (selectedDate) {
-                setTempDate(selectedDate);
-            }
+        setShowDatePicker(false);
+        if (selectedDate && event.type === 'set') {
+            setDate(selectedDate);
+            const year = selectedDate.getFullYear();
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(selectedDate.getDate()).padStart(2, '0');
+            const formatted = `${year}-${month}-${day}`;
+            setFormData(prev => ({ ...prev, departureDate: formatted }));
+        }
+    };
+
+    const onTimeChange = (event, selectedTime) => {
+        setShowTimePicker(false);
+        if (selectedTime && event.type === 'set') {
+            setTime(selectedTime);
+            const hours = selectedTime.getHours().toString().padStart(2, '0');
+            const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            setFormData(prev => ({ ...prev, departureTime: timeString }));
         }
     };
 
@@ -238,57 +85,10 @@ const TripDetails = ({ navigation, route }) => {
         return `${displayHour}:${minutes} ${ampm}`;
     };
 
-    const confirmDate = (selectedDate) => {
-        setDate(selectedDate);
-        setShowDatePicker(false);
-
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const formatted = `${year}-${month}-${day}`;
-
-        setFormData(prev => ({ ...prev, departureDate: formatted }));
-    };
-
-    const onTimeChange = (event, selectedTime) => {
-        if (Platform.OS === 'android') {
-            setShowTimePicker(false);
-            if (selectedTime && event.type === 'set') {
-                confirmTime(selectedTime);
-            }
-        } else {
-            if (selectedTime) {
-                setTempTime(selectedTime);
-            }
-        }
-    };
-
-    const confirmTime = (selectedTime) => {
-        setTime(selectedTime);
-        setShowTimePicker(false);
-
-        const hours = selectedTime.getHours().toString().padStart(2, '0');
-        const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-        const timeString = `${hours}:${minutes}`;
-
-        setFormData(prev => ({ ...prev, departureTime: timeString }));
-    };
-
     const handleCreateTrip = async () => {
-        const {
-            vehicle,
-            departureDate,
-            departureTime,
-            availableSeats,
-            pricePerSeat,
-        } = formData;
+        const { vehicle, departureDate, departureTime, availableSeats } = formData;
 
-        if (
-            !vehicle ||
-            !departureDate ||
-            !departureTime ||
-            !availableSeats
-        ) {
+        if (!vehicle || !departureDate || !departureTime || !availableSeats) {
             Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
             return;
         }
@@ -309,8 +109,8 @@ const TripDetails = ({ navigation, route }) => {
                 }
             };
 
-            if (pricePerSeat && pricePerSeat.trim() !== '') {
-                tripData.pricePerSeat = parseFloat(pricePerSeat);
+            if (formData.pricePerSeat && formData.pricePerSeat.trim() !== '') {
+                tripData.pricePerSeat = parseFloat(formData.pricePerSeat);
             } else {
                 tripData.pricePerSeat = 0;
             }
@@ -318,601 +118,509 @@ const TripDetails = ({ navigation, route }) => {
             const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
 
             if (response.success) {
-                Alert.alert('Éxito', 'Viaje creado exitosamente', [
+                Alert.alert('Viaje creado', 'Tu viaje ha sido publicado exitosamente', [
                     {
-                        text: 'OK',
+                        text: 'Continuar',
                         onPress: () => navigation.navigate('Carpoolings'),
                     },
                 ]);
             }
         } catch (error) {
-            console.error('❌ Error al crear viaje:', error);
             Alert.alert('Error', error.message || 'Error al crear el viaje');
         } finally {
             setLoading(false);
         }
     };
 
+    const selectedVehicle = vehicles?.find(v => v && v._id === formData.vehicle);
+
     return (
-        <SafeAreaView style={styles.container} edges={[]}>
-            <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.gradientContainer}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    style={styles.keyboardView}
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={styles.keyboardView}
+            >
+                <ScrollView 
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <ScrollView
-                        style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        <Animated.View
-                            style={[
-                                styles.content,
-                                {
-                                    opacity: fadeAnim,
-                                    transform: [{ translateY: slideAnim }],
-                                },
-                            ]}
+                    {/* Route info */}
+                    <View style={styles.routeCard}>
+                        <View style={styles.routeItem}>
+                            <View style={styles.routeDot} />
+                            <Text style={styles.routeText} numberOfLines={1}>{origin.address}</Text>
+                        </View>
+                        <View style={styles.routeLine} />
+                        <View style={styles.routeItem}>
+                            <View style={[styles.routeDot, styles.destinationDot]} />
+                            <Text style={styles.routeText} numberOfLines={1}>{destination.address}</Text>
+                        </View>
+                        {distance && duration && (
+                            <View style={styles.routeInfo}>
+                                <Text style={styles.routeInfoText}>{distance} • {duration}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Vehicle Selection */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Vehículo</Text>
+                        <TouchableOpacity 
+                            style={styles.inputContainer}
+                            onPress={() => setShowVehicleModal(true)}
                         >
-                            {/* Selector de Vehículo */}
-                            <LinearGradient
-                                colors={createColorArray(colors.surfaceElevated, colors.surface)}
-                                style={dynamicStyles.section}
-                            >
-                                <Text style={dynamicStyles.label}>Vehículo *</Text>
-                                <TouchableOpacity
-                                    onPress={() => setShowVehicleModal(true)}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={dynamicStyles.inputWrapper}>
-                                        <Ionicons name="car-outline" size={20} color="#000000" />
-                                        <View style={styles.dateTimeTextContainer}>
-                                            <Text style={[dynamicStyles.dateTimeText, !formData.vehicle && dynamicStyles.placeholderText]}>
-                                                {formData.vehicle && Array.isArray(vehicles)
-                                                    ? (() => {
-                                                        const selected = vehicles.find(v => v && v._id === formData.vehicle);
-                                                        return selected
-                                                            ? `${selected.brand} ${selected.model} - ${selected.licensePlate}`
-                                                            : 'Selecciona un vehículo';
-                                                    })()
-                                                    : 'Selecciona un vehículo'}
-                                            </Text>
-                                        </View>
-                                        <Ionicons name="chevron-down" size={18} color="#000000" />
+                            <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
+                            <Text style={[
+                                styles.inputText, 
+                                !formData.vehicle && styles.placeholder
+                            ]}>
+                                {selectedVehicle 
+                                    ? `${selectedVehicle.brand} ${selectedVehicle.model}` 
+                                    : 'Seleccionar vehículo'
+                                }
+                            </Text>
+                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                        
+                        {selectedVehicle && (
+                            <View style={styles.vehicleDetails}>
+                                <Text style={styles.vehicleDetailText}>Patente: {selectedVehicle.licensePlate}</Text>
+                                {selectedVehicle.features && (
+                                    <View style={styles.features}>
+                                        {selectedVehicle.features.ac && <Text style={styles.feature}>A/C</Text>}
+                                        {selectedVehicle.features.music && <Text style={styles.feature}>Música</Text>}
+                                        {selectedVehicle.features.luggage && <Text style={styles.feature}>Equipaje</Text>}
                                     </View>
-                                </TouchableOpacity>
-                            </LinearGradient>
+                                )}
+                            </View>
+                        )}
+                    </View>
 
-                            {/* Características del Vehículo Seleccionado */}
-                            {formData.vehicle && (() => {
-                                const selectedVehicle = vehicles.find(v => v && v._id === formData.vehicle);
-                                // Solo mostrar si hay características Y al menos una está activa
-                                const hasActiveFeatures = selectedVehicle?.features && (
-                                    selectedVehicle.features.ac || 
-                                    selectedVehicle.features.music || 
-                                    selectedVehicle.features.smoking || 
-                                    selectedVehicle.features.pets || 
-                                    selectedVehicle.features.luggage
-                                );
-                                return hasActiveFeatures ? (
-                                    <LinearGradient
-                                        colors={createColorArray(colors.surfaceElevated, colors.surface)}
-                                        style={dynamicStyles.section}
-                                    >
-                                        <Text style={dynamicStyles.label}>Características del Vehículo</Text>
-                                        <View style={styles.featuresContainer}>
-                                            {selectedVehicle.features.ac && (
-                                                <View style={styles.featureItem}>
-                                                    <Ionicons name="snow-outline" size={20} color="#1F2937" />
-                                                    <Text style={styles.featureText}>Aire Acondicionado</Text>
-                                                </View>
-                                            )}
-                                            {selectedVehicle.features.music && (
-                                                <View style={styles.featureItem}>
-                                                    <Ionicons name="musical-notes-outline" size={20} color="#1F2937" />
-                                                    <Text style={styles.featureText}>Música / Radio</Text>
-                                                </View>
-                                            )}
-                                            {selectedVehicle.features.smoking && (
-                                                <View style={styles.featureItem}>
-                                                    <Ionicons name="ban-outline" size={20} color="#1F2937" />
-                                                    <Text style={styles.featureText}>Se Permite Fumar</Text>
-                                                </View>
-                                            )}
-                                            {selectedVehicle.features.pets && (
-                                                <View style={styles.featureItem}>
-                                                    <Ionicons name="paw-outline" size={20} color="#1F2937" />
-                                                    <Text style={styles.featureText}>Mascotas</Text>
-                                                </View>
-                                            )}
-                                            {selectedVehicle.features.luggage && (
-                                                <View style={styles.featureItem}>
-                                                    <Ionicons name="bag-handle-outline" size={20} color="#1F2937" />
-                                                    <Text style={styles.featureText}>Equipaje Grande</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    </LinearGradient>
-                                ) : null;
-                            })()}
+                    {/* Date and Time */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Fecha y hora de salida</Text>
+                        
+                        <TouchableOpacity 
+                            style={styles.inputContainer}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+                            <Text style={[
+                                styles.inputText, 
+                                !formData.departureDate && styles.placeholder
+                            ]}>
+                                {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Seleccionar fecha'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
 
-                            {/* Detalles del Viaje */}
-                            <LinearGradient
-                                colors={createColorArray(colors.surfaceElevated, colors.surface)}
-                                style={dynamicStyles.section}
-                            >
-                                <View style={styles.sectionHeader}>
-                                    <Ionicons name="information-circle-outline" size={24} color="#000000" />
-                                    <Text style={dynamicStyles.sectionTitle}>Detalles del Viaje</Text>
-                                </View>
+                        <TouchableOpacity 
+                            style={styles.inputContainer}
+                            onPress={() => setShowTimePicker(true)}
+                        >
+                            <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                            <Text style={[
+                                styles.inputText, 
+                                !formData.departureTime && styles.placeholder
+                            ]}>
+                                {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Seleccionar hora'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    </View>
 
-                                <TouchableOpacity onPress={() => {
-                                    setTempDate(date);
-                                    setShowDatePicker(true);
-                                }} activeOpacity={0.7}>
-                                    <View style={dynamicStyles.inputWrapper}>
-                                        <Ionicons name="calendar-outline" size={18} color="#000000" />
-                                        <View style={styles.dateTimeTextContainer}>
-                                            <Text style={[dynamicStyles.dateTimeText, !formData.departureDate && dynamicStyles.placeholderText]}>
-                                                {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Fecha de salida *'}
-                                            </Text>
-                                        </View>
-                                        <Ionicons name="chevron-down" size={18} color="#000000" />
-                                    </View>
-                                </TouchableOpacity>
+                    {/* Trip Details */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Detalles del viaje</Text>
+                        
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Asientos disponibles"
+                                placeholderTextColor={colors.textTertiary}
+                                value={formData.availableSeats}
+                                onChangeText={(value) => handleChange('availableSeats', value)}
+                                keyboardType="numeric"
+                            />
+                        </View>
 
-                                <TouchableOpacity onPress={() => {
-                                    setTempTime(time);
-                                    setShowTimePicker(true);
-                                }} activeOpacity={0.7}>
-                                    <View style={dynamicStyles.inputWrapper}>
-                                        <Ionicons name="time-outline" size={18} color="#000000" />
-                                        <View style={styles.dateTimeTextContainer}>
-                                            <Text style={[dynamicStyles.dateTimeText, !formData.departureTime && dynamicStyles.placeholderText]}>
-                                                {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Hora de salida *'}
-                                            </Text>
-                                        </View>
-                                        <Ionicons name="chevron-down" size={18} color="#000000" />
-                                    </View>
-                                </TouchableOpacity>
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Notas adicionales (opcional)"
+                                placeholderTextColor={colors.textTertiary}
+                                value={formData.notes}
+                                onChangeText={(value) => handleChange('notes', value)}
+                                multiline
+                                numberOfLines={3}
+                                textAlignVertical="top"
+                            />
+                        </View>
+                    </View>
 
-                                <View style={dynamicStyles.inputWrapper}>
-                                    <Ionicons name="people-outline" size={18} color="#000000" />
-                                    <TextInput
-                                        style={dynamicStyles.input}
-                                        placeholder="Asientos disponibles*"
-                                        placeholderTextColor={colors.placeholder}
-                                        value={formData.availableSeats}
-                                        onChangeText={(value) => handleChange('availableSeats', value)}
-                                        keyboardType="numeric"
-                                    />
-                                </View>
+                    {/* Preferences */}
+                    <View style={[styles.section, styles.lastSection]}>
+                        <Text style={styles.sectionTitle}>Preferencias</Text>
+                        
+                        <View style={styles.preferenceItem}>
+                            <View style={styles.preferenceLabel}>
+                                <Ionicons name="ban-outline" size={20} color={colors.textSecondary} />
+                                <Text style={styles.preferenceText}>Permitir fumar</Text>
+                            </View>
+                            <Switch
+                                value={formData.allowSmoking}
+                                onValueChange={(value) => handleChange('allowSmoking', value)}
+                                trackColor={{ false: '#E5E7EB', true: colors.primary }}
+                                thumbColor={'#FFFFFF'}
+                            />
+                        </View>
 
-                                {/* <View style={dynamicStyles.inputWrapper}>
-                                    <Ionicons name="cash-outline" size={18} color="#000000" />
-                                    <TextInput
-                                        style={dynamicStyles.input}
-                                        placeholder="Precio por asiento (opcional)"
-                                        placeholderTextColor={colors.placeholder}
-                                        value={formData.pricePerSeat}
-                                        onChangeText={(value) => handleChange('pricePerSeat', value)}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View> */}
+                        <View style={styles.preferenceItem}>
+                            <View style={styles.preferenceLabel}>
+                                <Ionicons name="paw-outline" size={20} color={colors.textSecondary} />
+                                <Text style={styles.preferenceText}>Permitir mascotas</Text>
+                            </View>
+                            <Switch
+                                value={formData.allowPets}
+                                onValueChange={(value) => handleChange('allowPets', value)}
+                                trackColor={{ false: '#E5E7EB', true: colors.primary }}
+                                thumbColor={'#FFFFFF'}
+                            />
+                        </View>
+                    </View>
+                </ScrollView>
 
-                                <View style={[dynamicStyles.inputWrapper, styles.textAreaWrapper]}>
-                                    <View style={styles.textAreaIconContainer}>
-                                        <Ionicons name="document-text-outline" size={18} color="#000000" />
-                                    </View>
-                                    <TextInput
-                                        style={[dynamicStyles.input, styles.textArea]}
-                                        placeholder="Notas (opcional)"
-                                        placeholderTextColor={colors.placeholder}
-                                        value={formData.notes}
-                                        onChangeText={(value) => handleChange('notes', value)}
-                                        multiline
-                                        numberOfLines={3}
-                                        textAlignVertical="top"
-                                    />
-                                </View>
-                            </LinearGradient>
+                {/* Create Button */}
+                <View style={styles.footer}>
+                    <TouchableOpacity
+                        style={[styles.createButton, loading && styles.createButtonDisabled]}
+                        onPress={handleCreateTrip}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text style={styles.createButtonText}>Publicar viaje</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
 
-                            {/* Preferencias */}
-                            <LinearGradient
-                                colors={createColorArray(colors.surfaceElevated, colors.surface)}
-                                style={dynamicStyles.section}
-                            >
-                                <View style={styles.sectionHeader}>
-                                    <Ionicons name="settings-outline" size={24} color="#000000" />
-                                    <Text style={dynamicStyles.sectionTitle}>Preferencias</Text>
-                                </View>
-
-                                <View style={dynamicStyles.switchRow}>
-                                    <View style={styles.switchLabelContainer}>
-                                        <Ionicons name="cloud-outline" size={20} color="#000000" />
-                                        <Text style={dynamicStyles.switchLabel}>Permitir fumar</Text>
-                                    </View>
-                                    <Switch
-                                        value={formData.allowSmoking}
-                                        onValueChange={(value) => handleChange('allowSmoking', value)}
-                                        trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                                        thumbColor={formData.allowSmoking ? colors.primary : colors.textMuted}
-                                        ios_backgroundColor={colors.inputBorder}
-                                    />
-                                </View>
-
-                                <View style={dynamicStyles.switchRow}>
-                                    <View style={styles.switchLabelContainer}>
-                                        <Ionicons name="paw-outline" size={20} color="#000000" />
-                                        <Text style={dynamicStyles.switchLabel}>Permitir mascotas</Text>
-                                    </View>
-                                    <Switch
-                                        value={formData.allowPets}
-                                        onValueChange={(value) => handleChange('allowPets', value)}
-                                        trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                                        thumbColor={formData.allowPets ? colors.primary : colors.textMuted}
-                                        ios_backgroundColor={colors.inputBorder}
-                                    />
-                                </View>
-                            </LinearGradient>
-
+            {/* Vehicle Selection Modal */}
+            <Modal
+                visible={showVehicleModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowVehicleModal(false)}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowVehicleModal(false)}>
+                            <Text style={styles.modalCancel}>Cancelar</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Seleccionar vehículo</Text>
+                        <View style={styles.modalRight} />
+                    </View>
+                    
+                    <ScrollView style={styles.modalContent}>
+                        {vehicles?.map((vehicle) => (
                             <TouchableOpacity
-                                onPress={handleCreateTrip}
-                                disabled={loading}
-                                activeOpacity={0.8}
+                                key={vehicle._id}
+                                style={[
+                                    styles.vehicleOption,
+                                    formData.vehicle === vehicle._id && styles.vehicleOptionSelected
+                                ]}
+                                onPress={() => {
+                                    handleChange('vehicle', vehicle._id);
+                                    setShowVehicleModal(false);
+                                }}
                             >
-                                <LinearGradient colors={gradients.primary} style={dynamicStyles.createButton}>
-                                    {loading ? (
-                                        <ActivityIndicator color="#ffffff" />
-                                    ) : (
-                                        <>
-                                            <Ionicons name="checkmark-circle" size={24} color="#ffffff" />
-                                            <Text style={dynamicStyles.createButtonText}>Crear Viaje</Text>
-                                        </>
-                                    )}
-                                </LinearGradient>
+                                <Ionicons name="car" size={24} color={colors.textPrimary} />
+                                <View style={styles.vehicleInfo}>
+                                    <Text style={styles.vehicleName}>
+                                        {vehicle.brand} {vehicle.model}
+                                    </Text>
+                                    <Text style={styles.vehiclePlate}>{vehicle.licensePlate}</Text>
+                                </View>
+                                {formData.vehicle === vehicle._id && (
+                                    <Ionicons name="checkmark" size={20} color={colors.primary} />
+                                )}
                             </TouchableOpacity>
-                        </Animated.View>
+                        ))}
                     </ScrollView>
-                </KeyboardAvoidingView>
+                </SafeAreaView>
+            </Modal>
 
-                {/* MODAL DE VEHÍCULOS - Aparece en el centro */}
-                <Modal
-                    visible={showVehicleModal}
-                    animationType="fade"
-                    transparent={true}
-                    onRequestClose={() => setShowVehicleModal(false)}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Seleccionar Vehículo</Text>
-                                <TouchableOpacity
-                                    onPress={() => setShowVehicleModal(false)}
-                                    style={styles.modalCloseButton}
-                                >
-                                    <Ionicons name="close" size={24} color={colors.textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <ScrollView style={styles.modalList}>
-                                {(Array.isArray(vehicles) ? vehicles : []).map((vehicle) => (
-                                    vehicle && vehicle._id ? (
-                                        <TouchableOpacity
-                                            key={vehicle._id}
-                                            onPress={() => {
-                                                handleChange('vehicle', vehicle._id);
-                                                setShowVehicleModal(false);
-                                            }}
-                                            style={[
-                                                styles.modalItem,
-                                                formData.vehicle === vehicle._id && styles.modalItemSelected
-                                            ]}
-                                        >
-                                            <View style={styles.vehicleModalInfo}>
-                                                <Ionicons
-                                                    name="car"
-                                                    size={24}
-                                                    color={formData.vehicle === vehicle._id ? colors.primary : '#000000'}
-                                                    style={styles.vehicleModalIcon}
-                                                />
-                                                <View>
-                                                    <Text style={[
-                                                        styles.modalItemText,
-                                                        formData.vehicle === vehicle._id && styles.modalItemTextSelected
-                                                    ]}>
-                                                        {vehicle.brand} {vehicle.model}
-                                                    </Text>
-                                                    <Text style={styles.vehicleModalPlate}>{vehicle.licensePlate}</Text>
-                                                </View>
-                                            </View>
-                                            {formData.vehicle === vehicle._id && (
-                                                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                                            )}
-                                        </TouchableOpacity>
-                                    ) : null
-                                ))}
-                            </ScrollView>
-                        </View>
-                    </View>
-                </Modal>
+            {/* Date Picker */}
+            {showDatePicker && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                />
+            )}
 
-                {/* Date Picker */}
-                {showDatePicker && Platform.OS === 'android' && (
-                    <DateTimePicker
-                        value={tempDate}
-                        mode="date"
-                        display="default"
-                        onChange={onDateChange}
-                        minimumDate={new Date()}
-                    />
-                )}
-                {showDatePicker && Platform.OS === 'ios' && (
-                    <View style={styles.pickerOverlay}>
-                        <View style={styles.pickerContainer}>
-                            <View style={styles.pickerHeader}>
-                                <Text style={styles.pickerTitle}>Seleccionar Fecha</Text>
-                                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                    <Ionicons name="close" size={24} color={colors.textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <DateTimePicker
-                                value={tempDate}
-                                mode="date"
-                                display="spinner"
-                                onChange={onDateChange}
-                                minimumDate={new Date()}
-                                textColor="#000000"
-                            />
-                            <View style={styles.pickerButtons}>
-                                <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.pickerButton}>
-                                    <Text style={styles.pickerButtonCancel}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => confirmDate(tempDate)} style={styles.pickerButtonPrimary}>
-                                    <Text style={styles.pickerButtonText}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                )}
-
-                {/* Time Picker */}
-                {showTimePicker && Platform.OS === 'android' && (
-                    <DateTimePicker
-                        value={tempTime}
-                        mode="time"
-                        display="default"
-                        onChange={onTimeChange}
-                    />
-                )}
-                {showTimePicker && Platform.OS === 'ios' && (
-                    <View style={styles.pickerOverlay}>
-                        <View style={styles.pickerContainer}>
-                            <View style={styles.pickerHeader}>
-                                <Text style={styles.pickerTitle}>Seleccionar Hora</Text>
-                                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                                    <Ionicons name="close" size={24} color={colors.textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <DateTimePicker
-                                value={tempTime}
-                                mode="time"
-                                display="spinner"
-                                onChange={onTimeChange}
-                                textColor="#000000"
-                            />
-                            <View style={styles.pickerButtons}>
-                                <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerButton}>
-                                    <Text style={styles.pickerButtonCancel}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => confirmTime(tempTime)} style={styles.pickerButtonPrimary}>
-                                    <Text style={styles.pickerButtonText}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                )}
-            </LinearGradient>
+            {/* Time Picker */}
+            {showTimePicker && (
+                <DateTimePicker
+                    value={time}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onTimeChange}
+                />
+            )}
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    gradientContainer: { flex: 1 },
-    keyboardView: { flex: 1 },
-    scrollView: { flex: 1 },
-    scrollContent: { 
-        paddingBottom: 0, // Eliminado el padding bottom
-        flexGrow: 1,
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
     },
-    content: { 
-        padding: spacing.lg || 24,
-        paddingBottom: spacing.xxl || 48, // Espacio para separar del bottom navigation
+    keyboardView: {
+        flex: 1,
     },
-    sectionHeader: {
+    scrollView: {
+        flex: 1,
+        backgroundColor: colors.surface,
+    },
+    
+    // Route Card
+    routeCard: {
+        backgroundColor: colors.cardBackground,
+        marginHorizontal: 16,
+        marginTop: 20,
+        marginBottom: 8,
+        padding: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    routeItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: spacing.md || 16,
+        marginVertical: 6,
     },
-    dateTimeTextContainer: {
+    routeDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.textSecondary,
+        marginRight: 12,
+    },
+    destinationDot: {
+        backgroundColor: colors.primary,
+    },
+    routeLine: {
+        width: 1,
+        height: 20,
+        backgroundColor: colors.border,
+        marginLeft: 4,
+        marginVertical: 2,
+    },
+    routeText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        fontWeight: '500',
         flex: 1,
-        marginLeft: spacing.sm || 8,
-        marginRight: spacing.sm || 8,
+    },
+    routeInfo: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+    },
+    routeInfoText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+    },
+    
+    // Sections
+    section: {
+        backgroundColor: colors.cardBackground,
+        marginHorizontal: 16,
+        marginVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    lastSection: {
+        marginBottom: 20,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.textPrimary,
+        marginBottom: 16,
+        marginTop: 20,
+        marginHorizontal: 20,
+    },
+    
+    // Input Container
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.inputBackground,
+        borderWidth: 1,
+        borderColor: colors.inputBorder,
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginHorizontal: 20,
+        marginBottom: 12,
+    },
+    inputText: {
+        flex: 1,
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginLeft: 12,
+    },
+    placeholder: {
+        color: colors.textTertiary,
+    },
+    input: {
+        flex: 1,
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginLeft: 12,
     },
     textArea: {
         minHeight: 80,
-        paddingTop: spacing.sm || 8,
-    },
-    textAreaWrapper: {
-        alignItems: 'flex-start',
-    },
-    textAreaIconContainer: {
-        marginTop: spacing.md || 16,
-    },
-    switchLabelContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        textAlignVertical: 'top',
+        paddingTop: 12,
     },
     
-    // Modal de Vehículos - Centrado en la pantalla
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: spacing.lg || 24,
+    // Vehicle Details
+    vehicleDetails: {
+        marginHorizontal: 20,
+        marginBottom: 20,
+        paddingTop: 8,
     },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: borderRadius.xl || 24,
-        maxHeight: '70%',
-        width: '100%',
-        maxWidth: 500,
+    vehicleDetailText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: 8,
+    },
+    features: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+    },
+    feature: {
+        fontSize: 12,
+        color: colors.primary,
+        backgroundColor: colors.surface,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    
+    // Preferences
+    preferenceItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        
+    },
+    preferenceLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    preferenceText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginLeft: 12,
+    },
+    
+    // Footer
+    footer: {
+        backgroundColor: colors.background,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+    },
+    createButton: {
+        backgroundColor: colors.primary,
+        borderRadius: 8,
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    createButtonDisabled: {
+        backgroundColor: colors.textTertiary,
+    },
+    createButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    
+    // Modal Styles
+    modalContainer: {
+        flex: 1,
+        backgroundColor: colors.background,
     },
     modalHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: spacing.lg || 24,
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: colors.border,
+    },
+    modalCancel: {
+        fontSize: 16,
+        color: colors.primary,
     },
     modalTitle: {
-        fontSize: fontSize.xl || 20,
-        fontFamily: SORA_FONTS.bold,
-        fontWeight: '700',
-        color: '#000000',
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.textPrimary,
     },
-    modalCloseButton: {
-        padding: spacing.xs || 8,
+    modalRight: {
+        width: 60,
     },
-    modalList: {
-        padding: spacing.md || 16,
-    },
-    modalItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.md || 16,
-        borderRadius: borderRadius.md || 12,
-        marginBottom: spacing.xs || 8,
-        backgroundColor: '#F8F9FA',
-    },
-    modalItemSelected: {
-        backgroundColor: '#FFFFFF',
-        borderWidth: 2,
-        borderColor: '#6366F1',
-    },
-    vehicleModalInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    modalContent: {
         flex: 1,
     },
-    vehicleModalIcon: {
-        marginRight: spacing.md || 16,
-    },
-    modalItemText: {
-        fontSize: fontSize.md || 16,
-        color: '#000000',
-        fontWeight: '600',
-    },
-    modalItemTextSelected: {
-        color: '#6366F1',
-        fontWeight: '700',
-    },
-    vehicleModalPlate: {
-        fontSize: fontSize.sm || 14,
-        color: '#6B7280',
-        marginTop: 2,
-    },
-
-    // Features del vehículo
-    featuresContainer: {
+    vehicleOption: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: spacing.sm || 8,
-        marginTop: spacing.sm || 8,
-    },
-    featureItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F3F4F6',
-        paddingVertical: spacing.xs || 6,
-        paddingHorizontal: spacing.sm || 10,
-        borderRadius: borderRadius.md || 12,
-        gap: spacing.xs || 6,
-    },
-    featureText: {
-        fontSize: fontSize.sm || 14,
-        color: '#1F2937',
-        fontWeight: '500',
-    },
-    
-    // Pickers de Fecha y Hora
-    pickerOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pickerContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        margin: 24,
-        minWidth: '80%',
-        maxWidth: '90%',
-    },
-    pickerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5E5',
+        borderBottomColor: colors.border,
     },
-    pickerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+    vehicleOptionSelected: {
+        backgroundColor: colors.surface,
     },
-    pickerButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#E5E5E5',
-    },
-    pickerButton: {
+    vehicleInfo: {
         flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-        alignItems: 'center',
-        backgroundColor: '#F0F0F0',
-        marginHorizontal: 8,
+        marginLeft: 16,
     },
-    pickerButtonPrimary: {
-        flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-        alignItems: 'center',
-        backgroundColor: '#000000',
-        marginHorizontal: 8,
-    },
-    pickerButtonText: {
+    vehicleName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: colors.textPrimary,
+        marginBottom: 4,
     },
-    pickerButtonCancel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#666',
+    vehiclePlate: {
+        fontSize: 14,
+        color: colors.textSecondary,
     },
 });
 
