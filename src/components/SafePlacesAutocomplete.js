@@ -216,7 +216,7 @@ const SafePlacesAutocomplete = ({
                   </Text>
                   <Text style={styles.resultSubtext} numberOfLines={1}>
                     {item.structured_formatting?.secondary_text || ''}
-                  </Text>
+                </Text>
                 </View>
               </TouchableOpacity>
             ))}

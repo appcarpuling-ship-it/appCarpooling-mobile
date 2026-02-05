@@ -452,7 +452,7 @@ const ChatsScreen = ({ navigation }) => {
               />
             }
           >
-            <View style={styles.emptyContainer}>
+          <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {conversations.length === 0 
                   ? 'No tienes conversaciones' 
@@ -464,14 +464,14 @@ const ChatsScreen = ({ navigation }) => {
                         ? 'No tienes mensajes directos'
                         : 'No hay conversaciones'}
               </Text>
-              <Text style={styles.emptySubtext}>
+            <Text style={styles.emptySubtext}>
                 {conversations.length === 0
                   ? 'Comienza a chatear con otros usuarios desde los detalles de un viaje'
                   : searchTerm
                     ? 'Intenta con otro término de búsqueda'
                     : 'Intenta cambiar el filtro para ver más conversaciones'}
-              </Text>
-            </View>
+            </Text>
+          </View>
           </ScrollView>
         ) : (
           <FlatList
