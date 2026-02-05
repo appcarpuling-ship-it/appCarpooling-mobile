@@ -87,6 +87,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
       headerTitleStyle: {
         color: colors.textPrimary
       },
+      headerTitleAlign: 'left',
+      headerTitleContainerStyle: {
+        left: 0,
+        right: 0
+      },
       headerBackTitleVisible: false,
       headerLeft: () => (
         <TouchableOpacity
@@ -107,9 +112,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
       headerTitle: () => (
         <View style={styles.headerContainer}>
           <View style={styles.headerAvatarContainer}>
-            {otherUser?.avatar ? (
+            {otherUser?.avatar && buildImageUri(otherUser.avatar) ? (
               <Image
-                source={{ uri: otherUser.avatar }}
+                source={{ uri: buildImageUri(otherUser.avatar) }}
                 style={styles.headerAvatar}
               />
             ) : (
@@ -311,7 +316,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const renderMessage = ({ item }) => {
     const senderId = item.sender?._id || item.sender;
     const isOwnMessage = senderId === user._id || senderId === user.id;
-    const showAvatar = !isOwnMessage;
 
     return (
       <Animated.View
@@ -321,29 +325,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
           { opacity: fadeAnim }
         ]}
       >
-        {showAvatar && (
-          <View style={styles.messageAvatar}>
-            {otherUser?.avatar && buildImageUri(otherUser.avatar) ? (
-              <Image
-                source={{ uri: buildImageUri(otherUser.avatar) }}
-                style={styles.smallAvatar}
-                onError={() => console.log('Error loading message avatar from:', otherUser.avatar)}
-              />
-            ) : (
-              <LinearGradient
-                colors={['#1F2937', '#111827']}
-                style={styles.smallAvatar}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.smallAvatarText}>
-                  {otherUser.firstName[0]}
-                </Text>
-              </LinearGradient>
-            )}
-          </View>
-        )}
-
         {isOwnMessage ? (
           <LinearGradient
             colors={['#1F2937', '#111827']}
@@ -459,9 +440,11 @@ const styles = StyleSheet.create({
   },
   // Header styles
   headerContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8
+    paddingVertical: 8,
+    marginLeft: -16
   },
   headerAvatarContainer: {
     marginRight: 12
