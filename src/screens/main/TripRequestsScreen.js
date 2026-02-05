@@ -13,29 +13,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
-import { approveOrRejectReservation, getPendingApprovalReservations } from '../../services/seatReservationService';
-import { Linking } from 'react-native';
-import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
-import { useNavigation } from '@react-navigation/native';
+import { approveOrRejectReservation } from '../../services/seatReservationService';
 
 const TripRequestsScreen = ({ route }) => {
-  const { colors, gradients, createColorArray } = useColors();
-  // Fallbacks para gradientes
-  const safeGradients = {
-    card: Array.isArray(gradients?.card) && gradients.card.length > 0 ? gradients.card : ['#FFFFFF', '#F8F9FA'],
-    primary: ['#1F2937', '#111827'],
-    dark: Array.isArray(gradients?.dark) && gradients.dark.length > 0 ? gradients.dark : ['#F8F9FA', '#E5E7EB'],
-  };
   const { tripId } = route.params || {};
-  const navigation = useNavigation();
 
-  // Si no hay tripId específico, mostrar selector de viajes
   const [trips, setTrips] = useState([]);
   const [selectedTripId, setSelectedTripId] = useState(tripId);
-
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,11 +38,9 @@ const TripRequestsScreen = ({ route }) => {
 
   const loadUserTrips = async () => {
     try {
-      console.log('🚗 [TripRequests] Cargando viajes del usuario...');
       const response = await get_withauth('/trips/my-trips/driver');
       if (response.success && response.data.length > 0) {
         setTrips(response.data);
-        // Seleccionar automáticamente el primer viaje si hay solo uno
         if (response.data.length === 1) {
           setSelectedTripId(response.data[0]._id);
         }
@@ -65,7 +48,6 @@ const TripRequestsScreen = ({ route }) => {
         setTrips([]);
       }
     } catch (error) {
-      console.error('❌ [TripRequests] Error cargando viajes:', error);
       Alert.alert('Error', 'No se pudieron cargar tus viajes');
     } finally {
       setLoading(false);
@@ -74,21 +56,15 @@ const TripRequestsScreen = ({ route }) => {
   };
 
   const loadRequests = async () => {
-    if (!selectedTripId) {
-      console.warn('⚠️ [TripRequests] No hay tripId seleccionado');
-      return;
-    }
+    if (!selectedTripId) return;
 
     setLoading(true);
     try {
-      console.log('📋 [TripRequests] Cargando solicitudes para viaje:', selectedTripId);
       const response = await get_withauth(`/bookings/trip/${selectedTripId}`);
       if (response.success) {
         setRequests(response.data);
-        console.log('✅ [TripRequests] Solicitudes cargadas:', response.data.length);
       }
     } catch (error) {
-      console.error('❌ [TripRequests] Error cargando solicitudes:', error);
       Alert.alert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
@@ -112,7 +88,7 @@ const TripRequestsScreen = ({ route }) => {
 
     Alert.alert(
       'Aceptar Solicitud',
-      `¿Estás seguro de aceptar esta solicitud de ${request.seatsBooked || request.seatsRequested} asiento(s)?`,
+      `Aceptar ${request.seatsBooked || request.seatsRequested} asiento(s)?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -120,20 +96,16 @@ const TripRequestsScreen = ({ route }) => {
           onPress: async () => {
             try {
               if (isSeatReservation && seatReservationId) {
-                // Reserva de asiento: usar el nuevo endpoint
                 const response = await approveOrRejectReservation(seatReservationId, 'approve');
                 if (response.success) {
-                  Alert.alert(
-                    '✅ Solicitud Aprobada',
-                    'La reserva ha sido aprobada. El pasajero recibirá una notificación para completar el pago.',
-                    [{ text: 'OK', onPress: () => loadRequests() }]
-                  );
+                  Alert.alert('Aprobado', 'El pasajero recibira una notificacion para completar el pago.', [
+                    { text: 'OK', onPress: () => loadRequests() }
+                  ]);
                 }
               } else {
-                // Reserva tradicional
                 const response = await put_withauth(`/bookings/${requestId}/confirm`);
                 if (response.success) {
-                  Alert.alert('Éxito', 'Solicitud aceptada');
+                  Alert.alert('Exito', 'Solicitud aceptada');
                   loadRequests();
                 }
               }
@@ -148,34 +120,30 @@ const TripRequestsScreen = ({ route }) => {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      Alert.alert('Error', 'Por favor ingresa una razón para el rechazo');
+      Alert.alert('Error', 'Ingresa una razon para el rechazo');
       return;
     }
 
     try {
-      // Buscar la solicitud completa para determinar si es seat reservation
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
       const isSeatReservation = request?.bookingType === 'seat_reservation';
       const seatReservationId = request?.seatReservation?._id || request?.seatReservation?.id;
 
       if (isSeatReservation && seatReservationId) {
-        // Reserva de asiento: usar el nuevo endpoint
         const response = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
         if (response.success) {
-          Alert.alert('Éxito', 'Solicitud rechazada');
+          Alert.alert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
           loadRequests();
         }
       } else {
-        // Reserva tradicional
         const response = await put_withauth(`/bookings/${selectedRequest}/reject`, {
           reason: rejectReason,
         });
-
         if (response.success) {
-          Alert.alert('Éxito', 'Solicitud rechazada');
+          Alert.alert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
@@ -192,293 +160,137 @@ const TripRequestsScreen = ({ route }) => {
     setRejectModalVisible(true);
   };
 
-  const getStatusColor = (status) => {
-    // Manejar estados de seat reservation
-    if (status === 'pending_approval') return '#F59E0B';
-    if (status === 'pending_payment') return '#F97316';
-    if (status === 'reserved') return '#10B981';
-    if (status === 'rejected') return colors.error;
-
-    // Estados tradicionales
+  const getStatusConfig = (status) => {
     switch (status) {
+      case 'pending_approval':
+        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
+      case 'pending_payment':
+        return { color: '#F97316', bg: '#FFEDD5', text: 'Pago pendiente' };
+      case 'reserved':
+        return { color: '#10B981', bg: '#D1FAE5', text: 'Confirmada' };
       case 'pending':
-        return colors.warning || '#F59E0B';
+        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
       case 'accepted':
       case 'confirmed':
-        return colors.success || '#10B981';
+        return { color: '#10B981', bg: '#D1FAE5', text: 'Aceptada' };
       case 'rejected':
-        return colors.error || '#EF4444';
+        return { color: '#EF4444', bg: '#FEE2E2', text: 'Rechazada' };
       default:
-        return colors.textSecondary || '#6B7280';
+        return { color: '#6B7280', bg: '#F3F4F6', text: status };
     }
   };
 
-  const getStatusText = (status, seatReservationStatus) => {
-    // Priorizar estado de seat reservation si existe
-    if (seatReservationStatus) {
-      switch (seatReservationStatus) {
-        case 'pending_approval':
-          return 'Pendiente de Aprobación';
-        case 'pending_payment':
-          return 'Pendiente de Pago';
-        case 'reserved':
-          return 'Reserva Confirmada';
-        case 'rejected':
-          return 'Rechazada';
-        default:
-          return seatReservationStatus;
-      }
-    }
-
-    // Estado tradicional
-    switch (status) {
-      case 'pending':
-        return 'Pendiente';
-      case 'accepted':
-      case 'confirmed':
-        return 'Aceptada';
-      case 'rejected':
-        return 'Rechazada';
-      default:
-        return status;
-    }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+    return date.toLocaleDateString('es-ES', options);
   };
 
   const renderRequestItem = ({ item }) => {
-    // Validar que el pasajero exista
     if (!item.passenger || !item.passenger._id) {
-      console.warn('⚠️ [TripRequests] Solicitud sin datos de pasajero:', item._id);
       return (
-        <LinearGradient
-          colors={safeGradients.card}
-          style={styles.requestCard}
-        >
-          <View style={styles.cardBorder} />
-          <View style={styles.userSection}>
-            <LinearGradient
-              colors={safeGradients.primary}
-              style={styles.avatar}
-            >
-              <Ionicons name="person" size={32} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>Usuario no disponible</Text>
-              <Text style={styles.infoText}>Los datos del usuario no están disponibles</Text>
+        <View style={styles.card}>
+          <View style={styles.passengerSection}>
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={24} color="#FFFFFF" />
             </View>
+            <Text style={styles.passengerName}>Usuario no disponible</Text>
           </View>
-          <View style={styles.detailsSection}>
-            <View style={styles.statusContainer}>
-              <LinearGradient
-                colors={createColorArray(getStatusColor(item.status) + '20', getStatusColor(item.status) + '10')}
-                style={styles.statusBadge}
-              >
-                <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-                <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                  {getStatusText(item.status)}
-                </Text>
-              </LinearGradient>
-            </View>
-          </View>
-        </LinearGradient>
+        </View>
       );
     }
 
-    const avatarUrl = item.passenger?.avatar
-      ? buildImageUri(item.passenger.avatar)
-      : null;
+    const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
+    const reservationStatus = item.seatReservation?.reservationStatus || item.status;
+    const statusConfig = getStatusConfig(reservationStatus);
+    const isPending = reservationStatus === 'pending_approval' || reservationStatus === 'pending';
 
     return (
-      <LinearGradient
-        colors={gradients.card}
-        style={styles.requestCard}
-      >
-        <View style={styles.cardBorder} />
-
-        <View style={styles.userSection}>
+      <View style={styles.card}>
+        {/* Passenger Info */}
+        <View style={styles.passengerSection}>
           {avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={styles.avatar}
-              onError={() => console.log('Error loading passenger avatar from:', item.passenger.avatar)}
-            />
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <LinearGradient
-              colors={gradients.primary}
-              style={styles.avatar}
-            >
-              <Ionicons name="person" size={32} color="#FFFFFF" />
-            </LinearGradient>
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitials}>
+                {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
+              </Text>
+            </View>
           )}
-
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>
+          <View style={styles.passengerInfo}>
+            <Text style={styles.passengerName}>
               {item.passenger?.firstName} {item.passenger?.lastName}
             </Text>
-
-            {item.passenger?.age && (
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.infoText}>{item.passenger.age} años</Text>
-              </View>
-            )}
-
             {item.passenger?.city && (
-              <View style={styles.infoRow}>
-                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.infoText}>
-                  {item.passenger.city}, {item.passenger.province}
-                </Text>
-              </View>
+              <Text style={styles.passengerLocation}>
+                {item.passenger.city}, {item.passenger.province}
+              </Text>
             )}
-
-            {item.passenger?.tripsCompleted !== undefined && (
-              <View style={styles.infoRow}>
-                <Ionicons name="checkmark-circle-outline" size={14} color="#1F2937" />
-                <Text style={styles.infoText}>
-                  {item.passenger.tripsCompleted} viajes completados
-                </Text>
-              </View>
-            )}
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>
+              {statusConfig.text}
+            </Text>
           </View>
         </View>
 
+        {/* Details */}
         <View style={styles.detailsSection}>
-          <View style={styles.statusContainer}>
-            <LinearGradient
-              colors={createColorArray(getStatusColor(item.status) + '20', getStatusColor(item.status) + '10') || ['#F3F4F6', '#E5E7EB']}
-              style={styles.statusBadge}
-            >
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.seatReservation?.reservationStatus || item.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(item.seatReservation?.reservationStatus || item.status) }]}>
-                {getStatusText(item.status, item.seatReservation?.reservationStatus)}
-              </Text>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.seatsInfo}>
-            <Ionicons name="people" size={16} color={colors.textSecondary} />
-            <Text style={styles.seatsText}>
+          <View style={styles.detailItem}>
+            <Ionicons name="people-outline" size={16} color="#6B7280" />
+            <Text style={styles.detailText}>
               {item.seatsBooked || item.seatsRequested} {(item.seatsBooked || item.seatsRequested) === 1 ? 'asiento' : 'asientos'}
             </Text>
           </View>
-
-          {/* Mostrar estado de reserva de asiento si existe */}
-          {item.seatReservation && (
-            <View style={styles.seatReservationStatus}>
-              <Ionicons
-                name={
-                  item.seatReservation.reservationStatus === 'pending_approval' ? 'time-outline' :
-                    item.seatReservation.reservationStatus === 'pending_payment' ? 'card-outline' :
-                      item.seatReservation.reservationStatus === 'reserved' ? 'checkmark-circle-outline' :
-                        item.seatReservation.reservationStatus === 'rejected' ? 'close-circle-outline' :
-                          'help-circle-outline'
-                }
-                size={14}
-                color={
-                  item.seatReservation.reservationStatus === 'pending_approval' ? '#F59E0B' :
-                    item.seatReservation.reservationStatus === 'pending_payment' ? '#F97316' :
-                      item.seatReservation.reservationStatus === 'reserved' ? '#10B981' :
-                        item.seatReservation.reservationStatus === 'rejected' ? '#EF4444' :
-                          '#6B7280'
-                }
-              />
-              <Text style={[
-                styles.seatReservationStatusText,
-                {
-                  color:
-                    item.seatReservation.reservationStatus === 'pending_approval' ? '#F59E0B' :
-                      item.seatReservation.reservationStatus === 'pending_payment' ? '#F97316' :
-                        item.seatReservation.reservationStatus === 'reserved' ? '#10B981' :
-                          item.seatReservation.reservationStatus === 'rejected' ? '#EF4444' :
-                            '#6B7280'
-                }
-              ]}>
-                {item.seatReservation.reservationStatus === 'pending_approval' ? 'Pendiente de Aprobación' :
-                  item.seatReservation.reservationStatus === 'pending_payment' ? 'Pendiente de Pago' :
-                    item.seatReservation.reservationStatus === 'reserved' ? 'Reserva Confirmada' :
-                      item.seatReservation.reservationStatus === 'rejected' ? 'Rechazada' :
-                        item.seatReservation.reservationStatus}
-              </Text>
-            </View>
-          )}
-
-          {item.message && (
-            <View style={styles.messageContainer}>
-              <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.messageText}>{item.message}</Text>
-            </View>
-          )}
-
-          <View style={styles.dateContainer}>
-            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.dateText}>
-              Solicitado el {new Date(item.createdAt).toLocaleDateString('es-ES')}
+          <View style={styles.detailItem}>
+            <Ionicons name="time-outline" size={16} color="#6B7280" />
+            <Text style={styles.detailText}>
+              {formatDate(item.createdAt)}
             </Text>
           </View>
         </View>
 
-        {(item.seatReservation
-          ? item.seatReservation.reservationStatus === 'pending_approval'
-          : item.status === 'pending'
-        ) && (
-          <View style={styles.actionsContainer}>
+        {/* Message */}
+        {item.message && (
+          <View style={styles.messageSection}>
+            <Ionicons name="chatbubble-outline" size={14} color="#6B7280" />
+            <Text style={styles.messageText}>{item.message}</Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        {isPending && (
+          <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={styles.acceptButton}
               onPress={() => handleAccept(item)}
-              activeOpacity={0.7}
             >
-              <LinearGradient
-                colors={createColorArray(colors.success + '30', colors.success + '20') || ['#10B981', '#059669']}
-                style={styles.actionButtonGradient}
-              >
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={[styles.actionButtonText, { color: colors.success }]}>
-                  Aceptar
-                </Text>
-              </LinearGradient>
+              <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+              <Text style={styles.acceptButtonText}>Aceptar</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={styles.actionButton}
+              style={styles.rejectButton}
               onPress={() => openRejectModal(item._id)}
-              activeOpacity={0.7}
             >
-              <LinearGradient
-                colors={createColorArray(colors.error + '30', colors.error + '20') || ['#EF4444', '#DC2626']}
-                style={styles.actionButtonGradient}
-              >
-                <Ionicons name="close-circle" size={20} color={colors.error} />
-                <Text style={[styles.actionButtonText, { color: colors.error }]}>
-                  Rechazar
-                </Text>
-              </LinearGradient>
+              <Ionicons name="close" size={18} color="#EF4444" />
+              <Text style={styles.rejectButtonText}>Rechazar</Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* Rejection Reason */}
         {item.status === 'rejected' && item.rejectionReason && (
-          <View style={styles.rejectionReasonContainer}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.error} />
-            <Text style={styles.rejectionReasonText}>
-              Razón: {item.rejectionReason}
-            </Text>
+          <View style={styles.rejectionSection}>
+            <Text style={styles.rejectionText}>Razon: {item.rejectionReason}</Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
     );
   };
 
-  if (loading) {
-    return (
-      <LinearGradient colors={safeGradients.dark} style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1F2937" />
-      </LinearGradient>
-    );
-  }
-
-  // Render trip selector when no trip is selected but trips are available
   const renderTripSelector = () => (
-    <View style={styles.tripSelectorContainer}>
+    <View style={styles.selectorContainer}>
       <Text style={styles.selectorTitle}>Selecciona un viaje</Text>
       <Text style={styles.selectorSubtitle}>
         Elige el viaje del cual quieres ver las solicitudes
@@ -489,66 +301,47 @@ const TripRequestsScreen = ({ route }) => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.tripSelectorCard}
+            style={styles.tripCard}
             onPress={() => setSelectedTripId(item._id)}
-            activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={gradients.card}
-              style={styles.tripSelectorGradient}
-            >
-              <View style={styles.tripRoute}>
-                <View style={styles.routePoint}>
-                  <View style={[styles.routeDot, { backgroundColor: '#1F2937' }]} />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.origin?.city || 'Ciudad origen'}
-                  </Text>
-                </View>
-
-                <View style={styles.routeArrow}>
-                  <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} />
-                </View>
-
-                <View style={styles.routePoint}>
-                  <View style={[styles.routeDot, { backgroundColor: colors.accent }]} />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.destination?.city || 'Ciudad destino'}
-                  </Text>
-                </View>
+            <View style={styles.tripRoute}>
+              <View style={styles.routeRow}>
+                <View style={styles.routeDot} />
+                <Text style={styles.routeCity}>{item.origin?.city}</Text>
               </View>
-
-              <View style={styles.tripMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.metaText}>
-                    {new Date(item.departureDate).toLocaleDateString('es-ES')}
-                  </Text>
-                </View>
-
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.metaText}>
-                    {item.departureTime}
-                  </Text>
-                </View>
-
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.metaText}>
-                    {item.availableSeats} asientos
-                  </Text>
-                </View>
+              <View style={styles.routeLine} />
+              <View style={styles.routeRow}>
+                <View style={[styles.routeDot, styles.routeDotDestination]} />
+                <Text style={styles.routeCity}>{item.destination?.city}</Text>
               </View>
-            </LinearGradient>
+            </View>
+            <View style={styles.tripMeta}>
+              <View style={styles.metaItem}>
+                <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                <Text style={styles.metaText}>{formatDate(item.departureDate)}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color="#6B7280" />
+                <Text style={styles.metaText}>{item.departureTime}</Text>
+              </View>
+            </View>
           </TouchableOpacity>
         )}
-        contentContainerStyle={styles.tripSelectorList}
+        contentContainerStyle={styles.tripList}
       />
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
+  }
+
   return (
-    <LinearGradient colors={safeGradients.dark} style={styles.container}>
+    <View style={styles.container}>
       {!selectedTripId && trips.length > 0 ? (
         renderTripSelector()
       ) : selectedTripId && requests.length > 0 ? (
@@ -561,466 +354,404 @@ const TripRequestsScreen = ({ route }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#1F2937"
-              colors={['#1F2937', '#111827']}
+              tintColor="#000000"
             />
           }
         />
-      ) : selectedTripId && requests.length === 0 ? (
+      ) : selectedTripId ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No hay solicitudes</Text>
-          <Text style={styles.emptySubtext}>
-            Las solicitudes para este viaje aparecerán aquí
+          <View style={styles.emptyIcon}>
+            <Ionicons name="people-outline" size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>Sin solicitudes</Text>
+          <Text style={styles.emptySubtitle}>
+            Las solicitudes para este viaje apareceran aqui
           </Text>
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <LinearGradient
-            colors={safeGradients.primary}
-            style={styles.emptyIconContainer}
-          >
-            <Ionicons name="car-outline" size={48} color="#FFFFFF" />
-          </LinearGradient>
-          <Text style={styles.emptyText}>No tienes viajes</Text>
-          <Text style={styles.emptySubtext}>
-            Crea un viaje para recibir solicitudes de pasajeros
+          <View style={styles.emptyIcon}>
+            <Ionicons name="car-outline" size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>Sin viajes</Text>
+          <Text style={styles.emptySubtitle}>
+            Crea un viaje para recibir solicitudes
           </Text>
         </View>
       )}
 
       {/* Reject Modal */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={rejectModalVisible}
         onRequestClose={() => setRejectModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <LinearGradient colors={safeGradients.dark} style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Rechazar Solicitud</Text>
-                <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
-                  <Ionicons name="close-circle" size={28} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Rechazar solicitud</Text>
+              <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
 
-              <Text style={styles.modalSubtitle}>
-                Por favor, indica la razón del rechazo:
-              </Text>
+            <Text style={styles.modalSubtitle}>Indica la razon del rechazo:</Text>
 
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Escribe la razón aquí..."
-                  placeholderTextColor={colors.placeholder}
-                  value={rejectReason}
-                  onChangeText={setRejectReason}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Escribe la razon aqui..."
+              placeholderTextColor="#9CA3AF"
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
 
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setRejectModalVisible(false)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={createColorArray(colors.surface, colors.inputBackground) || ['#F3F4F6', '#E5E7EB']}
-                    style={styles.modalButtonGradient}
-                  >
-                    <Text style={[styles.modalButtonText, { color: colors.textSecondary }]}>
-                      Cancelar
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={handleReject}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={safeGradients.primary}
-                    style={styles.modalButtonGradient}
-                  >
-                    <Text style={styles.modalButtonText}>Confirmar Rechazo</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setRejectModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalConfirmButton}
+                onPress={handleReject}
+              >
+                <Text style={styles.modalConfirmText}>Rechazar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   listContent: {
-    padding: spacing.lg,
+    padding: 16,
   },
-
-  // Request Card
-  requestCard: {
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  cardBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: borderRadius.lg,
+  // Card
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-
-  // User Section
-  userSection: {
+  // Passenger
+  passengerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: 16,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
   },
-  userInfo: {
+  avatarInitials: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  passengerInfo: {
     flex: 1,
+    marginLeft: 12,
   },
-  userName: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+  passengerName: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#000000',
-    marginBottom: spacing.xs,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  infoText: {
-    fontSize: fontSize.sm,
+  passengerLocation: {
+    fontSize: 13,
     color: '#6B7280',
-  },
-
-  // Details Section
-  detailsSection: {
-    gap: spacing.sm,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.xs,
+    marginTop: 2,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  seatsInfo: {
+  // Details
+  detailsSection: {
+    flexDirection: 'row',
+    gap: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 6,
   },
-  seatsText: {
-    fontSize: fontSize.md,
-    color: '#000000',
-    fontWeight: fontWeight.medium,
+  detailText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
-  seatReservationStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-    padding: spacing.sm,
-    backgroundColor: '#F3F4F6',
-    borderRadius: borderRadius.sm,
-  },
-  seatReservationStatusText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-  },
-  messageContainer: {
+  // Message
+  messageSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.xs,
-    backgroundColor: '#F3F4F6',
-    padding: spacing.sm,
-    borderRadius: borderRadius.md,
+    gap: 8,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
   },
   messageText: {
     flex: 1,
-    fontSize: fontSize.sm,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#374151',
     lineHeight: 20,
   },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  dateText: {
-    fontSize: fontSize.xs,
-    color: '#9CA3AF',
-  },
-
   // Actions
-  actionsContainer: {
+  actionsSection: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: 12,
+    marginTop: 16,
   },
-  actionButton: {
+  acceptButton: {
     flex: 1,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  actionButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.md,
-    gap: spacing.xs,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
   },
-  actionButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+  acceptButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-
-  // Rejection Reason
-  rejectionReasonContainer: {
+  rejectButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-    padding: spacing.sm,
-    backgroundColor: '#EF4444' + '10',
-    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  rejectButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  // Rejection
+  rejectionSection: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: '#EF4444',
   },
-  rejectionReasonText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: '#EF4444',
+  rejectionText: {
+    fontSize: 13,
+    color: '#991B1B',
     fontStyle: 'italic',
   },
-
-  // Empty State
+  // Trip Selector
+  selectorContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  selectorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  selectorSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  tripList: {
+    paddingBottom: 16,
+  },
+  tripCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tripRoute: {
+    marginBottom: 12,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#000000',
+  },
+  routeDotDestination: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  routeLine: {
+    width: 2,
+    height: 16,
+    backgroundColor: '#E5E7EB',
+    marginLeft: 4,
+    marginVertical: 4,
+  },
+  routeCity: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  tripMeta: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  // Empty
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 32,
   },
-  emptyIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: borderRadius.xl,
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: '#1F2937',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#000000',
-    marginTop: spacing.md,
+    marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: fontSize.sm,
+  emptySubtitle: {
+    fontSize: 14,
     color: '#6B7280',
-    marginTop: spacing.xs,
     textAlign: 'center',
   },
-
   // Modal
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContainer: {
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    width: '85%',
-    maxHeight: '70%',
+    padding: 24,
   },
   modalContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
+    fontSize: 18,
+    fontWeight: '700',
     color: '#000000',
   },
   modalSubtitle: {
-    fontSize: fontSize.md,
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: spacing.md,
-  },
-  inputContainer: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: spacing.sm,
-    marginBottom: spacing.lg,
+    marginBottom: 16,
   },
   textArea: {
-    fontSize: fontSize.md,
-    color: '#000000',
-    minHeight: 100,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  modalButton: {
-    flex: 1,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  modalButtonGradient: {
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#FFFFFF',
-  },
-
-  // Trip Selector
-  tripSelectorContainer: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  selectorTitle: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  selectorSubtitle: {
-    fontSize: fontSize.md,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-    lineHeight: 22,
-  },
-  tripSelectorList: {
-    paddingBottom: spacing.lg,
-  },
-  tripSelectorCard: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  tripSelectorGradient: {
-    padding: spacing.md,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tripRoute: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  routePoint: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  routeText: {
-    flex: 1,
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.medium,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
     color: '#000000',
+    minHeight: 100,
+    marginBottom: 20,
   },
-  routeArrow: {
-    paddingHorizontal: spacing.md,
-  },
-  tripMeta: {
+  modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 12,
   },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+  modalCancelButton: {
     flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
   },
-  metaText: {
-    fontSize: fontSize.sm,
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#6B7280',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
