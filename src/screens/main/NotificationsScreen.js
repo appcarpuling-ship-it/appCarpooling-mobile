@@ -23,16 +23,21 @@ const NotificationsScreen = ({ navigation }) => {
   } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [optimisticRead, setOptimisticRead] = useState(new Set());
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadNotifications();
+    setOptimisticRead(new Set());
     setRefreshing(false);
   };
 
-  const handleNotificationPress = async (notification) => {
-    if (!notification.isRead) {
-      await markAsRead(notification._id);
+  const handleNotificationPress = (notification) => {
+    if (!notification.isRead && !optimisticRead.has(notification._id)) {
+      // Optimistic update - show as read immediately
+      setOptimisticRead(prev => new Set([...prev, notification._id]));
+      // Fire and forget - don't await
+      markAsRead(notification._id);
     }
 
     switch (notification.type) {
@@ -75,7 +80,15 @@ const NotificationsScreen = ({ navigation }) => {
       'Marcar todas las notificaciones como leidas?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => markAllAsRead() },
+        {
+          text: 'Confirmar',
+          onPress: () => {
+            // Optimistic update for all
+            const allIds = notifications.map(n => n._id);
+            setOptimisticRead(new Set(allIds));
+            markAllAsRead();
+          }
+        },
       ]
     );
   };
@@ -119,33 +132,37 @@ const NotificationsScreen = ({ navigation }) => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  const renderNotificationItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.card, !item.isRead && styles.cardUnread]}
-      onPress={() => handleNotificationPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.iconContainer, !item.isRead && styles.iconContainerUnread]}>
-        <Ionicons
-          name={getNotificationIcon(item.type)}
-          size={22}
-          color={item.isRead ? '#6B7280' : '#000000'}
-        />
-      </View>
+  const renderNotificationItem = ({ item }) => {
+    const isRead = item.isRead || optimisticRead.has(item._id);
 
-      <View style={styles.content}>
-        <Text style={[styles.title, !item.isRead && styles.titleUnread]}>
-          {item.title}
-        </Text>
-        <Text style={styles.message} numberOfLines={2}>
-          {item.message}
-        </Text>
-        <Text style={styles.time}>{getRelativeTime(item.createdAt)}</Text>
-      </View>
+    return (
+      <TouchableOpacity
+        style={[styles.card, !isRead && styles.cardUnread]}
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.iconContainer, !isRead && styles.iconContainerUnread]}>
+          <Ionicons
+            name={getNotificationIcon(item.type)}
+            size={22}
+            color={isRead ? '#6B7280' : '#000000'}
+          />
+        </View>
 
-      {!item.isRead && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
+        <View style={styles.content}>
+          <Text style={[styles.title, !isRead && styles.titleUnread]}>
+            {item.title}
+          </Text>
+          <Text style={styles.message} numberOfLines={2}>
+            {item.message}
+          </Text>
+          <Text style={styles.time}>{getRelativeTime(item.createdAt)}</Text>
+        </View>
+
+        {!isRead && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -166,7 +183,7 @@ const NotificationsScreen = ({ navigation }) => {
           <Ionicons name="close" size={24} color="#000000" />
         </TouchableOpacity>
 
-        {notifications.length > 0 && (
+        {notifications.some(n => !n.isRead && !optimisticRead.has(n._id)) && (
           <TouchableOpacity
             style={styles.markAllButton}
             onPress={handleMarkAllAsRead}
