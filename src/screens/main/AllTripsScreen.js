@@ -33,7 +33,6 @@ const AllTripsScreen = ({ navigation }) => {
   const [originProvince, setOriginProvince] = useState('');
   const [destinationProvince, setDestinationProvince] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
-  const [timeOfDay, setTimeOfDay] = useState('');
 
   // Picker modals
   const [showOriginPicker, setShowOriginPicker] = useState(false);
@@ -54,7 +53,7 @@ const AllTripsScreen = ({ navigation }) => {
 
   useEffect(() => {
     applyFilters();
-  }, [trips, originProvince, destinationProvince, selectedDate, timeOfDay]);
+  }, [trips, originProvince, destinationProvince, selectedDate]);
 
   const loadTrips = async (isRefreshing = false) => {
     if (isRefreshing) {
@@ -121,23 +120,6 @@ const AllTripsScreen = ({ navigation }) => {
       });
     }
 
-    if (timeOfDay) {
-      result = result.filter((t) => {
-        if (!t.departureTime) return false;
-        const hour = parseInt(t.departureTime.split(':')[0], 10);
-        switch (timeOfDay) {
-          case 'morning':
-            return hour >= 6 && hour < 12;
-          case 'afternoon':
-            return hour >= 12 && hour < 18;
-          case 'night':
-            return hour >= 18 || hour < 6;
-          default:
-            return true;
-        }
-      });
-    }
-
     setFilteredTrips(result);
   };
 
@@ -145,10 +127,9 @@ const AllTripsScreen = ({ navigation }) => {
     setOriginProvince('');
     setDestinationProvince('');
     setSelectedDate(null);
-    setTimeOfDay('');
   };
 
-  const hasActiveFilters = originProvince || destinationProvince || selectedDate || timeOfDay;
+  const hasActiveFilters = originProvince || destinationProvince || selectedDate;
 
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
@@ -273,12 +254,6 @@ const AllTripsScreen = ({ navigation }) => {
     </Modal>
   );
 
-  const timeOptions = [
-    { key: 'morning', label: 'Mañana', icon: 'sunny-outline' },
-    { key: 'afternoon', label: 'Tarde', icon: 'partly-sunny-outline' },
-    { key: 'night', label: 'Noche', icon: 'moon-outline' },
-  ];
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -327,21 +302,6 @@ const AllTripsScreen = ({ navigation }) => {
                   {selectedDate ? selectedDate.toLocaleDateString('es-ES') : 'Fecha'}
                 </Text>
               </TouchableOpacity>
-
-              {/* Time of day */}
-              {timeOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  style={[styles.filterChip, timeOfDay === opt.key && styles.filterChipActive]}
-                  onPress={() => setTimeOfDay(timeOfDay === opt.key ? '' : opt.key)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name={opt.icon} size={14} color={timeOfDay === opt.key ? '#FFF' : '#1F2937'} />
-                  <Text style={[styles.filterChipText, timeOfDay === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
 
               {/* Clear */}
               {hasActiveFilters && (
