@@ -40,14 +40,6 @@ const MyBookingsScreen = ({ navigation }) => {
     };
   }, []);
 
-  // Recargar reservas cuando la pantalla se enfoque
-  // COMENTADO TEMPORALMENTE - useFocusEffect no disponible
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     console.log('🔄 [MyBookings] Pantalla enfocada, recargando reservas');
-  //     loadMyBookings();
-  //   }, [])
-  // );
 
   const setupTripCancellationListener = () => {
     // Escuchar cuando se cancelan viajes para actualizar reservas automáticamente

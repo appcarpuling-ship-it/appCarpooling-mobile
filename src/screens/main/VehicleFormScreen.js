@@ -7,46 +7,23 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../services/apiService';
-import { ENDPOINTS } from '../../config/api';
-import {  spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/PermissionModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
-// Usar valores directos para evitar problemas de carga
-const SORA_FONTS = {
-  thin: 'Sora_100Thin',
-  extraLight: 'Sora_200ExtraLight',
-  light: 'Sora_300Light',
-  regular: 'Sora_400Regular',
-  medium: 'Sora_500Medium',
-  semiBold: 'Sora_600SemiBold',
-  bold: 'Sora_700Bold',
-  extraBold: 'Sora_800ExtraBold',
-};
-
 const VehicleFormScreen = ({ navigation, route }) => {
-  const { colors, gradients, createColorArray } = useColors();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  // Fallbacks para gradientes
-  const safeGradients = {
-    background: Array.isArray(colors?.background) && colors.background.length > 0 ? colors.background : ['#FFFFFF', '#F8F9FA'],
-    surface: Array.isArray(colors?.surface) && colors.surface.length > 0 ? colors.surface : ['#F8F9FA', '#E5E7EB'],
-    primary: Array.isArray(gradients?.primary) && gradients.primary.length > 0 ? gradients.primary : ['#1F2937', '#111827'],
-  };
+
   const isEdit = route.params?.vehicle;
   const vehicleData = route.params?.vehicle;
 
@@ -77,17 +54,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  // Debug: Monitor features state changes
-  useEffect(() => {
-    console.log('🔍 [VehicleForm] Features state updated:', features);
-  }, [features]);
-
   const handleChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
   };
 
   const {
-    pickImage: pickImageFromGallery,
     showPermissionModal,
     setShowPermissionModal,
     openSettings,
@@ -96,41 +67,29 @@ const VehicleFormScreen = ({ navigation, route }) => {
   } = useGalleryPermissions();
 
   const toggleFeature = (feature) => {
-    console.log(`🔄 [VehicleForm] Toggling feature: ${feature}, current value:`, features[feature]);
-
-    // Use functional update to ensure we have the latest state
-    setFeatures(prevFeatures => {
-      const newFeatures = {
-        ...prevFeatures,
-        [feature]: !prevFeatures[feature]
-      };
-
-      console.log(`✅ [VehicleForm] New features state:`, newFeatures);
-      return newFeatures;
-    });
+    setFeatures(prevFeatures => ({
+      ...prevFeatures,
+      [feature]: !prevFeatures[feature]
+    }));
   };
 
   const compressImage = async (uri) => {
     try {
       const manipResult = await ImageManipulator.manipulateAsync(uri, [
-        { resize: { width: 1200 } } // Redimensionar a máximo 1200px de ancho
+        { resize: { width: 1200 } }
       ], {
-        compress: 0.7, // Comprimir al 70%
+        compress: 0.7,
         format: ImageManipulator.SaveFormat.JPEG
       });
       return manipResult.uri;
     } catch (error) {
-      console.error('Error al comprimir imagen:', error);
-      return uri; // Si falla, devolver la URI original
+      return uri;
     }
   };
 
   const pickImages = async () => {
     const hasPermission = await handlePermissionRequest();
-    
-    if (!hasPermission) {
-      return;
-    }
+    if (!hasPermission) return;
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -140,92 +99,65 @@ const VehicleFormScreen = ({ navigation, route }) => {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log('📸 [VehicleForm] Imágenes seleccionadas:', result.assets.length);
-        
-        // Comprimir todas las imágenes seleccionadas
         const compressedUris = await Promise.all(
           result.assets.map(asset => compressImage(asset.uri))
         );
 
-        console.log('📸 [VehicleForm] URIs comprimidas:', compressedUris.length);
-
         const newPhotos = [...photos, ...compressedUris];
         const totalAfterAdd = existingPhotos.length + newPhotos.length;
-        
-        console.log('📸 [VehicleForm] Estado después de agregar:', {
-          existingPhotos: existingPhotos.length,
-          currentPhotos: photos.length,
-          newPhotos: compressedUris.length,
-          totalAfterAdd,
-        });
-        
+
         if (totalAfterAdd > 10) {
-          Alert.alert('Límite', 'Puedes tener máximo 10 fotos en total');
+          setModalMessage('Maximo 10 fotos');
+          setShowErrorModal(true);
           return;
         }
         setPhotos(newPhotos);
       }
     } catch (error) {
-      console.error('Error seleccionando imágenes:', error);
-      Alert.alert('Error', 'No se pudieron seleccionar las imágenes');
+      setModalMessage('No se pudieron seleccionar las imagenes');
+      setShowErrorModal(true);
     }
   };
 
   const removePhoto = (index) => {
-    setPhotos((Array.isArray(photos) ? photos : []).filter((_, i) => i !== index));
+    setPhotos(photos.filter((_, i) => i !== index));
   };
 
   const removeExistingPhoto = (index) => {
-    setExistingPhotos((Array.isArray(existingPhotos) ? existingPhotos : []).filter((_, i) => i !== index));
+    setExistingPhotos(existingPhotos.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
-    // Validaciones
     if (!formData.brand || !formData.model || !formData.year || !formData.color || !formData.licensePlate || !formData.capacity) {
-      setModalMessage('Por favor completa todos los campos');
+      setModalMessage('Completa todos los campos');
       setShowErrorModal(true);
       return;
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
-    
-    console.log('📸 [VehicleForm] Validando fotos:', {
-      isEdit,
-      existingPhotos: existingPhotos.length,
-      newPhotos: photos.length,
-      totalPhotos,
-    });
 
-    // Validar mínimo de fotos solo al crear (no al editar)
     if (!isEdit && totalPhotos < 3) {
-      setModalMessage(`Debes subir al menos 3 fotos del vehículo. Actualmente tienes ${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}`);
+      setModalMessage(`Minimo 3 fotos. Tenes ${totalPhotos}`);
       setShowErrorModal(true);
       return;
     }
 
-    // Si está editando, debe tener al menos 1 foto en total
     if (isEdit && totalPhotos === 0) {
-      setModalMessage('Debes tener al menos 1 foto del vehículo');
-      setShowErrorModal(true);
-      return;
-    }
-
-    if (totalPhotos > 10) {
-      setModalMessage('Puedes tener máximo 10 fotos');
+      setModalMessage('Necesitas al menos 1 foto');
       setShowErrorModal(true);
       return;
     }
 
     const yearNum = parseInt(formData.year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      setModalMessage('El año no es válido');
+      setModalMessage('Ano no valido');
       setShowErrorModal(true);
       return;
     }
 
     const capacityNum = parseInt(formData.capacity);
     if (capacityNum < 1 || capacityNum > 8) {
-      setModalMessage('La capacidad debe estar entre 1 y 8 pasajeros');
+      setModalMessage('Capacidad: 1 a 8 pasajeros');
       setShowErrorModal(true);
       return;
     }
@@ -234,29 +166,22 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
     try {
       const formDataToSend = new FormData();
-
-      // Agregar campos
       formDataToSend.append('brand', formData.brand);
       formDataToSend.append('model', formData.model);
       formDataToSend.append('year', yearNum);
       formDataToSend.append('color', formData.color);
       formDataToSend.append('licensePlate', formData.licensePlate);
       formDataToSend.append('capacity', capacityNum);
-
-      // Agregar features como JSON
       formDataToSend.append('features', JSON.stringify(features));
 
-      // Agregar fotos existentes (solo las URLs)
       if (isEdit && existingPhotos.length > 0) {
         formDataToSend.append('existingPhotos', JSON.stringify(existingPhotos));
       }
 
-      // Agregar nuevas fotos
       photos.forEach((photoUri, index) => {
         const filename = photoUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
-
         formDataToSend.append('photos', {
           uri: photoUri,
           name: filename || `photo-${index}.jpg`,
@@ -272,267 +197,220 @@ const VehicleFormScreen = ({ navigation, route }) => {
       }
 
       if (response.success) {
-        setModalMessage(isEdit ? 'Vehículo actualizado exitosamente' : 'Vehículo creado exitosamente');
+        setModalMessage(isEdit ? 'Vehiculo actualizado' : 'Vehiculo creado');
         setShowSuccessModal(true);
       } else {
-        setModalMessage(response.message || 'Error al guardar vehículo');
+        setModalMessage(response.message || 'Error al guardar');
         setShowErrorModal(true);
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al guardar vehículo');
+      setModalMessage(error.message || 'Error al guardar');
       setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const featuresList = [
+    { key: 'ac', label: 'Aire acondicionado', icon: 'snow-outline' },
+    { key: 'music', label: 'Musica', icon: 'musical-notes-outline' },
+    { key: 'smoking', label: 'Se puede fumar', icon: 'flame-outline' },
+    { key: 'pets', label: 'Mascotas', icon: 'paw-outline' },
+    { key: 'luggage', label: 'Equipaje grande', icon: 'bag-handle-outline' },
+  ];
+
   return (
     <View style={styles.container}>
-      <LinearGradient colors={createColorArray(colors.background, colors.surface) || ['#FFFFFF', '#F8F9FA']} style={styles.gradient}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.gradient}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <Text style={styles.title}>{isEdit ? 'Editar' : 'Agregar'} Vehículo</Text>
-          </View> */}
-
-          {/* Photos */}
+          {/* Photos Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Fotos del Vehículo *</Text>
+            <Text style={styles.sectionTitle}>Fotos</Text>
             <Text style={styles.sectionSubtitle}>
-              {isEdit ? 'Opcional: agrega nuevas fotos' : 'Mínimo 3, máximo 10 fotos'}
+              {isEdit ? 'Agrega o elimina fotos' : 'Minimo 3, maximo 10'}
             </Text>
 
-            <View style={styles.photosGrid}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.photosScroll}
+              contentContainerStyle={styles.photosContainer}
+            >
               {/* Existing photos */}
               {existingPhotos.map((photoUrl, index) => (
-                <View key={`existing-${index}`} style={styles.photoContainer}>
+                <View key={`existing-${index}`} style={styles.photoWrapper}>
                   <Image
-                    source={{ uri: buildImageUri(photoUrl) || undefined }}
+                    source={{ uri: buildImageUri(photoUrl) }}
                     style={styles.photo}
-                    onError={() => console.log('Error loading vehicle photo from:', photoUrl)}
                   />
                   <TouchableOpacity
-                    style={styles.removePhotoButton}
+                    style={styles.removeButton}
                     onPress={() => removeExistingPhoto(index)}
                   >
-                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
-                  <View style={styles.photoNumber}>
-                    <Text style={styles.photoNumberText}>{index + 1}</Text>
-                  </View>
                 </View>
               ))}
 
               {/* New photos */}
               {photos.map((photoUri, index) => (
-                <View key={`new-${index}`} style={styles.photoContainer}>
+                <View key={`new-${index}`} style={styles.photoWrapper}>
                   <Image source={{ uri: photoUri }} style={styles.photo} />
                   <TouchableOpacity
-                    style={styles.removePhotoButton}
+                    style={styles.removeButton}
                     onPress={() => removePhoto(index)}
                   >
-                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
-                  <View style={styles.photoNumber}>
-                    <Text style={styles.photoNumberText}>{existingPhotos.length + index + 1}</Text>
-                  </View>
                 </View>
               ))}
 
+              {/* Add button */}
               {(existingPhotos.length + photos.length) < 10 && (
-                <TouchableOpacity style={styles.addPhotoButton} onPress={pickImages}>
-                  <Ionicons name="camera" size={32} color={colors.textTertiary} />
-                  <Text style={styles.addPhotoText}>Agregar Fotos</Text>
+                <TouchableOpacity style={styles.addButton} onPress={pickImages}>
+                  <Ionicons name="add" size={32} color="#9CA3AF" />
                 </TouchableOpacity>
               )}
-            </View>
+            </ScrollView>
           </View>
 
-          {/* Form */}
+          {/* Vehicle Info */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Información del Vehículo</Text>
+            <Text style={styles.sectionTitle}>Informacion</Text>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="car-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Marca</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Marca *"
-                placeholderTextColor={colors.placeholder}
                 value={formData.brand}
                 onChangeText={(value) => handleChange('brand', value)}
+                placeholder="Toyota, Ford, Chevrolet..."
+                placeholderTextColor="#9CA3AF"
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="car-sport-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Modelo</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Modelo *"
-                placeholderTextColor={colors.placeholder}
                 value={formData.model}
                 onChangeText={(value) => handleChange('model', value)}
+                placeholder="Corolla, Focus, Cruze..."
+                placeholderTextColor="#9CA3AF"
               />
             </View>
 
             <View style={styles.row}>
-              <View style={[styles.inputWrapper, styles.halfWidth]}>
-                <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+              <View style={[styles.inputGroup, styles.halfWidth]}>
+                <Text style={styles.label}>Ano</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Año *"
-                  placeholderTextColor={colors.placeholder}
                   value={formData.year}
                   onChangeText={(value) => handleChange('year', value)}
+                  placeholder="2020"
+                  placeholderTextColor="#9CA3AF"
                   keyboardType="numeric"
+                  maxLength={4}
                 />
               </View>
 
-              <View style={[styles.inputWrapper, styles.halfWidth]}>
-                <Ionicons name="color-palette-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+              <View style={[styles.inputGroup, styles.halfWidth]}>
+                <Text style={styles.label}>Color</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Color *"
-                  placeholderTextColor={colors.placeholder}
                   value={formData.color}
                   onChangeText={(value) => handleChange('color', value)}
+                  placeholder="Blanco"
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="document-text-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Patente</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Patente *"
-                placeholderTextColor={colors.placeholder}
                 value={formData.licensePlate}
                 onChangeText={(value) => handleChange('licensePlate', value.toUpperCase())}
+                placeholder="ABC123"
+                placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="people-outline" size={20} color={colors.textTertiary} style={styles.inputIcon} />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Capacidad de pasajeros</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Capacidad (1-8 pasajeros) *"
-                placeholderTextColor={colors.placeholder}
                 value={formData.capacity}
                 onChangeText={(value) => handleChange('capacity', value)}
+                placeholder="4"
+                placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
+                maxLength={1}
               />
             </View>
           </View>
 
           {/* Features */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Características</Text>
+            <Text style={styles.sectionTitle}>Caracteristicas</Text>
 
-            <View style={styles.featuresGrid}>
+            {featuresList.map((feature) => (
               <TouchableOpacity
-                style={[styles.featureButton, features.ac && styles.featureButtonActive]}
-                onPress={() => toggleFeature('ac')}
+                key={feature.key}
+                style={styles.featureRow}
+                onPress={() => toggleFeature(feature.key)}
+                activeOpacity={0.7}
               >
-                <Ionicons
-                  name="snow-outline"
-                  size={24}
-                  color={features.ac ? '#FFF' : colors.textTertiary}
-                />
-                <Text style={[styles.featureText, features.ac && styles.featureTextActive]}>
-                  Aire Acondicionado
-                </Text>
+                <View style={styles.featureLeft}>
+                  <Ionicons name={feature.icon} size={22} color="#374151" />
+                  <Text style={styles.featureLabel}>{feature.label}</Text>
+                </View>
+                <View style={[
+                  styles.toggle,
+                  features[feature.key] && styles.toggleActive
+                ]}>
+                  <View style={[
+                    styles.toggleCircle,
+                    features[feature.key] && styles.toggleCircleActive
+                  ]} />
+                </View>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.featureButton, features.music && styles.featureButtonActive]}
-                onPress={() => toggleFeature('music')}
-              >
-                <Ionicons
-                  name="musical-notes-outline"
-                  size={24}
-                  color={features.music ? '#FFF' : colors.textTertiary}
-                />
-                <Text style={[styles.featureText, features.music && styles.featureTextActive]}>
-                  Música
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.featureButton, features.smoking && styles.featureButtonActive]}
-                onPress={() => toggleFeature('smoking')}
-              >
-                <Ionicons
-                  name="ban-outline"
-                  size={24}
-                  color={features.smoking ? '#FFF' : colors.textTertiary}
-                />
-                <Text style={[styles.featureText, features.smoking && styles.featureTextActive]}>
-                  Se Permite Fumar
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.featureButton, features.pets && styles.featureButtonActive]}
-                onPress={() => toggleFeature('pets')}
-              >
-                <Ionicons
-                  name="paw-outline"
-                  size={24}
-                  color={features.pets ? '#FFF' : colors.textTertiary}
-                />
-                <Text style={[styles.featureText, features.pets && styles.featureTextActive]}>
-                  Mascotas
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.featureButton, features.luggage && styles.featureButtonActive]}
-                onPress={() => toggleFeature('luggage')}
-              >
-                <Ionicons
-                  name="bag-handle-outline"
-                  size={24}
-                  color={features.luggage ? '#FFF' : colors.textTertiary}
-                />
-                <Text style={[styles.featureText, features.luggage && styles.featureTextActive]}>
-                  Equipaje Grande
-                </Text>
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
 
-          {/* Submit Button */}
-          <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.8}>
-            <LinearGradient
-              colors={createColorArray('#1F2937', '#111827') || ['#1F2937', '#111827']}
-              style={styles.submitButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitButtonText}>
-                  {isEdit ? 'Actualizar Vehículo' : 'Crear Vehículo'}
-                </Text>
-              )}
-            </LinearGradient>
+          {/* Submit */}
+          <TouchableOpacity
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {isEdit ? 'Guardar cambios' : 'Crear vehiculo'}
+              </Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-      
+      </KeyboardAvoidingView>
+
       <PermissionModal
         visible={showPermissionModal}
         onClose={() => setShowPermissionModal(false)}
-        title="Permisos de Galería"
-        message="Para seleccionar fotos de tu vehículo necesitamos acceso a tu galería. Ve a configuración y habilita los permisos para esta aplicación."
+        title="Acceso a galeria"
+        message="Necesitamos acceso a tu galeria para agregar fotos del vehiculo."
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
@@ -545,7 +423,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           navigation.navigate('Vehicles', { refreshVehicles: true });
         }}
         type="success"
-        title="Éxito"
+        title="Listo"
         message={modalMessage}
         confirmText="OK"
         showCancel={false}
@@ -568,167 +446,151 @@ const VehicleFormScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  gradient: {
+  flex: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  backButton: {
-    marginRight: spacing.md,
-  },
-  title: {
-    fontSize: fontSize.xxl,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
-    color: '#000000',
-  },
+  // Sections
   section: {
-    marginBottom: spacing.xl,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 24,
   },
   sectionTitle: {
-    fontSize: fontSize.lg,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
     color: '#000000',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: fontSize.sm,
-    fontFamily: SORA_FONTS.regular,
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
+  // Photos
+  photosScroll: {
+    marginHorizontal: -20,
   },
-  photoContainer: {
+  photosContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  photoWrapper: {
     width: 100,
     height: 100,
-    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   photo: {
     width: '100%',
     height: '100%',
-    borderRadius: borderRadius.md,
   },
-  removePhotoButton: {
+  removeButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-  },
-  photoNumber: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 12,
+    top: 6,
+    right: 6,
     width: 24,
     height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoNumberText: {
-    color: '#FFF',
-    fontSize: fontSize.xs,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
-  },
-  addPhotoButton: {
+  addButton: {
     width: 100,
     height: 100,
-    borderRadius: borderRadius.md,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
     borderWidth: 2,
     borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addPhotoText: {
-    marginTop: spacing.xs,
-    fontSize: fontSize.xs,
-    fontFamily: SORA_FONTS.regular,
-    color: '#9CA3AF',
+  // Form
+  inputGroup: {
+    marginBottom: 20,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: spacing.md,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    fontSize: fontSize.md,
-    fontFamily: SORA_FONTS.regular,
-    color: '#1A1A1A',
+    fontSize: 16,
+    color: '#000000',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   row: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: 16,
   },
   halfWidth: {
     flex: 1,
   },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  featureButton: {
-    width: '47%',
+  // Features
+  featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: '#F3F4F6',
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  featureButtonActive: {
-    backgroundColor: '#1F2937',
-    borderColor: '#111827',
+  featureLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  featureText: {
-    marginLeft: spacing.sm,
-    fontSize: fontSize.sm,
-    fontFamily: SORA_FONTS.regular,
-    color: '#6B7280',
-    flex: 1,
+  featureLabel: {
+    fontSize: 16,
+    color: '#374151',
   },
-  featureTextActive: {
-    color: '#FFF',
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semibold,
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E5E7EB',
+    padding: 2,
+    justifyContent: 'center',
   },
+  toggleActive: {
+    backgroundColor: '#000000',
+  },
+  toggleCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleCircleActive: {
+    alignSelf: 'flex-end',
+  },
+  // Submit
   submitButton: {
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
+    backgroundColor: '#000000',
+    marginHorizontal: 20,
+    marginTop: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: spacing.lg,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9CA3AF',
   },
   submitButtonText: {
-    color: '#FFF',
-    fontSize: fontSize.lg,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
