@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,126 +7,63 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Animated,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { get_withauth, put_withauth } from '../../services/apiService';
+import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import socketService from '../../services/socketService';
-import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
 
 const MyBookingsScreen = ({ navigation }) => {
-  const { colors, gradients, createColorArray } = useColors();
-  // Fallbacks para gradientes
-  const safeGradients = {
-    card: Array.isArray(gradients?.card) && gradients.card.length > 0 ? gradients.card : ['#FFFFFF', '#F8F9FA'],
-    primary: ['#1F2937', '#111827'],
-    dark: Array.isArray(gradients?.dark) && gradients.dark.length > 0 ? gradients.dark : ['#F8F9FA', '#E5E7EB'],
-  };
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadMyBookings();
     setupTripCancellationListener();
-
-    return () => {
-      cleanupListeners();
-    };
+    return () => cleanupListeners();
   }, []);
 
-
   const setupTripCancellationListener = () => {
-    // Escuchar cuando se cancelan viajes para actualizar reservas automáticamente
     const handleTripCancelled = (data) => {
-      console.log('🚫 [MyBookings] Evento trip:cancelled recibido:', {
-        tripId: data.tripId,
-        cancelReason: data.reason,
-        timestamp: new Date().toISOString()
-      });
-
-      // Verificar si alguna de nuestras reservas corresponde a este viaje
       setBookings(prevBookings => {
         let hasUpdates = false;
         const updatedBookings = prevBookings.map(booking => {
           const bookingTripId = booking.trip?._id || booking.trip;
-
           if (bookingTripId === data.tripId) {
-            console.log('✅ [MyBookings] Cancelando reserva automáticamente:', {
-              bookingId: booking._id,
-              tripId: data.tripId,
-              originalStatus: booking.status
-            });
             hasUpdates = true;
             return {
               ...booking,
               status: 'cancelled',
               cancelReason: data.reason || 'Viaje cancelado por el conductor',
-              cancelledAt: new Date().toISOString()
             };
           }
           return booking;
         });
 
         if (hasUpdates) {
-          console.log('📋 [MyBookings] Se actualizaron reservas localmente, recargando desde servidor...');
-          // Recargar desde el servidor en 1 segundo para asegurar sincronización
-          setTimeout(() => {
-            loadMyBookings();
-          }, 1000);
+          setTimeout(() => loadMyBookings(), 1000);
         }
-
         return updatedBookings;
       });
     };
 
-    // Conectar socket si no está conectado
     if (!socketService.isConnected) {
-      console.log('🔌 [MyBookings] Conectando socket...');
       socketService.connect();
     }
 
-    // Configurar listener con retry
-    const configureListener = () => {
-      if (socketService.socket) {
-        console.log('✅ [MyBookings] Configurando listener para trip:cancelled');
-        socketService.socket.on('trip:cancelled', handleTripCancelled);
-        return true;
-      }
-      return false;
-    };
-
-    // Intentar configurar inmediatamente
-    if (!configureListener()) {
-      // Si no se pudo, intentar después de un breve delay
-      console.log('⏳ [MyBookings] Socket no listo, reintentando en 1 segundo...');
-      setTimeout(() => {
-        configureListener();
-      }, 1000);
+    if (socketService.socket) {
+      socketService.socket.on('trip:cancelled', handleTripCancelled);
     }
   };
 
   const cleanupListeners = () => {
-    console.log('🧹 [MyBookings] Limpiando listeners de socket');
     if (socketService.socket) {
       socketService.socket.off('trip:cancelled');
     }
   };
-
-  useEffect(() => {
-    if (!loading && bookings.length > 0) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [loading, bookings]);
 
   const loadMyBookings = async () => {
     try {
@@ -149,18 +86,17 @@ const MyBookingsScreen = ({ navigation }) => {
 
   const handleCancelBooking = (bookingId) => {
     Alert.alert(
-      'Cancelar Reserva',
-      '¿Estás seguro que deseas cancelar esta reserva?',
+      'Cancelar reserva',
+      'Estas seguro?',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí',
+          text: 'Si, cancelar',
           style: 'destructive',
           onPress: async () => {
             try {
               const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
               if (response.success) {
-                Alert.alert('Éxito', 'Reserva cancelada');
                 loadMyBookings();
               }
             } catch (error) {
@@ -175,353 +111,317 @@ const MyBookingsScreen = ({ navigation }) => {
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
-        return { color: '#F59E0B', text: 'Pendiente', icon: 'time-outline' };
+        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
       case 'confirmed':
-        return { color: '#10B981', text: 'Confirmado', icon: 'checkmark-circle-outline' };
+        return { color: '#10B981', bg: '#D1FAE5', text: 'Confirmado' };
       case 'cancelled':
-        return { color: '#EF4444', text: 'Cancelado', icon: 'close-circle-outline' };
+        return { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado' };
       case 'completed':
-        return { color: '#3B82F6', text: 'Completado', icon: 'checkmark-done-outline' };
+        return { color: '#3B82F6', bg: '#DBEAFE', text: 'Completado' };
       default:
-        return { color: '#6B7280', text: status, icon: 'help-circle-outline' };
+        return { color: '#6B7280', bg: '#F3F4F6', text: status };
     }
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    const date = new Date(dateString);
+    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+    return date.toLocaleDateString('es-ES', options);
   };
 
-  const renderBookingItem = ({ item, index }) => {
-    // No mostrar la reserva si no hay datos del conductor
-    if (!item.trip?.driver?.firstName || !item.trip?.driver?.lastName) {
-      console.warn('⚠️ [MyBookings] Reserva sin datos de conductor:', item._id);
-      return null;
-    }
+  const renderBookingItem = ({ item }) => {
+    if (!item.trip?.driver?.firstName) return null;
 
     const statusConfig = getStatusConfig(item.status);
-    const StatusIcon = statusConfig.icon;
+    const driver = item.trip.driver;
 
     return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <LinearGradient
-          colors={safeGradients.card}
-          style={styles.bookingCard}
-        >
-          <View style={styles.cardBorder}>
-            {/* Header con ruta y estado */}
-            <View style={styles.reservationHeader}>
-              <View style={styles.routeInfo}>
-                <View style={styles.routePoint}>
-                  <Ionicons name="location" size={16} color="#1F2937" />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.trip?.origin?.city}
-                  </Text>
-                </View>
-                <Ionicons name="arrow-forward" size={16} color={staticColors.textTertiary} />
-                <View style={styles.routePoint}>
-                  <Ionicons name="location" size={16} color="#EF4444" />
-                  <Text style={styles.routeText} numberOfLines={1}>
-                    {item.trip?.destination?.city}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
-                <Ionicons name={StatusIcon} size={14} color={statusConfig.color} />
-                <Text style={[styles.statusText, { color: statusConfig.color }]}>
-                  {statusConfig.text}
-                </Text>
-              </View>
-            </View>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
+        activeOpacity={0.7}
+      >
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+          <Text style={[styles.statusText, { color: statusConfig.color }]}>
+            {statusConfig.text}
+          </Text>
+        </View>
 
-            {/* Información del viaje */}
-            <View style={styles.tripInfo}>
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.infoText}>
-                  {formatDate(item.trip?.departureDate)}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="time-outline" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.infoText}>{item.trip?.departureTime}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="people-outline" size={14} color={staticColors.textSecondary} />
-                <Text style={styles.infoText}>
-                  {item.seats || item.seatsBooked || 1} asiento{(item.seats || item.seatsBooked || 1) > 1 ? 's' : ''}
-                </Text>
-              </View>
-            </View>
-
-            {/* Información del conductor */}
-            <View style={styles.driverInfo}>
-              <View style={styles.driverInfoRow}>
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>
-                    {item.trip.driver.firstName[0]}{item.trip.driver.lastName[0]}
-                  </Text>
-                </View>
-                <View style={styles.driverDetails}>
-                  <Text style={styles.driverName}>
-                    {item.trip.driver.firstName} {item.trip.driver.lastName}
-                  </Text>
-                  <Text style={styles.driverSubtext}>Conductor</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Botones de acción */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })
-                }
-                style={styles.detailButton}
-              >
-                <LinearGradient
-                  colors={safeGradients.primary}
-                  style={styles.detailButtonGradient}
-                >
-                  <Text style={styles.detailButtonText}>Ver Detalles</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {item.status === 'pending' && (
-                <TouchableOpacity
-                  onPress={() => handleCancelBooking(item._id)}
-                  style={styles.cancelButton}
-                >
-                  <View style={styles.cancelButtonView}>
-                    <Text style={styles.cancelButtonText}>Cancelar</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            </View>
+        {/* Route */}
+        <View style={styles.routeSection}>
+          <View style={styles.routeRow}>
+            <View style={styles.routeDot} />
+            <Text style={styles.cityText} numberOfLines={1}>
+              {item.trip?.origin?.city}
+            </Text>
           </View>
-        </LinearGradient>
-      </Animated.View>
+          <View style={styles.routeLine} />
+          <View style={styles.routeRow}>
+            <View style={[styles.routeDot, styles.routeDotDestination]} />
+            <Text style={styles.cityText} numberOfLines={1}>
+              {item.trip?.destination?.city}
+            </Text>
+          </View>
+        </View>
+
+        {/* Trip Info */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoItem}>
+            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{formatDate(item.trip?.departureDate)}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="time-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{item.trip?.departureTime}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="person-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>
+              {item.seats || item.seatsBooked || 1} asiento{(item.seats || item.seatsBooked || 1) > 1 ? 's' : ''}
+            </Text>
+          </View>
+        </View>
+
+        {/* Driver */}
+        <View style={styles.driverSection}>
+          {driver.avatar ? (
+            <Image
+              source={{ uri: buildImageUri(driver.avatar) }}
+              style={styles.driverAvatar}
+            />
+          ) : (
+            <View style={styles.driverAvatarPlaceholder}>
+              <Text style={styles.driverInitials}>
+                {driver.firstName[0]}{driver.lastName[0]}
+              </Text>
+            </View>
+          )}
+          <View style={styles.driverInfo}>
+            <Text style={styles.driverName}>
+              {driver.firstName} {driver.lastName}
+            </Text>
+            <Text style={styles.driverLabel}>Conductor</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+        </View>
+
+        {/* Cancel Button */}
+        {item.status === 'pending' && (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => handleCancelBooking(item._id)}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar reserva</Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <LinearGradient
-        colors={safeGradients.dark} style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1F2937" />
-      </LinearGradient>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={safeGradients.dark} style={styles.container}>
+    <View style={styles.container}>
       {bookings.length > 0 ? (
         <FlatList
           data={bookings}
           renderItem={renderBookingItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#1F2937"
-              colors={['#1F2937', '#111827']}
+              tintColor="#000000"
             />
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No tienes reservas</Text>
-          <Text style={styles.emptySubtext}>
-            Busca y reserva viajes para comenzar
+          <View style={styles.emptyIcon}>
+            <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>Sin reservas</Text>
+          <Text style={styles.emptySubtitle}>
+            Cuando reserves un viaje aparecera aqui
           </Text>
         </View>
       )}
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   listContent: {
-    padding: spacing.md,
+    padding: 16,
   },
-  bookingCard: {
-    borderRadius: borderRadius.lg,
-    padding: 1.5,
-    marginBottom: spacing.md,
-    shadowColor: staticColors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  cardBorder: {
-    backgroundColor: staticColors.cardBackground,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+  // Card
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: staticColors.cardBorder,
+    borderColor: '#E5E7EB',
   },
-  reservationHeader: {
-    marginBottom: spacing.md,
-  },
-  routeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  routePoint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing.xs,
-  },
-  routeText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#000000',
-  },
+  // Status
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   statusText: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semiBold,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  tripInfo: {
+  // Route
+  routeSection: {
+    marginBottom: 16,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#000000',
+  },
+  routeDotDestination: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  routeLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#E5E7EB',
+    marginLeft: 4,
+    marginVertical: 4,
+  },
+  cityText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  // Info
+  infoSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
+    gap: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F3F4F6',
+    marginBottom: 16,
   },
-  infoRow: {
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 6,
   },
   infoText: {
-    fontSize: fontSize.sm,
-    color: staticColors.textSecondary || '#6B7280',
+    fontSize: 14,
+    color: '#6B7280',
   },
-  driverInfo: {
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  driverInfoRow: {
+  // Driver
+  driverSection: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatarPlaceholder: {
+  driverAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  driverAvatarPlaceholder: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
   },
-  avatarText: {
+  driverInitials: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
   },
-  driverDetails: {
+  driverInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   driverName: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: staticColors.textPrimary,
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000000',
   },
-  driverSubtext: {
-    fontSize: fontSize.xs,
-    color: staticColors.textSecondary,
+  driverLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  detailButton: {
-    flex: 1,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  detailButtonGradient: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailButtonText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-  },
+  // Cancel Button
   cancelButton: {
-    flex: 1,
-    borderRadius: borderRadius.md,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#EF4444',
-  },
-  cancelButtonView: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#EF4444',
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
   },
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xxl,
+    padding: 32,
   },
-  emptyIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.semiBold,
-    color: staticColors.textPrimary,
-    marginTop: spacing.md,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: fontSize.sm,
-    color: staticColors.textSecondary,
-    marginTop: spacing.sm,
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
     textAlign: 'center',
   },
 });
