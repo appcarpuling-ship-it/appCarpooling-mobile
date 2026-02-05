@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -6,26 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Animated,
   RefreshControl,
   Alert,
-  StatusBar,
-  Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Notifications from 'expo-notifications';
 import { useNotifications } from '../../context/NotificationContext';
-import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
 
 const NotificationsScreen = ({ navigation }) => {
-  const { colors, gradients, createColorArray } = useColors();
-  const insets = useSafeAreaInsets();
   const {
     notifications = [],
-    unreadCount = 0,
     loading,
     markAsRead,
     markAllAsRead,
@@ -33,17 +23,6 @@ const NotificationsScreen = ({ navigation }) => {
   } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!loading) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [loading]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -52,28 +31,22 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const handleNotificationPress = async (notification) => {
-    // Marcar como leída - usar isRead (backend usa isRead)
     if (!notification.isRead) {
       await markAsRead(notification._id);
     }
 
-    // Navegar según el tipo de notificación
     switch (notification.type) {
       case 'booking':
       case 'booking_update':
         if (notification.data?.tripId) {
           navigation.navigate('TripDetail', { tripId: notification.data.tripId });
-        } else if (notification.data?.bookingId) {
-          navigation.navigate('TripRequests', { tripId: notification.data.tripId });
         }
         break;
-
       case 'trip':
         if (notification.data?.tripId) {
           navigation.navigate('TripDetail', { tripId: notification.data.tripId });
         }
         break;
-
       case 'message':
       case 'new_message':
         if (notification.data?.conversationId) {
@@ -83,17 +56,14 @@ const NotificationsScreen = ({ navigation }) => {
           });
         }
         break;
-
       case 'review':
         navigation.navigate('Profile');
         break;
-
       case 'user':
         if (notification.data?.userId) {
           navigation.navigate('UserProfile', { userId: notification.data.userId });
         }
         break;
-
       default:
         break;
     }
@@ -101,89 +71,35 @@ const NotificationsScreen = ({ navigation }) => {
 
   const handleMarkAllAsRead = () => {
     Alert.alert(
-      'Marcar todas como leídas',
-      '¿Estás seguro de marcar todas las notificaciones como leídas?',
+      'Marcar todas como leidas',
+      'Marcar todas las notificaciones como leidas?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            await markAllAsRead();
-          },
-        },
+        { text: 'Confirmar', onPress: () => markAllAsRead() },
       ]
     );
-  };
-
-  const sendTestNotification = async () => {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '🧪 Notificación de Prueba',
-          body: 'Esta es una notificación de prueba para verificar que todo funciona correctamente.',
-          badge: 1,
-          sound: 'default',
-          data: {
-            type: 'test',
-            timestamp: new Date().toISOString(),
-          },
-        },
-        trigger: {
-          seconds: 1, // Dispara en 1 segundo
-        },
-      });
-      Alert.alert('✅ Notificación programada', 'Deberías recibirla en 1 segundo');
-    } catch (error) {
-      console.error('Error enviando notificación de prueba:', error);
-      Alert.alert('❌ Error', 'No se pudo enviar la notificación de prueba');
-    }
   };
 
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'booking':
       case 'booking_update':
-        return 'calendar';
+        return 'calendar-outline';
       case 'trip':
-        return 'car';
+        return 'car-outline';
       case 'payment':
-        return 'cash';
+        return 'card-outline';
       case 'review':
-        return 'star';
+        return 'star-outline';
       case 'message':
       case 'new_message':
-        return 'chatbubble';
+        return 'chatbubble-outline';
       case 'user':
-        return 'person';
+        return 'person-outline';
       case 'system':
-        return 'settings';
+        return 'settings-outline';
       default:
-        return 'notifications';
-    }
-  };
-
-  const getNotificationGradient = (type, isRead) => {
-    if (isRead) {
-      return ['#F8F9FA', '#E5E7EB'];
-    }
-
-    switch (type) {
-      case 'booking':
-        return ['#E0E7FF', '#C7D2FE'];
-      case 'trip':
-        return ['#D1FAE5', '#A7F3D0'];
-      case 'payment':
-        return ['#FEF3C7', '#FDE68A'];
-      case 'review':
-        return ['#E0E7FF', '#C7D2FE'];
-      case 'message':
-        return ['#DBEAFE', '#BFDBFE'];
-      case 'user':
-        return ['#E0E7FF', '#C7D2FE'];
-      case 'system':
-        return ['#F3F4F6', '#E5E7EB'];
-      default:
-        return ['#E0E7FF', '#C7D2FE'];
+        return 'notifications-outline';
     }
   };
 
@@ -200,337 +116,224 @@ const NotificationsScreen = ({ navigation }) => {
     if (diffHours < 24) return `Hace ${diffHours}h`;
     if (diffDays < 7) return `Hace ${diffDays}d`;
 
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-    });
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  // Componente separado para evitar problemas con hooks
-  const NotificationItem = React.memo(({ item, index, onPress, getNotificationIcon, getNotificationGradient, getRelativeTime, createColorArray, colors }) => {
-    const itemFadeAnim = useRef(new Animated.Value(0)).current;
+  const renderNotificationItem = ({ item }) => (
+    <TouchableOpacity
+      style={[styles.card, !item.isRead && styles.cardUnread]}
+      onPress={() => handleNotificationPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconContainer, !item.isRead && styles.iconContainerUnread]}>
+        <Ionicons
+          name={getNotificationIcon(item.type)}
+          size={22}
+          color={item.isRead ? '#6B7280' : '#000000'}
+        />
+      </View>
 
-    useEffect(() => {
-      Animated.timing(itemFadeAnim, {
-        toValue: 1,
-        duration: 600,
-        delay: index * 50,
-        useNativeDriver: true,
-      }).start();
-    }, [index]);
+      <View style={styles.content}>
+        <Text style={[styles.title, !item.isRead && styles.titleUnread]}>
+          {item.title}
+        </Text>
+        <Text style={styles.message} numberOfLines={2}>
+          {item.message}
+        </Text>
+        <Text style={styles.time}>{getRelativeTime(item.createdAt)}</Text>
+      </View>
 
-    return (
-      <Animated.View style={{ opacity: itemFadeAnim }}>
-        <TouchableOpacity
-          style={styles.notificationCard}
-          onPress={() => onPress(item)}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={getNotificationGradient(item.type, item.isRead)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.notificationGradient}
-          >
-            <View style={styles.notificationRow}>
-              <View style={[styles.iconContainer, item.isRead && styles.iconContainerRead]}>
-                <Ionicons
-                  name={getNotificationIcon(item.type)}
-                  size={24}
-                  color={item.isRead ? '#1F2937' : '#3B82F6'}
-                />
-              </View>
-
-              <View style={styles.notificationContent}>
-                <Text style={[styles.title, { color: item.isRead ? '#000000' : '#1F2937' }]}>{item.title}</Text>
-                <Text style={[styles.message, { color: item.isRead ? '#6B7280' : '#374151' }]}>{item.message}</Text>
-                <Text style={[styles.time, { color: item.isRead ? '#9CA3AF' : '#6B7280' }]}>{getRelativeTime(item.createdAt)}</Text>
-              </View>
-
-              {!item.isRead && (
-                <View style={styles.unreadBadge}>
-                  <View style={styles.unreadGlow} />
-                </View>
-              )}
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  });
-
-  const renderNotificationItem = ({ item, index }) => (
-    <NotificationItem
-      item={item}
-      index={index}
-      onPress={handleNotificationPress}
-      getNotificationIcon={getNotificationIcon}
-      getNotificationGradient={getNotificationGradient}
-      getRelativeTime={getRelativeTime}
-      createColorArray={createColorArray}
-      colors={colors}
-    />
+      {!item.isRead && <View style={styles.unreadDot} />}
+    </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </LinearGradient>
+      <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
+        <ActivityIndicator size="large" color="#000000" />
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
-      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.gradientContainer}>
-        <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
-          <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <View style={styles.headerButtons}>
-            {notifications.length > 0 && (
-              <TouchableOpacity
-                style={styles.markAllButton}
-                onPress={handleMarkAllAsRead}
-              >
-                <LinearGradient
-                  colors={createColorArray(colors.primary, colors.primaryDark || '#111827')}
-                  style={styles.markAllGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons name="checkmark-done" size={16} color="#FFF" />
-                  <Text style={styles.markAllText}>Marcar todas</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="close" size={24} color="#000000" />
+        </TouchableOpacity>
 
-        {notifications.length > 0 ? (
-          <FlatList
-            data={notifications}
-            renderItem={renderNotificationItem}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.primary}
-                colors={createColorArray(colors.primary)}
-              />
-            }
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.emptyIconContainer}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={48}
-                color="#FFFFFF"
-              />
-            </LinearGradient>
-            <Text style={styles.emptyText}>No tienes notificaciones</Text>
-            <Text style={styles.emptySubtext}>
-              Cuando recibas notificaciones, apareceran aqui
-            </Text>
-          </View>
+        {notifications.length > 0 && (
+          <TouchableOpacity
+            style={styles.markAllButton}
+            onPress={handleMarkAllAsRead}
+          >
+            <Text style={styles.markAllText}>Marcar todas</Text>
+          </TouchableOpacity>
         )}
-        </Animated.View>
-      </LinearGradient>
-    </View>
+      </View>
+
+      {/* List */}
+      {notifications.length > 0 ? (
+        <FlatList
+          data={notifications}
+          renderItem={renderNotificationItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#000000"
+            />
+          }
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="notifications-outline" size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>Sin notificaciones</Text>
+          <Text style={styles.emptySubtitle}>
+            Cuando recibas notificaciones apareceran aqui
+          </Text>
+        </View>
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  gradientContainer: {
-    flex: 1,
-  },
-  contentWrapper: {
-    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
+  // Header
   header: {
-    padding: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.lg,
+    padding: 16,
+    paddingTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-  },
-  headerTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: '#000000',
-    flex: 1,
-    textAlign: 'center',
-    marginLeft: -40, // Compensar el espacio del botón de cerrar para centrar el título
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
-  },
-  testButton: {
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  testButtonText: {
-    color: '#1F2937',
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
   },
   markAllButton: {
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  markAllGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#000000',
+    borderRadius: 8,
   },
   markAllText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFFFFF',
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
   },
+  // List
   listContent: {
-    padding: spacing.md,
+    padding: 16,
   },
-  notificationCard: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  notificationGradient: {
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-  },
-  notificationRow: {
+  // Card
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cardUnread: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
+    marginRight: 12,
   },
-  iconContainerRead: {
-    backgroundColor: 'rgba(31, 41, 55, 0.1)',
+  iconContainerUnread: {
+    backgroundColor: '#E0F2FE',
   },
-  notificationContent: {
+  content: {
     flex: 1,
   },
   title: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#1F2937',
-    marginBottom: spacing.xs,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 4,
   },
-  titleRead: {
+  titleUnread: {
+    fontWeight: '600',
     color: '#000000',
   },
   message: {
-    fontSize: fontSize.sm,
-    color: '#374151',
-    marginBottom: spacing.xs,
-  },
-  messageRead: {
+    fontSize: 14,
     color: '#6B7280',
+    marginBottom: 4,
+    lineHeight: 20,
   },
   time: {
-    fontSize: fontSize.xs,
-    color: '#6B7280',
-  },
-  timeRead: {
+    fontSize: 12,
     color: '#9CA3AF',
   },
-  unreadBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginLeft: spacing.sm,
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 3,
+    marginLeft: 8,
   },
-  unreadGlow: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-  },
+  // Empty
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 32,
   },
-  emptyIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: borderRadius.xl,
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: '#1F2937',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#000000',
-    marginTop: spacing.md,
+    marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: fontSize.sm,
+  emptySubtitle: {
+    fontSize: 14,
     color: '#6B7280',
-    marginTop: spacing.xs,
     textAlign: 'center',
   },
 });
