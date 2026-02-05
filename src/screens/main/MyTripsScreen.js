@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,55 +7,29 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Animated,
   RefreshControl,
   Modal,
   TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import { fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
 import socketService from '../../services/socketService';
 
-// Usar valores directos para evitar problemas de carga
-const SORA_FONTS = {
-  thin: 'Sora_100Thin',
-  extraLight: 'Sora_200ExtraLight',
-  light: 'Sora_300Light',
-  regular: 'Sora_400Regular',
-  medium: 'Sora_500Medium',
-  semiBold: 'Sora_600SemiBold',
-  bold: 'Sora_700Bold',
-  extraBold: 'Sora_800ExtraBold',
-};
-
 const MyTripsScreen = ({ navigation }) => {
-  const { colors, gradients, createColorArray } = useColors();
   const { refreshUser } = useAuth();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'past'
+  const [activeTab, setActiveTab] = useState('upcoming');
   const [startingTripId, setStartingTripId] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
   const [completingTripId, setCompletingTripId] = useState(null);
   const [actualCost, setActualCost] = useState('');
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadMyTrips();
-  }, []);
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
   }, []);
 
   const loadMyTrips = async () => {
@@ -80,52 +54,31 @@ const MyTripsScreen = ({ navigation }) => {
   const handleCancelTrip = (tripId) => {
     Alert.alert(
       'Cancelar Viaje',
-      '¿Estás seguro que deseas cancelar este viaje? Esto cancelará automáticamente todas las reservas asociadas.',
+      'Esto cancelara todas las reservas asociadas.',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí, cancelar',
+          text: 'Si, cancelar',
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('🚫 Cancelando viaje:', tripId);
               const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-
-              console.log('🚫 Respuesta de cancelación:', response);
-
               if (response.success) {
-                // Notificar via socket para sincronización en tiempo real
                 if (socketService.socket && socketService.isConnected) {
-                  console.log('📡 Emitiendo evento trip:cancelled para sincronización');
                   socketService.socket.emit('trip:cancelled', {
                     tripId: tripId,
                     cancelledBy: 'driver',
                     timestamp: new Date().toISOString()
                   });
                 }
-
-                Alert.alert(
-                  'Viaje Cancelado',
-                  'El viaje y todas las reservas asociadas han sido canceladas exitosamente.',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        // Actualizar la lista de viajes
-                        loadMyTrips();
-                        // Actualizar datos del usuario por si hay contadores
-                        refreshUser();
-                        console.log('✅ Cancelación completada y datos actualizados');
-                      }
-                    }
-                  ]
-                );
+                Alert.alert('Viaje Cancelado', 'El viaje ha sido cancelado.', [
+                  { text: 'OK', onPress: () => { loadMyTrips(); refreshUser(); } }
+                ]);
               } else {
                 Alert.alert('Error', response.message || 'No se pudo cancelar el viaje');
               }
             } catch (error) {
-              console.error('❌ Error cancelando viaje:', error);
-              Alert.alert('Error', error.message || 'Error de conexión al cancelar el viaje');
+              Alert.alert('Error', error.message || 'Error al cancelar el viaje');
             }
           },
         },
@@ -136,17 +89,17 @@ const MyTripsScreen = ({ navigation }) => {
   const handleStartTrip = (tripId) => {
     Alert.alert(
       'Iniciar Viaje',
-      '¿Confirmas que deseas iniciar este viaje? Los pasajeros serán notificados.',
+      'Los pasajeros seran notificados.',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí, iniciar',
+          text: 'Si, iniciar',
           onPress: async () => {
             setStartingTripId(tripId);
             try {
               const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
               if (response.success) {
-                Alert.alert('Viaje Iniciado', 'El viaje ha comenzado. Los pasajeros han sido notificados.');
+                Alert.alert('Viaje Iniciado', 'El viaje ha comenzado.');
                 loadMyTrips();
               } else {
                 Alert.alert('Error', response.message || 'No se pudo iniciar el viaje');
@@ -171,7 +124,7 @@ const MyTripsScreen = ({ navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      Alert.alert('Error', 'Ingresa un costo válido mayor a 0');
+      Alert.alert('Error', 'Ingresa un costo valido mayor a 0');
       return;
     }
 
@@ -179,7 +132,7 @@ const MyTripsScreen = ({ navigation }) => {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost });
       if (response.success) {
         setShowCostModal(false);
-        Alert.alert('Viaje Completado', `Viaje completado. Costo final: $${cost.toFixed(2)}. Los pasajeros han sido notificados para realizar el pago.`);
+        Alert.alert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
         loadMyTrips();
         await refreshUser();
       } else {
@@ -190,330 +143,231 @@ const MyTripsScreen = ({ navigation }) => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusConfig = (status) => {
     switch (status) {
       case 'active':
-        return '#10b981';
+        return { color: '#10B981', bg: '#D1FAE5', text: 'Activo' };
       case 'started':
-        return '#f59e0b';
+        return { color: '#F59E0B', bg: '#FEF3C7', text: 'En progreso' };
       case 'completed':
-        return '#2563eb';
+        return { color: '#3B82F6', bg: '#DBEAFE', text: 'Completado' };
       case 'cancelled':
-        return '#ef4444';
+        return { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado' };
       default:
-        return '#94a3b8';
+        return { color: '#6B7280', bg: '#F3F4F6', text: status };
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'active':
-        return 'Activo';
-      case 'started':
-        return 'En Progreso';
-      case 'completed':
-        return 'Completado';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+    return date.toLocaleDateString('es-ES', options);
   };
 
   const getFilteredTrips = () => {
+    const tripsArray = Array.isArray(trips) ? trips : [];
     if (activeTab === 'upcoming') {
-      const filtered = (Array.isArray(trips) ? trips : []).filter(trip => {
-        // Viajes activos y en progreso siempre van en próximos
-        if (trip.status === 'active' || trip.status === 'started') return true;
-        return false;
-      });
-      
-      // Ordenar: primero los viajes "started" (en progreso), luego los "active" (pendientes)
+      const filtered = tripsArray.filter(trip =>
+        trip.status === 'active' || trip.status === 'started'
+      );
       return filtered.sort((a, b) => {
-        // Prioridad: started > active
         if (a.status === 'started' && b.status === 'active') return -1;
         if (a.status === 'active' && b.status === 'started') return 1;
-        // Si tienen el mismo estado, mantener el orden original (por fecha de salida)
         return new Date(a.departureDate) - new Date(b.departureDate);
       });
     } else {
-      return (Array.isArray(trips) ? trips : []).filter(trip => {
-        // Solo completados y cancelados van en pasados
-        return trip.status === 'completed' || trip.status === 'cancelled';
-      });
+      return tripsArray.filter(trip =>
+        trip.status === 'completed' || trip.status === 'cancelled'
+      );
     }
   };
 
-  const renderTripItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.tripCardWrapper}
-      onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
-      activeOpacity={0.8}
-    >
-      <LinearGradient
-        colors={gradients.card || ['#FFFFFF', '#F8F9FA']}
-        style={styles.tripCard}
+  const renderTripItem = ({ item }) => {
+    const statusConfig = getStatusConfig(item.status);
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
+        activeOpacity={0.7}
       >
-        <View style={styles.cardBorder} />
-
-        <View style={styles.tripHeader}>
-          <LinearGradient
-            colors={createColorArray(getStatusColor(item.status) + '20', getStatusColor(item.status) + '10')}
-            style={styles.statusBadge}
-          >
-            <View
-              style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]}
-            />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {getStatusText(item.status)}
-            </Text>
-          </LinearGradient>
-
-         
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+          <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
+          <Text style={[styles.statusText, { color: statusConfig.color }]}>
+            {statusConfig.text}
+          </Text>
         </View>
 
-        <View style={styles.routeContainer}>
-          <View style={styles.routePoint}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.iconCircle}
-            >
-              <Ionicons name="location" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={styles.routeText} numberOfLines={1}>
-              {item.origin.city}
+        {/* Route */}
+        <View style={styles.routeSection}>
+          <View style={styles.routeRow}>
+            <View style={styles.routeDot} />
+            <Text style={styles.cityText} numberOfLines={1}>
+              {item.origin?.city}
             </Text>
           </View>
-
-          <Ionicons name="arrow-forward" size={16} color="#D1D5DB" />
-
-          <View style={styles.routePoint}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.iconCircle}
-            >
-              <Ionicons name="location" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={styles.routeText} numberOfLines={1}>
-              {item.destination.city}
+          <View style={styles.routeLine} />
+          <View style={styles.routeRow}>
+            <View style={[styles.routeDot, styles.routeDotDestination]} />
+            <Text style={styles.cityText} numberOfLines={1}>
+              {item.destination?.city}
             </Text>
           </View>
         </View>
 
-        <View style={styles.tripFooter}>
-          <View style={styles.footerItem}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.tripDate}>
-              {new Date(item.departureDate).toLocaleDateString('es-ES')} • {item.departureTime}
-            </Text>
+        {/* Trip Info */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoItem}>
+            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{formatDate(item.departureDate)}</Text>
           </View>
-          <View style={styles.footerItem}>
-            <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.seats}>
-              {item.availableSeats} asientos disponibles
-            </Text>
+          <View style={styles.infoItem}>
+            <Ionicons name="time-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{item.departureTime}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="people-outline" size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{item.availableSeats} disponibles</Text>
           </View>
         </View>
 
-        {/* Mostrar costo real cuando el viaje está en progreso */}
-        {item.status === 'started' && item.actualCost && item.actualCost > 0 && (
-          <View style={styles.actualCostContainer}>
-            <View style={styles.actualCostItem}>
-              <Ionicons name="cash-outline" size={16} color="#10b981" />
-              <Text style={styles.actualCostLabel}>Costo real del viaje:</Text>
-              <Text style={styles.actualCostValue}>
-                ${typeof item.actualCost === 'number' ? item.actualCost.toFixed(2) : item.actualCost} {item.currency || 'ARS'}
-              </Text>
-            </View>
-          </View>
-        )}
-
+        {/* Actions for Active Trips */}
         {item.status === 'active' && (
-          <View style={styles.actionsContainer}>
+          <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={styles.primaryActionButton}
+              style={styles.primaryButton}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
-              activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['#1F2937', '#111827']}
-                style={styles.primaryActionGradient}
-              >
-                <Ionicons name="people" size={18} color="#FFFFFF" />
-                <Text style={styles.primaryActionText}>
-                  Ver Reservas
-                </Text>
-                {item.bookingsCount > 0 && (
-                  <View style={styles.primaryBadge}>
-                    <Text style={styles.primaryBadgeText}>
-                      {item.bookingsCount > 99 ? '99+' : item.bookingsCount}
-                    </Text>
-                  </View>
-                )}
-              </LinearGradient>
+              <Ionicons name="people" size={18} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>Ver Reservas</Text>
+              {item.bookingsCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{item.bookingsCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
 
-            <View style={styles.secondaryActionsRow}>
+            <View style={styles.secondaryActions}>
               <TouchableOpacity
-                style={styles.iconActionButton}
+                style={styles.actionButton}
                 onPress={() => navigation.navigate('EditTrip', { tripId: item._id })}
-                activeOpacity={0.7}
               >
-                <View style={[styles.iconActionCircle, { backgroundColor: '#1F2937' + '20' }]}>
-                  <Ionicons name="create-outline" size={18} color="#1F2937" />
-                </View>
-                <Text style={[styles.iconActionText, { color: '#1F2937' }]}>Editar</Text>
+                <Ionicons name="create-outline" size={20} color="#374151" />
+                <Text style={styles.actionButtonText}>Editar</Text>
               </TouchableOpacity>
 
               {item.occupiedSeats > 0 && (
                 <TouchableOpacity
-                  style={styles.iconActionButton}
+                  style={styles.actionButton}
                   onPress={() => handleStartTrip(item._id)}
                   disabled={startingTripId === item._id}
-                  activeOpacity={0.7}
                 >
-                  <View style={[styles.iconActionCircle, { backgroundColor: '#f59e0b' + '20' }]}>
-                    <Ionicons name="play-circle-outline" size={18} color="#f59e0b" />
-                  </View>
-                  <Text style={[styles.iconActionText, { color: '#f59e0b' }]}>
+                  <Ionicons name="play" size={20} color="#F59E0B" />
+                  <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>
                     {startingTripId === item._id ? 'Iniciando...' : 'Iniciar'}
                   </Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.iconActionButton}
+                style={styles.actionButton}
                 onPress={() => handleCancelTrip(item._id)}
-                activeOpacity={0.7}
               >
-                <View style={[styles.iconActionCircle, { backgroundColor: '#EF4444' + '20' }]}>
-                  <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-                </View>
-                <Text style={[styles.iconActionText, { color: '#EF4444' }]}>Cancelar</Text>
+                <Ionicons name="close" size={20} color="#EF4444" />
+                <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
+        {/* Actions for Started Trips */}
         {item.status === 'started' && (
-          <View style={styles.actionsContainer}>
+          <View style={styles.actionsSection}>
             <View style={styles.inProgressBanner}>
-              <Ionicons name="play-circle" size={18} color="#f59e0b" />
+              <Ionicons name="car" size={18} color="#F59E0B" />
               <Text style={styles.inProgressText}>Viaje en progreso</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.primaryActionButton}
+              style={styles.primaryButton}
               onPress={() => handleCompleteTrip(item._id)}
-              activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['#1F2937', '#111827']}
-                style={styles.primaryActionGradient}
-              >
-                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                <Text style={styles.primaryActionText}>
-                  Completar Viaje
-                </Text>
-              </LinearGradient>
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>Completar Viaje</Text>
             </TouchableOpacity>
           </View>
         )}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
-      <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1F2937" />
-      </LinearGradient>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
     );
   }
 
   const filteredTrips = getFilteredTrips();
 
   return (
-    <LinearGradient colors={['#FFFFFF', '#F8F9FA']} style={styles.container}>
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {/* Tab Navigation */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
-            onPress={() => setActiveTab('upcoming')}
-            activeOpacity={0.8}
-          >
-            {activeTab === 'upcoming' ? (
-              <LinearGradient colors={['#1F2937', '#111827']} style={styles.tabGradient}>
-                <Ionicons name="time-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.tabTextActive}>Próximos</Text>
-              </LinearGradient>
-            ) : (
-              <View style={styles.tabInactive}>
-                <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
-                <Text style={styles.tabText}>Próximos</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
+          onPress={() => setActiveTab('upcoming')}
+        >
+          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
+            Proximos
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'past' && styles.tabActive]}
+          onPress={() => setActiveTab('past')}
+        >
+          <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
+            Pasados
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'past' && styles.tabActive]}
-            onPress={() => setActiveTab('past')}
-            activeOpacity={0.8}
-          >
-            {activeTab === 'past' ? (
-              <LinearGradient colors={['#1F2937', '#111827']} style={styles.tabGradient}>
-                <Ionicons name="checkmark-done-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.tabTextActive}>Pasados</Text>
-              </LinearGradient>
-            ) : (
-              <View style={styles.tabInactive}>
-                <Ionicons name="checkmark-done-outline" size={18} color={colors.textSecondary} />
-                <Text style={styles.tabText}>Pasados</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Trips List */}
-        {filteredTrips.length > 0 ? (
-          <FlatList
-            data={filteredTrips}
-            renderItem={renderTripItem}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#1F2937"
-                colors={['#1F2937', '#111827']}
-              />
-            }
-            showsVerticalScrollIndicator={false}
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.emptyIconContainer}
-            >
-              <Ionicons name="car-outline" size={48} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={styles.emptyText}>
-              {activeTab === 'upcoming' ? 'No tienes viajes próximos' : 'No tienes viajes pasados'}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {activeTab === 'upcoming'
-                ? 'Crea tu primer viaje y comparte tus gastos'
-                : 'Tus viajes completados aparecerán aquí'
-              }
-            </Text>
+      {/* Trips List */}
+      {filteredTrips.length > 0 ? (
+        <FlatList
+          data={filteredTrips}
+          renderItem={renderTripItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#000000"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="car-outline" size={48} color="#9CA3AF" />
           </View>
-        )}
-      </Animated.View>
+          <Text style={styles.emptyTitle}>
+            {activeTab === 'upcoming' ? 'Sin viajes proximos' : 'Sin viajes pasados'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {activeTab === 'upcoming'
+              ? 'Crea tu primer viaje y comparte gastos'
+              : 'Tus viajes completados apareceran aqui'
+            }
+          </Text>
+        </View>
+      )}
 
-      {/* Modal para ingresar costo real al completar viaje */}
+      {/* Cost Modal */}
       <Modal
         visible={showCostModal}
         transparent
@@ -524,12 +378,12 @@ const MyTripsScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Completar Viaje</Text>
             <Text style={styles.modalSubtitle}>
-              Ingresa el costo real del viaje para que los pasajeros realicen el pago
+              Ingresa el costo real del viaje
             </Text>
 
             <TextInput
               style={styles.costInput}
-              placeholder="Ej: 1500.00"
+              placeholder="Ej: 1500"
               placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
               value={actualCost}
@@ -548,122 +402,77 @@ const MyTripsScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.modalConfirmButton}
                 onPress={submitCompleteTrip}
-                activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={['#10b981', '#059669']}
-                  style={styles.modalConfirmGradient}
-                >
-                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                  <Text style={styles.modalConfirmText}>Completar</Text>
-                </LinearGradient>
+                <Text style={styles.modalConfirmText}>Completar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
-
   // Tabs
   tabsContainer: {
     flexDirection: 'row',
     padding: 16,
-    paddingBottom: 12,
     gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   tab: {
     flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F8F9FA',
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: 'transparent',
-  },
-  tabGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  tabInactive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
+    backgroundColor: '#000000',
   },
   tabText: {
     fontSize: 15,
-    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#6B7280',
   },
   tabTextActive: {
-    fontSize: 15,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
-    color: '#F3F4F6',
+    color: '#FFFFFF',
   },
-
   // List
   listContent: {
     padding: 16,
-    paddingTop: 4,
   },
-
-  // Trip Card
-  tripCardWrapper: {
-    marginBottom: 16,
-  },
-  tripCard: {
-    borderRadius: 16,
+  // Card
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 16,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  cardBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
   },
-
-  // Trip Header
-  tripHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
+  // Status
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 16,
     gap: 6,
   },
   statusDot: {
@@ -672,177 +481,81 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusText: {
-    fontSize: 13,
-    fontFamily: SORA_FONTS.semiBold,
+    fontSize: 12,
     fontWeight: '600',
   },
-  priceContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  price: {
-    fontSize: 18,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
-    color: '#F3F4F6',
-  },
-
   // Route
-  routeContainer: {
+  routeSection: {
+    marginBottom: 16,
+  },
+  routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
     gap: 12,
   },
-  routePoint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 8,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  routeText: {
-    fontSize: 14,
-    fontFamily: SORA_FONTS.medium,
-    color: '#000000',
-    fontWeight: '500',
-    flex: 1,
-  },
-
-  // Trip Footer
-  tripFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  tripDate: {
-    fontSize: 13,
-    fontFamily: SORA_FONTS.regular,
-    color: '#6B7280',
-  },
-  seats: {
-    fontSize: 13,
-    fontFamily: SORA_FONTS.regular,
-    color: '#6B7280',
-  },
-
-  // Actual Cost Container
-  actualCostContainer: {
-    marginTop: 8,
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  actualCostItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#ECFDF5',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#10b981' + '30',
-  },
-  actualCostLabel: {
-    fontSize: 13,
-    fontFamily: SORA_FONTS.semiBold,
-    color: '#065F46',
-    fontWeight: '600',
-    flex: 1,
-  },
-  actualCostValue: {
-    fontSize: 15,
-    fontFamily: SORA_FONTS.bold,
-    color: '#10b981',
-    fontWeight: '700',
-  },
-
-  // Actions Container
-  actionsContainer: {
-    gap: 10,
-    marginTop: 12,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  actionButtonLarge: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  actionButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    gap: 6,
-  },
-  actionButtonGradientLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  actionButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-    gap: 8,
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
-  },
-  actionButtonTextLarge: {
-    fontSize: 14,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
-  },
-  primaryActionButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  primaryActionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 10,
-  },
-  primaryActionText: {
-    fontSize: 15,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
-    color: '#F3F4F6',
-  },
-  primaryBadge: {
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#000000',
+  },
+  routeDotDestination: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  routeLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#E5E7EB',
+    marginLeft: 4,
+    marginVertical: 4,
+  },
+  cityText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  // Info
+  infoSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Actions
+  actionsSection: {
+    paddingTop: 16,
+    gap: 12,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 14,
+    borderRadius: 8,
+    gap: 8,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  badge: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -850,104 +563,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
   },
-  primaryBadgeText: {
-    color: '#6366F1',
+  badgeText: {
     fontSize: 11,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#000000',
   },
-  secondaryActionsRow: {
+  secondaryActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
   },
-  iconActionButton: {
+  actionButton: {
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
-  iconActionCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconActionText: {
+  actionButtonText: {
     fontSize: 12,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: '#374151',
   },
-  requestsBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#EF4444',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
+  // In Progress
+  inProgressBanner: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#F8F9FA',
+    justifyContent: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
   },
-  requestsBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
+  inProgressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
   },
-
   // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 32,
   },
-  emptyIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 18,
-    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 8,
   },
-  emptySubtext: {
+  emptySubtitle: {
     fontSize: 14,
-    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 20,
   },
-
-  // In Progress Banner
-  inProgressBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f59e0b' + '15',
-    borderWidth: 1,
-    borderColor: '#f59e0b' + '30',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    gap: 8,
-    marginBottom: 8,
-  },
-  inProgressText: {
-    fontSize: 14,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
-    color: '#b45309',
-  },
-
   // Modal
   modalOverlay: {
     flex: 1,
@@ -965,28 +642,23 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontFamily: SORA_FONTS.bold,
     fontWeight: '700',
-    color: '#111827',
+    color: '#000000',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
-    fontFamily: SORA_FONTS.regular,
     color: '#6B7280',
     marginBottom: 20,
-    lineHeight: 20,
   },
   costInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 18,
-    fontFamily: SORA_FONTS.regular,
-    color: '#111827',
-    backgroundColor: '#F9FAFB',
+    color: '#000000',
     marginBottom: 20,
   },
   modalActions: {
@@ -996,33 +668,25 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#E5E7EB',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   modalCancelText: {
     fontSize: 15,
-    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#6B7280',
   },
   modalConfirmButton: {
     flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalConfirmGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 14,
-    gap: 8,
+    borderRadius: 8,
+    backgroundColor: '#000000',
+    alignItems: 'center',
   },
   modalConfirmText: {
     fontSize: 15,
-    fontFamily: SORA_FONTS.semiBold,
     fontWeight: '600',
     color: '#FFFFFF',
   },
