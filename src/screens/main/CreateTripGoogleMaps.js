@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -38,9 +39,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const mapRef = useRef(null);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
+  const waypointInputRefs = useRef([]);
   const isMounted = useRef(true);
   const originDebounceTimer = useRef(null);
   const destinationDebounceTimer = useRef(null);
+  const waypointDebounceTimers = useRef([]);
 
   // Animated values
   const sheetTranslateY = useRef(new Animated.Value(300)).current;
@@ -53,11 +56,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [activeAutocomplete, setActiveAutocomplete] = useState(null); // 'origin' | 'destination' | null
+  const [activeAutocomplete, setActiveAutocomplete] = useState(null); // 'origin' | 'destination' | 'waypoint-0' | 'waypoint-1' | null
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const originResultsRef = useRef([]);
   const destinationResultsRef = useRef([]);
+  const waypointResultsRef = useRef([]);
 
   const [region, setRegion] = useState({
     latitude: -34.6037,
@@ -67,9 +71,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   });
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
+  const [waypointMarkers, setWaypointMarkers] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [distance, setDistance] = useState(null);
   const [duration, setDuration] = useState(null);
+  const [mapSelectionMode, setMapSelectionMode] = useState(null); // 'origin' | 'destination' | 'waypoint-N' | null
 
   const [formData, setFormData] = useState({
     origin: {
@@ -84,6 +91,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       province: '',
       coordinates: null,
     },
+    waypoints: [],
   });
 
   useEffect(() => {
@@ -180,7 +188,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     if (originMarker && destinationMarker && isMounted.current) {
       getDirections();
     }
-  }, [originMarker, destinationMarker]);
+  }, [originMarker, destinationMarker, waypointMarkers]);
 
   // Restaurar estado inicial cuando la pantalla se enfoca (solo al volver de otra pantalla)
   const screenWasBlurred = useRef(false);
@@ -223,17 +231,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   // Constantes para minHeight y maxHeight del contenedor
   const MIN_SHEET_HEIGHT = 200; // Altura mínima (posición inicial)
-  const MAX_SHEET_HEIGHT = 400; // Altura máxima cuando hay predicciones sin teclado
+  const MAX_SHEET_HEIGHT = height * 0.75; // 75% de la pantalla cuando hay predicciones sin teclado
+  const KEYBOARD_SHEET_HEIGHT = height * 0.85; // 85% de la pantalla cuando aparece el teclado
   
   // Función para subir el contenedor y prepararlo cuando se activa un input
   const moveSheetUpOnInputFocus = () => {
-    const estimatedKbHeight = keyboardHeight > 0 
-      ? keyboardHeight 
-      : Math.min(height * 0.35, 350); // 35% de altura o máximo 350px
+    // Cuando se activa un input, expandir el sheet más agresivamente como Uber
+    const targetHeight = keyboardVisible && keyboardHeight > 0 
+      ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT) // Usar altura del teclado o máximo 85% de pantalla
+      : KEYBOARD_SHEET_HEIGHT; // Si no hay teclado aún, usar 85% de pantalla
     
     // Subir el contenedor más para que los inputs queden más arriba
-    // Mover hacia arriba aproximadamente 170px (un poco más para iOS)
-    const offset = -170;
+    // Mover hacia arriba aproximadamente 200px para dar más espacio
+    const offset = -200;
     
     Animated.timing(keyboardOffset, {
       toValue: offset,
@@ -241,56 +251,36 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       useNativeDriver: true,
     }).start();
     
-    // Si hay predicciones y el teclado está visible, expandir hasta el teclado
-    // Si no hay teclado aún, usar MAX_SHEET_HEIGHT
-    if (activeAutocomplete && autocompleteResults.length > 0) {
-      const targetHeight = keyboardVisible && keyboardHeight > 0 
-        ? keyboardHeight 
-        : MAX_SHEET_HEIGHT;
-      Animated.timing(bottomSheetHeight, {
-        toValue: targetHeight,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      // Si no hay predicciones, mantener minHeight
-      Animated.timing(bottomSheetHeight, {
-        toValue: MIN_SHEET_HEIGHT,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
+    // Expandir el contenedor inmediatamente cuando se activa un input
+    Animated.timing(bottomSheetHeight, {
+      toValue: targetHeight,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
   };
 
   // Efecto para manejar la expansión del bottom sheet cuando hay predicciones
-  // Ambos inputs crecen de la misma manera, sin importar la cantidad de predicciones
-  // Cuando el teclado está visible, el contenedor debe crecer hasta el teclado para eliminar espacios
+  // Cuando el usuario activa un input, expandir más agresivamente como Uber
   useEffect(() => {
     if (keyboardVisible && keyboardHeight > 0) {
-      if (activeAutocomplete && autocompleteResults.length > 0) {
-        // Hay predicciones: expandir hasta el teclado (sin espacios vacíos)
+      if (activeAutocomplete) {
+        // Input activo con teclado: usar la altura máxima del teclado o KEYBOARD_SHEET_HEIGHT
+        const targetHeight = Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT);
         Animated.timing(bottomSheetHeight, {
-          toValue: keyboardHeight, // Crecer hasta el teclado
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      } else {
-        // No hay predicciones: mantener minHeight
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
+          toValue: targetHeight,
           duration: 250,
           useNativeDriver: false,
         }).start();
       }
-    } else if (!keyboardVisible && activeAutocomplete && autocompleteResults.length > 0) {
-      // Si hay predicciones pero no hay teclado, usar MAX_SHEET_HEIGHT
+    } else if (!keyboardVisible && activeAutocomplete) {
+      // Input activo sin teclado: usar MAX_SHEET_HEIGHT (75% de pantalla)
       Animated.timing(bottomSheetHeight, {
         toValue: MAX_SHEET_HEIGHT,
         duration: 250,
         useNativeDriver: false,
       }).start();
     }
-  }, [activeAutocomplete, autocompleteResults.length, keyboardVisible, keyboardHeight]);
+  }, [activeAutocomplete, keyboardVisible, keyboardHeight]);
 
   // Efecto para subir el contenedor cuando hay una ruta completa (sin teclado)
   useEffect(() => {
@@ -346,6 +336,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       };
 
       setRegion(newRegion);
+      setUserLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
 
       if (mapRef.current && isMounted.current) {
         setTimeout(() => {
@@ -393,8 +384,20 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     try {
       const origin = `${originMarker.latitude},${originMarker.longitude}`;
       const destination = `${destinationMarker.latitude},${destinationMarker.longitude}`;
+      
+      // Construir waypoints si existen
+      let waypointsParam = '';
+      if (waypointMarkers.length > 0) {
+        const waypointCoords = waypointMarkers
+          .filter(waypoint => waypoint && waypoint.latitude && waypoint.longitude)
+          .map(waypoint => `${waypoint.latitude},${waypoint.longitude}`);
+        
+        if (waypointCoords.length > 0) {
+          waypointsParam = `&waypoints=${waypointCoords.join('|')}`;
+        }
+      }
 
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}${waypointsParam}&key=${GOOGLE_MAPS_API_KEY}`;
 
       const response = await fetch(url);
 
@@ -410,10 +413,41 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           const points = decodePolyline(route.overview_polyline.points);
           setRouteCoordinates(points);
 
-          if (route.legs && route.legs[0]) {
-            const leg = route.legs[0];
-            if (leg.distance) setDistance(leg.distance.text);
-            if (leg.duration) setDuration(leg.duration.text);
+          if (route.legs && route.legs.length > 0) {
+            // Sumar todos los legs (tramos) para obtener distancia y duración total
+            let totalDistanceValue = 0;
+            let totalDurationValue = 0;
+            let distanceText = '';
+            let durationText = '';
+            
+            route.legs.forEach(leg => {
+              if (leg.distance && leg.distance.value) {
+                totalDistanceValue += leg.distance.value;
+              }
+              if (leg.duration && leg.duration.value) {
+                totalDurationValue += leg.duration.value;
+              }
+            });
+            
+            // Convertir metros a km
+            if (totalDistanceValue >= 1000) {
+              distanceText = `${(totalDistanceValue / 1000).toFixed(1)} km`;
+            } else {
+              distanceText = `${totalDistanceValue} m`;
+            }
+            
+            // Convertir segundos a minutos/horas
+            if (totalDurationValue >= 3600) {
+              const hours = Math.floor(totalDurationValue / 3600);
+              const minutes = Math.floor((totalDurationValue % 3600) / 60);
+              durationText = `${hours}h ${minutes}min`;
+            } else {
+              const minutes = Math.floor(totalDurationValue / 60);
+              durationText = `${minutes} min`;
+            }
+            
+            setDistance(distanceText);
+            setDuration(durationText);
           }
 
           if (mapRef.current && isMounted.current && points.length > 0) {
@@ -477,6 +511,285 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     return points;
   };
 
+  const reverseGeocode = async (latitude, longitude) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        
+        let city = '';
+        let province = '';
+        let street = '';
+        let streetNumber = '';
+        
+        if (Array.isArray(result.address_components)) {
+          result.address_components.forEach(component => {
+            if (Array.isArray(component?.types)) {
+              if (component.types.includes('street_number')) {
+                streetNumber = component.long_name || '';
+              }
+              if (component.types.includes('route')) {
+                street = component.long_name || '';
+              }
+              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+                city = component.long_name || '';
+              }
+              if (component.types.includes('administrative_area_level_1')) {
+                province = component.long_name || '';
+              }
+            }
+          });
+        }
+        
+        // Construir la dirección completa con número para usar en formatted_address
+        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
+        // Si no hay componentes específicos de calle, usar la dirección completa formateada
+        const addressToShow = fullStreetAddress || result.formatted_address?.split(',')[0]?.trim() || '';
+        
+        return {
+          address: addressToShow,
+          city: city,
+          province: province,
+          coordinates: { latitude, longitude },
+        };
+      }
+    } catch (error) {
+      console.error('Error in reverse geocoding:', error);
+    }
+    return null;
+  };
+
+  const handleMapPress = async (event) => {
+    // Si no está en modo de selección, solo cerrar el teclado y limpiar el autocompletado
+    if (!mapSelectionMode) {
+      Keyboard.dismiss();
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+      
+      // Restaurar la altura del contenedor a la mínima
+      setTimeout(() => {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+        
+        Animated.timing(bottomSheetHeight, {
+          toValue: MIN_SHEET_HEIGHT,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      }, 100);
+      
+      return;
+    }
+    
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const locationData = await reverseGeocode(latitude, longitude);
+    
+    if (!locationData) {
+      Alert.alert('Error', 'No se pudo obtener la dirección de esta ubicación');
+      return;
+    }
+    
+    if (mapSelectionMode === 'origin') {
+      setOriginMarker({ latitude, longitude });
+      setFormData(prev => ({ ...prev, origin: locationData }));
+      
+      if (originInputRef.current?.setAddressText) {
+        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
+        originInputRef.current.setAddressText(fullAddressText);
+      }
+    } else if (mapSelectionMode === 'destination') {
+      setDestinationMarker({ latitude, longitude });
+      setFormData(prev => ({ ...prev, destination: locationData }));
+      
+      if (destinationInputRef.current?.setAddressText) {
+        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
+        destinationInputRef.current.setAddressText(fullAddressText);
+      }
+    } else if (mapSelectionMode.startsWith('waypoint-')) {
+      const waypointIndex = parseInt(mapSelectionMode.split('-')[1]);
+      
+      setWaypointMarkers(prev => {
+        const newMarkers = [...prev];
+        newMarkers[waypointIndex] = { latitude, longitude };
+        return newMarkers;
+      });
+      
+      setFormData(prev => {
+        const newWaypoints = [...prev.waypoints];
+        newWaypoints[waypointIndex] = locationData;
+        return { ...prev, waypoints: newWaypoints };
+      });
+      
+      if (waypointInputRefs.current[waypointIndex]?.current?.setAddressText) {
+        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
+        waypointInputRefs.current[waypointIndex].current.setAddressText(fullAddressText);
+      }
+    }
+    
+    setMapSelectionMode(null);
+    
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude,
+        longitude,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA,
+      }, 1000);
+    }
+  };
+
+  const addWaypoint = () => {
+    if (formData.waypoints.length >= 3) {
+      Alert.alert('Límite alcanzado', 'Máximo 3 paradas intermedias permitidas');
+      return;
+    }
+    
+    const newWaypoint = {
+      address: '',
+      city: '',
+      province: '',
+      coordinates: null,
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      waypoints: [...prev.waypoints, newWaypoint]
+    }));
+    
+    // Agregar refs para el nuevo waypoint
+    const newRef = React.createRef();
+    waypointInputRefs.current.push(newRef);
+    waypointResultsRef.current.push([]);
+    waypointDebounceTimers.current.push(null);
+  };
+
+  const removeWaypoint = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      waypoints: prev.waypoints.filter((_, i) => i !== index)
+    }));
+    
+    setWaypointMarkers(prev => prev.filter((_, i) => i !== index));
+    
+    // Limpiar refs
+    waypointInputRefs.current.splice(index, 1);
+    waypointResultsRef.current.splice(index, 1);
+    waypointDebounceTimers.current.splice(index, 1);
+    
+    // Si estaba activo este waypoint, limpiar autocomplete
+    if (activeAutocomplete === `waypoint-${index}`) {
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+    }
+    
+    // Si estaba en modo de selección para este waypoint, cancelar
+    if (mapSelectionMode === `waypoint-${index}`) {
+      setMapSelectionMode(null);
+    }
+  };
+
+  const handleWaypointSelect = (data, details, waypointIndex) => {
+    try {
+      if (!isMounted.current) return;
+      
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+      Keyboard.dismiss();
+      
+      setTimeout(() => {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+        
+        Animated.timing(bottomSheetHeight, {
+          toValue: MIN_SHEET_HEIGHT,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      }, 100);
+
+      if (details?.geometry?.location) {
+        const coords = {
+          latitude: details.geometry.location.lat,
+          longitude: details.geometry.location.lng,
+        };
+
+        // Actualizar marker de waypoint
+        setWaypointMarkers(prev => {
+          const newMarkers = [...prev];
+          newMarkers[waypointIndex] = coords;
+          return newMarkers;
+        });
+
+        let city = '';
+        let province = '';
+        let street = '';
+        let streetNumber = '';
+
+        if (Array.isArray(details.address_components)) {
+          details.address_components.forEach(component => {
+            if (Array.isArray(component?.types)) {
+              if (component.types.includes('street_number')) {
+                streetNumber = component.long_name || '';
+              }
+              if (component.types.includes('route')) {
+                street = component.long_name || '';
+              }
+              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+                city = component.long_name || '';
+              }
+              if (component.types.includes('administrative_area_level_1')) {
+                province = component.long_name || '';
+              }
+            }
+          });
+        }
+
+        // Construir la dirección completa con número
+        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
+        
+        const fullAddressText = [
+          fullStreetAddress || data?.description?.split(',')[0] || '',
+          city,
+          province
+        ].filter(Boolean).join(', ');
+
+        setFormData(prev => {
+          const newWaypoints = [...prev.waypoints];
+          newWaypoints[waypointIndex] = {
+            address: data?.description || '',
+            city: city,
+            province: province,
+            coordinates: coords,
+          };
+          return {
+            ...prev,
+            waypoints: newWaypoints
+          };
+        });
+
+        // Actualizar texto del input
+        if (waypointInputRefs.current[waypointIndex]?.current?.setAddressText) {
+          try {
+            waypointInputRefs.current[waypointIndex].current.setAddressText(fullAddressText);
+          } catch (e) {
+            console.log(`Error setting waypoint ${waypointIndex} address text:`, e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error en handleWaypointSelect:', error);
+    }
+  };
+
   const handleOriginSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
@@ -515,10 +828,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         let city = '';
         let province = '';
         let street = '';
+        let streetNumber = '';
 
         if (Array.isArray(details.address_components)) {
           details.address_components.forEach(component => {
             if (Array.isArray(component?.types)) {
+              if (component.types.includes('street_number')) {
+                streetNumber = component.long_name || '';
+              }
               if (component.types.includes('route')) {
                 street = component.long_name || '';
               }
@@ -532,9 +849,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           });
         }
 
+        // Construir la dirección completa con número
+        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
+        
         // Construir el texto completo para el input: dirección, ciudad, provincia
         const fullAddressText = [
-          street || data?.description?.split(',')[0] || '',
+          fullStreetAddress || data?.description?.split(',')[0] || '',
           city,
           province
         ].filter(Boolean).join(', ');
@@ -613,10 +933,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         let city = '';
         let province = '';
         let street = '';
+        let streetNumber = '';
 
         if (Array.isArray(details.address_components)) {
           details.address_components.forEach(component => {
             if (Array.isArray(component?.types)) {
+              if (component.types.includes('street_number')) {
+                streetNumber = component.long_name || '';
+              }
               if (component.types.includes('route')) {
                 street = component.long_name || '';
               }
@@ -630,9 +954,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           });
         }
 
+        // Construir la dirección completa con número
+        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
+        
         // Construir el texto completo para el input: dirección, ciudad, provincia
         const fullAddressText = [
-          street || data?.description?.split(',')[0] || '',
+          fullStreetAddress || data?.description?.split(',')[0] || '',
           city,
           province
         ].filter(Boolean).join(', ');
@@ -670,6 +997,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     navigation.navigate('TripDetails', {
       origin: formData.origin,
       destination: formData.destination,
+      waypoints: formData.waypoints.filter(wp => wp.coordinates !== null),
       distance: distance,
       duration: duration,
       vehicles: vehicles,
@@ -683,6 +1011,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     setRouteCoordinates([]);
     setDistance(null);
     setDuration(null);
+    setMapSelectionMode(null);
     setFormData(prev => ({
       ...prev,
       origin: {
@@ -708,6 +1037,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     setRouteCoordinates([]);
     setDistance(null);
     setDuration(null);
+    setMapSelectionMode(null);
     setFormData(prev => ({
       ...prev,
       destination: {
@@ -755,7 +1085,30 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <TouchableWithoutFeedback onPress={() => {
+      // Cerrar teclado y limpiar autocompletado al tocar áreas vacías
+      if (activeAutocomplete) {
+        Keyboard.dismiss();
+        setActiveAutocomplete(null);
+        setAutocompleteResults([]);
+        
+        // Restaurar la altura del contenedor a la mínima
+        setTimeout(() => {
+          Animated.timing(keyboardOffset, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }).start();
+          
+          Animated.timing(bottomSheetHeight, {
+            toValue: MIN_SHEET_HEIGHT,
+            duration: 250,
+            useNativeDriver: false,
+          }).start();
+        }, 100);
+      }
+    }}>
+      <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
       {/* Mapa full screen */}
@@ -767,14 +1120,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         onRegionChangeComplete={setRegion}
         showsUserLocation={false}
         showsMyLocationButton={false}
-        onPress={() => {
-          // Al presionar en el mapa, cerrar el teclado pero mantener el estado activo
-          // para que las predicciones aparezcan cuando lleguen
-          Keyboard.dismiss();
-          // NO limpiar activeAutocomplete ni autocompleteResults
-          // para permitir que las predicciones en proceso de carga se muestren
-        }}
+        onPress={handleMapPress}
       >
+        {/* Marcador de ubicación del usuario */}
+        {userLocation && (
+          <Marker coordinate={userLocation} title="Tu ubicación">
+            <View style={styles.userLocationMarkerContainer}>
+              <View style={styles.userLocationDot} />
+            </View>
+          </Marker>
+        )}
         {originMarker && (
           <Marker coordinate={originMarker} title="Origen">
             <View style={styles.originMarkerContainer}>
@@ -789,6 +1144,17 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             </View>
           </Marker>
         )}
+        {waypointMarkers.map((waypointMarker, index) => (
+          <Marker
+            key={`waypoint-${index}`}
+            coordinate={waypointMarker}
+            title={`Parada ${index + 1}`}
+          >
+            <View style={styles.waypointMarkerContainer}>
+              <Text style={styles.waypointMarkerText}>{index + 1}</Text>
+            </View>
+          </Marker>
+        ))}
         {routeCoordinates && routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
@@ -801,12 +1167,36 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
       {/* Botón mi ubicación */}
       {!keyboardVisible && (
-        <TouchableOpacity style={styles.myLocationButton} onPress={getCurrentLocation}>
+        <TouchableOpacity style={styles.myLocationButton} onPress={() => {
+          getCurrentLocation();
+          if (userLocation && mapRef.current) {
+            mapRef.current.animateToRegion({
+              ...userLocation,
+              latitudeDelta: LATITUDE_DELTA,
+              longitudeDelta: LONGITUDE_DELTA,
+            }, 1000);
+          }
+        }}>
           <Ionicons name="navigate" size={20} color="#000" />
         </TouchableOpacity>
       )}
 
       {/* Panel inferior estilo Uber - Animated */}
+      {mapSelectionMode && (
+        <View style={styles.mapSelectionIndicator}>
+          <Text style={styles.mapSelectionText}>
+            {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
+             mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
+             `Toca el mapa para seleccionar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => setMapSelectionMode(null)}
+            style={styles.cancelSelectionBtn}
+          >
+            <Text style={styles.cancelSelectionText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <Animated.View
         style={[
           styles.bottomSheetWrapper,
@@ -845,6 +1235,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             ]}>
               <View style={styles.originDot} />
               <View style={styles.timelineLine} />
+              
+              {/* Waypoints dots */}
+              {formData.waypoints.map((_, index) => (
+                <React.Fragment key={`waypoint-${index}`}>
+                  <View style={styles.waypointDot} />
+                  <View style={styles.timelineLine} />
+                </React.Fragment>
+              ))}
+              
               <View style={styles.destinationSquare} />
             </View>
 
@@ -888,10 +1287,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     // Si este input está activo, actualizar los resultados mostrados
                     if (activeAutocomplete === 'origin') {
                       setAutocompleteResults(results);
-                      // Si hay resultados, expandir hasta el teclado si está visible, sino hasta MAX_SHEET_HEIGHT
+                      // Si hay resultados, expandir más agresivamente como Uber
                       if (results.length > 0) {
                         const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? keyboardHeight 
+                          ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
                           : MAX_SHEET_HEIGHT;
                         Animated.timing(bottomSheetHeight, {
                           toValue: targetHeight,
@@ -920,10 +1319,119 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   <TouchableOpacity onPress={clearOrigin} style={styles.clearBtn}>
                     <Ionicons name="close-circle" size={18} color="#CACACA" />
                   </TouchableOpacity>
-                ) : null}
+                ) : (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setActiveAutocomplete(null);
+                      setAutocompleteResults([]);
+                      setMapSelectionMode('origin');
+                    }} 
+                    style={styles.mapSelectBtn}
+                  >
+                    <Ionicons name="location" size={18} color={mapSelectionMode === 'origin' ? colors.primary : "#666"} />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View style={styles.inputDivider} />
+
+              {/* Waypoints */}
+              {formData.waypoints.map((waypoint, index) => {
+                // Asegurar que el ref existe para este índice
+                if (!waypointInputRefs.current[index]) {
+                  waypointInputRefs.current[index] = React.createRef();
+                }
+                
+                return (
+                  <React.Fragment key={`waypoint-input-${index}`}>
+                    <View style={[styles.inputRow, { zIndex: 2500 - index * 100 }]}>
+                      <SafePlacesAutocomplete
+                        inputRef={waypointInputRefs.current[index]}
+                        placeholder={`Parada ${index + 1} (opcional)`}
+                        onPress={(data, details) => handleWaypointSelect(data, details, index)}
+                        apiKey={GOOGLE_MAPS_API_KEY}
+                        debounce={2000}
+                        inputType={`waypoint-${index}`}
+                      onFocusChange={(type) => {
+                        if (type === `waypoint-${index}`) {
+                          setActiveAutocomplete(`waypoint-${index}`);
+                          setAutocompleteResults(waypointResultsRef.current[index] || []);
+                          moveSheetUpOnInputFocus();
+                        } else if (type === null) {
+                          // Mantener el estado
+                        } else {
+                          setActiveAutocomplete(null);
+                          setAutocompleteResults([]);
+                        }
+                      }}
+                      onResultsChange={(results) => {
+                        waypointResultsRef.current[index] = results;
+                        if (activeAutocomplete === `waypoint-${index}`) {
+                          setAutocompleteResults(results);
+                          if (results.length > 0) {
+                            const targetHeight = keyboardVisible && keyboardHeight > 0 
+                              ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
+                              : MAX_SHEET_HEIGHT;
+                            Animated.timing(bottomSheetHeight, {
+                              toValue: targetHeight,
+                              duration: 250,
+                              useNativeDriver: false,
+                            }).start();
+                          }
+                        }
+                      }}
+                      externalResults={[]}
+                      externalLoading={false}
+                      styles={{
+                        container: { flex: 1, zIndex: 2500 - index * 100 },
+                        textInput: {
+                          height: 44,
+                          color: '#000',
+                          fontSize: 16,
+                          fontWeight: '500',
+                          backgroundColor: 'transparent',
+                          paddingHorizontal: 12,
+                          paddingVertical: 0,
+                        },
+                      }}
+                    />
+                    {waypoint.address ? (
+                      <TouchableOpacity 
+                        onPress={() => removeWaypoint(index)} 
+                        style={styles.clearBtn}
+                      >
+                        <Ionicons name="remove-circle" size={18} color="#ff6b6b" />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity 
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setActiveAutocomplete(null);
+                          setAutocompleteResults([]);
+                          setMapSelectionMode(`waypoint-${index}`);
+                        }} 
+                        style={styles.mapSelectBtn}
+                      >
+                        <Ionicons name="location" size={18} color={mapSelectionMode === `waypoint-${index}` ? colors.primary : "#666"} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={styles.inputDivider} />
+                </React.Fragment>
+                );
+              })}
+
+              {/* Botón agregar waypoint */}
+              {formData.waypoints.length < 3 && (
+                <>
+                  <TouchableOpacity onPress={addWaypoint} style={styles.addWaypointButton}>
+                    <Ionicons name="add-circle" size={20} color={colors.primary} />
+                    <Text style={[styles.addWaypointText, { color: colors.primary }]}>Agregar parada</Text>
+                  </TouchableOpacity>
+                  <View style={styles.inputDivider} />
+                </>
+              )}
 
               {/* Destino */}
               <View style={[styles.inputRow, { zIndex: 2000 }]}>
@@ -957,10 +1465,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     // Si este input está activo, actualizar los resultados mostrados
                     if (activeAutocomplete === 'destination') {
                       setAutocompleteResults(results);
-                      // Si hay resultados, expandir hasta el teclado si está visible, sino hasta MAX_SHEET_HEIGHT
+                      // Si hay resultados, expandir más agresivamente como Uber
                       if (results.length > 0) {
                         const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? keyboardHeight 
+                          ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
                           : MAX_SHEET_HEIGHT;
                         Animated.timing(bottomSheetHeight, {
                           toValue: targetHeight,
@@ -989,7 +1497,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   <TouchableOpacity onPress={clearDestination} style={styles.clearBtn}>
                     <Ionicons name="close-circle" size={18} color="#CACACA" />
                   </TouchableOpacity>
-                ) : null}
+                ) : (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setActiveAutocomplete(null);
+                      setAutocompleteResults([]);
+                      setMapSelectionMode('destination');
+                    }} 
+                    style={styles.mapSelectBtn}
+                  >
+                    <Ionicons name="location" size={18} color={mapSelectionMode === 'destination' ? colors.primary : "#666"} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
@@ -1015,8 +1535,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                           if (data && data.result) {
                             if (activeAutocomplete === 'origin') {
                               handleOriginSelect({ description: item.description }, data.result);
-                            } else {
+                            } else if (activeAutocomplete === 'destination') {
                               handleDestinationSelect({ description: item.description }, data.result);
+                            } else if (activeAutocomplete && activeAutocomplete.startsWith('waypoint-')) {
+                              const waypointIndex = parseInt(activeAutocomplete.split('-')[1]);
+                              handleWaypointSelect({ description: item.description }, data.result, waypointIndex);
                             }
                           }
                         });
@@ -1096,6 +1619,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         </View>
       )}
     </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -1235,6 +1759,14 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#000',
   },
+  waypointDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+    borderWidth: 2,
+    borderColor: '#F6F6F6',
+  },
   inputsContainer: {
     flex: 1,
     backgroundColor: '#F6F6F6',
@@ -1257,6 +1789,24 @@ const styles = StyleSheet.create({
   clearBtn: {
     padding: 6,
   },
+  mapSelectBtn: {
+    padding: 6,
+  },
+  addWaypointButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingVertical: 14,
+    paddingLeft: 12,
+    paddingRight: 16,
+    marginHorizontal: 0,
+    backgroundColor: 'transparent',
+  },
+  addWaypointText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+  },
 
   // Autocomplete results
   resultsContainer: {
@@ -1267,7 +1817,7 @@ const styles = StyleSheet.create({
     marginLeft: 0, // Sin margen izquierdo para que quede alineado con los inputs
     marginRight: 0,
     overflow: 'hidden',
-    maxHeight: 280, // Altura máxima fija para las predicciones
+    maxHeight: height * 0.6, // 60% de la pantalla para las predicciones (más espacio como Uber)
   },
   resultRow: {
     flexDirection: 'row',
@@ -1392,6 +1942,42 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
+  waypointMarkerContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#666',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  waypointMarkerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  userLocationMarkerContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  userLocationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
 
   // Loading
   loadingOverlay: {
@@ -1442,6 +2028,44 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Map selection indicator
+  mapSelectionIndicator: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 20,
+    right: 20,
+    backgroundColor: '#000',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  mapSelectionText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cancelSelectionBtn: {
+    marginLeft: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  cancelSelectionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.8,
   },
 });
 
