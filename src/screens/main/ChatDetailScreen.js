@@ -209,12 +209,25 @@ const ChatDetailScreen = ({ route, navigation }) => {
       }
     };
 
+    // Escuchar cuando se cierra la conversación
+    const handleConversationClosed = (data) => {
+      if (data.conversationId === conversation._id) {
+        // Mostrar alerta y redirigir
+        alert(`Conversación cerrada: ${data.message}`);
+        
+        // Redirigir a la lista de chats
+        navigation.goBack();
+      }
+    };
+
     socketService.onMessageReceived(handleMessageReceived);
     socketService.onTyping(handleTyping);
+    socketService.onConversationClosed(handleConversationClosed);
 
     return () => {
       socketService.removeListener('message:received');
       socketService.removeListener('typing:user');
+      socketService.removeListener('conversation:closed');
     };
   }, [conversation._id]);
 

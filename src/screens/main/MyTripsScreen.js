@@ -192,11 +192,21 @@ const MyTripsScreen = ({ navigation }) => {
         activeOpacity={0.7}
       >
         {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-          <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-          <Text style={[styles.statusText, { color: statusConfig.color }]}>
-            {statusConfig.text}
-          </Text>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>
+              {statusConfig.text}
+            </Text>
+          </View>
+          
+          {/* Reservas pendientes badge - solo para trips próximos con reservas */}
+          {activeTab === 'upcoming' && item.passengers && item.passengers.length > 0 && (
+            <View style={styles.pendingBadge}>
+              <Ionicons name="person" size={10} color="#6366F1" />
+              <Text style={styles.pendingBadgeText}>{item.passengers.length}</Text>
+            </View>
+          )}
         </View>
 
         {/* Route */}
@@ -241,9 +251,9 @@ const MyTripsScreen = ({ navigation }) => {
             >
               <Ionicons name="people" size={18} color="#FFFFFF" />
               <Text style={styles.primaryButtonText}>Ver Reservas</Text>
-              {item.bookingsCount > 0 && (
+              {item.passengers && item.passengers.length > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.bookingsCount}</Text>
+                  <Text style={styles.badgeText}>{item.passengers.length}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -465,14 +475,19 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   // Status
-  statusBadge: {
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
+    marginBottom: 16,
+    gap: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginBottom: 16,
     gap: 6,
   },
   statusDot: {
@@ -483,6 +498,20 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+  },
+  pendingBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#6366F1',
   },
   // Route
   routeSection: {

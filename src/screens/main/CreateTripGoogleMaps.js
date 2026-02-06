@@ -19,7 +19,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import SafePlacesAutocomplete from '../../components/SafePlacesAutocomplete';
 import * as Location from 'expo-location';
 import { get_withauth } from '../../services/apiService';
@@ -1060,16 +1059,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   if (loadingVehicles) {
     return (
-      <LinearGradient colors={[colors.background, colors.surface]} style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Cargando vehículos...</Text>
-      </LinearGradient>
+      </View>
     );
   }
 
   if (!loadingVehicles && (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0)) {
     return (
-      <LinearGradient colors={[colors.background, colors.surface]} style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No tienes vehículos registrados</Text>
         <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
@@ -1080,7 +1079,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             <Text style={styles.addVehicleButtonText}>Agregar Vehículo</Text>
           </View>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -1158,8 +1157,9 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         {routeCoordinates && routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
-            strokeWidth={5}
-            strokeColor="#000"
+            strokeWidth={3}
+            strokeColor="#000000"
+            strokeColors={routeCoordinates.map(() => '#000000')}
           />
         )}
       </MapView>
@@ -1183,19 +1183,24 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
       {/* Panel inferior estilo Uber - Animated */}
       {mapSelectionMode && (
-        <View style={styles.mapSelectionIndicator}>
-          <Text style={styles.mapSelectionText}>
-            {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
-             mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
-             `Toca el mapa para seleccionar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
-          </Text>
-          <TouchableOpacity 
-            onPress={() => setMapSelectionMode(null)}
-            style={styles.cancelSelectionBtn}
-          >
-            <Text style={styles.cancelSelectionText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View style={styles.mapSelectionIndicator}>
+            <Text style={styles.mapSelectionText}>
+              {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
+               mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
+               `Toca el mapa para seleccionar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setMapSelectionMode(null)}
+              style={styles.cancelSelectionBtn}
+            >
+              <Text style={styles.cancelSelectionText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.centerMapIndicator} pointerEvents="none">
+            <View style={styles.centerDot} />
+          </View>
+        </>
       )}
       <Animated.View
         style={[
@@ -1320,16 +1325,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     <Ionicons name="close-circle" size={18} color="#CACACA" />
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => {
                       Keyboard.dismiss();
                       setActiveAutocomplete(null);
                       setAutocompleteResults([]);
                       setMapSelectionMode('origin');
-                    }} 
-                    style={styles.mapSelectBtn}
+                    }}
+                    style={[
+                      styles.mapSelectBtn,
+                      mapSelectionMode === 'origin' && { backgroundColor: colors.primary },
+                    ]}
                   >
-                    <Ionicons name="location" size={18} color={mapSelectionMode === 'origin' ? colors.primary : "#666"} />
+                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'origin' ? '#fff' : colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -1396,26 +1404,30 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                         },
                       }}
                     />
-                    {waypoint.address ? (
-                      <TouchableOpacity 
-                        onPress={() => removeWaypoint(index)} 
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      {!waypoint.address && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            Keyboard.dismiss();
+                            setActiveAutocomplete(null);
+                            setAutocompleteResults([]);
+                            setMapSelectionMode(`waypoint-${index}`);
+                          }}
+                          style={[
+                            styles.mapSelectBtn,
+                            mapSelectionMode === `waypoint-${index}` && { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <Ionicons name="map-outline" size={16} color={mapSelectionMode === `waypoint-${index}` ? '#fff' : colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => removeWaypoint(index)}
                         style={styles.clearBtn}
                       >
-                        <Ionicons name="remove-circle" size={18} color="#ff6b6b" />
+                        <Ionicons name="close-circle" size={18} color={waypoint.address ? "#ff6b6b" : "#CACACA"} />
                       </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity 
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setActiveAutocomplete(null);
-                          setAutocompleteResults([]);
-                          setMapSelectionMode(`waypoint-${index}`);
-                        }} 
-                        style={styles.mapSelectBtn}
-                      >
-                        <Ionicons name="location" size={18} color={mapSelectionMode === `waypoint-${index}` ? colors.primary : "#666"} />
-                      </TouchableOpacity>
-                    )}
+                    </View>
                   </View>
                   <View style={styles.inputDivider} />
                 </React.Fragment>
@@ -1498,16 +1510,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     <Ionicons name="close-circle" size={18} color="#CACACA" />
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => {
                       Keyboard.dismiss();
                       setActiveAutocomplete(null);
                       setAutocompleteResults([]);
                       setMapSelectionMode('destination');
-                    }} 
-                    style={styles.mapSelectBtn}
+                    }}
+                    style={[
+                      styles.mapSelectBtn,
+                      mapSelectionMode === 'destination' && { backgroundColor: colors.primary },
+                    ]}
                   >
-                    <Ionicons name="location" size={18} color={mapSelectionMode === 'destination' ? colors.primary : "#666"} />
+                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'destination' ? '#fff' : colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -1790,7 +1805,9 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   mapSelectBtn: {
-    padding: 6,
+    padding: 8,
+    backgroundColor: '#EBEBEB',
+    borderRadius: 8,
   },
   addWaypointButton: {
     flexDirection: 'row',
@@ -2066,6 +2083,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     opacity: 0.8,
+  },
+  centerMapIndicator: {
+    position: 'absolute',
+    top: height * 0.35 - 8,
+    left: width / 2 - 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 40,
+  },
+  centerDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });
 

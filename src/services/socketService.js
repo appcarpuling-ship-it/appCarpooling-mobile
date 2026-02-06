@@ -172,6 +172,19 @@ class SocketService {
   }
 
   /**
+   * Escuchar conversaciones cerradas
+   */
+  onConversationClosed(callback) {
+    if (this.socket) {
+      this.socket.on('conversation:closed', (data) => {
+        callback(data);
+      });
+    } else {
+      console.warn('Socket no disponible para onConversationClosed');
+    }
+  }
+
+  /**
    * Escuchar usuarios en línea
    */
   onUsersOnline(callback) {

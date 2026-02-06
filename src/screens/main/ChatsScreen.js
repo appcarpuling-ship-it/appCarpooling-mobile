@@ -146,14 +146,27 @@ const ChatsScreen = ({ navigation }) => {
       markConversationAsRead(data.conversationId);
     };
 
+    // Escuchar cuando se cierran conversaciones
+    const handleConversationClosed = (data) => {
+      console.log('❌ [ChatsScreen] Conversación cerrada:', data);
+      setConversations(prev => prev.filter(conv => conv._id !== data.conversationId));
+      
+      // Si la razón es que se completó el viaje, podrías mostrar una notificación
+      if (data.reason === 'trip_completed') {
+        console.log('Conversación cerrada por viaje completado:', data.message);
+      }
+    };
+
     socketService.onMessageReceived(handleMessageReceived);
     socketService.onConversationUpdated(handleConversationUpdated);
     socketService.onMessagesRead(handleMessagesRead);
+    socketService.onConversationClosed(handleConversationClosed);
 
     return () => {
       socketService.removeListener('message:received');
       socketService.removeListener('conversation:updated');
       socketService.removeListener('messages:read');
+      socketService.removeListener('conversation:closed');
     };
   }, []);
 
