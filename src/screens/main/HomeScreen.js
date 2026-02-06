@@ -521,47 +521,57 @@ const HomeScreen = ({ navigation }) => {
 
       {/* Date Picker */}
       {showDatePicker && (
-        <Modal visible transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.pickerContainer}>
-              <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Seleccionar fecha</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={24} color="#000000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.datePickerWrapper}>
-                <DateTimePicker
-                  value={selectedDate || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
-                  textColor="#000000"
-                />
-              </View>
-              {Platform.OS === 'ios' && (
-                <View style={styles.pickerButtons}>
-                  <TouchableOpacity
-                    style={styles.pickerButtonClear}
-                    onPress={() => {
-                      setSelectedDate(null);
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.pickerButtonClearText}>Limpiar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.pickerButtonConfirm}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.pickerButtonConfirmText}>Confirmar</Text>
-                  </TouchableOpacity>
+        <>
+          {Platform.OS === 'ios' ? (
+            <Modal visible transparent animationType="fade">
+              <View style={styles.modalOverlay}>
+                <View style={styles.pickerContainer}>
+                  <View style={styles.pickerHeader}>
+                    <Text style={styles.pickerTitle}>Seleccionar fecha</Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Ionicons name="close" size={24} color="#000000" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.datePickerWrapper}>
+                    <DateTimePicker
+                      value={selectedDate || new Date()}
+                      mode="date"
+                      display="spinner"
+                      onChange={handleDateChange}
+                      minimumDate={new Date()}
+                      textColor="#000000"
+                    />
+                  </View>
+                  <View style={styles.pickerButtons}>
+                    <TouchableOpacity
+                      style={styles.pickerButtonClear}
+                      onPress={() => {
+                        setSelectedDate(null);
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerButtonClearText}>Limpiar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.pickerButtonConfirm}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.pickerButtonConfirmText}>Confirmar</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              )}
-            </View>
-          </View>
-        </Modal>
+              </View>
+            </Modal>
+          ) : (
+            <DateTimePicker
+              value={selectedDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+              minimumDate={new Date()}
+            />
+          )}
+        </>
       )}
 
       {/* Notifications Modal */}
