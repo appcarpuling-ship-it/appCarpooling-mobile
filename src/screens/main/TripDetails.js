@@ -149,12 +149,16 @@ const TripDetails = ({ navigation, route }) => {
                     <View style={styles.routeCard}>
                         <View style={styles.routeItem}>
                             <View style={styles.routeDot} />
-                            <Text style={styles.routeText} numberOfLines={1}>{origin.address}</Text>
+                            <Text style={styles.routeText} numberOfLines={1}>
+                                {[origin.address, origin.city, origin.province].filter(Boolean).join(', ')}
+                            </Text>
                         </View>
                         <View style={styles.routeLine} />
                         <View style={styles.routeItem}>
                             <View style={[styles.routeDot, styles.destinationDot]} />
-                            <Text style={styles.routeText} numberOfLines={1}>{destination.address}</Text>
+                            <Text style={styles.routeText} numberOfLines={1}>
+                                {[destination.address, destination.city, destination.province].filter(Boolean).join(', ')}
+                            </Text>
                         </View>
                         {distance && duration && (
                             <View style={styles.routeInfo}>
