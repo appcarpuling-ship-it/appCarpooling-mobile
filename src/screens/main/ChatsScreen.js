@@ -726,6 +726,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semiBold,
     color: '#000000',
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: fontSize.sm,
