@@ -204,14 +204,14 @@ const MyTripsScreen = ({ navigation }) => {
           <View style={styles.routeRow}>
             <View style={styles.routeDot} />
             <Text style={styles.cityText} numberOfLines={1}>
-              {item.origin?.city}
+              {[item.origin?.address, item.origin?.city, item.origin?.province].filter(Boolean).join(', ')}
             </Text>
           </View>
           <View style={styles.routeLine} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination]} />
             <Text style={styles.cityText} numberOfLines={1}>
-              {item.destination?.city}
+              {[item.destination?.address, item.destination?.city, item.destination?.province].filter(Boolean).join(', ')}
             </Text>
           </View>
         </View>
