@@ -139,7 +139,7 @@ const LoginScreen = ({ navigation }) => {
                     style={styles.logo}
                   />
                 </LinearGradient>
-                <Text style={styles.title}>Carpooling</Text>
+                <Text style={styles.title}>Carpuling</Text>
                 <Text style={styles.subtitle}>Viaja inteligente, ahorra más</Text>
               </View>
 

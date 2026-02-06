@@ -236,6 +236,12 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleSearch = () => {
+    if (!origin && !destination && !selectedDate && !selectedSeats) {
+      // Si no hay filtros, mostrar todos los viajes
+      navigation.navigate('AllTrips');
+      return;
+    }
+
     if (!origin && !destination) {
       Alert.alert('Error', 'Por favor completa al menos el origen o destino');
       return;
@@ -397,7 +403,7 @@ const HomeScreen = ({ navigation }) => {
           )}
 
           <Image source={LOGO_SOURCE} style={styles.logo} />
-          <Text style={styles.title}>Carpooling</Text>
+          <Text style={styles.title}>Carpuling</Text>
           <Text style={styles.subtitle}>Viaja inteligente, ahorra más</Text>
         </View>
 

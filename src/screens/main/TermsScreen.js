@@ -20,7 +20,7 @@ const TermsScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>1. Aceptación de los Términos</Text>
             <Text style={styles.text}>
-              Al acceder y utilizar esta aplicación de carpooling, aceptas estar sujeto a estos
+              Al acceder y utilizar esta aplicación de carpuling, aceptas estar sujeto a estos
               términos y condiciones de uso. Si no estás de acuerdo con alguna parte de estos
               términos, no debes usar nuestra aplicación.
             </Text>

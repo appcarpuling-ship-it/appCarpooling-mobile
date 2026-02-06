@@ -206,14 +206,25 @@ const MyBookingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </View>
 
-        {/* Cancel Button */}
+        {/* Action Buttons */}
         {item.status === 'pending' && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancelBooking(item._id)}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar reserva</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.payButton}
+              onPress={() => navigation.navigate('TripDetailFromCarpoolings', { 
+                tripId: item.trip?._id,
+                openPayment: true 
+              })}
+            >
+              <Text style={styles.payButtonText}>Ir a pagar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleCancelBooking(item._id)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar reserva</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </TouchableOpacity>
     );
@@ -383,9 +394,25 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'column',
+    gap: 12,
+    marginTop: 16,
+  },
+  payButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+  },
+  payButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   // Cancel Button
   cancelButton: {
-    marginTop: 16,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,

@@ -228,7 +228,7 @@ const RegisterScreen = ({ navigation }) => {
                   <Ionicons name="person-add" size={32} color="#FFF" />
                 </LinearGradient>
                 <Text style={styles.title}>Crear Cuenta</Text>
-                <Text style={styles.subtitle}>Únete a la comunidad de Carpooling</Text>
+                <Text style={styles.subtitle}>Únete a la comunidad de Carpuling</Text>
               </View>
 
               {/* Avatar */}

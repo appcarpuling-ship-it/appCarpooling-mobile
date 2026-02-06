@@ -330,7 +330,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Driver */}
         <TouchableOpacity
           style={styles.driverSection}
-          onPress={!isOwnTrip ? handleStartChat : undefined}
+          // onPress={!isOwnTrip ? handleStartChat : undefined}
           activeOpacity={isOwnTrip ? 1 : 0.7}
         >
           {driver?.avatar ? (
@@ -348,9 +348,9 @@ const TripDetailScreen = ({ route, navigation }) => {
             </Text>
             <Text style={styles.driverLabel}>Conductor</Text>
           </View>
-          {!isOwnTrip && (
+          {/* {!isOwnTrip && (
             <Ionicons name="chatbubble-outline" size={22} color="#6B7280" />
-          )}
+          )} */}
         </TouchableOpacity>
 
         {/* Vehicle */}

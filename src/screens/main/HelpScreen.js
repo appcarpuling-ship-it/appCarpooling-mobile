@@ -11,9 +11,9 @@ const HelpScreen = () => {
   const faqItems = [
     {
       id: 1,
-      question: '¿Cómo funciona el carpooling?',
+      question: '¿Cómo funciona el Carpuling?',
       answer:
-        'El carpooling es compartir tu vehículo con otras personas que van en la misma dirección. Como conductor, publicas tu viaje y los pasajeros pueden reservar asientos.',
+        'El carpuling es compartir tu vehículo con otras personas que van en la misma dirección. Como conductor, publicas tu viaje y los pasajeros pueden reservar asientos.',
     },
     {
       id: 2,
@@ -64,8 +64,8 @@ const HelpScreen = () => {
       id: 1,
       icon: 'mail',
       title: 'Email',
-      subtitle: 'soporte@carpooling.com',
-      onPress: () => Linking.openURL('mailto:soporte@carpooling.com'),
+      subtitle: 'soporte@carpuling.com',
+      onPress: () => Linking.openURL('mailto:soporte@carpuling.com'),
     },
     {
       id: 2,
