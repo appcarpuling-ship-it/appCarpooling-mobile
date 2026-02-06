@@ -261,16 +261,14 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={styles.routeDot} />
             <View style={styles.routeContent}>
               <Text style={styles.routeTime}>{trip.departureTime}</Text>
-              <Text style={styles.routeCity}>{trip.origin?.city}</Text>
-              <Text style={styles.routeAddress}>{trip.origin?.address}</Text>
+              <Text style={styles.routeCity}>{trip.origin?.address}</Text>
             </View>
           </View>
           <View style={styles.routeLine} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination]} />
             <View style={styles.routeContent}>
-              <Text style={styles.routeCity}>{trip.destination?.city}</Text>
-              <Text style={styles.routeAddress}>{trip.destination?.address}</Text>
+              <Text style={styles.routeCity}>{trip.destination?.address}</Text>
             </View>
           </View>
         </View>
