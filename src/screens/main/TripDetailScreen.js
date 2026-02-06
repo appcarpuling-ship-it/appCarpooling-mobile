@@ -272,6 +272,28 @@ const TripDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
           <View style={styles.routeLine} />
+          
+          {/* Paradas Intermedias */}
+          {trip.intermediateStops && trip.intermediateStops.length > 0 && 
+            trip.intermediateStops
+              .sort((a, b) => a.order - b.order)
+              .map((stop, index) => (
+                <React.Fragment key={`stop-${index}`}>
+                  <View style={styles.routeRow}>
+                    <View style={styles.routeDotIntermediate}>
+                      <Text style={styles.routeDotNumber}>{stop.order}</Text>
+                    </View>
+                    <View style={styles.routeContent}>
+                      <Text style={styles.routeCityIntermediate}>
+                        Parada {stop.order}: {stop.address}, {stop.city}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.routeLine} />
+                </React.Fragment>
+              ))
+          }
+          
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination]} />
             <View style={styles.routeContent}>
@@ -576,6 +598,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#000000',
+  },
+  // Paradas intermedias
+  routeDotIntermediate: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#6B7280',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    marginTop: 2,
+  },
+  routeDotNumber: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  routeCityIntermediate: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B7280',
   },
   routeLine: {
     width: 2,
