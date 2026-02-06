@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [userBooking, setUserBooking] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     loadTripDetail();
@@ -201,6 +204,11 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleImagePress = (imageUri) => {
+    setSelectedImage(imageUri);
+    setImageModalVisible(true);
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -325,19 +333,19 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Vehicle */}
         {trip.vehicle && (() => {
-          console.log('Vehicle data:', trip.vehicle);
-          console.log('Vehicle photo:', trip.vehicle.photo);
-          console.log('Vehicle photos array:', trip.vehicle.photos);
           const vehicleImage = trip.vehicle.photo || (trip.vehicle.photos && trip.vehicle.photos[0]);
           return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Vehiculo</Text>
               <View style={styles.vehicleContainer}>
                 {vehicleImage ? (
-                  <Image source={{ uri: buildImageUri(vehicleImage) }} style={styles.vehicleImage} />
+                  <Image 
+                    source={{ uri: buildImageUri(vehicleImage) }} 
+                    style={styles.vehicleImage}
+                  />
                 ) : (
                   <View style={styles.vehicleImagePlaceholder}>
-                    <Ionicons name="car-outline" size={32} color="#6B7280" />
+                    <Ionicons name="car-outline" size={48} color="#6B7280" />
                   </View>
                 )}
                 <View style={styles.vehicleDetails}>
@@ -421,6 +429,38 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         <View style={{ height: 180 }} />
       </ScrollView>
+
+      {/* Image Modal */}
+      <Modal
+        visible={imageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setImageModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.imageModalContent}>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setImageModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              {selectedImage && (
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Footer */}
       {!isOwnTrip && (
@@ -612,14 +652,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   driverAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   driverAvatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
@@ -670,14 +710,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   vehicleImage: {
-    width: 60,
-    height: 45,
+    width: 96,
+    height: 72,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
   },
   vehicleImagePlaceholder: {
-    width: 60,
-    height: 45,
+    width: 96,
+    height: 72,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
@@ -811,6 +851,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#065F46',
+  },
+  // Image Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalContent: {
+    position: 'relative',
+    width: '95%',
+    height: '80%',
+    backgroundColor: 'transparent',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 
