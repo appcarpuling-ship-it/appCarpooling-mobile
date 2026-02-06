@@ -16,42 +16,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useUnreadMessages } from '../../hooks/useUnreadMessages';
+import { useColors } from '../../hooks/useColors';
 import apiService, { buildImageUri } from '../../services/apiService';
 import socketService from '../../services/socketService';
-import { colors, gradients } from '../../theme/colors';
-
-
-// Safe colors fallback to prevent 'colors is not defined' errors
-const safeColors = (() => {
-  try {
-    const { colors } = require('./src/theme/colors');
-    return colors;
-  } catch {
-    try {
-      const { colors } = require('../theme/colors');
-      return colors;
-    } catch {
-      try {
-        const { colors } = require('../../theme/colors');
-        return colors;
-      } catch {
-        return {
-          background: '#FFFFFF', surface: '#F8F9FA', surfaceElevated: '#FFFFFF',
-          textPrimary: '#000000', textSecondary: '#374151', textTertiary: '#6B7280',
-          textMuted: '#9CA3AF', primary: '#6366F1', primaryDark: '#4F46E5',
-          accent: '#A855F7', accentGreen: '#10B981', accentOrange: '#F59E0B',
-          accentRed: '#EF4444', success: '#10B981', warning: '#F59E0B',
-          error: '#EF4444', info: '#3B82F6', inputBackground: '#FFFFFF',
-          inputBorder: '#D1D5DB', borderLight: '#F3F4F6', border: '#E5E7EB'
-        };
-      }
-    }
-  }
-})();
-
 const ChatDetailScreen = ({ route, navigation }) => {
   const { conversation, otherUser } = route.params;
   const { user } = useAuth();
+  const { colors } = useColors();
+  
   const { loadUnreadCount, setActiveConversation, clearActiveConversation } = useUnreadMessages();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -81,7 +53,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
     navigation.setOptions({
       headerStyle: {
-        backgroundColor: colors.surface
+        backgroundColor: colors.background
       },
       headerTintColor: colors.textPrimary,
       headerTitleStyle: {
@@ -119,22 +91,22 @@ const ChatDetailScreen = ({ route, navigation }) => {
               />
             ) : (
               <LinearGradient
-                colors={['#1F2937', '#111827']}
+                colors={[colors?.messagePrimary, colors?.messageSecondary]}
                 style={styles.headerAvatar}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.headerAvatarText}>
+                <Text style={[styles.headerAvatarText, { color: '#FFFFFF' }]}>
                   {otherUser.firstName[0]}{otherUser.lastName[0]}
                 </Text>
               </LinearGradient>
             )}
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
               {otherUser.firstName} {otherUser.lastName}
             </Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               {typing ? 'Escribiendo...' : 'En linea'}
             </Text>
           </View>
@@ -340,24 +312,28 @@ const ChatDetailScreen = ({ route, navigation }) => {
       >
         {isOwnMessage ? (
           <LinearGradient
-            colors={['#1F2937', '#111827']}
+            colors={[colors?.messagePrimary, colors?.messageSecondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.messageBubble, styles.ownMessage]}
           >
-            <Text style={styles.messageText}>
+            <Text style={[styles.messageText, { color: '#FFFFFF' }]}>
               {item.content}
             </Text>
-            <Text style={styles.messageTime}>
+            <Text style={[styles.messageTime, { color: 'rgba(255, 255, 255, 0.6)' }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
           </LinearGradient>
         ) : (
-          <View style={[styles.messageBubble, styles.otherMessage]}>
-            <Text style={[styles.messageText, styles.otherMessageText]}>
+          <View style={[
+            styles.messageBubble, 
+            styles.otherMessage,
+            { backgroundColor: colors.cardBackground }
+          ]}>
+            <Text style={[styles.messageText, styles.otherMessageText, { color: colors.textPrimary }]}>
               {item.content}
             </Text>
-            <Text style={[styles.messageTime, styles.otherMessageTime]}>
+            <Text style={[styles.messageTime, styles.otherMessageTime, { color: colors.textMuted }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
           </View>
@@ -368,7 +344,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -376,7 +352,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
@@ -393,22 +369,32 @@ const ChatDetailScreen = ({ route, navigation }) => {
         />
 
         {typing && (
-          <View style={styles.typingIndicator}>
-            <LinearGradient
-              colors={['#1F2937', '#111827']}
-              style={styles.typingDot}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+          <View style={[styles.typingIndicator, { backgroundColor: colors.background }]}>
+            <View
+              style={[styles.typingDot, { backgroundColor: colors?.messagePrimary }]}
             />
-            <Text style={styles.typingText}>
+            <Text style={[styles.typingText, { color: colors.textSecondary }]}>
               {otherUser.firstName} esta escribiendo...
             </Text>
           </View>
         )}
 
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          { 
+            backgroundColor: colors.background,
+            borderTopColor: colors.border
+          }
+        ]}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              { 
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.inputBorder,
+                color: colors.textPrimary
+              }
+            ]}
             placeholder="Escribe un mensaje..."
             placeholderTextColor={colors.placeholder}
             value={newMessage}
@@ -422,7 +408,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={(!newMessage.trim() || sending) ? [colors.textTertiary, colors.textMuted] : ['#1F2937', '#111827']}
+              colors={(!newMessage.trim() || sending) ? [colors?.textTertiary, colors?.textMuted] : [colors?.messagePrimary, colors?.messageSecondary]}
               style={styles.sendButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -442,14 +428,12 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF'
+    flex: 1
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF'
+    alignItems: 'center'
   },
   // Header styles
   headerContainer: {
@@ -471,8 +455,7 @@ const styles = StyleSheet.create({
   },
   headerAvatarText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF'
+    fontWeight: 'bold'
   },
   headerTextContainer: {
     justifyContent: 'center'
@@ -480,12 +463,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 2
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#6B7280'
+    fontSize: 12
   },
   // Messages list
   messagesList: {
@@ -516,8 +497,7 @@ const styles = StyleSheet.create({
   },
   smallAvatarText: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: '#FFFFFF'
+    fontWeight: 'bold'
   },
   // Message bubbles
   messageBubble: {
@@ -535,34 +515,30 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4
   },
   otherMessage: {
-    backgroundColor: '#F3F4F6',
     borderBottomLeftRadius: 4
   },
   messageText: {
     fontSize: 15,
     lineHeight: 21,
-    marginBottom: 4,
-    color: '#FFFFFF'
+    marginBottom: 4
   },
   otherMessageText: {
-    color: '#374151'
+    // Color dinámico aplicado en JSX
   },
   messageTime: {
     fontSize: 10,
     alignSelf: 'flex-end',
-    marginTop: 2,
-    color: 'rgba(255, 255, 255, 0.6)'
+    marginTop: 2
   },
   otherMessageTime: {
-    color: '#9CA3AF'
+    // Color dinámico aplicado en JSX
   },
   // Typing indicator
   typingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF'
+    paddingVertical: 8
   },
   typingDot: {
     width: 8,
@@ -572,8 +548,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 13,
-    fontStyle: 'italic',
-    color: '#6B7280'
+    fontStyle: 'italic'
   },
   // Input area
   inputContainer: {
@@ -581,9 +556,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: Platform.OS === 'ios' ? 16 : 12,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
     alignItems: 'flex-end'
   },
   // Back button
@@ -594,17 +567,14 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 10,
     paddingTop: 10,
     marginRight: 8,
     fontSize: 15,
-    maxHeight: 100,
-    color: '#000000'
+    maxHeight: 100
   },
   sendButton: {
     width: 44,

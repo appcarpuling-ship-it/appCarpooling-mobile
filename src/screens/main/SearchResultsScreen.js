@@ -40,7 +40,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.lg,
       borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      borderBottomColor: colors.border,
     },
     headerTop: {
       flexDirection: 'row',
@@ -79,9 +79,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.cardBackground,
       borderWidth: 1,
-      borderColor: colors.borderLight,
+      borderColor: colors.border,
     },
     sortButtonText: {
       fontSize: fontSize.sm,
@@ -98,8 +98,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginVertical: spacing.sm,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
+      backgroundColor: colors.cardBackground,
       borderWidth: 1,
-      borderColor: colors.borderLight,
+      borderColor: colors.border,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
@@ -112,12 +113,13 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginBottom: spacing.md,
       paddingBottom: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      borderBottomColor: colors.border,
     },
     driverAvatar: {
       width: 50,
       height: 50,
       borderRadius: 25,
+      backgroundColor: colors.messagePrimary,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: spacing.md,
@@ -170,7 +172,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginBottom: spacing.md,
       paddingVertical: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      borderBottomColor: colors.border,
     },
     routePoint: {
       flexDirection: 'row',
@@ -194,7 +196,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
     routeLine: {
       height: 16,
       width: 2,
-      backgroundColor: colors.borderLight,
+      backgroundColor: colors.border,
       marginLeft: 8,
       marginVertical: spacing.xs,
     },
@@ -204,7 +206,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginBottom: spacing.md,
       paddingBottom: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      borderBottomColor: colors.border,
     },
     detailItem: {
       flexDirection: 'row',
@@ -223,7 +225,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginBottom: spacing.md,
       paddingBottom: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      borderBottomColor: colors.border,
     },
     preferenceBadge: {
       flexDirection: 'row',
@@ -231,21 +233,22 @@ const SearchResultsScreen = ({ route, navigation }) => {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.sm,
-      backgroundColor: colors.primary + '15',
+      backgroundColor: colors.surface,
       marginRight: spacing.sm,
       marginBottom: spacing.sm,
     },
     preferenceText: {
       fontSize: fontSize.xs,
-      color: colors.primary,
+      color: colors.textSecondary,
       fontWeight: fontWeight.medium,
       marginLeft: spacing.xs,
     },
     selectButton: {
-      overflow: 'hidden',
+      backgroundColor: colors.textMuted,
       borderRadius: borderRadius.md,
+      overflow: 'hidden',
     },
-    selectButtonGradient: {
+    selectButtonContent: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -364,20 +367,14 @@ const SearchResultsScreen = ({ route, navigation }) => {
       activeOpacity={0.8}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
     >
-      <LinearGradient
-        colors={createColorArray(colors.surfaceElevated, colors.surface)}
-        style={dynamicStyles.tripCard}
-      >
+      <View style={dynamicStyles.tripCard}>
         {/* Header con Conductor */}
         <View style={dynamicStyles.tripCardHeader}>
-          <LinearGradient
-            colors={createColorArray('#1F2937', '#111827')}
-            style={dynamicStyles.driverAvatar}
-          >
+          <View style={dynamicStyles.driverAvatar}>
             <Text style={dynamicStyles.avatarText}>
               {trip.driver?.firstName?.[0]}{trip.driver?.lastName?.[0]}
             </Text>
-          </LinearGradient>
+          </View>
 
           <View style={dynamicStyles.driverDetailsContainer}>
             <Text style={dynamicStyles.driverName}>
@@ -397,7 +394,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
         {/* Ruta */}
         <View style={dynamicStyles.routeSection}>
           <View style={dynamicStyles.routePoint}>
-            <Ionicons name="radio-button-on" size={18} color={colors.primary} />
+            <Ionicons name="radio-button-on" size={18} color={colors.messagePrimary} />
             <View style={dynamicStyles.routeTextContainer}>
               <Text style={dynamicStyles.routeCity} numberOfLines={1}>
                 {trip.origin?.city}
@@ -411,7 +408,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
           <View style={dynamicStyles.routeLine} />
 
           <View style={dynamicStyles.routePoint}>
-            <Ionicons name="location" size={18} color={colors.primary} />
+            <Ionicons name="location" size={18} color={colors.messagePrimary} />
             <View style={dynamicStyles.routeTextContainer}>
               <Text style={dynamicStyles.routeCity} numberOfLines={1}>
                 {trip.destination?.city}
@@ -450,13 +447,13 @@ const SearchResultsScreen = ({ route, navigation }) => {
           <View style={dynamicStyles.preferencesSection}>
             {trip.allowSmoking && (
               <View style={dynamicStyles.preferenceBadge}>
-                <Ionicons name="flame-outline" size={12} color={colors.primary} />
+                <Ionicons name="flame-outline" size={12} color={colors.messagePrimary} />
                 <Text style={dynamicStyles.preferenceText}>Permitido fumar</Text>
               </View>
             )}
             {trip.allowPets && (
               <View style={dynamicStyles.preferenceBadge}>
-                <Ionicons name="paw-outline" size={12} color={colors.primary} />
+                <Ionicons name="paw-outline" size={12} color={colors.messagePrimary} />
                 <Text style={dynamicStyles.preferenceText}>Mascotas OK</Text>
               </View>
             )}
@@ -468,17 +465,12 @@ const SearchResultsScreen = ({ route, navigation }) => {
           style={dynamicStyles.selectButton}
           onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
         >
-          <LinearGradient
-            colors={createColorArray(colors.primary, colors.primaryDark)}
-            style={dynamicStyles.selectButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
+          <View style={dynamicStyles.selectButtonContent}>
             <Text style={dynamicStyles.selectButtonText}>Ver Detalles</Text>
             <Ionicons name="arrow-forward" size={16} color="#FFF" style={{ marginLeft: spacing.xs }} />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -486,7 +478,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
     return (
       <SafeAreaView style={dynamicStyles.container}>
         <View style={dynamicStyles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.messagePrimary} />
           <Text style={dynamicStyles.emptyText}>Buscando viajes...</Text>
         </View>
       </SafeAreaView>
@@ -495,9 +487,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
-      <LinearGradient
-        colors={createColorArray(colors.background, colors.surface)}
-        style={{ flex: 1 }}
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
       >
         {/* Header */}
         <Animated.View
@@ -541,7 +531,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
                 setTimeout(() => setSortingLoading(false), 1500);
               }}
             >
-              <Ionicons name="swap-vertical" size={16} color={colors.primary} />
+              <Ionicons name="swap-vertical" size={16} color={colors.messagePrimary} />
               <Text style={dynamicStyles.sortButtonText}>
                 {sortBy === 'price' ? 'Precio' : sortBy === 'time' ? 'Hora' : 'Calificación'}
               </Text>
@@ -561,10 +551,10 @@ const SearchResultsScreen = ({ route, navigation }) => {
                 bottom: 0,
                 justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: '#FFFFFF',
+                backgroundColor: colors.background,
                 zIndex: 999,
               }}>
-                <ActivityIndicator size="large" color={colors.primary} />
+                <ActivityIndicator size="large" color={colors.messagePrimary} />
               </View>
             )}
             <FlatList
@@ -585,7 +575,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             </Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };

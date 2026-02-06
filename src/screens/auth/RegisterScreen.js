@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/FormInput';
@@ -57,6 +58,8 @@ const safeColors = (() => {
 })();
 
 const RegisterScreen = ({ navigation }) => {
+  const { isDarkMode } = useTheme();
+  
   // Usar el hook de validación
   const {
     values,
@@ -200,9 +203,9 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
       <LinearGradient
-        colors={['#FFFFFF', '#F8F9FA', '#FFFFFF']}
+        colors={isDarkMode ? ['#161616', '#292929', '#161616'] : ['#FFFFFF', '#F8F9FA', '#FFFFFF']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -222,25 +225,25 @@ const RegisterScreen = ({ navigation }) => {
               {/* Header */}
               <View style={styles.header}>
                 <LinearGradient
-                  colors={['#1F2937', '#111827']}
+                  colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                   style={styles.logoContainer}
                 >
                   <Ionicons name="person-add" size={32} color="#FFF" />
                 </LinearGradient>
-                <Text style={styles.title}>Crear Cuenta</Text>
-                <Text style={styles.subtitle}>Únete a la comunidad de Carpuling</Text>
+                <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Crear Cuenta</Text>
+                <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Únete a la comunidad de Carpuling</Text>
               </View>
 
               {/* Avatar */}
               <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
                 {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                  <Image source={{ uri: avatarUri }} style={[styles.avatar, { borderColor: isDarkMode ? '#6B7280' : '#1F2937' }]} />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="camera" size={32} color="#6B7280" />
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+                    <Ionicons name="camera" size={32} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
                   </View>
                 )}
-                <Text style={styles.avatarText}>Foto de Perfil (opcional)</Text>
+                <Text style={[styles.avatarText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Foto de Perfil (opcional)</Text>
               </TouchableOpacity>
 
               {/* Form */}
@@ -364,7 +367,7 @@ const RegisterScreen = ({ navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                     style={styles.button}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
@@ -380,13 +383,13 @@ const RegisterScreen = ({ navigation }) => {
 
               {/* Login Link */}
               <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
+                <Text style={[styles.loginText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>¿Ya tienes cuenta? </Text>
                 <TouchableOpacity 
                   onPress={() => navigation.navigate('Login')}
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.loginLinkGradient}
@@ -415,7 +418,6 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   gradient: {
     flex: 1,
@@ -446,12 +448,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
-    color: safeColors.textPrimary,
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: fontSize.md,
-    color: safeColors.textSecondary,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -462,15 +462,12 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#1F2937',
   },
   avatarPlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: safeColors.surface,
     borderWidth: 2,
-    borderColor: safeColors.border,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -478,7 +475,6 @@ const styles = StyleSheet.create({
   avatarText: {
     marginTop: spacing.sm,
     fontSize: fontSize.sm,
-    color: safeColors.textSecondary,
   },
   form: {
     width: '100%',
@@ -486,11 +482,9 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: safeColors.surface,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: safeColors.border,
     paddingHorizontal: spacing.md,
   },
   inputIconContainer: {
@@ -500,7 +494,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     fontSize: fontSize.md,
-    color: safeColors.textPrimary,
   },
   eyeIcon: {
     padding: spacing.sm,
@@ -519,10 +512,9 @@ const styles = StyleSheet.create({
   },
   pickerText: {
     fontSize: fontSize.md,
-    color: safeColors.textPrimary,
   },
   pickerPlaceholder: {
-    color: safeColors.placeholder,
+    fontSize: fontSize.md,
   },
   // Modal Styles
   modalOverlay: {
@@ -531,7 +523,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: safeColors.surface,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '70%',
@@ -543,12 +534,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: safeColors.border,
   },
   modalTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: safeColors.textPrimary,
   },
   modalCloseButton: {
     padding: spacing.xs,
@@ -563,19 +552,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.xs,
-    backgroundColor: safeColors.background,
   },
   modalItemSelected: {
-    backgroundColor: safeColors.surfaceElevated,
     borderWidth: 2,
-    borderColor: safeColors.primary,
   },
   modalItemText: {
     fontSize: fontSize.md,
-    color: safeColors.textPrimary,
   },
   modalItemTextSelected: {
-    color: safeColors.primary,
     fontWeight: fontWeight.semiBold,
   },
   button: {
@@ -596,14 +580,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   loginText: {
-    color: safeColors.textSecondary,
     fontSize: fontSize.md,
   },
   loginLinkGradient: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.md,
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

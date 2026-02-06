@@ -1,13 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { colors as themeColors } from '../../theme/colors';
-
-// Safe colors with fallbacks for navigation
-const colors = themeColors || {
-  surface: '#F8F9FA',
-  border: '#E5E7EB',
-  textPrimary: '#000000',
-};
+import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 import CarpoolingsScreen from '../../screens/main/CarpoolingsScreen';
 // import CreateTripScreen from '../../screens/main/CreateTripScreen';
 import CreateTripGoogleMaps from '../../screens/main/CreateTripGoogleMaps';
@@ -24,21 +18,24 @@ import UserReviewsScreen from '../../screens/main/UserReviewsScreen';
 const Stack = createStackNavigator();
 
 const CarpoolingsStackNavigator = () => {
+  const colors = useColors();
+  const { isDarkMode } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
         },
-        headerTintColor: colors.textPrimary,
+        headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
         headerTitleStyle: {
           fontWeight: '600',
           fontSize: 18,
-          color: colors.textPrimary,
+          color: isDarkMode ? '#FFFFFF' : '#1F2937',
         },
         headerBackTitleVisible: false,
       }}

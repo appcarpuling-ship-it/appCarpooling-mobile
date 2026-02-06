@@ -17,11 +17,14 @@ import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations } from '../../services/seatReservationService';
 import NativeCheckout from '../../components/NativeCheckout';
 import Toast from '../../components/Toast';
+import { useColors } from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
 
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user } = useAuth();
+  const { colors } = useColors();
+  
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userBooking, setUserBooking] = useState(null);
@@ -211,17 +214,17 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.messagePrimary} />
       </View>
     );
   }
 
   if (!trip) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#9CA3AF" />
-        <Text style={styles.emptyText}>Viaje no encontrado</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
+        <Text style={[styles.emptyText, { color: colors.textPrimary }]}>Viaje no encontrado</Text>
       </View>
     );
   }
@@ -233,18 +236,18 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'started': return { color: '#3B82F6', bg: '#DBEAFE', text: 'En curso' };
-      case 'completed': return { color: '#10B981', bg: '#D1FAE5', text: 'Finalizado' };
-      case 'cancelled': return { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado' };
-      case 'active': return { color: '#6B7280', bg: '#F3F4F6', text: 'Programado' };
-      default: return { color: '#6B7280', bg: '#F3F4F6', text: status };
+      case 'started': return { color: colors.info, bg: colors.info + '20', text: 'En curso' };
+      case 'completed': return { color: colors.success, bg: colors.success + '20', text: 'Finalizado' };
+      case 'cancelled': return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
+      case 'active': return { color: colors.textMuted, bg: colors.border, text: 'Programado' };
+      default: return { color: colors.textMuted, bg: colors.border, text: status };
     }
   };
 
   const statusConfig = getStatusConfig(trip.status);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -264,14 +267,14 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Route */}
-        <View style={styles.routeSection}>
+        <View style={[styles.routeSection, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
           <View style={styles.routeRow}>
-            <View style={styles.routeDot} />
+            <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
             <View style={styles.routeContent}>
-              <Text style={styles.routeCity}>{trip.origin?.address}</Text>
+              <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{trip.origin?.address}</Text>
             </View>
           </View>
-          <View style={styles.routeLine} />
+          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
           
           {/* Paradas Intermedias */}
           {trip.intermediateStops && trip.intermediateStops.length > 0 && 
@@ -280,76 +283,76 @@ const TripDetailScreen = ({ route, navigation }) => {
               .map((stop, index) => (
                 <React.Fragment key={`stop-${index}`}>
                   <View style={styles.routeRow}>
-                    <View style={styles.routeDotIntermediate}>
+                    <View style={[styles.routeDotIntermediate, { backgroundColor: colors.textMuted }]}>
                       <Text style={styles.routeDotNumber}>{stop.order}</Text>
                     </View>
                     <View style={styles.routeContent}>
-                      <Text style={styles.routeCityIntermediate}>
+                      <Text style={[styles.routeCityIntermediate, { color: colors.textSecondary }]}>
                         Parada {stop.order}: {stop.address}, {stop.city}
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.routeLine} />
+                  <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
                 </React.Fragment>
               ))
           }
           
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination]} />
+            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.error }]} />
             <View style={styles.routeContent}>
-              <Text style={styles.routeCity}>{trip.destination?.address}</Text>
+              <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{trip.destination?.address}</Text>
             </View>
           </View>
         </View>
 
         {/* Date & Seats */}
-        <View style={styles.infoRow}>
+        <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
           <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-            <Text style={styles.infoText}>{formatDate(trip.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDate(trip.departureDate)}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={18} color="#6B7280" />
-            <Text style={styles.infoText}>{trip.departureTime} Hs</Text>
+            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{trip.departureTime} Hs</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="person-outline" size={18} color="#6B7280" />
-            <Text style={styles.infoText}>{trip.availableSeats} asientos</Text>
+            <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{trip.availableSeats} asientos</Text>
           </View>
         </View>
 
         {/* Actual Cost */}
         {(trip.status === 'started' || trip.status === 'completed') && trip.actualCost > 0 && (
-          <View style={styles.costBanner}>
-            <Ionicons name="cash-outline" size={20} color="#10B981" />
-            <Text style={styles.costLabel}>Costo final</Text>
-            <Text style={styles.costValue}>${formatNumber(trip.actualCost)}</Text>
+          <View style={[styles.costBanner, { backgroundColor: colors.success + '20' }]}>
+            <Ionicons name="cash-outline" size={20} color={colors.success} />
+            <Text style={[styles.costLabel, { color: colors.success }]}>Costo final</Text>
+            <Text style={[styles.costValue, { color: colors.success }]}>${formatNumber(trip.actualCost)}</Text>
           </View>
         )}
 
         {/* Driver */}
         <TouchableOpacity
-          style={styles.driverSection}
+          style={[styles.driverSection, { borderBottomColor: colors.border }]}
           // onPress={!isOwnTrip ? handleStartChat : undefined}
           activeOpacity={isOwnTrip ? 1 : 0.7}
         >
           {driver?.avatar ? (
             <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.driverAvatar} />
           ) : (
-            <View style={styles.driverAvatarPlaceholder}>
-              <Text style={styles.driverInitials}>
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#292929' }]}>
+              <Text style={[styles.driverInitials, { color: colors.textPrimary }]}>
                 {driver?.firstName?.[0]}{driver?.lastName?.[0]}
               </Text>
             </View>
           )}
           <View style={styles.driverInfo}>
-            <Text style={styles.driverName}>
+            <Text style={[styles.driverName, { color: colors.textPrimary }]}>
               {driver?.firstName} {driver?.lastName}
             </Text>
-            <Text style={styles.driverLabel}>Conductor</Text>
+            <Text style={[styles.driverLabel, { color: colors.textSecondary }]}>Conductor</Text>
           </View>
           {/* {!isOwnTrip && (
-            <Ionicons name="chatbubble-outline" size={22} color="#6B7280" />
+            <Ionicons name="chatbubble-outline" size={22} color={colors.textMuted} />
           )} */}
         </TouchableOpacity>
 
@@ -357,8 +360,8 @@ const TripDetailScreen = ({ route, navigation }) => {
         {trip.vehicle && (() => {
           const vehicleImage = trip.vehicle.photo || (trip.vehicle.photos && trip.vehicle.photos[0]);
           return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Vehiculo</Text>
+            <View style={[styles.section, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Vehiculo</Text>
               <View style={styles.vehicleContainer}>
                 {vehicleImage ? (
                   <Image 
@@ -366,15 +369,15 @@ const TripDetailScreen = ({ route, navigation }) => {
                     style={styles.vehicleImage}
                   />
                 ) : (
-                  <View style={styles.vehicleImagePlaceholder}>
-                    <Ionicons name="car-outline" size={48} color="#6B7280" />
+                  <View style={[styles.vehicleImagePlaceholder, { backgroundColor: '#292929' }]}>
+                    <Ionicons name="car-outline" size={48} color={colors.textMuted} />
                   </View>
                 )}
                 <View style={styles.vehicleDetails}>
-                  <Text style={styles.vehicleText}>
+                  <Text style={[styles.vehicleText, { color: colors.textPrimary }]}>
                     {trip.vehicle.brand} {trip.vehicle.model}
                   </Text>
-                  <Text style={styles.vehicleColor}>{trip.vehicle.color}</Text>
+                  <Text style={[styles.vehicleColor, { color: colors.textSecondary }]}>{trip.vehicle.color}</Text>
                 </View>
               </View>
             </View>
@@ -383,31 +386,31 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Features */}
         {trip.vehicle?.features && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Caracteristicas</Text>
+          <View style={[styles.section, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Caracteristicas</Text>
             <View style={styles.featuresGrid}>
               {trip.vehicle.features.ac && (
                 <View style={styles.featureItem}>
-                  <Ionicons name="snow-outline" size={18} color="#374151" />
-                  <Text style={styles.featureText}>Aire</Text>
+                  <Ionicons name="snow-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Aire</Text>
                 </View>
               )}
               {trip.vehicle.features.music && (
                 <View style={styles.featureItem}>
-                  <Ionicons name="musical-notes-outline" size={18} color="#374151" />
-                  <Text style={styles.featureText}>Musica</Text>
+                  <Ionicons name="musical-notes-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Musica</Text>
                 </View>
               )}
               {trip.vehicle.features.pets && (
                 <View style={styles.featureItem}>
-                  <Ionicons name="paw-outline" size={18} color="#374151" />
-                  <Text style={styles.featureText}>Mascotas</Text>
+                  <Ionicons name="paw-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Mascotas</Text>
                 </View>
               )}
               {trip.vehicle.features.luggage && (
                 <View style={styles.featureItem}>
-                  <Ionicons name="bag-handle-outline" size={18} color="#374151" />
-                  <Text style={styles.featureText}>Equipaje</Text>
+                  <Ionicons name="bag-handle-outline" size={18} color={colors.textSecondary} />
+                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Equipaje</Text>
                 </View>
               )}
             </View>
@@ -415,16 +418,16 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Rules */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reglas del viaje</Text>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Reglas del viaje</Text>
           <View style={styles.rulesContainer}>
             <View style={styles.ruleItem}>
               <Ionicons
                 name={trip.rules?.smokingAllowed ? 'checkmark-circle' : 'close-circle'}
                 size={20}
-                color={trip.rules?.smokingAllowed ? '#10B981' : '#EF4444'}
+                color={trip.rules?.smokingAllowed ? colors.success : colors.error}
               />
-              <Text style={styles.ruleText}>
+              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
                 {trip.rules?.smokingAllowed ? 'Se puede fumar' : 'No fumar'}
               </Text>
             </View>
@@ -432,9 +435,9 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Ionicons
                 name={trip.rules?.petsAllowed ? 'checkmark-circle' : 'close-circle'}
                 size={20}
-                color={trip.rules?.petsAllowed ? '#10B981' : '#EF4444'}
+                color={trip.rules?.petsAllowed ? colors.success : colors.error}
               />
-              <Text style={styles.ruleText}>
+              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
                 {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
               </Text>
             </View>
@@ -443,9 +446,9 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Notes */}
         {trip.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notas</Text>
-            <Text style={styles.notesText}>{trip.notes}</Text>
+          <View style={[styles.section, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Notas</Text>
+            <Text style={[styles.notesText, { color: colors.textSecondary }]}>{trip.notes}</Text>
           </View>
         )}
 
@@ -486,45 +489,45 @@ const TripDetailScreen = ({ route, navigation }) => {
 
       {/* Footer */}
       {!isOwnTrip && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           {userBooking ? (
             (userBooking.seatReservation?.reservationStatus === 'pending_payment' ||
               userBooking.paymentStatus === 'pending_payment') ? (
               <View style={styles.pendingContainer}>
                 <View style={styles.pendingHeader}>
                   <View style={styles.pendingIndicator}>
-                    <View style={styles.pendingDot} />
-                    <Text style={styles.pendingText}>Pago pendiente</Text>
+                    <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
+                    <Text style={[styles.pendingText, { color: colors.warning }]}>Pago pendiente</Text>
                   </View>
                   <TouchableOpacity onPress={handleCancelPendingReservation}>
-                    <Text style={styles.cancelText}>Cancelar</Text>
+                    <Text style={[styles.cancelText, { color: colors.error }]}>Cancelar</Text>
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity
-                  style={styles.payButton}
+                  style={[styles.payButton, { backgroundColor: colors.messagePrimary }]}
                   onPress={handleCompletePendingPayment}
                   disabled={paymentLoading}
                 >
                   {paymentLoading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.textPrimary} />
                   ) : (
-                    <Text style={styles.payButtonText}>Completar pago</Text>
+                    <Text style={[styles.payButtonText, { color: colors.textPrimary }]}>Completar pago</Text>
                   )}
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.confirmedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.confirmedText}>Reserva confirmada</Text>
+              <View style={[styles.confirmedBadge, { backgroundColor: colors.success + '20' }]}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <Text style={[styles.confirmedText, { color: colors.success }]}>Reserva confirmada</Text>
               </View>
             )
           ) : (
             <TouchableOpacity
-              style={[styles.bookButton, trip.availableSeats === 0 && styles.bookButtonDisabled]}
+              style={[styles.bookButton, { backgroundColor: trip.availableSeats === 0 ? colors.textMuted : colors.textMuted }]}
               onPress={handleBookTrip}
               disabled={trip.availableSeats === 0}
             >
-              <Text style={styles.bookButtonText}>
+              <Text style={[styles.bookButtonText, { color: colors.textPrimary }]}>
                 {trip.availableSeats === 0 ? 'Sin asientos' : 'Reservar'}
               </Text>
             </TouchableOpacity>
@@ -538,17 +541,14 @@ const TripDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
     marginTop: 12,
   },
   scrollView: {
@@ -580,7 +580,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   routeRow: {
     flexDirection: 'row',
@@ -590,21 +589,17 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#000000',
     marginTop: 4,
     marginRight: 16,
   },
   routeDotDestination: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#000000',
   },
   // Paradas intermedias
   routeDotIntermediate: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#6B7280',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -618,12 +613,10 @@ const styles = StyleSheet.create({
   routeCityIntermediate: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#6B7280',
   },
   routeLine: {
     width: 2,
     height: 32,
-    backgroundColor: '#E5E7EB',
     marginLeft: 5,
     marginVertical: 4,
   },
@@ -639,11 +632,9 @@ const styles = StyleSheet.create({
   routeCity: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
   },
   routeAddress: {
     fontSize: 14,
-    color: '#6B7280',
     marginTop: 2,
   },
   // Info Row
@@ -653,7 +644,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   infoItem: {
     flexDirection: 'row',
@@ -662,7 +652,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 15,
-    color: '#374151',
   },
   // Cost
   costBanner: {
@@ -671,19 +660,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 16,
     padding: 16,
-    backgroundColor: '#ECFDF5',
     borderRadius: 12,
     gap: 12,
   },
   costLabel: {
     fontSize: 14,
-    color: '#065F46',
     flex: 1,
   },
   costValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
   },
   // Driver
   driverSection: {
@@ -692,7 +678,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   driverAvatar: {
     width: 72,
@@ -703,14 +688,12 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
   },
   driverInitials: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   driverInfo: {
     flex: 1,
@@ -719,11 +702,9 @@ const styles = StyleSheet.create({
   driverName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
   },
   driverLabel: {
     fontSize: 14,
-    color: '#6B7280',
     marginTop: 2,
   },
   // Sections
@@ -731,12 +712,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -756,13 +735,11 @@ const styles = StyleSheet.create({
     width: 96,
     height: 72,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
   },
   vehicleImagePlaceholder: {
     width: 96,
     height: 72,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -772,11 +749,9 @@ const styles = StyleSheet.create({
   vehicleText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
   },
   vehicleColor: {
     fontSize: 14,
-    color: '#6B7280',
     marginTop: 2,
   },
   // Features
@@ -792,7 +767,6 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    color: '#374151',
   },
   // Rules
   rulesContainer: {
@@ -805,12 +779,10 @@ const styles = StyleSheet.create({
   },
   ruleText: {
     fontSize: 15,
-    color: '#374151',
   },
   // Notes
   notesText: {
     fontSize: 15,
-    color: '#374151',
     lineHeight: 22,
   },
   // Footer
@@ -821,23 +793,19 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingBottom: 32,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   bookButton: {
-    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   bookButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    // removed - handled inline
   },
   bookButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   // Pending Payment
   pendingContainer: {
@@ -857,20 +825,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#F59E0B',
   },
   pendingText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#92400E',
   },
   cancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#EF4444',
   },
   payButton: {
-    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -878,14 +842,12 @@ const styles = StyleSheet.create({
   payButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   // Confirmed
   confirmedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D1FAE5',
     paddingVertical: 16,
     borderRadius: 8,
     gap: 8,
@@ -893,7 +855,6 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#065F46',
   },
   // Image Modal
   modalOverlay: {

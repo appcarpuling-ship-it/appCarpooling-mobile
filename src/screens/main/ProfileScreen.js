@@ -32,7 +32,7 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, logout, isAuthenticated } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { colors, fontFamily, createColorArray } = useColors();
+  const { colors, fontFamily, createColorArray, getCurrentThemeMode, setThemeMode } = useColors();
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   // Dynamic styles that depend on fontFamily from hook
@@ -41,11 +41,11 @@ const ProfileScreen = () => {
       fontSize: 24,
       fontFamily: fontFamily.bold,
       fontWeight: 'bold',
-      color: '#000000',
+      // color: '#000000', // Ahora dinámico
     },
     statLabel: {
       fontSize: 13,
-      color: '#6B7280',
+      // color: '#6B7280', // Ahora dinámico
       fontFamily: fontFamily.medium,
       fontWeight: '500',
       letterSpacing: 0.3,
@@ -54,7 +54,7 @@ const ProfileScreen = () => {
       fontSize: 11,
       fontFamily: fontFamily.semiBold,
       fontWeight: '600',
-      color: '#9CA3AF',
+      // color: '#9CA3AF', // Ahora dinámico
       textTransform: 'uppercase',
       letterSpacing: 1.2,
       marginBottom: 14,
@@ -64,7 +64,7 @@ const ProfileScreen = () => {
       flex: 1,
       marginLeft: 14,
       fontSize: 16,
-      color: '#000000',
+      // color: '#000000', // Ahora dinámico
       fontFamily: fontFamily.medium,
       fontWeight: '500',
     },
@@ -169,6 +169,36 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleThemeToggle = () => {
+    const currentMode = getCurrentThemeMode();
+    
+    // Ciclo: light -> dark -> system -> light
+    if (currentMode === 'light') {
+      setThemeMode('dark');
+      Alert.alert('Tema Cambiado', '🌙 Modo oscuro activado');
+    } else if (currentMode === 'dark') {
+      setThemeMode('system');
+      Alert.alert('Tema Cambiado', '📱 Modo automático activado (sigue el sistema)');
+    } else {
+      setThemeMode('light');
+      Alert.alert('Tema Cambiado', '🌞 Modo claro activado');
+    }
+  };
+
+  const getThemeButtonText = () => {
+    const currentMode = getCurrentThemeMode();
+    if (currentMode === 'light') return 'Cambiar a Oscuro';
+    if (currentMode === 'dark') return 'Cambiar a Automático'; 
+    return 'Cambiar a Claro';
+  };
+
+  const getThemeIcon = () => {
+    const currentMode = getCurrentThemeMode();
+    if (currentMode === 'light') return 'moon-outline';
+    if (currentMode === 'dark') return 'phone-portrait-outline';
+    return 'sunny-outline';
+  };
+
   const menuSections = [
     {
       title: 'Perfil',
@@ -217,6 +247,12 @@ const ProfileScreen = () => {
           icon: 'help-circle-outline',
           onPress: () => navigation.navigate('Help'),
         },
+        {
+          id: 6,
+          title: getThemeButtonText(),
+          icon: getThemeIcon(),
+          onPress: handleThemeToggle,
+        },
       ],
     },
     // {
@@ -245,10 +281,7 @@ const ProfileScreen = () => {
   ];
 
   return (
-    <LinearGradient
-      colors={createColorArray(colors.background, colors.surface)}
-      style={styles.gradient}
-    >
+    <View style={[styles.gradient, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <Animated.View
           style={[
@@ -267,22 +300,19 @@ const ProfileScreen = () => {
                 onError={() => console.log('Error loading avatar from:', user.avatar)}
               />
             ) : (
-              <LinearGradient
-                colors={['#1F2937', '#111827']}
-                style={styles.avatar}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
+                style={[styles.avatar, { backgroundColor: colors.messagePrimary, borderColor: colors.cardBackground }]}
               >
-                <Text style={styles.avatarText}>
+                <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
           </View>
-          <Text style={styles.name}>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>
             {user?.firstName} {user?.lastName}
           </Text>
-          <Text style={styles.email}>{user?.email}</Text>
+          <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
         </Animated.View>
 
         <Animated.View
@@ -296,28 +326,33 @@ const ProfileScreen = () => {
         >
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={dynamicStyles.sectionTitle}>{section.title}</Text>
+              <Text style={[dynamicStyles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
               {section.items.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={styles.menuItem}
+                  style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
                   <View style={styles.menuItemContent}>
                     <View style={[
                       styles.iconContainer,
-                      item.danger && styles.iconContainerDanger
+                      item.danger && styles.iconContainerDanger,
+                      { 
+                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : colors.surface,
+                        borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
+                      }
                     ]}>
                       <Ionicons
                         name={item.icon}
                         size={22}
-                        color={item.danger ? colors.error : '#1F2937'}
+                        color={item.danger ? colors.error : colors.textPrimary}
                       />
                     </View>
                     <Text
                       style={[
                         dynamicStyles.menuItemText,
+                        { color: item.danger ? colors.error : colors.textPrimary },
                         item.danger && styles.menuItemDanger,
                       ]}
                     >
@@ -326,7 +361,7 @@ const ProfileScreen = () => {
                     <Ionicons
                       name="chevron-forward"
                       size={20}
-                      color={item.danger ? colors.error : '#6B7280'}
+                      color={item.danger ? colors.error : colors.textSecondary}
                     />
                   </View>
                 </TouchableOpacity>
@@ -335,7 +370,7 @@ const ProfileScreen = () => {
           ))}
         </Animated.View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -372,7 +407,6 @@ const styles = StyleSheet.create({
     borderColor: '#F8F9FA',
   },
   avatarText: {
-    color: '#FFFFFF',
     fontSize: 44,
     fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
@@ -382,14 +416,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
-    color: '#000000',
+    // color: '#000000', // Ahora dinámico
     marginBottom: 6,
     letterSpacing: 0.5,
   },
   email: {
     fontSize: 15,
     fontFamily: SORA_FONTS.regular,
-    color: '#6B7280',
+    // color: '#6B7280', // Ahora dinámico
     marginBottom: 28,
   },
   statsContainer: {
@@ -441,11 +475,11 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   menuItem: {
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
     borderRadius: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    // borderColor: '#F3F4F6', // Ahora dinámico
     overflow: 'hidden',
   },
   menuItemContent: {
@@ -457,11 +491,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F8F9FA',
+    // backgroundColor: '#F8F9FA', // Ahora dinámico
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    // borderColor: '#F3F4F6', // Ahora dinámico
   },
   iconContainerDanger: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',

@@ -26,6 +26,7 @@ import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
 
 const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
@@ -107,6 +108,7 @@ const ContinuousCarousel = ({ banners, onBannerPress }) => {
 const HomeScreen = ({ navigation }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
+  const { colors } = useColors();
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
@@ -270,7 +272,10 @@ const HomeScreen = ({ navigation }) => {
   const renderTripCard = (trip) => (
     <TouchableOpacity
       key={trip._id}
-      style={styles.tripCard}
+      style={[styles.tripCard, { 
+        backgroundColor: colors.cardBackground,
+        borderColor: colors.border 
+      }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
     >
@@ -282,15 +287,15 @@ const HomeScreen = ({ navigation }) => {
             style={styles.driverAvatar}
           />
         ) : (
-          <View style={styles.driverAvatarPlaceholder}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#292929' }]}>
             <Text style={styles.driverInitials}>{getDriverInitials(trip.driver)}</Text>
           </View>
         )}
         <View style={styles.tripInfo}>
-          <Text style={styles.driverName}>
+          <Text style={[styles.driverName, { color: colors.textPrimary }]}>
             {trip.driver?.firstName} {trip.driver?.lastName}
           </Text>
-          <Text style={styles.tripDate}>
+          <Text style={[styles.tripDate, { color: colors.textSecondary }]}>
             {new Date(trip.departureDate).toLocaleDateString('es-ES', {
               weekday: 'short',
               day: 'numeric',
@@ -304,34 +309,34 @@ const HomeScreen = ({ navigation }) => {
       {/* Route */}
       <View style={styles.routeContainer}>
         <View style={styles.routeDotsContainer}>
-          <View style={styles.routeDotOrigin} />
-          <View style={styles.routeLine} />
-          <View style={styles.routeDotDestination} />
+          <View style={[styles.routeDotOrigin, { borderColor: colors.primary }]} />
+          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
+          <View style={[styles.routeDotDestination, { backgroundColor: colors.primary }]} />
         </View>
         <View style={styles.routeTexts}>
-          <Text style={styles.routeCity} numberOfLines={1}>
+          <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
             {trip.origin.address ? `${trip.origin.address}, ${trip.origin.city}` : trip.origin.city}
           </Text>
-          <Text style={styles.routeCity} numberOfLines={1}>
+          <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
             {trip.destination.address ? `${trip.destination.address}, ${trip.destination.city}` : trip.destination.city}
           </Text>
         </View>
       </View>
       {trip.intermediateStops && trip.intermediateStops.length > 0 && (
-        <Text style={styles.routeCityIntermediate} numberOfLines={1}>
+        <Text style={[styles.routeCityIntermediate, { color: colors.textTertiary }]} numberOfLines={1}>
           +{trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
         </Text>
       )}
 
       {/* Footer */}
-      <View style={styles.tripFooter}>
+      <View style={[styles.tripFooter, { borderTopColor: colors.borderLight }]}>
         <View style={styles.seatsInfo}>
-          <Ionicons name="person-outline" size={14} color="#6B7280" />
-          <Text style={styles.seatsText}>
+          <Ionicons name="person-outline" size={14} color={colors.textTertiary} />
+          <Text style={[styles.seatsText, { color: colors.textTertiary }]}>
             {trip.availableSeats} lugar{trip.availableSeats !== 1 ? 'es' : ''}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </View>
     </TouchableOpacity>
   );
@@ -339,14 +344,14 @@ const HomeScreen = ({ navigation }) => {
   const renderProvincePicker = (visible, onClose, selected, onSelect, title) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.pickerContainer}>
-          <View style={styles.pickerHeader}>
-            <Text style={styles.pickerTitle}>{title}</Text>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: colors.borderLight }]}>
+            <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.provinceList} showsVerticalScrollIndicator={false}>
+          <ScrollView style={[styles.provinceList, { backgroundColor: colors.surface }]} showsVerticalScrollIndicator={false}>
             {ARGENTINA_PROVINCES.map((province) => (
               <TouchableOpacity
                 key={province}
@@ -354,13 +359,29 @@ const HomeScreen = ({ navigation }) => {
                   onSelect(province);
                   onClose();
                 }}
-                style={[styles.provinceOption, selected === province && styles.provinceOptionSelected]}
+                style={[
+                  styles.provinceOption, 
+                  selected === province && styles.provinceOptionSelected,
+                  {
+                    backgroundColor: selected === province 
+                      ? colors.primaryLight 
+                      : colors.cardBackground,
+                    borderBottomColor: colors.borderLight
+                  }
+                ]}
               >
-                <Text style={[styles.provinceOptionText, selected === province && styles.provinceOptionTextSelected]}>
+                <Text style={[
+                  styles.provinceOptionText, 
+                  { 
+                    color: selected === province 
+                      ? colors.primary 
+                      : colors.textPrimary 
+                  }
+                ]}>
                   {province}
                 </Text>
                 {selected === province && (
-                  <Ionicons name="checkmark" size={20} color="#000000" />
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -371,7 +392,7 @@ const HomeScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -379,7 +400,7 @@ const HomeScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#000000"
+            tintColor={colors.primary}
           />
         }
       >
@@ -388,12 +409,15 @@ const HomeScreen = ({ navigation }) => {
           {isAuthenticated && (
             <TouchableOpacity
               onPress={() => setShowNotificationsModal(true)}
-              style={styles.notificationButton}
+              style={[styles.notificationButton, { 
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border 
+              }]}
               activeOpacity={0.7}
             >
-              <Ionicons name="notifications-outline" size={22} color="#000000" />
+              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
               {unreadCount > 0 && (
-                <View style={styles.notificationBadge}>
+                <View style={[styles.notificationBadge, { borderColor: colors.cardBackground }]}>
                   <Text style={styles.notificationBadgeText}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Text>
@@ -403,66 +427,84 @@ const HomeScreen = ({ navigation }) => {
           )}
 
           <Image source={LOGO_SOURCE} style={styles.logo} />
-          <Text style={styles.title}>Carpuling</Text>
-          <Text style={styles.subtitle}>Viaja inteligente, ahorra más</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Carpuling</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Viaja inteligente, ahorra más</Text>
         </View>
 
         {/* Search */}
         <View style={styles.searchContainer}>
           <TouchableOpacity
-            style={styles.inputContainer}
+            style={[styles.inputContainer, { 
+              backgroundColor: colors.inputBackground,
+              borderColor: colors.inputBorder 
+            }]}
             onPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
           >
-            <View style={styles.inputDot} />
-            <Text style={[styles.inputText, origin && styles.inputTextFilled]}>
+            <View style={[styles.inputDot, { borderColor: colors.primary }]} />
+            <Text style={[styles.inputText, origin && styles.inputTextFilled, {
+              color: origin ? colors.textPrimary : colors.placeholder
+            }]}>
               {origin || '¿Desde dónde viajas?'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.inputContainer}
+            style={[styles.inputContainer, { 
+              backgroundColor: colors.inputBackground,
+              borderColor: colors.inputBorder 
+            }]}
             onPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
           >
-            <View style={styles.inputDotFilled} />
-            <Text style={[styles.inputText, destination && styles.inputTextFilled]}>
+            <View style={[styles.inputDotFilled, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.inputText, destination && styles.inputTextFilled, {
+              color: destination ? colors.textPrimary : colors.placeholder
+            }]}>
               {destination || '¿Cuál es tu destino?'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.inputContainer}
+            style={[styles.inputContainer, { 
+              backgroundColor: colors.inputBackground,
+              borderColor: colors.inputBorder 
+            }]}
             onPress={() => setShowDatePicker(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-            <Text style={[styles.inputText, selectedDate && styles.inputTextFilled]}>
+            <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+            <Text style={[styles.inputText, selectedDate && styles.inputTextFilled, {
+              color: selectedDate ? colors.textPrimary : colors.placeholder
+            }]}>
               {selectedDate ? formatDate(selectedDate) : '¿Cuándo sales?'}
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="people-outline" size={18} color="#6B7280" />
+          <View style={[styles.inputContainer, { 
+            backgroundColor: colors.inputBackground,
+            borderColor: colors.inputBorder 
+          }]}>
+            <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: colors.textPrimary }]}
               placeholder="¿Cuántos viajan?"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.placeholder}
               value={selectedSeats}
               onChangeText={setSelectedSeats}
               keyboardType="numeric"
             />
           </View>
 
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch} activeOpacity={0.8}>
-            <Ionicons name="search" size={20} color="#FFFFFF" />
-            <Text style={styles.searchButtonText}>Buscar viajes</Text>
+          <TouchableOpacity style={[styles.searchButton, { backgroundColor: colors.primary }]} onPress={handleSearch} activeOpacity={0.8}>
+            <Ionicons name="search" size={20} color={colors.background} />
+            <Text style={[styles.searchButtonText, { color: colors.background }]}>Buscar viajes</Text>
           </TouchableOpacity>
 
           {(origin || destination || selectedDate || selectedSeats) && (
             <TouchableOpacity style={styles.clearButton} onPress={clearFilters} activeOpacity={0.7}>
-              <Ionicons name="refresh-outline" size={16} color="#6B7280" />
-              <Text style={styles.clearButtonText}>Limpiar filtros</Text>
+              <Ionicons name="refresh-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>Limpiar filtros</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -477,22 +519,22 @@ const HomeScreen = ({ navigation }) => {
         {/* Recent Trips */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Próximos viajes</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Próximos viajes</Text>
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#000000" />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : recentTrips.length > 0 ? (
             recentTrips.map(renderTripCard)
           ) : (
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="car-outline" size={40} color="#9CA3AF" />
+              <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+                <Ionicons name="car-outline" size={40} color={colors.textMuted} />
               </View>
-              <Text style={styles.emptyText}>No hay viajes disponibles</Text>
-              <Text style={styles.emptySubtext}>Sé el primero en crear uno</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No hay viajes disponibles</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Sé el primero en crear uno</Text>
             </View>
           )}
 
@@ -501,8 +543,8 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('AllTrips')}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewAllText}>Ver todos los viajes</Text>
-            <Ionicons name="arrow-forward" size={18} color="#000000" />
+            <Text style={[styles.viewAllText, { color: colors.textPrimary }]}>Ver todos los viajes</Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -531,38 +573,41 @@ const HomeScreen = ({ navigation }) => {
           {Platform.OS === 'ios' ? (
             <Modal visible transparent animationType="fade">
               <View style={styles.modalOverlay}>
-                <View style={styles.pickerContainer}>
-                  <View style={styles.pickerHeader}>
-                    <Text style={styles.pickerTitle}>Seleccionar fecha</Text>
+                <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
+                  <View style={[styles.pickerHeader, { borderBottomColor: colors.borderLight }]}>
+                    <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>Seleccionar fecha</Text>
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Ionicons name="close" size={24} color="#000000" />
+                      <Ionicons name="close" size={24} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.datePickerWrapper}>
+                  <View style={[styles.datePickerWrapper, { backgroundColor: colors.surface }]}>
                     <DateTimePicker
                       value={selectedDate || new Date()}
                       mode="date"
                       display="spinner"
                       onChange={handleDateChange}
                       minimumDate={new Date()}
-                      textColor="#000000"
+                      textColor={colors.textPrimary}
                     />
                   </View>
-                  <View style={styles.pickerButtons}>
+                  <View style={[styles.pickerButtons, { backgroundColor: colors.background }]}>
                     <TouchableOpacity
-                      style={styles.pickerButtonClear}
+                      style={[styles.pickerButtonClear, { 
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border 
+                      }]}
                       onPress={() => {
                         setSelectedDate(null);
                         setShowDatePicker(false);
                       }}
                     >
-                      <Text style={styles.pickerButtonClearText}>Limpiar</Text>
+                      <Text style={[styles.pickerButtonClearText, { color: colors.textSecondary }]}>Limpiar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.pickerButtonConfirm}
+                      style={[styles.pickerButtonConfirm, { backgroundColor: colors.primary }]}
                       onPress={() => setShowDatePicker(false)}
                     >
-                      <Text style={styles.pickerButtonConfirmText}>Confirmar</Text>
+                      <Text style={[styles.pickerButtonConfirmText, { color: colors.onPrimary }]}>Confirmar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -605,7 +650,7 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    // backgroundColor: '#F9FAFB', // Removido - ahora se usa color dinámico
   },
   scrollContent: {
     paddingBottom: 24,
@@ -625,11 +670,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   notificationBadge: {
     position: 'absolute',
@@ -659,12 +702,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B7280',
   },
   // Search
   searchContainer: {
@@ -674,10 +715,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
@@ -687,32 +726,27 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: '#000000',
   },
   inputDotFilled: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000000',
   },
   inputText: {
     flex: 1,
     fontSize: 15,
-    color: '#9CA3AF',
   },
   inputTextFilled: {
-    color: '#000000',
+    // color handled inline
   },
   textInput: {
     flex: 1,
     fontSize: 15,
-    color: '#000000',
   },
   searchButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
@@ -721,7 +755,6 @@ const styles = StyleSheet.create({
   searchButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   clearButton: {
     flexDirection: 'row',
@@ -732,7 +765,6 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 14,
-    color: '#6B7280',
     fontWeight: '500',
   },
   // Section
@@ -749,16 +781,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000000',
   },
   // Trip Card
   tripCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   tripHeader: {
     flexDirection: 'row',
@@ -774,7 +803,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -790,11 +818,9 @@ const styles = StyleSheet.create({
   driverName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
   },
   tripDate: {
     fontSize: 13,
-    color: '#6B7280',
     marginTop: 2,
   },
   priceTag: {
@@ -823,19 +849,16 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: '#000000',
   },
   routeLine: {
     flex: 1,
     width: 2,
-    backgroundColor: '#E5E7EB',
     marginVertical: 4,
   },
   routeDotDestination: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000000',
   },
   routeTexts: {
     flex: 1,
@@ -845,11 +868,9 @@ const styles = StyleSheet.create({
   },
   routeCity: {
     fontSize: 14,
-    color: '#374151',
   },
   routeCityIntermediate: {
     fontSize: 12,
-    color: '#6B7280',
     fontStyle: 'italic',
     textAlign: 'left',
   },
@@ -859,7 +880,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   seatsInfo: {
     flexDirection: 'row',
@@ -868,7 +888,6 @@ const styles = StyleSheet.create({
   },
   seatsText: {
     fontSize: 13,
-    color: '#6B7280',
   },
   // Loading & Empty
   loadingContainer: {
@@ -883,7 +902,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -891,12 +909,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -909,7 +925,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
   },
   // Modal
   modalOverlay: {

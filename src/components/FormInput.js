@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../theme/colors';
 
 // Usar valores directos para evitar problemas de carga
@@ -79,6 +80,7 @@ const FormInput = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { isDarkMode } = useTheme();
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -96,15 +98,15 @@ const FormInput = ({
   };
 
   const getBorderColor = () => {
-    if (error) return colors.error || '#EF4444';
-    if (isFocused) return colors.primary;
-    return colors.border;
+    if (error) return isDarkMode ? '#EF4444' : '#DC2626';
+    if (isFocused) return isDarkMode ? '#3B82F6' : '#6366F1';
+    return isDarkMode ? '#404040' : '#E5E7EB';
   };
 
   const getIconColor = () => {
-    if (error) return colors.error || '#EF4444';
-    if (isFocused) return colors.primary;
-    return colors.textTertiary;
+    if (error) return isDarkMode ? '#EF4444' : '#DC2626';
+    if (isFocused) return isDarkMode ? '#3B82F6' : '#6366F1';
+    return isDarkMode ? '#9CA3AF' : '#6B7280';
   };
 
   const actualSecureTextEntry = showPasswordToggle ? !showPassword : secureTextEntry;
@@ -114,14 +116,14 @@ const FormInput = ({
       {/* Label */}
       {label && (
         <View style={styles.labelContainer}>
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
             {label}
-            {required && <Text style={styles.required}> *</Text>}
+            {required && <Text style={[styles.required, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}> *</Text>}
           </Text>
           {maxLength && value && (
             <Text style={[
               styles.characterCount,
-              { color: value.length > maxLength * 0.9 ? colors.warning || '#F59E0B' : colors.textTertiary }
+              { color: value.length > maxLength * 0.9 ? (isDarkMode ? '#F59E0B' : '#D97706') : (isDarkMode ? '#9CA3AF' : '#6B7280') }
             ]}>
               {value.length}/{maxLength}
             </Text>
@@ -133,6 +135,7 @@ const FormInput = ({
       <View style={[
         styles.inputContainer,
         {
+          backgroundColor: isDarkMode ? '#292929' : '#F8F9FA',
           borderColor: getBorderColor(),
           borderWidth: error ? 2 : 1,
         },
@@ -154,6 +157,7 @@ const FormInput = ({
         <TextInput
           style={[
             styles.textInput,
+            { color: isDarkMode ? '#FFFFFF' : '#1F2937' },
             inputStyle,
             multiline && styles.multilineInput,
             leftIcon && styles.textInputWithLeftIcon,
@@ -164,7 +168,7 @@ const FormInput = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
           secureTextEntry={actualSecureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -173,7 +177,7 @@ const FormInput = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           maxLength={maxLength}
-          selectionColor={colors.primary}
+          selectionColor={isDarkMode ? '#3B82F6' : '#6366F1'}
           {...props}
         />
 
@@ -199,7 +203,7 @@ const FormInput = ({
 
       {/* Helper Text */}
       {helper && !error && (
-        <Text style={styles.helper}>{helper}</Text>
+        <Text style={[styles.helper, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>{helper}</Text>
       )}
 
       {/* Error Message */}
@@ -208,9 +212,9 @@ const FormInput = ({
           <Ionicons
             name="alert-circle"
             size={14}
-            color={colors.error || '#EF4444'}
+            color={isDarkMode ? '#EF4444' : '#DC2626'}
           />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>{error}</Text>
         </View>
       )}
 
@@ -220,9 +224,9 @@ const FormInput = ({
           <Ionicons
             name="checkmark-circle"
             size={14}
-            color={colors.success || '#10B981'}
+            color={isDarkMode ? '#10B981' : '#059669'}
           />
-          <Text style={styles.successText}>Válido</Text>
+          <Text style={[styles.successText, { color: isDarkMode ? '#10B981' : '#059669' }]}>Válido</Text>
         </View>
       )}
     </View>

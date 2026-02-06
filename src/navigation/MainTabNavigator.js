@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Keyboard, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../theme/colors';
+import { useColors } from '../hooks/useColors';
+import { useTheme } from '../context/ThemeContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
 
 // Stack Navigators
@@ -12,39 +13,12 @@ import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
 import ChatStackNavigator from './stacks/ChatStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
 
-
-// Safe colors fallback to prevent 'colors is not defined' errors
-const safeColors = (() => {
-  try {
-    const { colors } = require('./src/theme/colors');
-    return colors;
-  } catch {
-    try {
-      const { colors } = require('../theme/colors');
-      return colors;
-    } catch {
-      try {
-        const { colors } = require('../../theme/colors');
-        return colors;
-      } catch {
-        return {
-          background: '#FFFFFF', surface: '#F8F9FA', surfaceElevated: '#FFFFFF',
-          textPrimary: '#000000', textSecondary: '#374151', textTertiary: '#6B7280',
-          textMuted: '#9CA3AF', primary: '#6366F1', primaryDark: '#4F46E5',
-          accent: '#A855F7', accentGreen: '#10B981', accentOrange: '#F59E0B',
-          accentRed: '#EF4444', success: '#10B981', warning: '#F59E0B',
-          error: '#EF4444', info: '#3B82F6', inputBackground: '#FFFFFF',
-          inputBorder: '#D1D5DB', borderLight: '#F3F4F6', border: '#E5E7EB'
-        };
-      }
-    }
-  }
-})();
-
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const { isDarkMode } = useTheme();
   const { unreadCount } = useUnreadMessages();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
@@ -82,7 +56,7 @@ const MainTabNavigator = () => {
             return (
               <View style={styles.iconContainer}>
                 <Ionicons name={iconName} size={size} color={color} />
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: colors.error, borderColor: colors.inputBackground }]}>
                   <Text style={styles.badgeText}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Text>
@@ -93,12 +67,11 @@ const MainTabNavigator = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#1F2937',
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
+        tabBarInactiveTintColor: isDarkMode ? '#9CA3AF' : '#6B7280',
         tabBarStyle: keyboardVisible ? { display: 'none' } : {
-          backgroundColor: colors.surface,
+          backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF',
           borderTopColor: colors.border,
-          borderTopWidth: 1,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
@@ -213,7 +186,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -10,
-    backgroundColor: '#EF4444',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -221,7 +193,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: safeColors.surface,
   },
   badgeText: {
     color: '#FFFFFF',

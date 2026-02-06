@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 
 
@@ -51,6 +52,7 @@ const VerificationScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const { verifyEmail, resendVerification } = useAuth();
+  const { isDarkMode } = useTheme();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -154,9 +156,9 @@ const VerificationScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
       <LinearGradient
-        colors={['#FFFFFF', '#F8F9FA', '#FFFFFF']}
+        colors={isDarkMode ? ['#161616', '#292929', '#161616'] : ['#FFFFFF', '#F8F9FA', '#FFFFFF']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -175,29 +177,29 @@ const VerificationScreen = ({ route, navigation }) => {
             {/* Header */}
             <View style={styles.header}>
               <LinearGradient
-                colors={['#6366F1', '#8B5CF6']}
+                colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#6366F1', '#8B5CF6']}
                 style={styles.iconContainer}
               >
                 <Ionicons name="mail-outline" size={32} color="#FFF" />
               </LinearGradient>
-              <Text style={styles.title}>Verificar Email</Text>
-              <Text style={styles.subtitle}>
-                Hemos enviado un código de verificación de 6 dígitos a:
+              <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Verificar Email</Text>
+              <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                Hemos enviado un código de verificación a:
               </Text>
-              <Text style={styles.email}>{email}</Text>
+              <Text style={[styles.email, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>{email}</Text>
             </View>
 
             {/* Verification Code Input */}
             <View style={styles.formContainer}>
-              <Text style={styles.inputLabel}>Código de Verificación</Text>
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Ionicons name="shield-checkmark-outline" size={20} color={colors.textTertiary} />
-                </View>
+              <Text style={[styles.inputLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937', textAlign: 'center' }]}>Código de Verificación</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+                {/* <View style={styles.inputIconContainer}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+                </View> */}
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
                   placeholder="000000"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
                   value={verificationCode}
                   onChangeText={(text) => setVerificationCode(formatCode(text))}
                   keyboardType="numeric"
@@ -218,8 +220,8 @@ const VerificationScreen = ({ route, navigation }) => {
                 <LinearGradient
                   colors={
                     loading || verificationCode.length !== 6
-                      ? [colors.surfaceElevated, colors.surface]
-                      : ['#6366F1', '#8B5CF6']
+                      ? [isDarkMode ? '#374151' : '#F3F4F6', isDarkMode ? '#292929' : '#E5E7EB']
+                      : isDarkMode ? ['#6B7280', '#4B5563'] : ['#6366F1', '#8B5CF6']
                   }
                   style={styles.button}
                   start={{ x: 0, y: 0 }}
@@ -238,7 +240,7 @@ const VerificationScreen = ({ route, navigation }) => {
 
               {/* Resend Code */}
               <View style={styles.resendContainer}>
-                <Text style={styles.resendText}>¿No recibiste el código?</Text>
+                <Text style={[styles.resendText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>¿No recibiste el código?</Text>
                 <TouchableOpacity
                   onPress={handleResendCode}
                   disabled={resending}
@@ -246,10 +248,10 @@ const VerificationScreen = ({ route, navigation }) => {
                   style={styles.resendButton}
                 >
                   {resending ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ActivityIndicator size="small" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
                   ) : (
                     <LinearGradient
-                      colors={['#6366F1', '#8B5CF6']}
+                      colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#6366F1', '#8B5CF6']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.resendLinkGradient}
@@ -261,12 +263,12 @@ const VerificationScreen = ({ route, navigation }) => {
               </View>
 
               {/* Back to Login */}
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>¿Ya tienes tu código? </Text>
+              {/* <View style={styles.loginContainer}>
+                <Text style={[styles.loginText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>¿Ya tienes tu código? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                  <Text style={styles.loginLink}>Ir al Login</Text>
+                  <Text style={[styles.loginLink, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>Ir al Login</Text>
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
           </Animated.View>
         </KeyboardAvoidingView>
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-    shadowColor: '#6366F1',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -310,19 +312,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
-    color: safeColors.textPrimary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: fontSize.md,
-    color: safeColors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   email: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
-    color: safeColors.primary,
     textAlign: 'center',
   },
   formContainer: {
@@ -331,19 +330,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
-    color: safeColors.textPrimary,
     marginBottom: spacing.sm,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: safeColors.surface,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.lg,
     borderWidth: 2,
-    borderColor: safeColors.border,
     paddingHorizontal: spacing.md,
-    shadowColor: safeColors.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -357,12 +353,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: safeColors.textPrimary,
   },
   buttonContainer: {
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    shadowColor: '#6366F1',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -390,7 +385,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   resendText: {
-    color: safeColors.textSecondary,
     fontSize: fontSize.md,
     marginBottom: spacing.sm,
   },
@@ -415,11 +409,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   loginText: {
-    color: safeColors.textSecondary,
     fontSize: fontSize.md,
   },
   loginLink: {
-    color: safeColors.primary,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
   },

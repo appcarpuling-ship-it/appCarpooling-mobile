@@ -16,10 +16,13 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../services/apiService';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
+import { useColors } from '../../hooks/useColors';
 import PermissionModal from '../../components/PermissionModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const VehicleFormScreen = ({ navigation, route }) => {
+  const { colors } = useColors();
+  
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -220,7 +223,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
@@ -233,8 +236,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
         >
           {/* Photos Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Fotos</Text>
-            <Text style={styles.sectionSubtitle}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Fotos</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
               {isEdit ? 'Agrega o elimina fotos' : 'Minimo 3, maximo 10'}
             </Text>
 
@@ -255,7 +258,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
                     style={styles.removeButton}
                     onPress={() => removeExistingPhoto(index)}
                   >
-                    <Ionicons name="close" size={16} color="#FFFFFF" />
+                    <Ionicons name="close" size={16} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -275,8 +278,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
               {/* Add button */}
               {(existingPhotos.length + photos.length) < 10 && (
-                <TouchableOpacity style={styles.addButton} onPress={pickImages}>
-                  <Ionicons name="add" size={32} color="#9CA3AF" />
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={pickImages}>
+                  <Ionicons name="add" size={32} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </ScrollView>
@@ -284,76 +287,76 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Vehicle Info */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informacion</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Informacion</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Marca</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Marca</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={formData.brand}
                 onChangeText={(value) => handleChange('brand', value)}
                 placeholder="Toyota, Ford, Chevrolet..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Modelo</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Modelo</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={formData.model}
                 onChangeText={(value) => handleChange('model', value)}
                 placeholder="Corolla, Focus, Cruze..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
               />
             </View>
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.halfWidth]}>
-                <Text style={styles.label}>Ano</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Ano</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                   value={formData.year}
                   onChangeText={(value) => handleChange('year', value)}
                   placeholder="2020"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   maxLength={4}
                 />
               </View>
 
               <View style={[styles.inputGroup, styles.halfWidth]}>
-                <Text style={styles.label}>Color</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Color</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                   value={formData.color}
                   onChangeText={(value) => handleChange('color', value)}
                   placeholder="Blanco"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Patente</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Patente</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={formData.licensePlate}
                 onChangeText={(value) => handleChange('licensePlate', value.toUpperCase())}
                 placeholder="ABC123"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="characters"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Capacidad de pasajeros</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Capacidad de pasajeros</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={formData.capacity}
                 onChangeText={(value) => handleChange('capacity', value)}
                 placeholder="4"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="numeric"
                 maxLength={1}
               />
@@ -362,25 +365,27 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Features */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Caracteristicas</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Caracteristicas</Text>
 
             {featuresList.map((feature) => (
               <TouchableOpacity
                 key={feature.key}
-                style={styles.featureRow}
+                style={[styles.featureRow, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                 onPress={() => toggleFeature(feature.key)}
                 activeOpacity={0.7}
               >
                 <View style={styles.featureLeft}>
-                  <Ionicons name={feature.icon} size={22} color="#374151" />
-                  <Text style={styles.featureLabel}>{feature.label}</Text>
+                  <Ionicons name={feature.icon} size={22} color={colors.messagePrimary} />
+                  <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>{feature.label}</Text>
                 </View>
                 <View style={[
                   styles.toggle,
-                  features[feature.key] && styles.toggleActive
+                  { backgroundColor: colors.border },
+                  features[feature.key] && { ...styles.toggleActive, backgroundColor: colors.messagePrimary }
                 ]}>
                   <View style={[
                     styles.toggleCircle,
+                    { backgroundColor: colors.textPrimary },
                     features[feature.key] && styles.toggleCircleActive
                   ]} />
                 </View>
@@ -390,15 +395,15 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Submit */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={[styles.submitButton, loading && styles.submitButtonDisabled, { backgroundColor: colors.messagePrimary }]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={colors.textPrimary} size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>
+              <Text style={[styles.submitButtonText, { color: colors.textPrimary }]}>
                 {isEdit ? 'Guardar cambios' : 'Crear vehiculo'}
               </Text>
             )}
@@ -446,7 +451,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   flex: {
     flex: 1,
@@ -459,18 +463,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
     paddingBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 16,
   },
   // Photos
@@ -506,9 +507,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
-    backgroundColor: '#F9FAFB',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -520,15 +519,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
     marginBottom: 8,
   },
   input: {
     fontSize: 16,
-    color: '#000000',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   row: {
     flexDirection: 'row',
@@ -544,7 +540,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   featureLeft: {
     flexDirection: 'row',
@@ -553,31 +548,26 @@ const styles = StyleSheet.create({
   },
   featureLabel: {
     fontSize: 16,
-    color: '#374151',
   },
   toggle: {
     width: 50,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#E5E7EB',
     padding: 2,
     justifyContent: 'center',
   },
   toggleActive: {
-    backgroundColor: '#000000',
   },
   toggleCircle: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#FFFFFF',
   },
   toggleCircleActive: {
     alignSelf: 'flex-end',
   },
   // Submit
   submitButton: {
-    backgroundColor: '#000000',
     marginHorizontal: 20,
     marginTop: 32,
     paddingVertical: 16,
@@ -590,7 +580,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });
 

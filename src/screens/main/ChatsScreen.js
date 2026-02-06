@@ -20,6 +20,7 @@ import apiService, { buildImageUri } from '../../services/apiService';
 import socketService from '../../services/socketService';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -35,6 +36,7 @@ const SORA_FONTS = {
 
 const ChatsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const { isDarkMode } = useTheme();
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -323,7 +325,7 @@ const ChatsScreen = ({ navigation }) => {
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={createColorArray(colors.surfaceElevated, colors.surface)}
+          colors={isDarkMode ? ['#292929', '#1F1F1F'] : ['#FFFFFF', '#F8F9FA']}
           style={styles.conversationGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -349,7 +351,10 @@ const ChatsScreen = ({ navigation }) => {
                 </LinearGradient>
               )}
               {isUnread && (
-                <View style={styles.unreadDot}>
+                <View style={[styles.unreadDot, { 
+                  backgroundColor: isDarkMode ? '#EF4444' : '#DC2626', 
+                  borderColor: isDarkMode ? '#161616' : '#FFFFFF' 
+                }]}>
                   {/* Debug: Red dot is rendering */}
                   <Text style={{ fontSize: 8, color: 'white', textAlign: 'center' }}>●</Text>
                 </View>
@@ -358,24 +363,28 @@ const ChatsScreen = ({ navigation }) => {
 
             <View style={styles.conversationContent}>
               <View style={styles.conversationHeader}>
-                <Text style={styles.userName}>
+                <Text style={[styles.userName, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                   {otherUser?.firstName} {otherUser?.lastName}
                 </Text>
                 {item.lastMessage && (
-                  <Text style={styles.time}>
+                  <Text style={[styles.time, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
                     {formatTime(item.updatedAt)}
                   </Text>
                 )}
               </View>
 
               {item.trip && (
-                <Text style={styles.tripInfo}>
+                <Text style={[styles.tripInfo, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
                   {item.trip.origin?.city} → {item.trip.destination?.city}
                 </Text>
               )}
 
               <Text
-                style={[styles.lastMessage, isUnread && styles.unreadMessage]}
+                style={[
+                  styles.lastMessage, 
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isUnread && { fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#1F2937' }
+                ]}
                 numberOfLines={1}
               >
                 {lastMessagePreview}
@@ -389,23 +398,29 @@ const ChatsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centerContainer, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {/* Campo de búsqueda */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search-outline" size={20} color="#9CA3AF" style={styles.searchIcon} />
+          <View style={[
+            styles.searchInputContainer,
+            { 
+              backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
+              borderColor: isDarkMode ? '#404040' : '#E5E7EB'
+            }
+          ]}>
+            <Ionicons name="search-outline" size={20} color={isDarkMode ? '#9CA3AF' : '#6B7280'} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
               placeholder="Buscar conversaciones..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
               value={searchTerm}
               onChangeText={setSearchTerm}
               autoCapitalize="none"
@@ -424,31 +439,58 @@ const ChatsScreen = ({ navigation }) => {
         </View>
 
         {/* Filtros */}
-        <View style={styles.filterContainer}>
+        <View style={[styles.filterContainer, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6' }]}>
           <TouchableOpacity
-            style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+            style={[
+              styles.filterButton, 
+              filter === 'all' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+            ]}
             onPress={() => setFilter('all')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.filterButtonText, filter === 'all' && styles.filterButtonTextActive]}>
+            <Text style={[
+              styles.filterButtonText,
+              { 
+                color: filter === 'all' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                fontWeight: filter === 'all' ? '600' : '500'
+              }
+            ]}>
               Todos
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, filter === 'trips' && styles.filterButtonActive]}
+            style={[
+              styles.filterButton, 
+              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+            ]}
             onPress={() => setFilter('trips')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.filterButtonText, filter === 'trips' && styles.filterButtonTextActive]}>
+            <Text style={[
+              styles.filterButtonText,
+              { 
+                color: filter === 'trips' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                fontWeight: filter === 'trips' ? '600' : '500'
+              }
+            ]}>
               Viajes
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, filter === 'direct' && styles.filterButtonActive]}
+            style={[
+              styles.filterButton, 
+              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+            ]}
             onPress={() => setFilter('direct')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.filterButtonText, filter === 'direct' && styles.filterButtonTextActive]}>
+            <Text style={[
+              styles.filterButtonText,
+              { 
+                color: filter === 'direct' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                fontWeight: filter === 'direct' ? '600' : '500'
+              }
+            ]}>
               Mensajes Directos
             </Text>
           </TouchableOpacity>
@@ -461,12 +503,12 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.primary}
+                tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
               />
             }
           >
           <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                 {conversations.length === 0 
                   ? 'No tienes conversaciones' 
                   : searchTerm
@@ -477,7 +519,7 @@ const ChatsScreen = ({ navigation }) => {
                         ? 'No tienes mensajes directos'
                         : 'No hay conversaciones'}
               </Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                 {conversations.length === 0
                   ? 'Comienza a chatear con otros usuarios desde los detalles de un viaje'
                   : searchTerm
@@ -496,7 +538,7 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.primary}
+                tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
               />
             }
           />
@@ -509,13 +551,13 @@ const ChatsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
   },
   header: {
     padding: 24,
@@ -523,8 +565,8 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    // borderBottomColor: '#E5E7EB', // Ahora dinámico
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
   },
   headerTitle: {
     fontSize: 28,
@@ -544,10 +586,10 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    // borderColor: '#E5E7EB', // Ahora dinámico
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     shadowColor: '#000',
@@ -574,7 +616,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    // backgroundColor: '#F3F4F6', // Ahora dinámico
     borderRadius: borderRadius.xl,
     padding: spacing.xs,
     marginHorizontal: spacing.md,
@@ -591,7 +633,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -602,10 +644,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.medium,
     fontWeight: fontWeight.medium,
-    color: '#6B7280',
   },
   filterButtonTextActive: {
-    color: '#1F2937',
     fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
   },
@@ -664,9 +704,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#EF4444',
     borderWidth: 2,
-    borderColor: '#F8F9FA',
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
@@ -686,25 +724,17 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
   },
   time: {
     fontSize: fontSize.xs,
-    color: '#9CA3AF',
   },
   tripInfo: {
     fontSize: fontSize.xs,
-    color: '#1F2937',
     marginBottom: spacing.xs,
     fontWeight: fontWeight.medium,
   },
   lastMessage: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
-  },
-  unreadMessage: {
-    fontWeight: fontWeight.semiBold,
-    color: '#000000',
   },
   emptyScrollContent: {
     flexGrow: 1,
@@ -737,13 +767,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: '80%',

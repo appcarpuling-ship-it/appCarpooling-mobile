@@ -577,9 +577,8 @@ const SearchTripsScreen = ({ route, navigation }) => {
               onPress={() => setShowFilters(true)}
               activeOpacity={0.7}
             >
-              <LinearGradient
-                colors={getActiveFiltersCount() > 0 ? ['#10B981', '#059669'] : ['#1F2937', '#111827']}
-                style={staticStyles.filtersButtonGradient}
+              <View
+                style={[staticStyles.filtersButtonGradient, { backgroundColor: getActiveFiltersCount() > 0 ? colors.success : colors.textMuted }]}
               >
                 <Ionicons
                   name={getActiveFiltersCount() > 0 ? "filter" : "filter-outline"}
@@ -589,7 +588,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
                 <Text style={staticStyles.filtersButtonText}>
                   Filtros {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -614,16 +613,15 @@ const SearchTripsScreen = ({ route, navigation }) => {
             </>
           ) : (
             <View style={staticStyles.emptyContainer}>
-              <LinearGradient
-                colors={createColorArray('#1F2937', '#111827')}
-                style={staticStyles.emptyIconContainer}
+              <View
+                style={[staticStyles.emptyIconContainer, { backgroundColor: colors.messagePrimary }]}
               >
                 <Ionicons
                   name={error ? "alert-circle-outline" : "car-outline"}
                   size={48}
                   color={colors.textPrimary}
                 />
-              </LinearGradient>
+              </View>
               <Text style={staticStyles.emptyText}>
                 {error || 'No se encontraron viajes'}
               </Text>
@@ -639,13 +637,12 @@ const SearchTripsScreen = ({ route, navigation }) => {
                   onPress={() => searchTrips()}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={createColorArray('#1F2937', '#111827')}
-                    style={staticStyles.retryButtonGradient}
+                  <View
+                    style={[staticStyles.retryButtonGradient, { backgroundColor: colors.messagePrimary }]}
                   >
                     <Ionicons name="refresh-outline" size={20} color={colors.textPrimary} />
                     <Text style={staticStyles.retryButtonText}>Buscar de nuevo</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -679,14 +676,12 @@ const staticStyles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#6B7280',
     marginTop: spacing.md,
     fontSize: fontSize.md,
   },
   searchInfo: {
     padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   searchRoute: {
     flexDirection: 'row',
@@ -700,12 +695,10 @@ const staticStyles = StyleSheet.create({
   searchText: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginLeft: spacing.sm,
   },
   resultsText: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     marginTop: spacing.sm,
   },
   listContent: {
@@ -716,8 +709,6 @@ const staticStyles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -769,7 +760,6 @@ const staticStyles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.sm,
-    shadowColor: '#1F2937',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -778,7 +768,6 @@ const staticStyles = StyleSheet.create({
   price: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: '#000000',
   },
   routeContainer: {
     flexDirection: 'row',
@@ -793,16 +782,12 @@ const staticStyles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#1F2937',
-    shadowColor: '#1F2937',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
     elevation: 2,
   },
   routeDotEnd: {
-    backgroundColor: '#EF4444',
-    shadowColor: '#EF4444',
   },
   routePath: {
     flex: 1,

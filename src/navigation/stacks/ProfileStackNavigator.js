@@ -1,13 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { colors as themeColors } from '../../theme/colors';
+import { useColors } from '../../hooks/useColors';
 
-// Safe colors with fallbacks for navigation
-const colors = themeColors || {
-  surface: '#F8F9FA',
-  border: '#E5E7EB',
-  textPrimary: '#000000',
-};
 import ProfileScreen from '../../screens/main/ProfileScreen';
 import EditProfileScreen from '../../screens/main/EditProfileScreen';
 import TermsScreen from '../../screens/main/TermsScreen';
@@ -21,17 +15,19 @@ import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
 const Stack = createStackNavigator();
 
 const ProfileStackNavigator = () => {
+  const { colors } = useColors();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#F8F9FA',
+          backgroundColor: colors.background,
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: colors.border,
         },
-        headerTintColor: '#000000',
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: '600',
           fontSize: 18,

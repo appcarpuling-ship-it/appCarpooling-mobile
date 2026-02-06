@@ -12,9 +12,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
+import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const { isDarkMode } = useTheme();
   const {
     notifications = [],
     loading,
@@ -138,58 +142,76 @@ const NotificationsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, !isRead && styles.cardUnread]}
+        style={[
+          styles.card,
+          { 
+            backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
+            borderColor: isDarkMode ? '#404040' : '#E5E7EB'
+          },
+          !isRead && { 
+            backgroundColor: isDarkMode ? '#1F2947' : '#EBF4FF', 
+            borderColor: isDarkMode ? '#3B82F6' : '#93C5FD' 
+          }
+        ]}
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.7}
       >
-        <View style={[styles.iconContainer, !isRead && styles.iconContainerUnread]}>
+        <View style={[
+          styles.iconContainer, 
+          { backgroundColor: isDarkMode ? '#1F1F1F' : '#F8F9FA' },
+          !isRead && { backgroundColor: isDarkMode ? '#1E3A8A' : '#DBEAFE' }
+        ]}>
           <Ionicons
             name={getNotificationIcon(item.type)}
             size={22}
-            color={isRead ? '#6B7280' : '#000000'}
+            color={isRead ? (isDarkMode ? '#6B7280' : '#9CA3AF') : (isDarkMode ? '#FFFFFF' : '#1F2937')}
           />
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.title, !isRead && styles.titleUnread]}>
+          <Text style={[
+            styles.title, 
+            { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+            !isRead && { fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#1F2937' }
+          ]}>
             {item.title}
           </Text>
-          <Text style={styles.message} numberOfLines={2}>
+          <Text style={[styles.message, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]} numberOfLines={2}>
             {item.message}
           </Text>
-          <Text style={styles.time}>{getRelativeTime(item.createdAt)}</Text>
+          <Text style={[styles.time, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{getRelativeTime(item.createdAt)}</Text>
         </View>
 
-        {!isRead && <View style={styles.unreadDot} />}
+        {!isRead && <View style={[styles.unreadDot, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]} />}
       </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={[styles.centerContainer, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF', borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
         <TouchableOpacity
-          style={styles.closeButton}
+          style={[styles.closeButton, { backgroundColor: isDarkMode ? '#1F1F1F' : '#F8F9FA' }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="close" size={24} color="#000000" />
+          <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
         </TouchableOpacity>
 
         {notifications.some(n => !n.isRead && !optimisticRead.has(n._id)) && (
           <TouchableOpacity
-            style={styles.markAllButton}
+            style={[styles.markAllButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
             onPress={handleMarkAllAsRead}
           >
-            <Text style={styles.markAllText}>Leer todas</Text>
+            <Text style={[styles.markAllText, { color: '#FFFFFF' }]}>Leer todas</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -206,17 +228,17 @@ const NotificationsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000000"
+              tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
             />
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="notifications-outline" size={48} color="#9CA3AF" />
+          <View style={[styles.emptyIcon, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA' }]}>
+            <Ionicons name="notifications-outline" size={48} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
           </View>
-          <Text style={styles.emptyTitle}>Sin notificaciones</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Sin notificaciones</Text>
+          <Text style={[styles.emptySubtitle, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
             Cuando recibas notificaciones apareceran aqui
           </Text>
         </View>
@@ -228,13 +250,11 @@ const NotificationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
   },
   // Header
   header: {
@@ -243,28 +263,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     paddingTop: 8,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   markAllButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#000000',
     borderRadius: 8,
   },
   markAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   // List
   listContent: {
@@ -274,28 +289,18 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  cardUnread: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#BAE6FD',
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  iconContainerUnread: {
-    backgroundColor: '#E0F2FE',
   },
   content: {
     flex: 1,
@@ -303,28 +308,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#374151',
     marginBottom: 4,
-  },
-  titleUnread: {
-    fontWeight: '600',
-    color: '#000000',
   },
   message: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 4,
     lineHeight: 20,
   },
   time: {
     fontSize: 12,
-    color: '#9CA3AF',
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#3B82F6',
     marginLeft: 8,
   },
   // Empty
@@ -338,7 +335,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -346,12 +342,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
   },
 });

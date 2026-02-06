@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-
-// Importación directa - Metro bundler maneja esto correctamente
-import { colors as baseColors, gradients as baseGradients } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 
 // Usar valores directos para evitar problemas de carga
 const BASE_FONTFAMILY = {
@@ -71,20 +69,33 @@ const FALLBACK_FONTFAMILY = {
 };
 
 export const useColors = () => {
-  // Siempre retorna un objeto seguro
+  let theme;
+  
+  // Intentar obtener el tema, pero manejar el caso donde no esté disponible
+  try {
+    theme = useTheme();
+  } catch (error) {
+    // Si el hook se usa fuera del Provider, usar valores por defecto
+    console.warn('useColors usado fuera del ThemeProvider, usando valores por defecto');
+    theme = null;
+  }
+  
+  // Si el tema está cargando, usar fallbacks
   const colors = useMemo(() => {
-    if (!baseColors || typeof baseColors !== 'object') {
-      return { ...FALLBACK_COLORS };
+    if (theme && theme.colors) {
+      return theme.colors;
     }
-    return { ...FALLBACK_COLORS, ...baseColors };
-  }, []);
+    // Fallback si no hay tema disponible
+    return { ...FALLBACK_COLORS };
+  }, [theme?.colors]);
 
   const gradients = useMemo(() => {
-    if (!baseGradients || typeof baseGradients !== 'object') {
-      return { ...FALLBACK_GRADIENTS };
+    if (theme && theme.gradients) {
+      return theme.gradients;
     }
-    return { ...FALLBACK_GRADIENTS, ...baseGradients };
-  }, []);
+    // Fallback si no hay tema disponible  
+    return { ...FALLBACK_GRADIENTS };
+  }, [theme?.gradients]);
 
   const fontFamily = useMemo(() => {
     // Siempre usar los valores directos para evitar problemas de carga
@@ -104,12 +115,25 @@ export const useColors = () => {
     }).filter(Boolean);
   };
 
-  return {
-    colors,
-    gradients,
-    fontFamily,
+  const result = {
+    colors: colors || FALLBACK_COLORS,
+    gradients: gradients || FALLBACK_GRADIENTS,
+    fontFamily: fontFamily || FALLBACK_FONTFAMILY,
     createColorArray,
+    // Pasar funciones del tema (con fallbacks seguros)
+    isDarkMode: theme?.isDarkMode || false,
+    toggleTheme: theme?.toggleTheme || (() => console.warn('toggleTheme called outside ThemeProvider')),
+    setThemeMode: theme?.setThemeMode || (() => console.warn('setThemeMode called outside ThemeProvider')),
+    getCurrentThemeMode: theme?.getCurrentThemeMode || (() => 'light'),
   };
+
+  // Debug: verificar que el resultado sea válido
+  if (!result.colors) {
+    console.error('useColors: colors is undefined, using fallback');
+    result.colors = { ...FALLBACK_COLORS };
+  }
+
+  return result;
 };
 
 export default useColors;

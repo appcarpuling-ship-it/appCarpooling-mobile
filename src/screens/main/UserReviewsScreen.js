@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
+import { useColors } from '../../hooks/useColors';
 
 const UserReviewsScreen = ({ route, navigation }) => {
   const { userId, userName } = route.params || {};

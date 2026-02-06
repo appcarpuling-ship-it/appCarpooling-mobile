@@ -20,9 +20,11 @@ import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 
 const AllTripsScreen = ({ navigation }) => {
   const { colors, createColorArray } = useColors();
+  const { isDarkMode } = useTheme();
 
   const [trips, setTrips] = useState([]);
   const [filteredTrips, setFilteredTrips] = useState([]);
@@ -33,12 +35,17 @@ const AllTripsScreen = ({ navigation }) => {
   const [originProvince, setOriginProvince] = useState('');
   const [destinationProvince, setDestinationProvince] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [minAvailableSeats, setMinAvailableSeats] = useState('');
 
   // Picker modals
   const [showOriginPicker, setShowOriginPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showSeatsPicker, setShowSeatsPicker] = useState(false);
   const [tempDate, setTempDate] = useState(null);
+  const [tempTime, setTempTime] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -53,7 +60,7 @@ const AllTripsScreen = ({ navigation }) => {
 
   useEffect(() => {
     applyFilters();
-  }, [trips, originProvince, destinationProvince, selectedDate]);
+  }, [trips, originProvince, destinationProvince, selectedDate, selectedTime, minAvailableSeats]);
 
   const loadTrips = async (isRefreshing = false) => {
     if (isRefreshing) {
@@ -120,6 +127,23 @@ const AllTripsScreen = ({ navigation }) => {
       });
     }
 
+    if (selectedTime) {
+      result = result.filter((t) => {
+        if (!t.departureTime) return false;
+        const [tripHour, tripMinute] = t.departureTime.split(':').map(Number);
+        const [filterHour, filterMinute] = selectedTime.toTimeString().split(':').slice(0, 2).map(Number);
+        return tripHour === filterHour && tripMinute === filterMinute;
+      });
+    }
+
+    if (minAvailableSeats) {
+      const minSeats = parseInt(minAvailableSeats, 10);
+      result = result.filter((t) => {
+        const available = t.availableSeats || 0;
+        return available >= minSeats;
+      });
+    }
+
     setFilteredTrips(result);
   };
 
@@ -127,9 +151,26 @@ const AllTripsScreen = ({ navigation }) => {
     setOriginProvince('');
     setDestinationProvince('');
     setSelectedDate(null);
+    setSelectedTime(null);
+    setMinAvailableSeats('');
   };
 
-  const hasActiveFilters = originProvince || destinationProvince || selectedDate;
+  const hasActiveFilters = originProvince || destinationProvince || selectedDate || selectedTime || minAvailableSeats;
+
+  const seatOptions = ['1+', '2+', '3+', '4+'];
+
+  const handleTimeChange = (event, time) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+      if (time) {
+        setSelectedTime(time);
+      }
+      return;
+    }
+    if (time) {
+      setTempTime(time);
+    }
+  };
 
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
@@ -152,19 +193,16 @@ const AllTripsScreen = ({ navigation }) => {
 
       return (
         <TouchableOpacity
-          style={styles.tripCard}
+          style={[styles.tripCard, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
           onPress={() => navigation.navigate('TripDetail', { tripId: item._id })}
           activeOpacity={0.7}
         >
-          <LinearGradient
-            colors={createColorArray(colors.surfaceElevated, colors.surface)}
-            style={styles.cardGradient}
-          >
+          <View style={styles.cardGradient}>
             <View style={styles.tripHeader}>
               <View style={styles.routeRow}>
-                <Text style={styles.cityText} numberOfLines={1}>{originCity}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#1F2937" />
-                <Text style={styles.cityText} numberOfLines={1}>{destCity}</Text>
+                <Text style={[styles.cityText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={1}>{originCity}</Text>
+                <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+                <Text style={[styles.cityText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={1}>{destCity}</Text>
               </View>
               {/* <Text style={styles.priceText}>
                 {item.pricePerSeat ? `$${item.pricePerSeat}` : 'Gratis'}
@@ -172,54 +210,51 @@ const AllTripsScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.driverRow}>
-              <LinearGradient
-                colors={createColorArray('#1F2937', '#111827')}
-                style={styles.avatarSmall}
-              >
-                <Text style={styles.avatarText}>
+              <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+                <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
                   {driver.firstName?.[0]}{driver.lastName?.[0]}
                 </Text>
-              </LinearGradient>
-              <Text style={styles.driverName} numberOfLines={1}>
+              </View>
+              <Text style={[styles.driverName, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]} numberOfLines={1}>
                 {driver.firstName || 'Conductor'} {driver.lastName || ''}
               </Text>
             </View>
 
-            <View style={styles.tripMeta}>
+            <View style={[styles.tripMeta, { borderTopColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
               <View style={styles.metaItem}>
-                <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                <Text style={styles.metaText}>
+                <Ionicons name="calendar-outline" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+                <Text style={[styles.metaText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
                   {item.departureDate
                     ? new Date(item.departureDate).toLocaleDateString('es-ES')
                     : 'Sin fecha'}
                 </Text>
               </View>
               <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color="#6B7280" />
-                <Text style={styles.metaText}>{item.departureTime || 'Sin hora'}</Text>
+                <Ionicons name="time-outline" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+                <Text style={[styles.metaText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{item.departureTime || 'Sin hora'}</Text>
               </View>
               <View style={styles.metaItem}>
-                <Ionicons name="people-outline" size={14} color="#6B7280" />
-                <Text style={styles.metaText}>
+                <Ionicons name="people-outline" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+                <Text style={[styles.metaText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
                   {item.availableSeats} disponible{item.availableSeats !== 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       );
     },
-    [colors, navigation],
+    [isDarkMode, navigation],
   );
 
   const renderProvinceModal = (visible, onClose, selected, onSelect, title) => (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.pickerContainer}>
-          <View style={styles.pickerHeader}>
-            <Text style={styles.pickerTitle}>{title}</Text>
+        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#000" />
+              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.provinceList}>
@@ -232,19 +267,119 @@ const AllTripsScreen = ({ navigation }) => {
                 }}
                 style={[
                   styles.provinceOption,
-                  selected === province && styles.provinceOptionSelected,
+                  { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  selected === province && { backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF' },
                 ]}
               >
                 <Text
                   style={[
                     styles.provinceOptionText,
-                    selected === province && styles.provinceOptionTextSelected,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    selected === province && { color: isDarkMode ? '#3B82F6' : '#6366F1', fontWeight: '600' },
                   ]}
                 >
                   {province}
                 </Text>
                 {selected === province && (
-                  <Ionicons name="checkmark" size={20} color="#1F2937" />
+                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderTimeRangeModal = () => (
+    <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => { setTempTime(null); setShowTimePicker(false); }}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Hora</Text>
+            <TouchableOpacity onPress={() => { setTempTime(null); setShowTimePicker(false); }}>
+              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+            <DateTimePicker
+              value={tempTime || selectedTime || new Date()}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleTimeChange}
+              textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
+              themeVariant={isDarkMode ? 'dark' : 'light'}
+            />
+          </View>
+          {Platform.OS === 'ios' && (
+            <View style={styles.pickerButtons}>
+              <TouchableOpacity
+                style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                onPress={() => {
+                  setSelectedTime(null);
+                  setTempTime(null);
+                  setShowTimePicker(false);
+                }}
+              >
+                <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+                onPress={() => {
+                  if (tempTime) {
+                    setSelectedTime(tempTime);
+                  }
+                  setTempTime(null);
+                  setShowTimePicker(false);
+                }}
+              >
+                <Text style={[styles.pickerButtonConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderSeatsModal = () => (
+    <Modal transparent animationType="fade" visible={showSeatsPicker} onRequestClose={() => setShowSeatsPicker(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Lugares Disponibles</Text>
+            <TouchableOpacity onPress={() => setShowSeatsPicker(false)}>
+              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.provinceList}>
+            {seatOptions.map((option) => (
+              <TouchableOpacity
+                key={option}
+                onPress={() => {
+                  setMinAvailableSeats(option);
+                  setShowSeatsPicker(false);
+                }}
+                style={[
+                  styles.provinceOption,
+                  { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  minAvailableSeats === option && { backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.provinceOptionText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    minAvailableSeats === option && { color: isDarkMode ? '#3B82F6' : '#6366F1', fontWeight: '600' },
+                  ]}
+                >
+                  {option === '1+' ? '1 o más lugares' :
+                   option === '2+' ? '2 o más lugares' :
+                   option === '3+' ? '3 o más lugares' :
+                   '4 o más lugares'}
+                </Text>
+                {minAvailableSeats === option && (
+                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#3B82F6' : '#6366F1'} />
                 )}
               </TouchableOpacity>
             ))}
@@ -255,64 +390,127 @@ const AllTripsScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={createColorArray(colors.background, colors.surface)}
-        style={styles.gradient}
-      >
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
           {/* Filters */}
-          <View style={styles.filtersSection}>
+          <View style={[styles.filtersSection, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
               {/* Origin */}
               <TouchableOpacity
-                style={[styles.filterChip, originProvince && styles.filterChipActive]}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  originProvince && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                ]}
                 onPress={() => setShowOriginPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="radio-button-on" size={14} color={originProvince ? '#FFF' : '#1F2937'} />
-                <Text style={[styles.filterChipText, originProvince && styles.filterChipTextActive]} numberOfLines={1}>
+                <Ionicons name="radio-button-on" size={14} color={originProvince ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Text style={[
+                  styles.filterChipText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  originProvince && { color: '#FFFFFF' }
+                ]} numberOfLines={1}>
                   {originProvince || 'Origen'}
                 </Text>
               </TouchableOpacity>
 
               {/* Destination */}
               <TouchableOpacity
-                style={[styles.filterChip, destinationProvince && styles.filterChipActive]}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  destinationProvince && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                ]}
                 onPress={() => setShowDestinationPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="location" size={14} color={destinationProvince ? '#FFF' : '#1F2937'} />
-                <Text style={[styles.filterChipText, destinationProvince && styles.filterChipTextActive]} numberOfLines={1}>
+                <Ionicons name="location" size={14} color={destinationProvince ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Text style={[
+                  styles.filterChipText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  destinationProvince && { color: '#FFFFFF' }
+                ]} numberOfLines={1}>
                   {destinationProvince || 'Destino'}
                 </Text>
               </TouchableOpacity>
 
               {/* Date */}
               <TouchableOpacity
-                style={[styles.filterChip, selectedDate && styles.filterChipActive]}
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  selectedDate && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                ]}
                 onPress={() => {
                   setTempDate(selectedDate || new Date());
                   setShowDatePicker(true);
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="calendar-outline" size={14} color={selectedDate ? '#FFF' : '#1F2937'} />
-                <Text style={[styles.filterChipText, selectedDate && styles.filterChipTextActive]}>
+                <Ionicons name="calendar-outline" size={14} color={selectedDate ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Text style={[
+                  styles.filterChipText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  selectedDate && { color: '#FFFFFF' }
+                ]}>
                   {selectedDate ? selectedDate.toLocaleDateString('es-ES') : 'Fecha'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Time Range */}
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  selectedTime && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                ]}
+                onPress={() => {
+                  setTempTime(selectedTime || new Date());
+                  setShowTimePicker(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="time-outline" size={14} color={selectedTime ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Text style={[
+                  styles.filterChipText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  selectedTime && { color: '#FFFFFF' }
+                ]}>
+                  {selectedTime ? selectedTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Hora'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Available Seats */}
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  minAvailableSeats && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                ]}
+                onPress={() => setShowSeatsPicker(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="people-outline" size={14} color={minAvailableSeats ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Text style={[
+                  styles.filterChipText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  minAvailableSeats && { color: '#FFFFFF' }
+                ]}>
+                  {minAvailableSeats ? `${minAvailableSeats} lugares` : 'Lugares'}
                 </Text>
               </TouchableOpacity>
 
               {/* Clear */}
               {hasActiveFilters && (
                 <TouchableOpacity style={styles.clearChip} onPress={clearFilters} activeOpacity={0.7}>
-                  <Ionicons name="close-circle" size={14} color="#EF4444" />
-                  <Text style={styles.clearChipText}>Limpiar</Text>
+                  <Ionicons name="close-circle" size={14} color={isDarkMode ? '#EF4444' : '#DC2626'} />
+                  <Text style={[styles.clearChipText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>Limpiar</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
 
-            <Text style={styles.resultsCount}>
+            <Text style={[styles.resultsCount, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
               {filteredTrips.length} viaje{filteredTrips.length !== 1 ? 's' : ''} encontrado{filteredTrips.length !== 1 ? 's' : ''}
             </Text>
           </View>
@@ -320,8 +518,8 @@ const AllTripsScreen = ({ navigation }) => {
           {/* Trip List */}
           {loading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Cargando viajes...</Text>
+              <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+              <Text style={[styles.loadingText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>Cargando viajes...</Text>
             </View>
           ) : (
             <FlatList
@@ -334,22 +532,22 @@ const AllTripsScreen = ({ navigation }) => {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={() => loadTrips(true)}
-                  tintColor={colors.primary}
-                  colors={createColorArray(colors.primary)}
+                  tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+                  colors={[isDarkMode ? '#3B82F6' : '#6366F1']}
                 />
               }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="car-outline" size={64} color="#9CA3AF" />
-                  <Text style={styles.emptyText}>No se encontraron viajes</Text>
-                  <Text style={styles.emptySubtext}>
+                  <Ionicons name="car-outline" size={64} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+                  <Text style={[styles.emptyText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>No se encontraron viajes</Text>
+                  <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                     {hasActiveFilters
                       ? 'Intenta ajustar los filtros'
                       : 'No hay viajes disponibles por el momento'}
                   </Text>
                   {hasActiveFilters && (
-                    <TouchableOpacity style={styles.clearButton} onPress={clearFilters} activeOpacity={0.7}>
-                      <Text style={styles.clearButtonText}>Limpiar filtros</Text>
+                    <TouchableOpacity style={[styles.clearButton, { borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]} onPress={clearFilters} activeOpacity={0.7}>
+                      <Text style={[styles.clearButtonText, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>Limpiar filtros</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -374,41 +572,48 @@ const AllTripsScreen = ({ navigation }) => {
           'Seleccionar Destino',
         )}
 
+        {/* Time Range Modal */}
+        {renderTimeRangeModal()}
+
+        {/* Seats Modal */}
+        {renderSeatsModal()}
+
         {/* Date Picker */}
         {showDatePicker && (
           <Modal transparent animationType="fade" onRequestClose={() => { setTempDate(null); setShowDatePicker(false); }}>
             <View style={styles.modalOverlay}>
-              <View style={styles.pickerContainer}>
-                <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Seleccionar Fecha</Text>
+              <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+                <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+                  <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Fecha</Text>
                   <TouchableOpacity onPress={() => { setTempDate(null); setShowDatePicker(false); }}>
-                    <Ionicons name="close" size={24} color="#000" />
+                    <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.datePickerWrapper}>
+                <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
                   <DateTimePicker
                     value={tempDate || selectedDate || new Date()}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     onChange={handleDateChange}
                     minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
-                    textColor="#000000"
+                    textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
+                    themeVariant={isDarkMode ? 'dark' : 'light'}
                   />
                 </View>
                 {Platform.OS === 'ios' && (
                   <View style={styles.pickerButtons}>
                     <TouchableOpacity
-                      style={styles.pickerButton}
+                      style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
                       onPress={() => {
                         setSelectedDate(null);
                         setTempDate(null);
                         setShowDatePicker(false);
                       }}
                     >
-                      <Text style={styles.pickerButtonText}>Limpiar</Text>
+                      <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.pickerButton, styles.pickerButtonConfirm]}
+                      style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
                       onPress={() => {
                         if (tempDate) {
                           setSelectedDate(tempDate);
@@ -417,7 +622,7 @@ const AllTripsScreen = ({ navigation }) => {
                         setShowDatePicker(false);
                       }}
                     >
-                      <Text style={styles.pickerButtonConfirmText}>Confirmar</Text>
+                      <Text style={[styles.pickerButtonConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -425,7 +630,6 @@ const AllTripsScreen = ({ navigation }) => {
             </View>
           </Modal>
         )}
-      </LinearGradient>
     </View>
   );
 };

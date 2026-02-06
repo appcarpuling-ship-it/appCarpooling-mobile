@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 import { colors as themeColors,  spacing, borderRadius, fontSize, fontWeight } from '../theme/colors';
 
 // Usar valores directos para evitar problemas de carga
@@ -63,6 +64,7 @@ const FormPicker = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { isDarkMode } = useTheme();
 
   // Asegurar que options sea un array
   const validOptions = Array.isArray(options) ? options : [];
@@ -93,17 +95,17 @@ const FormPicker = ({
   };
 
   const getBorderColor = () => {
-    if (error) return '#EF4444';
-    return styleColors.borderLight;
+    if (error) return isDarkMode ? '#EF4444' : '#DC2626';
+    return isDarkMode ? '#404040' : '#E5E7EB';
   };
 
   return (
     <View style={[styles.container, style]}>
       {/* Label */}
       {label && (
-        <Text style={styles.label}>
+        <Text style={[styles.label, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
           {label}
-          {required && <Text style={styles.required}> *</Text>}
+          {required && <Text style={[styles.required, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}> *</Text>}
         </Text>
       )}
 
@@ -112,6 +114,7 @@ const FormPicker = ({
         style={[
           styles.pickerButton,
           {
+            backgroundColor: isDarkMode ? '#292929' : '#F8F9FA',
             borderColor: getBorderColor(),
             borderWidth: error ? 2 : 1,
           },
@@ -126,7 +129,7 @@ const FormPicker = ({
             <Ionicons
               name={leftIcon}
               size={20}
-              color={error ? '#EF4444' : styleColors.textTertiary}
+              color={error ? (isDarkMode ? '#EF4444' : '#DC2626') : (isDarkMode ? '#9CA3AF' : '#6B7280')}
             />
           </View>
         )}
@@ -135,7 +138,8 @@ const FormPicker = ({
         <Text
           style={[
             styles.pickerText,
-            !value && styles.placeholder,
+            { color: isDarkMode ? '#FFFFFF' : '#1F2937' },
+            !value && [styles.placeholder, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }],
             leftIcon && styles.textWithIcon,
           ]}
           numberOfLines={1}
@@ -147,7 +151,7 @@ const FormPicker = ({
         <Ionicons
           name="chevron-down"
           size={20}
-          color={error ? '#EF4444' : styleColors.textTertiary}
+          color={error ? (isDarkMode ? '#EF4444' : '#DC2626') : (isDarkMode ? '#9CA3AF' : '#6B7280')}
         />
       </TouchableOpacity>
 
@@ -157,9 +161,9 @@ const FormPicker = ({
           <Ionicons
             name="alert-circle"
             size={14}
-            color={'#EF4444'}
+            color={isDarkMode ? '#EF4444' : '#DC2626'}
           />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>{error}</Text>
         </View>
       )}
 
@@ -171,17 +175,17 @@ const FormPicker = ({
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {label || 'Seleccionar'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={28} color="#000000" />
+<View style={[styles.modalContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+          {/* Modal Header */}
+          <View style={[styles.modalHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <Text style={[styles.modalTitle, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+              {label || 'Seleccionar'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color={isDarkMode ? '#FFFFFF' : '#000000'} />
               </TouchableOpacity>
             </View>
 
@@ -199,7 +203,11 @@ const FormPicker = ({
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      isSelected && styles.optionItemSelected,
+                      { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' },
+                      isSelected && {
+                        backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF',
+                        borderColor: isDarkMode ? '#3B82F6' : '#6366F1'
+                      },
                     ]}
                     onPress={() => handleSelect(item.value)}
                     activeOpacity={0.7}
@@ -207,7 +215,11 @@ const FormPicker = ({
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && styles.optionTextSelected,
+                        { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                        isSelected && {
+                          color: isDarkMode ? '#3B82F6' : '#6366F1',
+                          fontWeight: '600'
+                        },
                       ]}
                     >
                       {item.label}
@@ -217,7 +229,7 @@ const FormPicker = ({
                       <Ionicons
                         name="checkmark-circle"
                         size={24}
-                        color="#1F2937"
+                        color={isDarkMode ? '#3B82F6' : '#6366F1'}
                       />
                     )}
                   </TouchableOpacity>
@@ -227,7 +239,7 @@ const FormPicker = ({
               nestedScrollEnabled={true}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No hay opciones disponibles</Text>
+                  <Text style={[styles.emptyText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>No hay opciones disponibles</Text>
                 </View>
               }
             />

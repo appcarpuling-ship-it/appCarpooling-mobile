@@ -1,34 +1,31 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { colors as themeColors } from '../../theme/colors';
-
-// Safe colors with fallbacks for navigation
-const colors = themeColors || {
-  surface: '#F8F9FA',
-  border: '#E5E7EB',
-  textPrimary: '#000000',
-};
+import { useColors } from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 import ChatsScreen from '../../screens/main/ChatsScreen';
 import ChatDetailScreen from '../../screens/main/ChatDetailScreen';
 
 const Stack = createStackNavigator();
 
 const ChatStackNavigator = () => {
+  const colors = useColors();
+  const { isDarkMode } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#F8F9FA',
+          backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
         },
-        headerTintColor: '#000000',
+        headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
         headerTitleStyle: {
           fontWeight: '600',
           fontSize: 18,
-          color: '#000000',
+          color: isDarkMode ? '#FFFFFF' : '#1F2937',
         },
         headerBackTitleVisible: false,
       }}

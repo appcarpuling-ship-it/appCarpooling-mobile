@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 
@@ -24,6 +25,7 @@ const BANNER_HEIGHT = 200;
 
 const CarpoolingsScreen = ({ navigation }) => {
   const { colors, createColorArray } = useColors();
+  const { isDarkMode } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -124,11 +126,8 @@ const CarpoolingsScreen = ({ navigation }) => {
       onPress={() => handleBannerPress(item)}
       style={styles.bannerSlide}
     >
-      <LinearGradient
-        colors={createColorArray('#1F2937', '#374151')}
-        style={styles.bannerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
+        style={[styles.bannerGradient, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA' }]}
       >
         {item.imageUrl ? (
           <Image
@@ -139,22 +138,19 @@ const CarpoolingsScreen = ({ navigation }) => {
         ) : (
           <View style={styles.bannerContent}>
             {item.clickUrl && (
-              <View style={styles.bannerCta}>
-                <Text style={styles.bannerCtaText}>Ver más</Text>
-                <Ionicons name="arrow-forward" size={14} color="#FFF" />
+            <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+              <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>Ver más</Text>
+              <Ionicons name="arrow-forward" size={14} color={'#FFFFFF'} />
               </View>
             )}
           </View>
         )}
         {item.imageUrl && item.title && (
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.bannerOverlay}
-          >
+          <View style={styles.bannerOverlay}>
 
-          </LinearGradient>
+          </View>
         )}
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -195,11 +191,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   ];
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={createColorArray(colors.background, colors.surface)}
-        style={styles.gradient}
-      >
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -213,16 +205,11 @@ const CarpoolingsScreen = ({ navigation }) => {
           >
             {/* Header */}
             <View style={styles.header}>
-              <LinearGradient
-                colors={['#1F2937', '#111827']}
-                style={styles.headerIcon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name="car-sport" size={28} color="#FFFFFF" />
-              </LinearGradient>
-              <Text style={styles.title}>Gestionar Viajes</Text>
-              <Text style={styles.subtitle}>
+              <View style={[styles.headerIcon, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+                <Ionicons name="car-sport" size={28} color={isDarkMode ? '#FFFFFF' : '#FFFFFF'} />
+              </View>
+              <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Gestionar Viajes</Text>
+              <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                 Crea viajes o revisa tus reservas
               </Text>
             </View>
@@ -249,28 +236,25 @@ const CarpoolingsScreen = ({ navigation }) => {
                     onPress={item.onPress}
                     activeOpacity={0.7}
                   >
-                    <LinearGradient
-                      colors={createColorArray(colors.surfaceElevated, colors.surface)}
-                      style={styles.menuItem}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <LinearGradient
-                        colors={Array.isArray(item.gradient) && item.gradient.length > 0 ? item.gradient : ['#1F2937', '#111827']}
-                        style={styles.iconContainer}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                      <View
+                        style={[styles.menuItem, { 
+                          backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', 
+                          borderColor: isDarkMode ? '#404040' : '#E5E7EB' 
+                        }]}
                       >
-                        <Ionicons name={item.icon} size={32} color="#FFFFFF" />
-                      </LinearGradient>
+                        <View
+                          style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+                        >
+                          <Ionicons name={item.icon} size={32} color={'#FFFFFF'} />
+                        </View>
                       <View style={styles.menuInfo}>
-                        <Text style={styles.menuTitle}>{item.title}</Text>
-                        <Text style={styles.menuDescription}>{item.description}</Text>
+                        <Text style={[styles.menuTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>{item.title}</Text>
+                        <Text style={[styles.menuDescription, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>{item.description}</Text>
                       </View>
                       <View style={styles.chevronContainer}>
-                        <Ionicons name="chevron-forward" size={24} color={colors.textTertiary} />
+                        <Ionicons name="chevron-forward" size={24} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
                       </View>
-                    </LinearGradient>
+                      </View>
                   </TouchableOpacity>
                 </Animated.View>
               ))}
@@ -302,7 +286,6 @@ const CarpoolingsScreen = ({ navigation }) => {
             )}
           </Animated.View>
         </ScrollView>
-      </LinearGradient>
     </View>
   );
 };
@@ -310,7 +293,6 @@ const CarpoolingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   gradient: {
     flex: 1,
@@ -343,13 +325,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    color: '#000000',
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: fontSize.md,
-    color: '#6B7280',
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
   },
@@ -395,12 +375,10 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginBottom: spacing.xs,
   },
   menuDescription: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     lineHeight: 20,
   },
   chevronContainer: {
@@ -501,7 +479,6 @@ const styles = StyleSheet.create({
   bannerCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -510,7 +487,6 @@ const styles = StyleSheet.create({
   bannerCtaText: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semiBold,
-    color: '#FFFFFF',
     marginRight: spacing.xs,
   },
   bannerOverlay: {

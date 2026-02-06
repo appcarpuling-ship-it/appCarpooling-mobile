@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 
@@ -54,6 +55,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const { isDarkMode } = useTheme();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -109,9 +111,9 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]} edges={['top', 'bottom']}>
       <LinearGradient
-        colors={['#FFFFFF', '#F8F9FA', '#FFFFFF']}
+        colors={isDarkMode ? ['#161616', '#292929', '#161616'] : ['#FFFFFF', '#F8F9FA', '#FFFFFF']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView
@@ -131,7 +133,7 @@ const LoginScreen = ({ navigation }) => {
               {/* Logo y título */}
               <View style={styles.header}>
                 <LinearGradient
-                  colors={['#1F2937', '#111827']}
+                  colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                   style={styles.logoContainer}
                 >
                   <Image
@@ -139,21 +141,21 @@ const LoginScreen = ({ navigation }) => {
                     style={styles.logo}
                   />
                 </LinearGradient>
-                <Text style={styles.title}>Carpuling</Text>
-                <Text style={styles.subtitle}>Viaja inteligente, ahorra más</Text>
+                <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Carpuling</Text>
+                <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Viaja inteligente, ahorra más</Text>
               </View>
 
               {/* Form */}
               <View style={styles.form}>
                 {/* Email Input */}
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
                   <View style={styles.inputIconContainer}>
-                    <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
+                    <Ionicons name="mail-outline" size={20} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
                     placeholder="Email"
-                    placeholderTextColor={colors.placeholder}
+                    placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -163,14 +165,14 @@ const LoginScreen = ({ navigation }) => {
                 </View>
 
                 {/* Password Input */}
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
                   <View style={styles.inputIconContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
+                    <Ionicons name="lock-closed-outline" size={20} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
                     placeholder="Contraseña"
-                    placeholderTextColor={colors.placeholder}
+                    placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -183,7 +185,7 @@ const LoginScreen = ({ navigation }) => {
                     <Ionicons
                       name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
-                      color={colors.textTertiary}
+                      color={isDarkMode ? '#9CA3AF' : '#6B7280'}
                     />
                   </TouchableOpacity>
                 </View>
@@ -195,7 +197,7 @@ const LoginScreen = ({ navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                     style={styles.button}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
@@ -213,19 +215,19 @@ const LoginScreen = ({ navigation }) => {
                   style={styles.linkButton}
                   onPress={() => navigation.navigate('ForgotPassword')}
                 >
-                  <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
+                  <Text style={[styles.linkText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>¿Olvidaste tu contraseña?</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Register Link */}
               <View style={styles.registerContainer}>
-                <Text style={styles.registerText}>¿No tienes cuenta? </Text>
+                <Text style={[styles.registerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>¿No tienes cuenta? </Text>
                 <TouchableOpacity 
                   onPress={() => navigation.navigate('Register')}
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.registerLinkGradient}
@@ -250,7 +252,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: safeColors.background,
   },
   gradient: {
     flex: 1,
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -288,13 +289,11 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     textAlign: 'center',
     marginBottom: spacing.xs,
-    color: safeColors.textPrimary,
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: fontSize.md,
     textAlign: 'center',
-    color: safeColors.textSecondary,
   },
   form: {
     width: '100%',
@@ -303,10 +302,8 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: safeColors.inputBackground,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: safeColors.inputBorder,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -317,7 +314,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     fontSize: fontSize.md,
-    color: safeColors.textPrimary,
   },
   eyeIcon: {
     padding: spacing.sm,
@@ -327,7 +323,7 @@ const styles = StyleSheet.create({
     padding: spacing.md + 2,
     alignItems: 'center',
     marginTop: spacing.sm,
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -344,7 +340,6 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   linkText: {
-    color: '#1F2937',
     fontSize: fontSize.sm,
   },
   registerContainer: {
@@ -353,14 +348,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   registerText: {
-    color: safeColors.textSecondary,
     fontSize: fontSize.sm,
   },
   registerLinkGradient: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.md,
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

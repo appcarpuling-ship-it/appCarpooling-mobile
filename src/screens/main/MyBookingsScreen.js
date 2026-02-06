@@ -13,9 +13,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
+import useColors from '../../hooks/useColors';
 import socketService from '../../services/socketService';
 
 const MyBookingsScreen = ({ navigation }) => {
+  const { colors } = useColors();
+  
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,15 +114,15 @@ const MyBookingsScreen = ({ navigation }) => {
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
-        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
+        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
       case 'confirmed':
-        return { color: '#10B981', bg: '#D1FAE5', text: 'Confirmado' };
+        return { color: colors.success, bg: colors.success + '20', text: 'Confirmado' };
       case 'cancelled':
-        return { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado' };
+        return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
       case 'completed':
-        return { color: '#3B82F6', bg: '#DBEAFE', text: 'Completado' };
+        return { color: colors.info, bg: colors.info + '20', text: 'Completado' };
       default:
-        return { color: '#6B7280', bg: '#F3F4F6', text: status };
+        return { color: colors.textMuted, bg: colors.border, text: status };
     }
   };
 
@@ -137,7 +140,7 @@ const MyBookingsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
         activeOpacity={0.7}
       >
@@ -151,33 +154,33 @@ const MyBookingsScreen = ({ navigation }) => {
         {/* Route */}
         <View style={styles.routeSection}>
           <View style={styles.routeRow}>
-            <View style={styles.routeDot} />
-            <Text style={styles.cityText} numberOfLines={1}>
+            <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
               {item.trip?.origin?.city}
             </Text>
           </View>
-          <View style={styles.routeLine} />
+          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination]} />
-            <Text style={styles.cityText} numberOfLines={1}>
+            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.error, borderColor: colors.error }]} />
+            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
               {item.trip?.destination?.city}
             </Text>
           </View>
         </View>
 
         {/* Trip Info */}
-        <View style={styles.infoSection}>
+        <View style={[styles.infoSection, { borderBottomColor: colors.border }]}>
           <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{formatDate(item.trip?.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDate(item.trip?.departureDate)}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{item.trip?.departureTime}</Text>
+            <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{item.trip?.departureTime}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="person-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>
+            <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
               {item.seats || item.seatsBooked || 1} asiento{(item.seats || item.seatsBooked || 1) > 1 ? 's' : ''}
             </Text>
           </View>
@@ -191,19 +194,19 @@ const MyBookingsScreen = ({ navigation }) => {
               style={styles.driverAvatar}
             />
           ) : (
-            <View style={styles.driverAvatarPlaceholder}>
-              <Text style={styles.driverInitials}>
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: colors.messagePrimary }]}>
+              <Text style={[styles.driverInitials, { color: colors.textPrimary }]}>
                 {driver.firstName[0]}{driver.lastName[0]}
               </Text>
             </View>
           )}
           <View style={styles.driverInfo}>
-            <Text style={styles.driverName}>
+            <Text style={[styles.driverName, { color: colors.textPrimary }]}>
               {driver.firstName} {driver.lastName}
             </Text>
-            <Text style={styles.driverLabel}>Conductor</Text>
+            <Text style={[styles.driverLabel, { color: colors.textMuted }]}>Conductor</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
         </View>
 
         {/* Action Buttons */}
@@ -232,14 +235,14 @@ const MyBookingsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.messagePrimary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {bookings.length > 0 ? (
         <FlatList
           data={bookings}
@@ -251,17 +254,17 @@ const MyBookingsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000000"
+              tintColor={colors.messagePrimary}
             />
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+            <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
           </View>
-          <Text style={styles.emptyTitle}>Sin reservas</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin reservas</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             Cuando reserves un viaje aparecera aqui
           </Text>
         </View>
@@ -273,25 +276,21 @@ const MyBookingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
   },
   listContent: {
     padding: 16,
   },
   // Card
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   // Status
   statusBadge: {
@@ -318,24 +317,19 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000000',
   },
   routeDotDestination: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#000000',
   },
   routeLine: {
     width: 2,
     height: 20,
-    backgroundColor: '#E5E7EB',
     marginLeft: 4,
     marginVertical: 4,
   },
   cityText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     flex: 1,
   },
   // Info
@@ -345,8 +339,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    marginBottom: 16,
   },
   infoItem: {
     flexDirection: 'row',
@@ -355,7 +347,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   // Driver
   driverSection: {
@@ -371,14 +362,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
   },
   driverInitials: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   driverInfo: {
     flex: 1,
@@ -387,11 +376,9 @@ const styles = StyleSheet.create({
   driverName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
   },
   driverLabel: {
     fontSize: 13,
-    color: '#6B7280',
     marginTop: 2,
   },
   // Action Buttons
@@ -403,26 +390,22 @@ const styles = StyleSheet.create({
   payButton: {
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#000000',
     alignItems: 'center',
   },
   payButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   // Cancel Button
   cancelButton: {
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
   },
   // Empty State
   emptyContainer: {
@@ -435,7 +418,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -443,12 +425,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
   },
 });

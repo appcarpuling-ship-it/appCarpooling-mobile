@@ -6,7 +6,7 @@ import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } f
 import useColors from '../../hooks/useColors';
 
 const HelpScreen = () => {
-  const colors = useColors();
+  const { colors } = useColors();
 
   const faqItems = [
     {
@@ -84,45 +84,42 @@ const HelpScreen = () => {
   ];
 
   return (
-    <LinearGradient
-      colors={[staticColors.background, staticColors.surface]}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Preguntas Frecuentes</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Preguntas Frecuentes</Text>
 
           {faqItems.map((item) => (
-            <View key={item.id} style={styles.faqItem}>
+            <View key={item.id} style={[styles.faqItem, { backgroundColor: colors.cardBackground }]}>
               <View style={styles.faqHeader}>
-                <Ionicons name="help-circle" size={24} color="#1F2937" />
-                <Text style={styles.question}>{item.question}</Text>
+                <Ionicons name="help-circle" size={24} color={colors.messagePrimary} />
+                <Text style={[styles.question, { color: colors.textPrimary }]}>{item.question}</Text>
               </View>
-              <Text style={styles.answer}>{item.answer}</Text>
+              <Text style={[styles.answer, { color: colors.textSecondary }]}>{item.answer}</Text>
             </View>
           ))}
 
-          <Text style={styles.contactSectionTitle}>Contáctanos</Text>
+          <Text style={[styles.contactSectionTitle, { color: colors.textPrimary }]}>Contáctanos</Text>
 
           {contactItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.contactItem}
+              style={[styles.contactItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
               onPress={item.onPress}
             >
-              <View style={styles.contactIcon}>
-                <Ionicons name={item.icon} size={24} color="#1F2937" />
+              <View style={[styles.contactIcon, { backgroundColor: colors.surface }]}>
+                <Ionicons name={item.icon} size={24} color={colors.messagePrimary} />
               </View>
               <View style={styles.contactInfo}>
-                <Text style={styles.contactTitle}>{item.title}</Text>
-                <Text style={styles.contactSubtitle}>{item.subtitle}</Text>
+                <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>{item.title}</Text>
+                <Text style={[styles.contactSubtitle, { color: colors.textMuted }]}>{item.subtitle}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={staticColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -139,7 +136,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: '#000000',
     marginBottom: spacing.lg,
   },
   faqItem: {
@@ -153,13 +149,11 @@ const styles = StyleSheet.create({
   question: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginLeft: spacing.md,
     flex: 1,
   },
   answer: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     lineHeight: 20,
     marginLeft: 36,
   },
@@ -168,23 +162,19 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     marginTop: spacing.xl,
     marginBottom: spacing.lg,
-    color: '#000000',
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   contactIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -195,25 +185,20 @@ const styles = StyleSheet.create({
   contactTitle: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
   },
   contactSubtitle: {
     fontSize: fontSize.sm,
-    color: '#9CA3AF',
     marginTop: 2,
   },
   footer: {
-    backgroundColor: '#F8F9FA',
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   footerText: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
   },

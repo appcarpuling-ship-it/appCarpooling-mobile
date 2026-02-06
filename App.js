@@ -3,12 +3,34 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { NotificationProvider } from './src/context/NotificationContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { soraFonts } from './src/theme/typography';
 import { ActivityIndicator, View, Linking } from 'react-native';
 import NativeCheckout from './src/components/NativeCheckout';
+
+// Componente interno para manejar el StatusBar que responde al tema
+const AppWithTheme = () => {
+  const { useTheme } = require('./src/context/ThemeContext');
+  let isDarkMode = false;
+  
+  try {
+    const theme = useTheme();
+    isDarkMode = theme.isDarkMode;
+  } catch (error) {
+    // Si falla, usar modo claro por defecto
+    isDarkMode = false;
+  }
+
+  return (
+    <NavigationContainer>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <AppNavigator />
+    </NavigationContainer>
+  );
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts(soraFonts);
@@ -46,14 +68,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <NavigationContainer>
-            <StatusBar style="dark" />
-            <AppNavigator />
-          </NavigationContainer>
-        </NotificationProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <AppWithTheme />
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

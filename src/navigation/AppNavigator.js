@@ -1,6 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../context/AuthContext';
+import { useColors } from '../hooks/useColors';
 import { ActivityIndicator, View } from 'react-native';
 
 // Auth screens
@@ -16,13 +17,14 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
+  const colors = useColors();
 
   console.log('AppNavigator - isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

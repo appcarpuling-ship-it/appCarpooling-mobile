@@ -12,21 +12,16 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { get_withauth, delete_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
+import { useColors } from '../../hooks/useColors';
 
 // Componente separado para el item del vehículo
 const VehicleItem = ({ item, index, navigation, onDelete }) => {
-  const { colors, gradients, createColorArray } = useColors();
-  // Fallbacks para gradientes
-  const safeGradients = {
-    card: Array.isArray(gradients?.card) && gradients.card.length > 0 ? gradients.card : ['#FFFFFF', '#F8F9FA'],
-    primary: ['#1F2937', '#111827'],
-  };
+  const { colors } = useColors();
+  
   const itemFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -48,9 +43,8 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
         activeOpacity={0.9}
         onPress={() => navigation.navigate('VehicleForm', { vehicle: item })}
       >
-        <LinearGradient
-          colors={safeGradients.card}
-          style={styles.vehicleCard}
+        <View
+          style={[styles.vehicleCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
         >
           <View style={styles.vehicleContent}>
             {photoUrl ? (
@@ -60,40 +54,37 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                 resizeMode="cover"
               />
             ) : (
-              <LinearGradient
-                colors={safeGradients.primary}
-                style={styles.vehicleIcon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
+                style={[styles.vehicleIcon, { backgroundColor: colors.surface }]}
               >
-                <Ionicons name="car-sport" size={28} color={colors.textPrimary} />
-              </LinearGradient>
+                <Ionicons name="car-sport" size={28} color={colors.messagePrimary} />
+              </View>
             )}
 
             <View style={styles.vehicleInfo}>
-              <Text style={styles.vehicleName}>
+              <Text style={[styles.vehicleName, { color: colors.textPrimary }]}>
                 {item.brand} {item.model}
               </Text>
               <View style={styles.detailsRow}>
                 <View style={styles.detailItem}>
                   <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.vehicleDetails}>{item.year}</Text>
+                  <Text style={[styles.vehicleDetails, { color: colors.textSecondary }]}>{item.year}</Text>
                 </View>
                 {item.color && (
                   <View style={styles.detailItem}>
                     <Ionicons name="color-palette-outline" size={14} color={colors.textSecondary} />
-                    <Text style={styles.vehicleDetails}>{item.color}</Text>
+                    <Text style={[styles.vehicleDetails, { color: colors.textSecondary }]}>{item.color}</Text>
                   </View>
                 )}
               </View>
               <View style={styles.plateContainer}>
-                <Ionicons name="card-outline" size={14} color="#1F2937" />
-                <Text style={styles.vehiclePlate}>{item.licensePlate || item.plate}</Text>
+                <Ionicons name="card-outline" size={14} color={colors.messagePrimary} />
+                <Text style={[styles.vehiclePlate, { color: colors.textPrimary }]}>{item.licensePlate || item.plate}</Text>
               </View>
               {item.capacity && (
                 <View style={styles.capacityContainer}>
                   <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.capacityText}>{item.capacity} pasajeros</Text>
+                  <Text style={[styles.capacityText, { color: colors.textSecondary }]}>{item.capacity} pasajeros</Text>
                 </View>
               )}
             </View>
@@ -106,7 +97,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                   navigation.navigate('VehicleForm', { vehicle: item });
                 }}
               >
-                <Ionicons name="create-outline" size={22} color="#1F2937" />
+                <Ionicons name="create-outline" size={22} color={colors.messagePrimary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteButton}
@@ -119,7 +110,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -127,12 +118,8 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
-  const { colors, gradients, createColorArray } = useColors();
-  // Fallbacks para gradientes
-  const safeGradients = {
-    dark: Array.isArray(gradients?.dark) && gradients.dark.length > 0 ? gradients.dark : ['#F8F9FA', '#E5E7EB'],
-    primary: ['#1F2937', '#111827'],
-  };
+  const { colors } = useColors();
+  
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -230,14 +217,14 @@ const VehiclesScreen = () => {
 
   if (loading) {
     return (
-      <LinearGradient colors={safeGradients.dark} style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1F2937" />
-      </LinearGradient>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.messagePrimary} />
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={safeGradients.dark} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {vehicles.length > 0 ? (
         <FlatList
           data={vehicles}
@@ -248,23 +235,20 @@ const VehiclesScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#1F2937"
-              colors={['#1F2937', '#111827']}
+              tintColor={colors.messagePrimary}
+              colors={[colors.messagePrimary]}
             />
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <LinearGradient
-            colors={safeGradients.primary}
-            style={styles.emptyIconContainer}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
+            style={[styles.emptyIconContainer, { backgroundColor: colors.messagePrimary }]}
           >
-            <Ionicons name="car-sport-outline" size={48} color="#FFFFFF" />
-          </LinearGradient>
-          <Text style={styles.emptyText}>No tienes vehículos registrados</Text>
-          <Text style={styles.emptySubtext}>
+            <Ionicons name="car-sport-outline" size={48} color={colors.textPrimary} />
+          </View>
+          <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No tienes vehículos registrados</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
             Agrega tu primer vehículo para crear viajes
           </Text>
         </View>
@@ -275,16 +259,13 @@ const VehiclesScreen = () => {
         onPress={() => navigation.navigate('VehicleForm')}
         activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={safeGradients.primary}
-          style={styles.fab}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
+          style={[styles.fab, { backgroundColor: colors.messagePrimary }]}
         >
-          <Ionicons name="add" size={32} color="#FFFFFF" />
-        </LinearGradient>
+          <Ionicons name="add" size={32} color={colors.textPrimary} />
+        </View>
       </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -305,7 +286,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -320,7 +300,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: borderRadius.md,
-    backgroundColor: '#FFFFFF',
   },
   vehicleIcon: {
     width: 80,
@@ -328,7 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -341,7 +320,6 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginBottom: spacing.xs,
   },
   detailsRow: {
@@ -356,7 +334,6 @@ const styles = StyleSheet.create({
   },
   vehicleDetails: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
   },
   plateContainer: {
     flexDirection: 'row',
@@ -367,7 +344,6 @@ const styles = StyleSheet.create({
   vehiclePlate: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semiBold,
-    color: '#1F2937',
   },
   capacityContainer: {
     flexDirection: 'row',
@@ -377,7 +353,6 @@ const styles = StyleSheet.create({
   },
   capacityText: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
   },
   actionsContainer: {
     flexDirection: 'column',
@@ -402,7 +377,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -411,12 +386,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semiBold,
-    color: '#000000',
     marginTop: spacing.md,
   },
   emptySubtext: {
     fontSize: fontSize.sm,
-    color: '#6B7280',
     marginTop: spacing.xs,
     textAlign: 'center',
   },
@@ -431,7 +404,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1F2937',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

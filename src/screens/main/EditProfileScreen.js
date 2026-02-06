@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useColors } from '../../hooks/useColors';
 import { put_withauth_formdata, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
@@ -23,6 +24,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import Toast from '../../components/Toast';
 
 const EditProfileScreen = ({ navigation }) => {
+  const { colors } = useColors();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -219,7 +221,7 @@ const EditProfileScreen = ({ navigation }) => {
       return <Image source={{ uri: buildImageUri(user.avatar) }} style={styles.avatarImage} />;
     }
     return (
-      <View style={styles.avatarPlaceholder}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
         <Text style={styles.avatarInitials}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
@@ -228,7 +230,7 @@ const EditProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
@@ -240,7 +242,7 @@ const EditProfileScreen = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Avatar */}
-          <View style={styles.avatarSection}>
+          <View style={[styles.avatarSection, { borderBottomColor: colors.border }]}>
             <View style={styles.avatarWrapper}>
               {avatarLoading && (
                 <View style={styles.avatarLoadingOverlay}>
@@ -254,7 +256,11 @@ const EditProfileScreen = ({ navigation }) => {
               activeOpacity={0.7}
               disabled={avatarLoading}
             >
-              <Text style={[styles.changePhotoText, avatarLoading && styles.changePhotoTextDisabled]}>
+              <Text style={[
+                styles.changePhotoText, 
+                { color: colors.primary },
+                avatarLoading && { color: colors.textMuted }
+              ]}>
                 {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
               </Text>
             </TouchableOpacity>
@@ -264,40 +270,38 @@ const EditProfileScreen = ({ navigation }) => {
           <View style={styles.form}>
             {/* Nombre */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Nombre</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.firstName}
                 onChangeText={(value) => handleChange('firstName', value)}
                 placeholder="Tu nombre"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
               />
             </View>
 
             {/* Apellido */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Apellido</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Apellido</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.lastName}
                 onChangeText={(value) => handleChange('lastName', value)}
                 placeholder="Tu apellido"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
               />
             </View>
 
-            {/* Divider */}
-            <View style={styles.divider} />
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.email}
                 onChangeText={(value) => handleChange('email', value)}
                 placeholder="tu@email.com"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -305,26 +309,26 @@ const EditProfileScreen = ({ navigation }) => {
 
             {/* Telefono */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Telefono</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Telefono</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.phone}
                 onChangeText={(value) => handleChange('phone', value)}
                 placeholder="+54 9 11 1234-5678"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
                 keyboardType="phone-pad"
               />
             </View>
 
             {/* Edad */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Edad</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Edad</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.age}
                 onChangeText={(value) => handleChange('age', value)}
                 placeholder="25"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
                 keyboardType="numeric"
                 maxLength={3}
               />
@@ -332,43 +336,51 @@ const EditProfileScreen = ({ navigation }) => {
 
             {/* Ciudad */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Ciudad</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Ciudad</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
                 value={formData.city}
                 onChangeText={(value) => handleChange('city', value)}
                 placeholder="Tu ciudad"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
               />
             </View>
 
             {/* Provincia */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Provincia</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Provincia</Text>
               <TouchableOpacity
-                style={styles.selector}
+                style={[styles.selector, { borderBottomColor: colors.border }]}
                 onPress={() => setShowProvincePicker(true)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.selectorText, !formData.province && styles.placeholder]}>
+                <Text style={[
+                  styles.selectorText, 
+                  { color: formData.province ? colors.textPrimary : colors.placeholder }
+                ]}>
                   {formData.province || 'Seleccionar'}
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {/* Divider */}
-            <View style={styles.divider} />
 
             {/* Bio */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Sobre ti</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Sobre ti</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[
+                  styles.input, 
+                  styles.textArea,
+                  { 
+                    color: colors.textPrimary,
+                    backgroundColor: colors.inputBackground
+                  }
+                ]}
                 value={formData.bio}
                 onChangeText={(value) => handleChange('bio', value)}
                 placeholder="Cuentanos sobre ti..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -378,7 +390,10 @@ const EditProfileScreen = ({ navigation }) => {
 
           {/* Save Button */}
           <TouchableOpacity
-            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton, 
+              { backgroundColor: loading ? colors.textMuted : colors.messagePrimary }
+            ]}
             onPress={handleSave}
             disabled={loading}
             activeOpacity={0.8}
@@ -386,7 +401,7 @@ const EditProfileScreen = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>Guardar</Text>
+              <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>Guardar cambios</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -400,18 +415,18 @@ const EditProfileScreen = ({ navigation }) => {
         onRequestClose={() => setShowProvincePicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Provincia</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvincePicker(false)}>
-                <Ionicons name="close" size={24} color="#000000" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {ARGENTINA_PROVINCES.map((province) => (
                 <TouchableOpacity
                   key={province}
-                  style={styles.provinceItem}
+                  style={[styles.provinceItem, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     handleChange('province', province);
                     setShowProvincePicker(false);
@@ -420,12 +435,13 @@ const EditProfileScreen = ({ navigation }) => {
                 >
                   <Text style={[
                     styles.provinceText,
-                    formData.province === province && styles.provinceTextSelected
+                    { color: formData.province === province ? colors.textPrimary : colors.textSecondary },
+                    formData.province === province && { fontWeight: '600' }
                   ]}>
                     {province}
                   </Text>
                   {formData.province === province && (
-                    <Ionicons name="checkmark" size={20} color="#000000" />
+                    <Ionicons name="checkmark" size={20} color={colors.textPrimary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -467,8 +483,7 @@ const EditProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+    flex: 1
   },
   flex: {
     flex: 1,
@@ -480,8 +495,7 @@ const styles = StyleSheet.create({
   avatarSection: {
     alignItems: 'center',
     paddingVertical: 32,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomWidth: 1
   },
   avatarWrapper: {
     width: 100,
@@ -509,7 +523,7 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1F2937',
+
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -520,11 +534,10 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
+    fontWeight: '500'
   },
   changePhotoTextDisabled: {
-    color: '#9CA3AF',
+    // Color aplicado dinámicamente
   },
   // Form
   form: {
@@ -537,21 +550,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+
     marginBottom: 8,
   },
   input: {
     fontSize: 16,
-    color: '#000000',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomWidth: 1
   },
   textArea: {
     minHeight: 80,
     paddingTop: 12,
     borderBottomWidth: 0,
-    backgroundColor: '#F9FAFB',
+
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -560,8 +571,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomWidth: 1
   },
   selectorText: {
     fontSize: 16,
@@ -570,22 +580,16 @@ const styles = StyleSheet.create({
   placeholder: {
     color: '#9CA3AF',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 8,
-  },
   // Save Button
   saveButton: {
-    backgroundColor: '#000000',
     marginHorizontal: 20,
     marginTop: 32,
     paddingVertical: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   saveButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    // Color aplicado dinámicamente
   },
   saveButtonText: {
     fontSize: 16,
@@ -599,7 +603,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '70%',
@@ -610,13 +614,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomWidth: 1
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: '600'
   },
   provinceItem: {
     flexDirection: 'row',
@@ -624,16 +626,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomWidth: 1
   },
   provinceText: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 16
   },
   provinceTextSelected: {
-    fontWeight: '600',
-    color: '#000000',
+    // Estilos aplicados dinámicamente
   },
 });
 

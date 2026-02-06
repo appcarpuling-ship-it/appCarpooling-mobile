@@ -24,7 +24,7 @@ import * as Location from 'expo-location';
 import { get_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { spacing } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
+import { useColors } from '../../hooks/useColors';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -1076,7 +1076,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Vehicles')}>
           <View style={[styles.addVehicleButton, { backgroundColor: colors.primary }]}>
-            <Text style={styles.addVehicleButtonText}>Agregar Vehículo</Text>
+            <Text style={[styles.addVehicleButtonText, { color: colors.textPrimary }]}>Agregar Vehículo</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -1107,8 +1107,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         }, 100);
       }
     }}>
-      <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.statusBarStyle} />
 
       {/* Mapa full screen */}
       <MapView
@@ -1132,14 +1132,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         {originMarker && (
           <Marker coordinate={originMarker} title="Origen">
             <View style={styles.originMarkerContainer}>
-              <View style={styles.originMarkerDot} />
+              <View style={[styles.originMarkerDot, { backgroundColor: '#000' }]} />
             </View>
           </Marker>
         )}
         {destinationMarker && (
           <Marker coordinate={destinationMarker} title="Destino">
             <View style={styles.destinationMarkerContainer}>
-              <View style={styles.destinationMarkerSquare} />
+              <View style={[styles.destinationMarkerSquare, { backgroundColor: '#000' }]} />
             </View>
           </Marker>
         )}
@@ -1167,7 +1167,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
       {/* Botón mi ubicación */}
       {!keyboardVisible && (
-        <TouchableOpacity style={styles.myLocationButton} onPress={() => {
+        <TouchableOpacity style={[styles.myLocationButton, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]} onPress={() => {
           getCurrentLocation();
           if (userLocation && mapRef.current) {
             mapRef.current.animateToRegion({
@@ -1177,15 +1177,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             }, 1000);
           }
         }}>
-          <Ionicons name="navigate" size={20} color="#000" />
+          <Ionicons name="navigate" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
 
       {/* Panel inferior estilo Uber - Animated */}
       {mapSelectionMode && (
         <>
-          <View style={styles.mapSelectionIndicator}>
-            <Text style={styles.mapSelectionText}>
+          <View style={[styles.mapSelectionIndicator, { backgroundColor: '#6B7280', shadowColor: colors.shadow }]}>
+            <Text style={[styles.mapSelectionText, { color: '#FFFFFF' }]}>
               {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
                mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
                `Toca el mapa para seleccionar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
@@ -1194,17 +1194,18 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               onPress={() => setMapSelectionMode(null)}
               style={styles.cancelSelectionBtn}
             >
-              <Text style={styles.cancelSelectionText}>Cancelar</Text>
+              <Text style={[styles.cancelSelectionText, { color: '#FFFFFF' }]}>Cancelar</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.centerMapIndicator} pointerEvents="none">
-            <View style={styles.centerDot} />
+            <View style={[styles.centerDot, { backgroundColor: '#6B7280', shadowColor: colors.shadow }]} />
           </View>
         </>
       )}
       <Animated.View
         style={[
           styles.bottomSheetWrapper,
+          { backgroundColor: colors.cardBackground },
           {
             transform: [
               { translateY: sheetTranslateY },
@@ -1218,6 +1219,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               keyboardVisible && styles.bottomSheetExpanded,
               {
                 minHeight: bottomSheetHeight, // Altura mínima animada (crece hacia abajo)
+                backgroundColor: colors.cardBackground,
+                shadowColor: colors.shadow,
               },
             ]}>
               {/* Contenedor interno con flex column para mantener inputs arriba */}
@@ -1225,36 +1228,38 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                 {/* Handle animado */}
                 {!keyboardVisible && (
                   <View style={styles.handleBarContainer}>
-                    <Animated.View style={[styles.handleBar, { width: handleBarWidth }]} />
+                    <Animated.View style={[styles.handleBar, { width: handleBarWidth, backgroundColor: colors.border }]} />
                   </View>
                 )}
 
                 {/* Contenedor de inputs con timeline - posición fija arriba (sin flex) */}
-                <View style={styles.inputsWrapper}>
+                <View style={[styles.inputsWrapper, { backgroundColor: colors.surface }]}>
             {/* Timeline dots */}
             <View style={[
               styles.timelineContainer,
+              { backgroundColor: colors.surface },
               activeAutocomplete && autocompleteResults.length > 0 && {
                 borderBottomLeftRadius: 0, // Quitar el radio cuando hay predicciones para evitar espacio blanco
               },
             ]}>
-              <View style={styles.originDot} />
-              <View style={styles.timelineLine} />
+              <View style={[styles.originDot, { backgroundColor: colors.success }]} />
+              <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
               
               {/* Waypoints dots */}
               {formData.waypoints.map((_, index) => (
                 <React.Fragment key={`waypoint-${index}`}>
-                  <View style={styles.waypointDot} />
-                  <View style={styles.timelineLine} />
+                  <View style={[styles.waypointDot, { backgroundColor: '#666', borderColor: colors.surface }]} />
+                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
                 </React.Fragment>
               ))}
               
-              <View style={styles.destinationSquare} />
+              <View style={[styles.destinationSquare, { backgroundColor: colors.error }]} />
             </View>
 
             {/* Inputs */}
             <View style={[
               styles.inputsContainer,
+              { backgroundColor: colors.surface },
               activeAutocomplete && autocompleteResults.length > 0 && {
                 borderBottomLeftRadius: 0,
                 borderBottomRightRadius: 0,
@@ -1311,7 +1316,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     container: { flex: 1, zIndex: 3000 },
                     textInput: {
                       height: 44,
-                      color: '#000',
+                      color: colors.textPrimary,
                       fontSize: 16,
                       fontWeight: '500',
                       backgroundColor: 'transparent',
@@ -1322,7 +1327,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                 />
                 {formData.origin.address ? (
                   <TouchableOpacity onPress={clearOrigin} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color="#CACACA" />
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
@@ -1334,15 +1339,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     style={[
                       styles.mapSelectBtn,
-                      mapSelectionMode === 'origin' && { backgroundColor: colors.primary },
+                      { backgroundColor: colors.surface },
+                      mapSelectionMode === 'origin' && { backgroundColor: '#6B7280' },
                     ]}
                   >
-                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'origin' ? '#fff' : colors.primary} />
+                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'origin' ? '#FFFFFF' : colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
 
-              <View style={styles.inputDivider} />
+              <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
 
               {/* Waypoints */}
               {formData.waypoints.map((waypoint, index) => {
@@ -1395,7 +1401,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                         container: { flex: 1, zIndex: 2500 - index * 100 },
                         textInput: {
                           height: 44,
-                          color: '#000',
+                          color: colors.textPrimary,
                           fontSize: 16,
                           fontWeight: '500',
                           backgroundColor: 'transparent',
@@ -1415,21 +1421,22 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                           }}
                           style={[
                             styles.mapSelectBtn,
-                            mapSelectionMode === `waypoint-${index}` && { backgroundColor: colors.primary },
+                            { backgroundColor: colors.surface },
+                            mapSelectionMode === `waypoint-${index}` && { backgroundColor: '#6B7280' },
                           ]}
                         >
-                          <Ionicons name="map-outline" size={16} color={mapSelectionMode === `waypoint-${index}` ? '#fff' : colors.primary} />
+                          <Ionicons name="map-outline" size={16} color={mapSelectionMode === `waypoint-${index}` ? '#FFFFFF' : colors.primary} />
                         </TouchableOpacity>
                       )}
                       <TouchableOpacity
                         onPress={() => removeWaypoint(index)}
                         style={styles.clearBtn}
                       >
-                        <Ionicons name="close-circle" size={18} color={waypoint.address ? "#ff6b6b" : "#CACACA"} />
+                        <Ionicons name="close-circle" size={18} color={waypoint.address ? colors.error : colors.textMuted} />
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={styles.inputDivider} />
+                  <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
                 </React.Fragment>
                 );
               })}
@@ -1441,7 +1448,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     <Ionicons name="add-circle" size={20} color={colors.primary} />
                     <Text style={[styles.addWaypointText, { color: colors.primary }]}>Agregar parada</Text>
                   </TouchableOpacity>
-                  <View style={styles.inputDivider} />
+                  <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
                 </>
               )}
 
@@ -1496,7 +1503,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     container: { flex: 1, zIndex: 2000 },
                     textInput: {
                       height: 44,
-                      color: '#000',
+                      color: colors.textPrimary,
                       fontSize: 16,
                       fontWeight: '500',
                       backgroundColor: 'transparent',
@@ -1507,7 +1514,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                 />
                 {formData.destination.address ? (
                   <TouchableOpacity onPress={clearDestination} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color="#CACACA" />
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
@@ -1519,10 +1526,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     style={[
                       styles.mapSelectBtn,
-                      mapSelectionMode === 'destination' && { backgroundColor: colors.primary },
+                      { backgroundColor: colors.surface },
+                      mapSelectionMode === 'destination' && { backgroundColor: '#6B7280' },
                     ]}
                   >
-                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'destination' ? '#fff' : colors.primary} />
+                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'destination' ? '#FFFFFF' : colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -1531,7 +1539,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
            {/* Contenedor de resultados de autocompletado - debajo de los inputs */}
            {activeAutocomplete && autocompleteResults.length > 0 && (
-             <View style={styles.resultsContainer}>
+             <View style={[styles.resultsContainer, { backgroundColor: colors.surface }]}>
                <ScrollView
                  keyboardShouldPersistTaps="handled"
                  nestedScrollEnabled={true}
@@ -1563,14 +1571,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     activeOpacity={0.6}
                   >
-                    <View style={styles.resultIconContainer}>
-                      <Ionicons name="location-sharp" size={18} color="#666" />
+                    <View style={[styles.resultIconContainer, { backgroundColor: '#292929' }]}>
+                      <Ionicons name="location-sharp" size={18} color={colors.textSecondary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.resultMainText} numberOfLines={1}>
+                      <Text style={[styles.resultMainText, { color: colors.textPrimary }]} numberOfLines={1}>
                         {item.structured_formatting?.main_text || item.description}
                       </Text>
-                      <Text style={styles.resultSecondaryText} numberOfLines={1}>
+                      <Text style={[styles.resultSecondaryText, { color: colors.textSecondary }]} numberOfLines={1}>
                         {item.structured_formatting?.secondary_text || ''}
                       </Text>
                     </View>
@@ -1582,19 +1590,22 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
           {/* Info de ruta + botones cuando hay ruta */}
           {hasRoute && !keyboardVisible && (
-            <View style={styles.routeSection}>
-              <View style={styles.routeDivider} />
+              <View style={[
+                styles.routeSection,
+                { backgroundColor: colors.cardBackground }
+              ]}>
+              <View style={[styles.routeDivider, { backgroundColor: colors.border }]} />
 
               {/* {distance && duration && (
                 <View style={styles.routeInfoRow}>
                   <View style={styles.routeInfoItem}>
-                    <Ionicons name="car-outline" size={20} color="#000" />
-                    <Text style={styles.routeInfoValue}>{distance}</Text>
+                    <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
+                    <Text style={[styles.routeInfoValue, { color: colors.textPrimary }]}>{distance}</Text>
                   </View>
                   <View style={styles.routeInfoDot} />
                   <View style={styles.routeInfoItem}>
-                    <Ionicons name="time-outline" size={20} color="#000" />
-                    <Text style={styles.routeInfoValue}>{duration}</Text>
+                    <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                    <Text style={[styles.routeInfoValue, { color: colors.textPrimary }]}>{duration}</Text>
                   </View>
                 </View>
               )} */}
@@ -1607,15 +1618,15 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     clearDestination();
                   }}
                 >
-                  <Text style={styles.editRouteBtnText}>Editar</Text>
+                  <Text style={[styles.editRouteBtnText, { color: colors.textSecondary }]}>Editar</Text>
                 </TouchableOpacity> */}
 
                 <TouchableOpacity
-                  style={styles.continueBtn}
+                  style={[styles.continueBtn, { backgroundColor: '#6B7280' }]}
                   onPress={handleContinueToDetails}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.continueBtnText}>Confirmar ruta</Text>
+                  <Text style={[styles.continueBtnText, { color: '#FFFFFF' }]}>Confirmar ruta</Text>
                 </TouchableOpacity>
               </View>
               </View>
@@ -1627,9 +1638,9 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       {/* Loading overlay */}
       {loadingRoute && (
         <View style={styles.loadingOverlay}>
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#000" />
-            <Text style={styles.loadingText}>Calculando ruta...</Text>
+          <View style={[styles.loadingBox, { backgroundColor: colors.cardBackground }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Calculando ruta...</Text>
           </View>
         </View>
       )}
@@ -1641,7 +1652,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -1661,7 +1672,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1679,7 +1690,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1696,11 +1707,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     width: '100%',
   },
   bottomSheet: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -1726,12 +1737,12 @@ const styles = StyleSheet.create({
   handleBar: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   sheetTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#000',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
     marginBottom: 20,
   },
 
@@ -1741,7 +1752,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     overflow: 'visible',
     zIndex: 1000,
-    backgroundColor: '#F6F6F6', // Color de fondo para todo el contenedor
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 12,
@@ -1753,7 +1764,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     paddingLeft: 8,
-    backgroundColor: '#F6F6F6', // Mismo color que inputsContainer
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12, // Se quitará dinámicamente cuando hay predicciones
   },
@@ -1761,18 +1772,18 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   timelineLine: {
     flex: 1,
     width: 2,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     marginVertical: 4,
   },
   destinationSquare: {
     width: 10,
     height: 10,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   waypointDot: {
     width: 8,
@@ -1780,11 +1791,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#666',
     borderWidth: 2,
-    borderColor: '#F6F6F6',
+    borderColor: 'transparent', // Cambiar a transparente para evitar bordes blancos
   },
   inputsContainer: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderRadius: 12,
     overflow: 'visible',
   },
@@ -1797,7 +1808,7 @@ const styles = StyleSheet.create({
   },
   inputDivider: {
     height: 1,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     marginLeft: 12,
     marginRight: 12,
   },
@@ -1806,7 +1817,7 @@ const styles = StyleSheet.create({
   },
   mapSelectBtn: {
     padding: 8,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderRadius: 8,
   },
   addWaypointButton: {
@@ -1823,11 +1834,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '500',
+    color: 'transparent', // Añadir para usar color dinámico
   },
 
   // Autocomplete results
   resultsContainer: {
-    backgroundColor: '#F6F6F6',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
     marginTop: -2,
@@ -1843,13 +1855,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 52,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: 'rgba(235, 235, 235, 0.3)', // Color más sutil para el borde
   },
   resultIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1857,11 +1869,11 @@ const styles = StyleSheet.create({
   resultMainText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#000',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   resultSecondaryText: {
     fontSize: 13,
-    color: '#888',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
     marginTop: 2,
   },
 
@@ -1871,7 +1883,7 @@ const styles = StyleSheet.create({
   },
   routeDivider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     marginBottom: 16,
   },
   routeInfoRow: {
@@ -1889,13 +1901,13 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#CCC',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     marginHorizontal: 12,
   },
   routeInfoValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   routeButtons: {
     flexDirection: 'row',
@@ -1905,27 +1917,27 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     alignItems: 'center',
     justifyContent: 'center',
   },
   editRouteBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   continueBtn: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     alignItems: 'center',
     justifyContent: 'center',
   },
   continueBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
   },
 
   // Custom markers
@@ -1941,7 +1953,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderWidth: 2,
     borderColor: '#fff',
   },
@@ -1955,7 +1967,7 @@ const styles = StyleSheet.create({
   destinationMarkerSquare: {
     width: 12,
     height: 12,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderWidth: 2,
     borderColor: '#fff',
   },
@@ -2005,7 +2017,7 @@ const styles = StyleSheet.create({
     zIndex: 200,
   },
   loadingBox: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -2013,7 +2025,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#666',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
     fontWeight: '500',
   },
 
@@ -2029,20 +2041,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 24,
     textAlign: 'center',
+    color: 'transparent', // Añadir para usar color dinámico
   },
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    color: 'transparent', // Añadir para usar color dinámico
   },
   addVehicleButton: {
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
     marginTop: 32,
+    backgroundColor: 'transparent', // Añadir para usar color dinámico
   },
   addVehicleButtonText: {
-    color: '#fff',
+    color: 'transparent', // Cambiar para usar color dinámico
     fontSize: 16,
     fontWeight: '600',
   },
@@ -2053,7 +2068,7 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
     right: 20,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -2069,7 +2084,7 @@ const styles = StyleSheet.create({
   },
   mapSelectionText: {
     flex: 1,
-    color: '#fff',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
     fontSize: 14,
     fontWeight: '500',
   },
@@ -2079,7 +2094,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   cancelSelectionText: {
-    color: '#fff',
+    color: 'transparent', // Cambiar a transparente para usar color dinámico
     fontSize: 14,
     fontWeight: '600',
     opacity: 0.8,
@@ -2098,7 +2113,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,

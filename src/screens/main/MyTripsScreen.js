@@ -15,10 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import useColors from '../../hooks/useColors';
 import socketService from '../../services/socketService';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
+  const { colors } = useColors();
+  
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -146,15 +149,15 @@ const MyTripsScreen = ({ navigation }) => {
   const getStatusConfig = (status) => {
     switch (status) {
       case 'active':
-        return { color: '#10B981', bg: '#D1FAE5', text: 'Activo' };
+        return { color: colors.success, bg: colors.success + '20', text: 'Activo' };
       case 'started':
-        return { color: '#F59E0B', bg: '#FEF3C7', text: 'En progreso' };
+        return { color: colors.warning, bg: colors.warning + '20', text: 'En progreso' };
       case 'completed':
-        return { color: '#3B82F6', bg: '#DBEAFE', text: 'Completado' };
+        return { color: colors.info, bg: colors.info + '20', text: 'Completado' };
       case 'cancelled':
-        return { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado' };
+        return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
       default:
-        return { color: '#6B7280', bg: '#F3F4F6', text: status };
+        return { color: colors.textMuted, bg: colors.border, text: status };
     }
   };
 
@@ -187,7 +190,7 @@ const MyTripsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
         activeOpacity={0.7}
       >
@@ -202,9 +205,9 @@ const MyTripsScreen = ({ navigation }) => {
           
           {/* Reservas pendientes badge - solo para trips próximos con reservas */}
           {activeTab === 'upcoming' && item.passengers && item.passengers.length > 0 && (
-            <View style={styles.pendingBadge}>
-              <Ionicons name="person" size={10} color="#6366F1" />
-              <Text style={styles.pendingBadgeText}>{item.passengers.length}</Text>
+            <View style={[styles.pendingBadge, { backgroundColor: colors.info + '20' }]}>
+              <Ionicons name="person" size={10} color={colors.info} />
+              <Text style={[styles.pendingBadgeText, { color: colors.info }]}>{item.passengers.length}</Text>
             </View>
           )}
         </View>
@@ -212,15 +215,15 @@ const MyTripsScreen = ({ navigation }) => {
         {/* Route */}
         <View style={styles.routeSection}>
           <View style={styles.routeRow}>
-            <View style={styles.routeDot} />
-            <Text style={styles.cityText} numberOfLines={1}>
+            <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
               {[item.origin?.address, item.origin?.city, item.origin?.province].filter(Boolean).join(', ')}
             </Text>
           </View>
-          <View style={styles.routeLine} />
+          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination]} />
-            <Text style={styles.cityText} numberOfLines={1}>
+            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.error }]} />
+            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
               {[item.destination?.address, item.destination?.city, item.destination?.province].filter(Boolean).join(', ')}
             </Text>
           </View>
@@ -229,16 +232,16 @@ const MyTripsScreen = ({ navigation }) => {
         {/* Trip Info */}
         <View style={styles.infoSection}>
           <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{formatDate(item.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDate(item.departureDate)}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{item.departureTime}</Text>
+            <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{item.departureTime}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="people-outline" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{item.availableSeats} disponibles</Text>
+            <Ionicons name="people-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{item.availableSeats} disponibles</Text>
           </View>
         </View>
 
@@ -246,11 +249,11 @@ const MyTripsScreen = ({ navigation }) => {
         {item.status === 'active' && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
             >
-              <Ionicons name="people" size={18} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Ver Reservas</Text>
+              <Ionicons name="people" size={18} color={colors.textSecondary} />
+              <Text style={[styles.primaryButtonText, { color: colors.textSecondary }]}>Ver Reservas</Text>
               {item.passengers && item.passengers.length > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{item.passengers.length}</Text>
@@ -260,32 +263,32 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.secondaryActions}>
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: item._id })}
               >
-                <Ionicons name="create-outline" size={20} color="#374151" />
-                <Text style={styles.actionButtonText}>Editar</Text>
+                <Ionicons name="create-outline" size={20} color={colors.textMuted} />
+                <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>Editar</Text>
               </TouchableOpacity>
 
               {item.occupiedSeats > 0 && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   onPress={() => handleStartTrip(item._id)}
                   disabled={startingTripId === item._id}
                 >
-                  <Ionicons name="play" size={20} color="#F59E0B" />
-                  <Text style={[styles.actionButtonText, { color: '#F59E0B' }]}>
+                  <Ionicons name="play" size={20} color={colors.warning} />
+                  <Text style={[styles.actionButtonText, { color: colors.warning }]}>
                     {startingTripId === item._id ? 'Iniciando...' : 'Iniciar'}
                   </Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => handleCancelTrip(item._id)}
               >
-                <Ionicons name="close" size={20} color="#EF4444" />
-                <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Cancelar</Text>
+                <Ionicons name="close" size={20} color={colors.error} />
+                <Text style={[styles.actionButtonText, { color: colors.error }]}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -294,17 +297,17 @@ const MyTripsScreen = ({ navigation }) => {
         {/* Actions for Started Trips */}
         {item.status === 'started' && (
           <View style={styles.actionsSection}>
-            <View style={styles.inProgressBanner}>
-              <Ionicons name="car" size={18} color="#F59E0B" />
-              <Text style={styles.inProgressText}>Viaje en progreso</Text>
+            <View style={[styles.inProgressBanner, { backgroundColor: colors.warning + '20' }]}>
+              <Ionicons name="car" size={18} color={colors.warning} />
+              <Text style={[styles.inProgressText, { color: colors.warning }]}>Viaje en progreso</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { backgroundColor: colors.messagePrimary }]}
               onPress={() => handleCompleteTrip(item._id)}
             >
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Completar Viaje</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />
+              <Text style={[styles.primaryButtonText, { color: colors.textPrimary }]}>Completar Viaje</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -314,8 +317,8 @@ const MyTripsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.messagePrimary} />
       </View>
     );
   }
@@ -323,22 +326,38 @@ const MyTripsScreen = ({ navigation }) => {
   const filteredTrips = getFilteredTrips();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      <View style={[styles.tabsContainer, { backgroundColor: colors.cardBackground, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
+          style={[
+            styles.tab,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            activeTab === 'upcoming' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
+          ]}
           onPress={() => setActiveTab('upcoming')}
         >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
+          <Text style={[
+            styles.tabText,
+            { color: colors.textSecondary },
+            activeTab === 'upcoming' && { color: colors.cardBackground }
+          ]}>
             Proximos
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'past' && styles.tabActive]}
+          style={[
+            styles.tab,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            activeTab === 'past' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
+          ]}
           onPress={() => setActiveTab('past')}
         >
-          <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
+          <Text style={[
+            styles.tabText,
+            { color: colors.textSecondary },
+            activeTab === 'past' && { color: colors.cardBackground }
+          ]}>
             Pasados
           </Text>
         </TouchableOpacity>
@@ -355,20 +374,20 @@ const MyTripsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000000"
+              tintColor={colors.messagePrimary}
             />
           }
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="car-outline" size={48} color="#9CA3AF" />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+            <Ionicons name="car-outline" size={48} color={colors.textMuted} />
           </View>
-          <Text style={styles.emptyTitle}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
             {activeTab === 'upcoming' ? 'Sin viajes proximos' : 'Sin viajes pasados'}
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             {activeTab === 'upcoming'
               ? 'Crea tu primer viaje y comparte gastos'
               : 'Tus viajes completados apareceran aqui'
@@ -385,16 +404,16 @@ const MyTripsScreen = ({ navigation }) => {
         onRequestClose={() => setShowCostModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Completar Viaje</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Completar Viaje</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               Ingresa el costo real del viaje
             </Text>
 
             <TextInput
-              style={styles.costInput}
+              style={[styles.costInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               placeholder="Ej: 1500"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               keyboardType="decimal-pad"
               value={actualCost}
               onChangeText={setActualCost}
@@ -403,17 +422,17 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalCancelButton}
+                style={[styles.modalCancelButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setShowCostModal(false)}
               >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.modalConfirmButton}
+                style={[styles.modalConfirmButton, { backgroundColor: colors.messagePrimary }]}
                 onPress={submitCompleteTrip}
               >
-                <Text style={styles.modalConfirmText}>Completar</Text>
+                <Text style={[styles.modalConfirmText, { color: colors.textPrimary }]}>Completar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -426,40 +445,33 @@ const MyTripsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
   },
   // Tabs
   tabsContainer: {
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    borderWidth: 1,
+    marginHorizontal: 4,
   },
   tabActive: {
-    backgroundColor: '#000000',
   },
   tabText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
   },
   // List
   listContent: {
@@ -467,12 +479,10 @@ const styles = StyleSheet.create({
   },
   // Card
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   // Status
   statusContainer: {
@@ -502,7 +512,6 @@ const styles = StyleSheet.create({
   pendingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -511,7 +520,6 @@ const styles = StyleSheet.create({
   pendingBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#6366F1',
   },
   // Route
   routeSection: {
@@ -526,24 +534,19 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000000',
   },
   routeDotDestination: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#000000',
   },
   routeLine: {
     width: 2,
     height: 20,
-    backgroundColor: '#E5E7EB',
     marginLeft: 4,
     marginVertical: 4,
   },
   cityText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
     flex: 1,
   },
   // Info
@@ -553,7 +556,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   infoItem: {
     flexDirection: 'row',
@@ -562,7 +564,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   // Actions
   actionsSection: {
@@ -573,7 +574,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
     paddingVertical: 14,
     borderRadius: 8,
     gap: 8,
@@ -581,10 +581,8 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   badge: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -595,7 +593,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#000000',
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -610,14 +607,12 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#374151',
   },
   // In Progress
   inProgressBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF3C7',
     paddingVertical: 10,
     borderRadius: 8,
     gap: 8,
@@ -625,7 +620,6 @@ const styles = StyleSheet.create({
   inProgressText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#92400E',
   },
   // Empty State
   emptyContainer: {
@@ -638,7 +632,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -646,12 +639,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
   },
   // Modal
@@ -663,7 +654,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -672,22 +662,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000000',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 20,
   },
   costInput: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 18,
-    color: '#000000',
     marginBottom: 20,
   },
   modalActions: {
@@ -699,25 +685,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     alignItems: 'center',
   },
   modalCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
   },
   modalConfirmButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: '#000000',
     alignItems: 'center',
   },
   modalConfirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });
 
