@@ -299,16 +299,16 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.routeCity} numberOfLines={1}>
             {trip.origin.address ? `${trip.origin.address}, ${trip.origin.city}` : trip.origin.city}
           </Text>
-          {trip.intermediateStops && trip.intermediateStops.length > 0 && (
-            <Text style={styles.routeCityIntermediate} numberOfLines={1}>
-              +{trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
-            </Text>
-          )}
           <Text style={styles.routeCity} numberOfLines={1}>
             {trip.destination.address ? `${trip.destination.address}, ${trip.destination.city}` : trip.destination.city}
           </Text>
         </View>
       </View>
+      {trip.intermediateStops && trip.intermediateStops.length > 0 && (
+        <Text style={styles.routeCityIntermediate} numberOfLines={1}>
+          +{trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
+        </Text>
+      )}
 
       {/* Footer */}
       <View style={styles.tripFooter}>
