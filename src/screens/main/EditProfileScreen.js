@@ -40,6 +40,7 @@ const EditProfileScreen = ({ navigation }) => {
   });
   const [avatarUri, setAvatarUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +69,41 @@ const EditProfileScreen = ({ navigation }) => {
     forceRefreshPermissions,
   } = useGalleryPermissions();
 
+  const updateAvatarOnly = async (imageUri) => {
+    setAvatarLoading(true);
+    try {
+      const formDataToSend = new FormData();
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formDataToSend.append('avatar', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      });
+
+      const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
+
+      if (response.success) {
+        await refreshUser();
+        setModalMessage('Foto de perfil actualizada');
+        setShowSuccessModal(true);
+        setAvatarUri(null); // Clear the temporary URI since it's now saved
+      } else {
+        setModalMessage(response.message || 'Error al actualizar la foto');
+        setShowErrorModal(true);
+        setAvatarUri(null); // Reset on error
+      }
+    } catch (error) {
+      setModalMessage(error.message || 'Error al actualizar la foto');
+      setShowErrorModal(true);
+      setAvatarUri(null); // Reset on error
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
   const pickImage = async () => {
     try {
       const imageAsset = await pickImageFromGallery({
@@ -86,6 +122,8 @@ const EditProfileScreen = ({ navigation }) => {
         }
         if (uri) {
           setAvatarUri(uri);
+          // Automatically update the avatar
+          await updateAvatarOnly(uri);
         }
       }
     } catch (error) {
@@ -152,18 +190,7 @@ const EditProfileScreen = ({ navigation }) => {
         formDataToSend.append('bio', formData.bio.trim());
       }
 
-      if (avatarUri) {
-        const filename = avatarUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        formDataToSend.append('avatar', {
-          uri: avatarUri,
-          name: filename,
-          type: type,
-        });
-      }
-
+      // Don't include avatar in main save since it's handled separately
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
 
       if (response.success) {
@@ -213,10 +240,21 @@ const EditProfileScreen = ({ navigation }) => {
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrapper}>
+              {avatarLoading && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                </View>
+              )}
               {renderAvatar()}
             </View>
-            <TouchableOpacity onPress={pickImage} activeOpacity={0.7}>
-              <Text style={styles.changePhotoText}>Cambiar foto</Text>
+            <TouchableOpacity 
+              onPress={pickImage} 
+              activeOpacity={0.7}
+              disabled={avatarLoading}
+            >
+              <Text style={[styles.changePhotoText, avatarLoading && styles.changePhotoTextDisabled]}>
+                {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -455,6 +493,18 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     overflow: 'hidden',
     marginBottom: 16,
+    position: 'relative',
+  },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
   avatarImage: {
     width: '100%',
@@ -476,6 +526,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#1F2937',
+  },
+  changePhotoTextDisabled: {
+    color: '#9CA3AF',
   },
   // Form
   form: {
