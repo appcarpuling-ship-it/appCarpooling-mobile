@@ -285,7 +285,7 @@ const HomeScreen = ({ navigation }) => {
             })} - {trip.departureTime}
           </Text>
         </View>
-      
+
       </View>
 
       {/* Route */}
@@ -296,8 +296,12 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.routeDotDestination} />
         </View>
         <View style={styles.routeTexts}>
-          <Text style={styles.routeCity} numberOfLines={1}>{trip.origin.city}</Text>
-          <Text style={styles.routeCity} numberOfLines={1}>{trip.destination.city}</Text>
+          <Text style={styles.routeCity} numberOfLines={1}>
+            {trip.origin.address ? `${trip.origin.address}, ${trip.origin.city}` : trip.origin.city}
+          </Text>
+          <Text style={styles.routeCity} numberOfLines={1}>
+            {trip.destination.address ? `${trip.destination.address}, ${trip.destination.city}` : trip.destination.city}
+          </Text>
         </View>
       </View>
 

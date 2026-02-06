@@ -20,11 +20,13 @@ import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/PermissionModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import Toast from '../../components/Toast';
 
 const EditProfileScreen = ({ navigation }) => {
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
 
   const { user, refreshUser } = useAuth();
   const [showProvincePicker, setShowProvincePicker] = useState(false);
@@ -87,8 +89,8 @@ const EditProfileScreen = ({ navigation }) => {
 
       if (response.success) {
         await refreshUser();
-        setModalMessage('Foto de perfil actualizada');
-        setShowSuccessModal(true);
+        setToastMessage('Foto de perfil actualizada');
+        setShowSuccessToast(true);
         setAvatarUri(null); // Clear the temporary URI since it's now saved
       } else {
         setModalMessage(response.message || 'Error al actualizar la foto');
@@ -195,8 +197,8 @@ const EditProfileScreen = ({ navigation }) => {
 
       if (response.success) {
         await refreshUser();
-        setModalMessage('Perfil actualizado');
-        setShowSuccessModal(true);
+        setToastMessage('Perfil actualizado');
+        setShowSuccessToast(true);
       } else {
         setModalMessage(response.message || 'Error al actualizar');
         setShowErrorModal(true);
@@ -441,18 +443,12 @@ const EditProfileScreen = ({ navigation }) => {
         onRefreshPermissions={forceRefreshPermissions}
       />
 
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          navigation.goBack();
-        }}
+      <Toast
+        visible={showSuccessToast}
+        message={toastMessage}
         type="success"
-        title="Listo"
-        message={modalMessage}
-        confirmText="OK"
-        showCancel={false}
+        duration={2000}
+        onHide={() => setShowSuccessToast(false)}
       />
 
       <ConfirmationModal

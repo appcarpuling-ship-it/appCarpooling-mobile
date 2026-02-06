@@ -9,11 +9,12 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
 
 const NotificationsScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const {
     notifications = [],
     loading,
@@ -166,14 +167,14 @@ const NotificationsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
+      <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#000000" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -220,7 +221,7 @@ const NotificationsScreen = ({ navigation }) => {
           </Text>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
