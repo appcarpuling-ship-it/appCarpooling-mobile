@@ -1570,7 +1570,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             <View style={styles.routeSection}>
               <View style={styles.routeDivider} />
 
-              {distance && duration && (
+              {/* {distance && duration && (
                 <View style={styles.routeInfoRow}>
                   <View style={styles.routeInfoItem}>
                     <Ionicons name="car-outline" size={20} color="#000" />
@@ -1582,7 +1582,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     <Text style={styles.routeInfoValue}>{duration}</Text>
                   </View>
                 </View>
-              )}
+              )} */}
 
               <View style={styles.routeButtons}>
                 {/* <TouchableOpacity
