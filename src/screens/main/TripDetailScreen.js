@@ -324,17 +324,32 @@ const TripDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
 
         {/* Vehicle */}
-        {trip.vehicle && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Vehiculo</Text>
-            <View style={styles.vehicleInfo}>
-              <Ionicons name="car-outline" size={20} color="#374151" />
-              <Text style={styles.vehicleText}>
-                {trip.vehicle.brand} {trip.vehicle.model} · {trip.vehicle.color}
-              </Text>
+        {trip.vehicle && (() => {
+          console.log('Vehicle data:', trip.vehicle);
+          console.log('Vehicle photo:', trip.vehicle.photo);
+          console.log('Vehicle photos array:', trip.vehicle.photos);
+          const vehicleImage = trip.vehicle.photo || (trip.vehicle.photos && trip.vehicle.photos[0]);
+          return (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Vehiculo</Text>
+              <View style={styles.vehicleContainer}>
+                {vehicleImage ? (
+                  <Image source={{ uri: buildImageUri(vehicleImage) }} style={styles.vehicleImage} />
+                ) : (
+                  <View style={styles.vehicleImagePlaceholder}>
+                    <Ionicons name="car-outline" size={32} color="#6B7280" />
+                  </View>
+                )}
+                <View style={styles.vehicleDetails}>
+                  <Text style={styles.vehicleText}>
+                    {trip.vehicle.brand} {trip.vehicle.model}
+                  </Text>
+                  <Text style={styles.vehicleColor}>{trip.vehicle.color}</Text>
+                </View>
+              </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Features */}
         {trip.vehicle?.features && (
@@ -649,9 +664,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  vehicleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  vehicleImage: {
+    width: 60,
+    height: 45,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  vehicleImagePlaceholder: {
+    width: 60,
+    height: 45,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vehicleDetails: {
+    flex: 1,
+  },
   vehicleText: {
     fontSize: 15,
+    fontWeight: '600',
     color: '#374151',
+  },
+  vehicleColor: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
   },
   // Features
   featuresGrid: {
