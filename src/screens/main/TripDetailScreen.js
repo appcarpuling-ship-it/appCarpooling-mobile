@@ -260,7 +260,6 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={styles.routeRow}>
             <View style={styles.routeDot} />
             <View style={styles.routeContent}>
-              <Text style={styles.routeTime}>{trip.departureTime}</Text>
               <Text style={styles.routeCity}>{trip.origin?.address}</Text>
             </View>
           </View>
@@ -278,6 +277,10 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={styles.infoItem}>
             <Ionicons name="calendar-outline" size={18} color="#6B7280" />
             <Text style={styles.infoText}>{formatDate(trip.departureDate)}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="time-outline" size={18} color="#6B7280" />
+            <Text style={styles.infoText}>{trip.departureTime} Hs</Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="person-outline" size={18} color="#6B7280" />
