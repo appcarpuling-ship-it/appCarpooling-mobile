@@ -189,7 +189,7 @@ const NotificationsScreen = ({ navigation }) => {
             style={styles.markAllButton}
             onPress={handleMarkAllAsRead}
           >
-            <Text style={styles.markAllText}>Marcar todas</Text>
+            <Text style={styles.markAllText}>Leer todas</Text>
           </TouchableOpacity>
         )}
       </View>

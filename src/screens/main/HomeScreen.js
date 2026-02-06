@@ -249,6 +249,13 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
+  const clearFilters = () => {
+    setOrigin('');
+    setDestination('');
+    setSelectedDate(null);
+    setSelectedSeats('');
+  };
+
   const getDriverInitials = (driver) => {
     if (!driver) return '??';
     return `${driver.firstName?.[0] || ''}${driver.lastName?.[0] || ''}`;
@@ -445,6 +452,13 @@ const HomeScreen = ({ navigation }) => {
             <Ionicons name="search" size={20} color="#FFFFFF" />
             <Text style={styles.searchButtonText}>Buscar viajes</Text>
           </TouchableOpacity>
+
+          {(origin || destination || selectedDate || selectedSeats) && (
+            <TouchableOpacity style={styles.clearButton} onPress={clearFilters} activeOpacity={0.7}>
+              <Ionicons name="refresh-outline" size={16} color="#6B7280" />
+              <Text style={styles.clearButtonText}>Limpiar filtros</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Banner Enterprise */}
@@ -692,6 +706,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   // Section
   section: {
