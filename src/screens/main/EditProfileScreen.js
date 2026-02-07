@@ -24,7 +24,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import Toast from '../../components/Toast';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -221,7 +221,7 @@ const EditProfileScreen = ({ navigation }) => {
       return <Image source={{ uri: buildImageUri(user.avatar) }} style={styles.avatarImage} />;
     }
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.cardBackground }]}>
         <Text style={styles.avatarInitials}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
@@ -374,7 +374,7 @@ const EditProfileScreen = ({ navigation }) => {
                   styles.textArea,
                   { 
                     color: colors.textPrimary,
-                    backgroundColor: '#292929'
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground
                   }
                 ]}
                 value={formData.bio}
@@ -392,7 +392,11 @@ const EditProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.saveButton, 
-              { backgroundColor: loading ? colors.textMuted : '#292929' }
+              { 
+                backgroundColor: loading 
+                  ? colors.textMuted 
+                  : getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+              }
             ]}
             onPress={handleSave}
             disabled={loading}

@@ -325,7 +325,10 @@ const ProfileScreen = () => {
               {section.items.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                  style={[styles.menuItem, { 
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                    borderColor: colors.border 
+                  }]}
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
@@ -334,7 +337,9 @@ const ProfileScreen = () => {
                       styles.iconContainer,
                       item.danger && styles.iconContainerDanger,
                       { 
-                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : colors.surface,
+                        backgroundColor: item.danger 
+                          ? 'rgba(239, 68, 68, 0.1)' 
+                          : getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
                         borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
                       }
                     ]}>
