@@ -140,7 +140,7 @@ const MyBookingsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+        style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
         activeOpacity={0.7}
       >
@@ -194,7 +194,7 @@ const MyBookingsScreen = ({ navigation }) => {
               style={styles.driverAvatar}
             />
           ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: colors.messagePrimary }]}>
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#292929' }]}>
               <Text style={[styles.driverInitials, { color: colors.textPrimary }]}>
                 {driver.firstName[0]}{driver.lastName[0]}
               </Text>
@@ -236,7 +236,7 @@ const MyBookingsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.messagePrimary} />
+        <ActivityIndicator size="large" color="#292929" />
       </View>
     );
   }
@@ -254,7 +254,7 @@ const MyBookingsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.messagePrimary}
+              tintColor="#292929"
             />
           }
         />

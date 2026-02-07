@@ -221,7 +221,7 @@ const EditProfileScreen = ({ navigation }) => {
       return <Image source={{ uri: buildImageUri(user.avatar) }} style={styles.avatarImage} />;
     }
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
         <Text style={styles.avatarInitials}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
@@ -258,7 +258,7 @@ const EditProfileScreen = ({ navigation }) => {
             >
               <Text style={[
                 styles.changePhotoText, 
-                { color: colors.primary },
+                { color: colors.textPrimary },
                 avatarLoading && { color: colors.textMuted }
               ]}>
                 {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
@@ -374,7 +374,7 @@ const EditProfileScreen = ({ navigation }) => {
                   styles.textArea,
                   { 
                     color: colors.textPrimary,
-                    backgroundColor: colors.inputBackground
+                    backgroundColor: '#292929'
                   }
                 ]}
                 value={formData.bio}
@@ -392,7 +392,7 @@ const EditProfileScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.saveButton, 
-              { backgroundColor: loading ? colors.textMuted : colors.messagePrimary }
+              { backgroundColor: loading ? colors.textMuted : '#292929' }
             ]}
             onPress={handleSave}
             disabled={loading}

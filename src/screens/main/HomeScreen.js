@@ -273,8 +273,8 @@ const HomeScreen = ({ navigation }) => {
     <TouchableOpacity
       key={trip._id}
       style={[styles.tripCard, { 
-        backgroundColor: colors.cardBackground,
-        borderColor: colors.border 
+        backgroundColor: '#292929',
+        borderColor: '#404040' 
       }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
@@ -287,7 +287,7 @@ const HomeScreen = ({ navigation }) => {
             style={styles.driverAvatar}
           />
         ) : (
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#292929' }]}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#6B7280' }]}>
             <Text style={styles.driverInitials}>{getDriverInitials(trip.driver)}</Text>
           </View>
         )}
@@ -435,8 +435,8 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.searchContainer}>
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder 
+              backgroundColor: '#292929',
+              borderColor: '#404040' 
             }]}
             onPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
@@ -451,8 +451,8 @@ const HomeScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder 
+              backgroundColor: '#292929',
+              borderColor: '#404040' 
             }]}
             onPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
@@ -467,8 +467,8 @@ const HomeScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder 
+              backgroundColor: '#292929',
+              borderColor: '#404040' 
             }]}
             onPress={() => setShowDatePicker(true)}
             activeOpacity={0.7}
@@ -482,8 +482,8 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={[styles.inputContainer, { 
-            backgroundColor: colors.inputBackground,
-            borderColor: colors.inputBorder 
+            backgroundColor: '#292929',
+            borderColor: '#404040' 
           }]}>
             <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
             <TextInput

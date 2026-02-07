@@ -1990,7 +1990,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#292929',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,

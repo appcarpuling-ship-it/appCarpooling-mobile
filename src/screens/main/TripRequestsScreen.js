@@ -191,9 +191,9 @@ const TripRequestsScreen = ({ route }) => {
   const renderRequestItem = ({ item }) => {
     if (!item.passenger || !item.passenger._id) {
     return (
-      <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}>
         <View style={styles.passengerSection}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.messagePrimary }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
             <Ionicons name="person" size={24} color={colors.textPrimary} />
           </View>
           <Text style={[styles.passengerName, { color: colors.textPrimary }]}>Usuario no disponible</Text>
@@ -208,13 +208,13 @@ const TripRequestsScreen = ({ route }) => {
     const isPending = reservationStatus === 'pending_approval' || reservationStatus === 'pending';
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}>
         {/* Passenger Info */}
         <View style={styles.passengerSection}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.messagePrimary }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
               <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>
                 {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
               </Text>
@@ -255,7 +255,7 @@ const TripRequestsScreen = ({ route }) => {
 
         {/* Message */}
         {item.message && (
-          <View style={[styles.messageSection, { backgroundColor: colors.surface }]}>
+          <View style={[styles.messageSection, { backgroundColor: '#292929' }]}>
             <Ionicons name="chatbubble-outline" size={14} color={colors.textMuted} />
             <Text style={[styles.messageText, { color: colors.textSecondary }]}>{item.message}</Text>
           </View>
@@ -265,7 +265,7 @@ const TripRequestsScreen = ({ route }) => {
         {isPending && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={[styles.acceptButton, { backgroundColor: colors.messagePrimary }]}
+              style={[styles.acceptButton, { backgroundColor: '#292929' }]}
               onPress={() => handleAccept(item)}
             >
               <Ionicons name="checkmark" size={18} color={colors.textPrimary} />
@@ -303,7 +303,7 @@ const TripRequestsScreen = ({ route }) => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.tripCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+            style={[styles.tripCard, { backgroundColor: '#292929', borderColor: colors.border }]}
             onPress={() => setSelectedTripId(item._id)}
           >
             <View style={styles.tripRoute}>
@@ -313,7 +313,7 @@ const TripRequestsScreen = ({ route }) => {
               </View>
               <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
               <View style={styles.routeRow}>
-                <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.cardBackground, borderColor: colors.error }]} />
+                <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: '#292929', borderColor: colors.error }]} />
                 <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{item.destination?.city}</Text>
               </View>
             </View>
@@ -337,7 +337,7 @@ const TripRequestsScreen = ({ route }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.messagePrimary} />
+        <ActivityIndicator size="large" color="#292929" />
       </View>
     );
   }
@@ -356,7 +356,7 @@ const TripRequestsScreen = ({ route }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.messagePrimary}
+              tintColor="#292929"
             />
           }
         />
@@ -390,7 +390,7 @@ const TripRequestsScreen = ({ route }) => {
         onRequestClose={() => setRejectModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.modalContent, { backgroundColor: '#292929' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Rechazar solicitud</Text>
               <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
@@ -401,7 +401,7 @@ const TripRequestsScreen = ({ route }) => {
             <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Indica la razon del rechazo:</Text>
 
             <TextInput
-              style={[styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.textArea, { backgroundColor: '#292929', borderColor: colors.border, color: colors.textPrimary }]}
               placeholder="Escribe la razon aqui..."
               placeholderTextColor={colors.textMuted}
               value={rejectReason}
@@ -413,7 +413,7 @@ const TripRequestsScreen = ({ route }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.modalCancelButton, { backgroundColor: '#292929', borderColor: colors.border }]}
                 onPress={() => setRejectModalVisible(false)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>

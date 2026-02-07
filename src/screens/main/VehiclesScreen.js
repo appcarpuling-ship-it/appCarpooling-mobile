@@ -44,7 +44,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
         onPress={() => navigation.navigate('VehicleForm', { vehicle: item })}
       >
         <View
-          style={[styles.vehicleCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+          style={[styles.vehicleCard, { backgroundColor: '#292929', borderColor: '#404040' }]}
         >
           <View style={styles.vehicleContent}>
             {photoUrl ? (
@@ -57,7 +57,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
               <View
                 style={[styles.vehicleIcon, { backgroundColor: colors.surface }]}
               >
-                <Ionicons name="car-sport" size={28} color={colors.messagePrimary} />
+                <Ionicons name="car-sport" size={28} color="#292929" />
               </View>
             )}
 
@@ -78,7 +78,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                 )}
               </View>
               <View style={styles.plateContainer}>
-                <Ionicons name="card-outline" size={14} color={colors.messagePrimary} />
+                <Ionicons name="card-outline" size={14} color="#292929" />
                 <Text style={[styles.vehiclePlate, { color: colors.textPrimary }]}>{item.licensePlate || item.plate}</Text>
               </View>
               {item.capacity && (
@@ -97,7 +97,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                   navigation.navigate('VehicleForm', { vehicle: item });
                 }}
               >
-                <Ionicons name="create-outline" size={22} color={colors.messagePrimary} />
+                <Ionicons name="create-outline" size={22} color="#292929" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteButton}
@@ -218,7 +218,7 @@ const VehiclesScreen = () => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.messagePrimary} />
+        <ActivityIndicator size="large" color="#292929" />
       </View>
     );
   }
@@ -235,15 +235,15 @@ const VehiclesScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.messagePrimary}
-              colors={[colors.messagePrimary]}
+              tintColor="#292929"
+              colors={['#292929']}
             />
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
           <View
-            style={[styles.emptyIconContainer, { backgroundColor: colors.messagePrimary }]}
+            style={[styles.emptyIconContainer, { backgroundColor: '#292929' }]}
           >
             <Ionicons name="car-sport-outline" size={48} color={colors.textPrimary} />
           </View>
@@ -260,7 +260,7 @@ const VehiclesScreen = () => {
         activeOpacity={0.8}
       >
         <View
-          style={[styles.fab, { backgroundColor: colors.messagePrimary }]}
+          style={[styles.fab, { backgroundColor: '#292929' }]}
         >
           <Ionicons name="add" size={32} color={colors.textPrimary} />
         </View>

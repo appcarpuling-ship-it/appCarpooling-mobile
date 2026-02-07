@@ -90,9 +90,9 @@ const HelpScreen = () => {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Preguntas Frecuentes</Text>
 
           {faqItems.map((item) => (
-            <View key={item.id} style={[styles.faqItem, { backgroundColor: colors.cardBackground }]}>
+            <View key={item.id} style={[styles.faqItem, { backgroundColor: '#292929', borderRadius: 12, padding: 16 }]}>
               <View style={styles.faqHeader}>
-                <Ionicons name="help-circle" size={24} color={colors.messagePrimary} />
+                <Ionicons name="help-circle" size={24} color="#292929" />
                 <Text style={[styles.question, { color: colors.textPrimary }]}>{item.question}</Text>
               </View>
               <Text style={[styles.answer, { color: colors.textSecondary }]}>{item.answer}</Text>
@@ -104,11 +104,11 @@ const HelpScreen = () => {
           {contactItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.contactItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+              style={[styles.contactItem, { backgroundColor: '#292929', borderColor: colors.border }]}
               onPress={item.onPress}
             >
-              <View style={[styles.contactIcon, { backgroundColor: colors.surface }]}>
-                <Ionicons name={item.icon} size={24} color={colors.messagePrimary} />
+              <View style={[styles.contactIcon, { backgroundColor: '#292929' }]}>
+                <Ionicons name={item.icon} size={24} color="#FFFFFF" />
               </View>
               <View style={styles.contactInfo}>
                 <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>{item.title}</Text>

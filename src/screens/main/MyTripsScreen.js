@@ -190,7 +190,7 @@ const MyTripsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+        style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
         activeOpacity={0.7}
       >
@@ -249,21 +249,21 @@ const MyTripsScreen = ({ navigation }) => {
         {item.status === 'active' && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+              style={[styles.primaryButton, { backgroundColor: '#292929', borderColor: colors.border, borderWidth: 1 }]}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
             >
               <Ionicons name="people" size={18} color={colors.textSecondary} />
               <Text style={[styles.primaryButtonText, { color: colors.textSecondary }]}>Ver Reservas</Text>
               {item.passengers && item.passengers.length > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.passengers.length}</Text>
+                <View style={[styles.badge, { backgroundColor: '#292929' }]}>
+                  <Text style={[styles.badgeText, { color: colors.textPrimary }]}>{item.passengers.length}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <View style={styles.secondaryActions}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: item._id })}
               >
                 <Ionicons name="create-outline" size={20} color={colors.textMuted} />
@@ -272,7 +272,7 @@ const MyTripsScreen = ({ navigation }) => {
 
               {item.occupiedSeats > 0 && (
                 <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
                   onPress={() => handleStartTrip(item._id)}
                   disabled={startingTripId === item._id}
                 >
@@ -284,7 +284,7 @@ const MyTripsScreen = ({ navigation }) => {
               )}
 
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
                 onPress={() => handleCancelTrip(item._id)}
               >
                 <Ionicons name="close" size={20} color={colors.error} />
@@ -303,7 +303,7 @@ const MyTripsScreen = ({ navigation }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.messagePrimary }]}
+              style={[styles.primaryButton, { backgroundColor: '#292929' }]}
               onPress={() => handleCompleteTrip(item._id)}
             >
               <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />
@@ -318,7 +318,7 @@ const MyTripsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.messagePrimary} />
+        <ActivityIndicator size="large" color="#292929" />
       </View>
     );
   }
@@ -328,11 +328,11 @@ const MyTripsScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.cardBackground, borderBottomColor: colors.border }]}>
+      <View style={[styles.tabsContainer, { backgroundColor: '#292929', borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.tab,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            { backgroundColor: colors.background, borderColor: colors.border },
             activeTab === 'upcoming' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
           ]}
           onPress={() => setActiveTab('upcoming')}
@@ -348,7 +348,7 @@ const MyTripsScreen = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.tab,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            { backgroundColor: colors.background, borderColor: colors.border },
             activeTab === 'past' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
           ]}
           onPress={() => setActiveTab('past')}
@@ -374,7 +374,7 @@ const MyTripsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.messagePrimary}
+              tintColor="#292929"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -404,7 +404,7 @@ const MyTripsScreen = ({ navigation }) => {
         onRequestClose={() => setShowCostModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.modalContent, { backgroundColor: '#292929' }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Completar Viaje</Text>
             <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               Ingresa el costo real del viaje
@@ -422,14 +422,14 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.modalCancelButton, { backgroundColor: '#292929', borderColor: colors.border }]}
                 onPress={() => setShowCostModal(false)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalConfirmButton, { backgroundColor: colors.messagePrimary }]}
+                style={[styles.modalConfirmButton, { backgroundColor: '#292929' }]}
                 onPress={submitCompleteTrip}
               >
                 <Text style={[styles.modalConfirmText, { color: colors.textPrimary }]}>Completar</Text>

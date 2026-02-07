@@ -301,7 +301,7 @@ const ProfileScreen = () => {
               />
             ) : (
               <View
-                style={[styles.avatar, { backgroundColor: colors.messagePrimary, borderColor: colors.cardBackground }]}
+                style={[styles.avatar, { backgroundColor: '#292929', borderColor: colors.cardBackground }]}
               >
                 <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -330,7 +330,7 @@ const ProfileScreen = () => {
               {section.items.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                  style={[styles.menuItem, { backgroundColor: '#292929', borderColor: colors.border }]}
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
@@ -339,7 +339,7 @@ const ProfileScreen = () => {
                       styles.iconContainer,
                       item.danger && styles.iconContainerDanger,
                       { 
-                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : colors.surface,
+                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : '#000000',
                         borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
                       }
                     ]}>
