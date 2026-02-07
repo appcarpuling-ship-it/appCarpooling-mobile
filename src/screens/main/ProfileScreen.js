@@ -172,13 +172,10 @@ const ProfileScreen = () => {
   const handleThemeToggle = () => {
     const currentMode = getCurrentThemeMode();
     
-    // Ciclo: light -> dark -> system -> light
+    // Ciclo: light -> dark -> light
     if (currentMode === 'light') {
       setThemeMode('dark');
       Alert.alert('Tema Cambiado', '🌙 Modo oscuro activado');
-    } else if (currentMode === 'dark') {
-      setThemeMode('system');
-      Alert.alert('Tema Cambiado', '📱 Modo automático activado (sigue el sistema)');
     } else {
       setThemeMode('light');
       Alert.alert('Tema Cambiado', '🌞 Modo claro activado');
@@ -188,14 +185,12 @@ const ProfileScreen = () => {
   const getThemeButtonText = () => {
     const currentMode = getCurrentThemeMode();
     if (currentMode === 'light') return 'Cambiar a Oscuro';
-    if (currentMode === 'dark') return 'Cambiar a Automático'; 
     return 'Cambiar a Claro';
   };
 
   const getThemeIcon = () => {
     const currentMode = getCurrentThemeMode();
     if (currentMode === 'light') return 'moon-outline';
-    if (currentMode === 'dark') return 'phone-portrait-outline';
     return 'sunny-outline';
   };
 
@@ -301,7 +296,7 @@ const ProfileScreen = () => {
               />
             ) : (
               <View
-                style={[styles.avatar, { backgroundColor: '#292929', borderColor: colors.cardBackground }]}
+                style={[styles.avatar, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
               >
                 <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -330,7 +325,7 @@ const ProfileScreen = () => {
               {section.items.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.menuItem, { backgroundColor: '#292929', borderColor: colors.border }]}
+                  style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
@@ -339,7 +334,7 @@ const ProfileScreen = () => {
                       styles.iconContainer,
                       item.danger && styles.iconContainerDanger,
                       { 
-                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : '#000000',
+                        backgroundColor: item.danger ? 'rgba(239, 68, 68, 0.1)' : colors.surface,
                         borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
                       }
                     ]}>

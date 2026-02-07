@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 
 // Safe colors fallback to prevent 'colors is not defined' errors
 const safeColors = (() => {
@@ -56,6 +55,11 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { isDarkMode } = useTheme();
+
+  // Logo dinámico según el tema
+  const LOGO_SOURCE = isDarkMode 
+    ? require('../../../assets/logo/192x192-white.png')
+    : require('../../../assets/logo/192x192-black.png');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;

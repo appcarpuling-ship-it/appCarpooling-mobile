@@ -26,10 +26,9 @@ import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
-
-const LOGO_SOURCE = require('../../../assets/logo/192x192.jpg');
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 180;
@@ -108,7 +107,13 @@ const ContinuousCarousel = ({ banners, onBannerPress }) => {
 const HomeScreen = ({ navigation }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
+  const { isDarkMode } = useTheme();
   const { colors } = useColors();
+
+  // Logo dinámico según el tema
+  const LOGO_SOURCE = isDarkMode 
+    ? require('../../../assets/logo/192x192-white.png')
+    : require('../../../assets/logo/192x192-black.png');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
@@ -694,10 +699,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     marginBottom: 12,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 28,
