@@ -20,7 +20,7 @@ import { useColors } from '../../hooks/useColors';
 
 // Componente separado para el item del vehículo
 const VehicleItem = ({ item, index, navigation, onDelete }) => {
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const itemFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -44,7 +44,10 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
         onPress={() => navigation.navigate('VehicleForm', { vehicle: item })}
       >
         <View
-          style={[styles.vehicleCard, { backgroundColor: '#292929', borderColor: '#404040' }]}
+          style={[styles.vehicleCard, { 
+            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+            borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border 
+          }]}
         >
           <View style={styles.vehicleContent}>
             {photoUrl ? (
@@ -118,7 +121,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +221,7 @@ const VehiclesScreen = () => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#292929" />
+        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary} />
       </View>
     );
   }
@@ -243,9 +246,11 @@ const VehiclesScreen = () => {
       ) : (
         <View style={styles.emptyContainer}>
           <View
-            style={[styles.emptyIconContainer, { backgroundColor: '#292929' }]}
+            style={[styles.emptyIconContainer, { 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+            }]}
           >
-            <Ionicons name="car-sport-outline" size={48} color={colors.textPrimary} />
+            <Ionicons name="car-sport-outline" size={48} color={getCurrentThemeMode() === 'dark' ? colors.textPrimary : '#FFFFFF'} />
           </View>
           <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No tienes vehículos registrados</Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
@@ -260,9 +265,11 @@ const VehiclesScreen = () => {
         activeOpacity={0.8}
       >
         <View
-          style={[styles.fab, { backgroundColor: '#292929' }]}
+          style={[styles.fab, { 
+            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+          }]}
         >
-          <Ionicons name="add" size={32} color={colors.textPrimary} />
+          <Ionicons name="add" size={32} color="#FFFFFF" />
         </View>
       </TouchableOpacity>
     </View>

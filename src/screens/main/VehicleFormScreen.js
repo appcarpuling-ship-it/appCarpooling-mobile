@@ -21,7 +21,7 @@ import PermissionModal from '../../components/PermissionModal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const VehicleFormScreen = ({ navigation, route }) => {
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -153,7 +153,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
     const yearNum = parseInt(formData.year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      setModalMessage('Ano no valido');
+      setModalMessage('Año no valido');
       setShowErrorModal(true);
       return;
     }
@@ -258,7 +258,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
                     style={styles.removeButton}
                     onPress={() => removeExistingPhoto(index)}
                   >
-                    <Ionicons name="close" size={16} color={colors.textPrimary} />
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -278,7 +278,10 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
               {/* Add button */}
               {(existingPhotos.length + photos.length) < 10 && (
-                <TouchableOpacity style={[styles.addButton, { backgroundColor: '#292929', borderColor: '#404040' }]} onPress={pickImages}>
+                <TouchableOpacity style={[styles.addButton, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border 
+                }]} onPress={pickImages}>
                   <Ionicons name="add" size={32} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
@@ -292,7 +295,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Marca</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                style={[styles.input, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  color: colors.textPrimary 
+                }]}
                 value={formData.brand}
                 onChangeText={(value) => handleChange('brand', value)}
                 placeholder="Toyota, Ford, Chevrolet..."
@@ -303,7 +310,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Modelo</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                style={[styles.input, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  color: colors.textPrimary 
+                }]}
                 value={formData.model}
                 onChangeText={(value) => handleChange('model', value)}
                 placeholder="Corolla, Focus, Cruze..."
@@ -313,9 +324,13 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.halfWidth]}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Ano</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Año</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                  style={[styles.input, { 
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                    borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                    color: colors.textPrimary 
+                  }]}
                   value={formData.year}
                   onChangeText={(value) => handleChange('year', value)}
                   placeholder="2020"
@@ -328,7 +343,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <View style={[styles.inputGroup, styles.halfWidth]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Color</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                  style={[styles.input, { 
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                    borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                    color: colors.textPrimary 
+                  }]}
                   value={formData.color}
                   onChangeText={(value) => handleChange('color', value)}
                   placeholder="Blanco"
@@ -340,7 +359,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Patente</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                style={[styles.input, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  color: colors.textPrimary 
+                }]}
                 value={formData.licensePlate}
                 onChangeText={(value) => handleChange('licensePlate', value.toUpperCase())}
                 placeholder="ABC123"
@@ -352,7 +375,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Capacidad de pasajeros</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: '#292929', borderColor: '#404040', color: colors.textPrimary }]}
+                style={[styles.input, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  color: colors.textPrimary 
+                }]}
                 value={formData.capacity}
                 onChangeText={(value) => handleChange('capacity', value)}
                 placeholder="4"
@@ -370,22 +397,28 @@ const VehicleFormScreen = ({ navigation, route }) => {
             {featuresList.map((feature) => (
               <TouchableOpacity
                 key={feature.key}
-                style={[styles.featureRow, { backgroundColor: '#292929', borderColor: colors.border }]}
+                style={[styles.featureRow, { 
+                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  borderColor: colors.border 
+                }]}
                 onPress={() => toggleFeature(feature.key)}
                 activeOpacity={0.7}
               >
                 <View style={styles.featureLeft}>
-                  <Ionicons name={feature.icon} size={22} color="#292929" />
+                  <Ionicons name={feature.icon} size={22} color={getCurrentThemeMode() === 'dark' ? colors.textMuted : colors.primary} />
                   <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>{feature.label}</Text>
                 </View>
                 <View style={[
                   styles.toggle,
                   { backgroundColor: colors.border },
-                  features[feature.key] && { ...styles.toggleActive, backgroundColor: '#292929' }
+                  features[feature.key] && { 
+                    ...styles.toggleActive, 
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+                  }
                 ]}>
                   <View style={[
                     styles.toggleCircle,
-                    { backgroundColor: colors.textPrimary },
+                    { backgroundColor: "#FFFFFF" },
                     features[feature.key] && styles.toggleCircleActive
                   ]} />
                 </View>
@@ -395,7 +428,9 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Submit */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled, { backgroundColor: '#292929' }]}
+            style={[styles.submitButton, loading && styles.submitButtonDisabled, { 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+            }]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
@@ -403,7 +438,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
             {loading ? (
               <ActivityIndicator color={colors.textPrimary} size="small" />
             ) : (
-              <Text style={[styles.submitButtonText, { color: colors.textPrimary }]}>
+              <Text style={[styles.submitButtonText, { color: "#FFFFFF" }]}>
                 {isEdit ? 'Guardar cambios' : 'Crear vehiculo'}
               </Text>
             )}
@@ -524,7 +559,9 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   row: {
     flexDirection: 'row',
@@ -539,7 +576,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   featureLeft: {
     flexDirection: 'row',
