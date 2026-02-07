@@ -11,6 +11,7 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -188,8 +189,33 @@ const AllTripsScreen = ({ navigation }) => {
   const renderTripItem = useCallback(
     ({ item }) => {
       const driver = item.driver || {};
-      const originCity = item.origin?.city || item.origin?.name || 'Origen';
-      const destCity = item.destination?.city || item.destination?.name || 'Destino';
+      const formatAddress = (location) => {
+        if (!location) return 'Dirección no disponible';
+        
+        const street = location.street || location.address || '';
+        const number = location.number || location.streetNumber || '';
+        const city = location.city || location.name || '';
+        const province = location.province || '';
+        
+        let address = '';
+        if (street) {
+          address += street;
+          if (number) address += ` ${number}`;
+        } else if (city) {
+          address += city;
+        }
+        
+        if (province && address) {
+          address += `, ${province}`;
+        } else if (province) {
+          address = province;
+        }
+        
+        return address || 'Dirección no disponible';
+      };
+      
+      const originAddress = formatAddress(item.origin);
+      const destAddress = formatAddress(item.destination);
 
       return (
         <TouchableOpacity
@@ -200,9 +226,9 @@ const AllTripsScreen = ({ navigation }) => {
           <View style={styles.cardGradient}>
             <View style={styles.tripHeader}>
               <View style={styles.routeRow}>
-                <Text style={[styles.cityText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={1}>{originCity}</Text>
-                <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
-                <Text style={[styles.cityText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={1}>{destCity}</Text>
+                <Text style={[styles.addressText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={2}>{originAddress}</Text>
+                <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#9CA3AF' : '#6B7280'} style={styles.arrowIcon} />
+                <Text style={[styles.addressText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={2}>{destAddress}</Text>
               </View>
               {/* <Text style={styles.priceText}>
                 {item.pricePerSeat ? `$${item.pricePerSeat}` : 'Gratis'}
@@ -210,10 +236,20 @@ const AllTripsScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.driverRow}>
-              <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
-                <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
-                  {driver.firstName?.[0]}{driver.lastName?.[0]}
-                </Text>
+              <View style={styles.avatarContainer}>
+                {driver.avatar ? (
+                  <Image
+                    source={{ uri: driver.avatar }}
+                    style={[styles.avatarImage, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                    defaultSource={require('../../../assets/logo/192x192-black.png')}
+                  />
+                ) : (
+                  <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+                    <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
+                      {driver.firstName?.[0]}{driver.lastName?.[0]}
+                    </Text>
+                  </View>
+                )}
               </View>
               <Text style={[styles.driverName, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]} numberOfLines={1}>
                 {driver.firstName || 'Conductor'} {driver.lastName || ''}
@@ -739,15 +775,20 @@ const styles = StyleSheet.create({
   },
   routeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
-    gap: 6,
+    gap: 8,
   },
-  cityText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
+  addressText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
     color: '#000000',
-    flexShrink: 1,
+    flex: 1,
+    lineHeight: 18,
+  },
+  arrowIcon: {
+    marginTop: 2,
+    alignSelf: 'flex-start',
   },
   priceText: {
     fontSize: fontSize.lg,
@@ -760,13 +801,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  avatarContainer: {
+    marginRight: spacing.xs,
+  },
   avatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.xs,
+  },
+  avatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   avatarText: {
     color: '#F3F4F6',

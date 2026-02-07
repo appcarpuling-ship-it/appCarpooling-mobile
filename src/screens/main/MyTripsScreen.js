@@ -20,7 +20,7 @@ import socketService from '../../services/socketService';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,7 +190,7 @@ const MyTripsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}
+        style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
         activeOpacity={0.7}
       >
@@ -249,13 +249,13 @@ const MyTripsScreen = ({ navigation }) => {
         {item.status === 'active' && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: '#292929', borderColor: colors.border, borderWidth: 1 }]}
+              style={[styles.primaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border, borderWidth: 1 }]}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
             >
               <Ionicons name="people" size={18} color={colors.textSecondary} />
               <Text style={[styles.primaryButtonText, { color: colors.textSecondary }]}>Ver Reservas</Text>
               {item.passengers && item.passengers.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: '#292929' }]}>
+                <View style={[styles.badge, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
                   <Text style={[styles.badgeText, { color: colors.textPrimary }]}>{item.passengers.length}</Text>
                 </View>
               )}
@@ -263,7 +263,7 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.secondaryActions}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
+                style={[styles.actionButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: item._id })}
               >
                 <Ionicons name="create-outline" size={20} color={colors.textMuted} />
@@ -272,7 +272,7 @@ const MyTripsScreen = ({ navigation }) => {
 
               {item.occupiedSeats > 0 && (
                 <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
+                  style={[styles.actionButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
                   onPress={() => handleStartTrip(item._id)}
                   disabled={startingTripId === item._id}
                 >
@@ -284,7 +284,7 @@ const MyTripsScreen = ({ navigation }) => {
               )}
 
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#292929', borderColor: colors.border }]}
+                style={[styles.actionButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
                 onPress={() => handleCancelTrip(item._id)}
               >
                 <Ionicons name="close" size={20} color={colors.error} />
@@ -303,7 +303,7 @@ const MyTripsScreen = ({ navigation }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: '#292929' }]}
+              style={[styles.primaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}
               onPress={() => handleCompleteTrip(item._id)}
             >
               <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />
@@ -318,7 +318,7 @@ const MyTripsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#292929" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -328,7 +328,7 @@ const MyTripsScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: '#292929', borderBottomColor: colors.border }]}>
+      <View style={[styles.tabsContainer, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.tab,
@@ -374,14 +374,14 @@ const MyTripsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#292929"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="car-outline" size={48} color={colors.textMuted} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
@@ -404,14 +404,14 @@ const MyTripsScreen = ({ navigation }) => {
         onRequestClose={() => setShowCostModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: '#292929' }]}>
+          <View style={[styles.modalContent, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Completar Viaje</Text>
             <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
               Ingresa el costo real del viaje
             </Text>
 
             <TextInput
-              style={[styles.costInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.costInput, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               placeholder="Ej: 1500"
               placeholderTextColor={colors.textMuted}
               keyboardType="decimal-pad"
@@ -422,17 +422,17 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: '#292929', borderColor: colors.border }]}
+                style={[styles.modalCancelButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
                 onPress={() => setShowCostModal(false)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalConfirmButton, { backgroundColor: '#292929' }]}
+                style={[styles.modalConfirmButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary }]}
                 onPress={submitCompleteTrip}
               >
-                <Text style={[styles.modalConfirmText, { color: colors.textPrimary }]}>Completar</Text>
+                <Text style={[styles.modalConfirmText, { color: getCurrentThemeMode() === 'dark' ? colors.textPrimary : colors.background }]}>Completar</Text>
               </TouchableOpacity>
             </View>
           </View>

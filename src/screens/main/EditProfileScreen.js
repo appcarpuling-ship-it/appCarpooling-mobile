@@ -221,7 +221,7 @@ const EditProfileScreen = ({ navigation }) => {
       return <Image source={{ uri: buildImageUri(user.avatar) }} style={styles.avatarImage} />;
     }
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.cardBackground }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}>
         <Text style={styles.avatarInitials}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>

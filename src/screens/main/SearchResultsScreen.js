@@ -20,7 +20,7 @@ import useColors from '../../hooks/useColors';
 import { typography } from '../../theme/typography';
 
 const SearchResultsScreen = ({ route, navigation }) => {
-  const { colors, gradients, createColorArray } = useColors();
+  const { colors, gradients, createColorArray, getCurrentThemeMode } = useColors();
   const { origin, destination } = route.params || {};
 
   const [trips, setTrips] = useState([]);
@@ -79,7 +79,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.cardBackground,
+      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -98,7 +98,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       marginVertical: spacing.sm,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
-      backgroundColor: colors.cardBackground,
+      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
       borderWidth: 1,
       borderColor: colors.border,
       shadowColor: '#000',
@@ -233,7 +233,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
       marginRight: spacing.sm,
       marginBottom: spacing.sm,
     },

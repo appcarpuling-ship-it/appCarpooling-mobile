@@ -60,7 +60,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
         style={[
           styles.optionContainer,
           {
-            backgroundColor: colors.cardBackground,
+            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
             borderColor: isSelected ? colors.primary : colors.border,
             borderWidth: isSelected ? 2 : 1,
           }
@@ -74,7 +74,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  backgroundColor: isSelected ? colors.primary : getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
                 }
               ]}
             >

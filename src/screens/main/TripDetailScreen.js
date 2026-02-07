@@ -23,7 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user } = useAuth();
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -504,14 +504,29 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity
-                  style={[styles.payButton, { backgroundColor: colors.messagePrimary }]}
+                  style={[
+                    styles.payButton, 
+                    { 
+                      backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'
+                    }
+                  ]}
                   onPress={handleCompletePendingPayment}
                   disabled={paymentLoading}
                 >
                   {paymentLoading ? (
-                    <ActivityIndicator size="small" color={colors.textPrimary} />
+                    <ActivityIndicator 
+                      size="small" 
+                      color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} 
+                    />
                   ) : (
-                    <Text style={[styles.payButtonText, { color: colors.textPrimary }]}>Completar pago</Text>
+                    <Text style={[
+                      styles.payButtonText, 
+                      { 
+                        color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'
+                      }
+                    ]}>
+                      Completar pago
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -523,11 +538,25 @@ const TripDetailScreen = ({ route, navigation }) => {
             )
           ) : (
             <TouchableOpacity
-              style={[styles.bookButton, { backgroundColor: trip.availableSeats === 0 ? colors.textMuted : colors.textMuted }]}
+              style={[
+                styles.bookButton, 
+                { 
+                  backgroundColor: trip.availableSeats === 0 
+                    ? colors.textMuted 
+                    : (getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000')
+                }
+              ]}
               onPress={handleBookTrip}
               disabled={trip.availableSeats === 0}
             >
-              <Text style={[styles.bookButtonText, { color: colors.textPrimary }]}>
+              <Text style={[
+                styles.bookButtonText, 
+                { 
+                  color: trip.availableSeats === 0 
+                    ? colors.textPrimary 
+                    : (getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF')
+                }
+              ]}>
                 {trip.availableSeats === 0 ? 'Sin asientos' : 'Reservar'}
               </Text>
             </TouchableOpacity>

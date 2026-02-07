@@ -17,7 +17,7 @@ import useColors from '../../hooks/useColors';
 import socketService from '../../services/socketService';
 
 const MyBookingsScreen = ({ navigation }) => {
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -260,7 +260,7 @@ const MyBookingsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin reservas</Text>

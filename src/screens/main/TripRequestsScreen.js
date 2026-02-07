@@ -18,7 +18,7 @@ import { approveOrRejectReservation } from '../../services/seatReservationServic
 import { useColors } from '../../hooks/useColors';
 
 const TripRequestsScreen = ({ route }) => {
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   const { tripId } = route.params || {};
 
   const [trips, setTrips] = useState([]);
@@ -362,7 +362,7 @@ const TripRequestsScreen = ({ route }) => {
         />
       ) : selectedTripId ? (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="people-outline" size={48} color={colors.textMuted} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin solicitudes</Text>
@@ -372,7 +372,7 @@ const TripRequestsScreen = ({ route }) => {
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="car-outline" size={48} color={colors.textMuted} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin viajes</Text>

@@ -208,10 +208,10 @@ const NotificationsScreen = ({ navigation }) => {
 
         {notifications.some(n => !n.isRead && !optimisticRead.has(n._id)) && (
           <TouchableOpacity
-            style={[styles.markAllButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+            style={[styles.markAllButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#161616' }]}
             onPress={handleMarkAllAsRead}
           >
-            <Text style={[styles.markAllText, { color: '#FFFFFF' }]}>Leer todas</Text>
+            <Text style={[styles.markAllText, { color: isDarkMode ? '#161616' : '#FFFFFF' }]}>Leer todas</Text>
           </TouchableOpacity>
         )}
       </View>

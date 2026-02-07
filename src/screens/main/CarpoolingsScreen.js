@@ -24,7 +24,7 @@ const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 200;
 
 const CarpoolingsScreen = ({ navigation }) => {
-  const { colors, createColorArray } = useColors();
+  const { colors, createColorArray, getCurrentThemeMode } = useColors();
   const { isDarkMode } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -138,7 +138,7 @@ const CarpoolingsScreen = ({ navigation }) => {
         ) : (
           <View style={styles.bannerContent}>
             {item.clickUrl && (
-            <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+            <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : '' }]}>
               <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>Ver más</Text>
               <Ionicons name="arrow-forward" size={14} color={'#FFFFFF'} />
               </View>
@@ -205,8 +205,20 @@ const CarpoolingsScreen = ({ navigation }) => {
           >
             {/* Header */}
             <View style={styles.header}>
-              <View style={[styles.headerIcon, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
-                <Ionicons name="car-sport" size={28} color={isDarkMode ? '#FFFFFF' : '#FFFFFF'} />
+              <View style={[
+                styles.headerIcon, 
+                { 
+                  backgroundColor: isDarkMode ? '' : '',
+                  shadowColor: isDarkMode ? 'transparent' : '',
+                  shadowOpacity: isDarkMode ? 0 : 0.3,
+                  elevation: isDarkMode ? 0 : 5
+                }
+              ]}>
+                <Image
+                  source={isDarkMode ? require('../../../assets/logo/192x192-white.png') : require('../../../assets/logo/192x192-black.png')}
+                  style={{ width: 32, height: 32 }}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Gestionar Viajes</Text>
               <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
@@ -243,9 +255,21 @@ const CarpoolingsScreen = ({ navigation }) => {
                         }]}
                       >
                         <View
-                          style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+                          style={[
+                            styles.iconContainer, 
+                            { 
+                              backgroundColor: getCurrentThemeMode() === 'dark' ? '#000000' : '#292929',
+                              shadowColor: getCurrentThemeMode() === 'dark' ? 'transparent' : '',
+                              shadowOpacity: getCurrentThemeMode() === 'dark' ? 0 : 0.3,
+                              elevation: getCurrentThemeMode() === 'dark' ? 0 : 4
+                            }
+                          ]}
                         >
-                          <Ionicons name={item.icon} size={32} color={'#FFFFFF'} />
+                          <Ionicons 
+                            name={item.icon} 
+                            size={32} 
+                            color={'#FFFFFF'} 
+                          />
                         </View>
                       <View style={styles.menuInfo}>
                         <Text style={[styles.menuTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>{item.title}</Text>
@@ -316,7 +340,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -361,7 +384,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -409,7 +431,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

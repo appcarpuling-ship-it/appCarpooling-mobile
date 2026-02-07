@@ -58,7 +58,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
               />
             ) : (
               <View
-                style={[styles.vehicleIcon, { backgroundColor: colors.surface }]}
+                style={[styles.vehicleIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}
               >
                 <Ionicons name="car-sport" size={28} color="#292929" />
               </View>
