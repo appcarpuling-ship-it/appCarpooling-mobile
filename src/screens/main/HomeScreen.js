@@ -108,7 +108,7 @@ const HomeScreen = ({ navigation }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   const { isDarkMode } = useTheme();
-  const { colors } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
 
   // Logo dinámico según el tema
   const LOGO_SOURCE = isDarkMode 
@@ -237,6 +237,14 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const handleDatePickerOpen = () => {
+    // Si no hay fecha seleccionada, setear la fecha de hoy automáticamente
+    if (!selectedDate) {
+      setSelectedDate(new Date());
+    }
+    setShowDatePicker(true);
+  };
+
   const formatDate = (date) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString('es-ES');
@@ -278,8 +286,8 @@ const HomeScreen = ({ navigation }) => {
     <TouchableOpacity
       key={trip._id}
       style={[styles.tripCard, { 
-        backgroundColor: '#292929',
-        borderColor: '#404040' 
+        backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+        borderColor: colors.border 
       }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
@@ -370,7 +378,7 @@ const HomeScreen = ({ navigation }) => {
                   {
                     backgroundColor: selected === province 
                       ? colors.primaryLight 
-                      : colors.cardBackground,
+                      : getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
                     borderBottomColor: colors.borderLight
                   }
                 ]}
@@ -440,8 +448,8 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.searchContainer}>
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: '#292929',
-              borderColor: '#404040' 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+              borderColor: colors.border 
             }]}
             onPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
@@ -456,8 +464,8 @@ const HomeScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: '#292929',
-              borderColor: '#404040' 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+              borderColor: colors.border 
             }]}
             onPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
@@ -472,10 +480,10 @@ const HomeScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.inputContainer, { 
-              backgroundColor: '#292929',
-              borderColor: '#404040' 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+              borderColor: colors.border 
             }]}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => handleDatePickerOpen()}
             activeOpacity={0.7}
           >
             <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
@@ -487,8 +495,8 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={[styles.inputContainer, { 
-            backgroundColor: '#292929',
-            borderColor: '#404040' 
+            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+            borderColor: colors.border 
           }]}>
             <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
             <TextInput
@@ -502,7 +510,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity style={[styles.searchButton, { backgroundColor: colors.primary }]} onPress={handleSearch} activeOpacity={0.8}>
-            <Ionicons name="search" size={20} color={colors.background} />
+            {/* <Ionicons name="search" size={20} color={colors.background} /> */}
             <Text style={[styles.searchButtonText, { color: colors.background }]}>Buscar viajes</Text>
           </TouchableOpacity>
 
@@ -585,7 +593,7 @@ const HomeScreen = ({ navigation }) => {
                       <Ionicons name="close" size={24} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <View style={[styles.datePickerWrapper, { backgroundColor: colors.surface }]}>
+                  <View style={[styles.datePickerWrapper, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
                     <DateTimePicker
                       value={selectedDate || new Date()}
                       mode="date"
@@ -598,7 +606,7 @@ const HomeScreen = ({ navigation }) => {
                   <View style={[styles.pickerButtons, { backgroundColor: colors.background }]}>
                     <TouchableOpacity
                       style={[styles.pickerButtonClear, { 
-                        backgroundColor: colors.surface,
+                        backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
                         borderColor: colors.border 
                       }]}
                       onPress={() => {
@@ -612,7 +620,7 @@ const HomeScreen = ({ navigation }) => {
                       style={[styles.pickerButtonConfirm, { backgroundColor: colors.primary }]}
                       onPress={() => setShowDatePicker(false)}
                     >
-                      <Text style={[styles.pickerButtonConfirmText, { color: colors.onPrimary }]}>Confirmar</Text>
+                      <Text style={[styles.pickerButtonConfirmText, { color: colors.background }]}>Confirmar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1010,11 +1018,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
-    backgroundColor: '#000000',
+    // backgroundColor manejado inline
   },
   pickerButtonConfirmText: {
     fontSize: 15,
-    color: '#FFFFFF',
+    // color manejado inline
     fontWeight: '600',
   },
   // Banners
