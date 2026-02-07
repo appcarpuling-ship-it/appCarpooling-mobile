@@ -16,7 +16,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { get_public } from '../../services/apiService';
+import { get_public, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
@@ -239,7 +239,7 @@ const AllTripsScreen = ({ navigation }) => {
               <View style={styles.avatarContainer}>
                 {driver.avatar ? (
                   <Image
-                    source={{ uri: driver.avatar }}
+                    source={{ uri: buildImageUri(driver.avatar) }}
                     style={[styles.avatarImage, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
                     defaultSource={require('../../../assets/logo/192x192-black.png')}
                   />

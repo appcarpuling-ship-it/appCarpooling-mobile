@@ -249,14 +249,14 @@ const MyTripsScreen = ({ navigation }) => {
         {item.status === 'active' && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border, borderWidth: 1 }]}
+              style={[styles.primaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : '#000000', borderColor: getCurrentThemeMode() === 'dark' ? colors.border : '#000000', borderWidth: 1 }]}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
             >
-              <Ionicons name="people" size={18} color={colors.textSecondary} />
-              <Text style={[styles.primaryButtonText, { color: colors.textSecondary }]}>Ver Reservas</Text>
+              <Ionicons name="people" size={18} color={getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#FFFFFF'} />
+              <Text style={[styles.primaryButtonText, { color: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#FFFFFF' }]}>Ver Reservas</Text>
               {item.passengers && item.passengers.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-                  <Text style={[styles.badgeText, { color: colors.textPrimary }]}>{item.passengers.length}</Text>
+                <View style={[styles.badge, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : '#FFFFFF' }]}>
+                  <Text style={[styles.badgeText, { color: getCurrentThemeMode() === 'dark' ? colors.textPrimary : '#000000' }]}>{item.passengers.length}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -333,14 +333,19 @@ const MyTripsScreen = ({ navigation }) => {
           style={[
             styles.tab,
             { backgroundColor: colors.background, borderColor: colors.border },
-            activeTab === 'upcoming' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
+            activeTab === 'upcoming' && { 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000', 
+              borderColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000'
+            }
           ]}
           onPress={() => setActiveTab('upcoming')}
         >
           <Text style={[
             styles.tabText,
             { color: colors.textSecondary },
-            activeTab === 'upcoming' && { color: colors.cardBackground }
+            activeTab === 'upcoming' && { 
+              color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'
+            }
           ]}>
             Proximos
           </Text>
@@ -349,14 +354,19 @@ const MyTripsScreen = ({ navigation }) => {
           style={[
             styles.tab,
             { backgroundColor: colors.background, borderColor: colors.border },
-            activeTab === 'past' && { backgroundColor: colors.textSecondary, borderColor: colors.textSecondary }
+            activeTab === 'past' && { 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000', 
+              borderColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000'
+            }
           ]}
           onPress={() => setActiveTab('past')}
         >
           <Text style={[
             styles.tabText,
             { color: colors.textSecondary },
-            activeTab === 'past' && { color: colors.cardBackground }
+            activeTab === 'past' && { 
+              color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'
+            }
           ]}>
             Pasados
           </Text>

@@ -250,6 +250,17 @@ const ProfileScreen = () => {
         },
       ],
     },
+    {
+      title: 'Referidos y Descuentos',
+      items: [
+        {
+          id: 8,
+          title: 'Mi Código Promocional',
+          icon: 'gift-outline',
+          onPress: () => navigation.navigate('ReferralScreen'),
+        },
+      ],
+    },
     // {
     //   title: 'Reservas',
     //   items: [
@@ -308,6 +319,16 @@ const ProfileScreen = () => {
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
+          
+          {/* Indicador de Descuento */}
+          {user?.discountPercentage && user.discountPercentage > 0 && (
+            <View style={[styles.discountBadge, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
+              <Ionicons name="pricetag" size={14} color={colors.success} />
+              <Text style={[styles.discountText, { color: colors.success }]}>
+                {user.discountPercentage}% de descuento activo
+              </Text>
+            </View>
+          )}
         </Animated.View>
 
         <Animated.View
@@ -424,7 +445,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: SORA_FONTS.regular,
     // color: '#6B7280', // Ahora dinámico
-    marginBottom: 28,
+    marginBottom: 12,
+  },
+  discountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  discountText: {
+    fontSize: 13,
+    fontFamily: SORA_FONTS.medium,
+    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',

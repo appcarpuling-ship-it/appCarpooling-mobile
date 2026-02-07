@@ -82,12 +82,15 @@ const RegisterScreen = ({ navigation }) => {
       city: '',
       province: '',
       bio: '',
+      referralCode: '',
     },
     validationSchemas.register
   );
 
   const [avatarUri, setAvatarUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [validatingReferral, setValidatingReferral] = useState(false);
+  const [referralMessage, setReferralMessage] = useState('');
   const { register } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -130,6 +133,46 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
+  // Función para validar código promocional
+  const validateReferralCode = async (code) => {
+    if (!code || code.trim().length === 0) {
+      setReferralMessage('');
+      return;
+    }
+
+    setValidatingReferral(true);
+    setReferralMessage('');
+
+    try {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/validate-referral/${code.toUpperCase()}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setReferralMessage(`✅ ${data.data.message} Referido por: ${data.data.referrerName}`);
+      } else {
+        setReferralMessage('❌ Código promocional no válido');
+      }
+    } catch (error) {
+      setReferralMessage('❌ Error al validar código');
+    } finally {
+      setValidatingReferral(false);
+    }
+  };
+
+  // Debounce para validación de código
+  const debounceRef = useRef();
+  const handleReferralCodeChange = (text) => {
+    setValue('referralCode', text.toUpperCase());
+    
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      validateReferralCode(text);
+    }, 500);
+  };
+
   const handleRegister = async () => {
     // Validar todos los campos
     const { isValid: formIsValid, errors: formErrors } = validateAllFields();
@@ -164,6 +207,10 @@ const RegisterScreen = ({ navigation }) => {
 
       if (values.bio) {
         formDataToSend.append('bio', values.bio);
+      }
+
+      if (values.referralCode?.trim()) {
+        formDataToSend.append('referralCode', values.referralCode.toUpperCase());
       }
 
       // Agregar avatar si existe
@@ -359,6 +406,42 @@ const RegisterScreen = ({ navigation }) => {
                   helper="Máximo 500 caracteres"
                   {...getFieldProps('bio')}
                 />
+
+                {/* Código Promocional */}
+                <FormInput
+                  label="Código Promocional"
+                  placeholder="Ej: JP1234 (opcional)"
+                  leftIcon="gift-outline"
+                  value={values.referralCode}
+                  onChangeText={handleReferralCodeChange}
+                  autoCapitalize="characters"
+                  maxLength={8}
+                  helper="Si tienes un código promocional de un amigo, ingrésalo aquí para obtener 20% de descuento"
+                />
+                
+                {/* Mensaje de validación del código */}
+                {(validatingReferral || referralMessage) && (
+                  <View style={{ marginTop: -8, marginBottom: 16, marginLeft: 4 }}>
+                    {validatingReferral ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+                        <Text style={{ marginLeft: 8, fontSize: 12, color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>
+                          Validando código...
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text 
+                        style={{ 
+                          fontSize: 12, 
+                          color: referralMessage.includes('✅') ? '#10B981' : '#EF4444',
+                          fontWeight: '500'
+                        }}
+                      >
+                        {referralMessage}
+                      </Text>
+                    )}
+                  </View>
+                )}
 
                 {/* Register Button */}
                 <TouchableOpacity

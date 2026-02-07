@@ -11,6 +11,7 @@ import VehiclesScreen from '../../screens/main/VehiclesScreen';
 import VehicleFormScreen from '../../screens/main/VehicleFormScreen';
 import UserReviewsScreen from '../../screens/main/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
+import ReferralScreen from '../../screens/main/ReferralScreen';
 
 const Stack = createStackNavigator();
 
@@ -45,6 +46,11 @@ const ProfileStackNavigator = () => {
         name="EditProfile"
         component={EditProfileScreen}
         options={{ title: 'Editar Perfil' }}
+      />
+      <Stack.Screen
+        name="ReferralScreen"
+        component={ReferralScreen}
+        options={{ title: 'Código Promocional' }}
       />
       <Stack.Screen
         name="Vehicles"

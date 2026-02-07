@@ -56,8 +56,19 @@ const MainTabNavigator = () => {
             return (
               <View style={styles.iconContainer}>
                 <Ionicons name={iconName} size={size} color={color} />
-                <View style={[styles.badge, { backgroundColor: colors.error, borderColor: colors.inputBackground }]}>
-                  <Text style={styles.badgeText}>
+                <View style={[
+                  styles.badge, 
+                  { 
+                    backgroundColor: isDarkMode ? '#F87171' : '#EF4444',
+                    borderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                    shadowColor: '#000000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 2,
+                    elevation: 3,
+                  }
+                ]}>
+                  <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Text>
                 </View>

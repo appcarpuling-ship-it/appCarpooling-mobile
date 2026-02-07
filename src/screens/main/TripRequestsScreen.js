@@ -164,21 +164,26 @@ const TripRequestsScreen = ({ route }) => {
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'pending_approval':
-        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
-      case 'pending_payment':
-        return { color: '#F97316', bg: '#FFEDD5', text: 'Pago pendiente' };
-      case 'reserved':
-        return { color: '#10B981', bg: '#D1FAE5', text: 'Confirmada' };
       case 'pending':
-        return { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente' };
-      case 'accepted':
+        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
       case 'confirmed':
-        return { color: '#10B981', bg: '#D1FAE5', text: 'Aceptada' };
+        return { color: colors.success, bg: colors.success + '20', text: 'Confirmado' };
+      case 'cancelled':
+        return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
+      case 'completed':
+        return { color: colors.info, bg: colors.info + '20', text: 'Completado' };
+      case 'pending_approval':
+        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
+      case 'pending_payment':
+        return { color: colors.warning, bg: colors.warning + '20', text: 'Pago pendiente' };
+      case 'reserved':
+        return { color: colors.success, bg: colors.success + '20', text: 'Confirmada' };
+      case 'accepted':
+        return { color: colors.success, bg: colors.success + '20', text: 'Aceptada' };
       case 'rejected':
-        return { color: '#EF4444', bg: '#FEE2E2', text: 'Rechazada' };
+        return { color: colors.error, bg: colors.error + '20', text: 'Rechazada' };
       default:
-        return { color: '#6B7280', bg: '#F3F4F6', text: status };
+        return { color: colors.textMuted, bg: colors.border, text: status };
     }
   };
 
@@ -191,9 +196,9 @@ const TripRequestsScreen = ({ route }) => {
   const renderRequestItem = ({ item }) => {
     if (!item.passenger || !item.passenger._id) {
     return (
-      <View style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
         <View style={styles.passengerSection}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="person" size={24} color={colors.textPrimary} />
           </View>
           <Text style={[styles.passengerName, { color: colors.textPrimary }]}>Usuario no disponible</Text>
@@ -208,13 +213,13 @@ const TripRequestsScreen = ({ route }) => {
     const isPending = reservationStatus === 'pending_approval' || reservationStatus === 'pending';
 
     return (
-      <View style={[styles.card, { backgroundColor: '#292929', borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
         {/* Passenger Info */}
         <View style={styles.passengerSection}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: '#292929' }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
               <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>
                 {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
               </Text>
@@ -255,7 +260,7 @@ const TripRequestsScreen = ({ route }) => {
 
         {/* Message */}
         {item.message && (
-          <View style={[styles.messageSection, { backgroundColor: '#292929' }]}>
+          <View style={[styles.messageSection, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
             <Ionicons name="chatbubble-outline" size={14} color={colors.textMuted} />
             <Text style={[styles.messageText, { color: colors.textSecondary }]}>{item.message}</Text>
           </View>
@@ -265,11 +270,11 @@ const TripRequestsScreen = ({ route }) => {
         {isPending && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
-              style={[styles.acceptButton, { backgroundColor: '#292929' }]}
+              style={[styles.acceptButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000' }]}
               onPress={() => handleAccept(item)}
             >
-              <Ionicons name="checkmark" size={18} color={colors.textPrimary} />
-              <Text style={[styles.acceptButtonText, { color: colors.textPrimary }]}>Aceptar</Text>
+              <Ionicons name="checkmark" size={18} color={getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'} />
+              <Text style={[styles.acceptButtonText, { color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF' }]}>Aceptar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.rejectButton, { backgroundColor: colors.error + '20' }]}
@@ -303,7 +308,7 @@ const TripRequestsScreen = ({ route }) => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.tripCard, { backgroundColor: '#292929', borderColor: colors.border }]}
+            style={[styles.tripCard, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
             onPress={() => setSelectedTripId(item._id)}
           >
             <View style={styles.tripRoute}>
@@ -313,7 +318,7 @@ const TripRequestsScreen = ({ route }) => {
               </View>
               <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
               <View style={styles.routeRow}>
-                <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: '#292929', borderColor: colors.error }]} />
+                <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.error }]} />
                 <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{item.destination?.city}</Text>
               </View>
             </View>
@@ -337,7 +342,7 @@ const TripRequestsScreen = ({ route }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#292929" />
+        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary} />
       </View>
     );
   }
@@ -356,7 +361,7 @@ const TripRequestsScreen = ({ route }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#292929"
+              tintColor={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary}
             />
           }
         />
@@ -390,7 +395,7 @@ const TripRequestsScreen = ({ route }) => {
         onRequestClose={() => setRejectModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: '#292929' }]}>
+          <View style={[styles.modalContent, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Rechazar solicitud</Text>
               <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
@@ -401,7 +406,7 @@ const TripRequestsScreen = ({ route }) => {
             <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Indica la razon del rechazo:</Text>
 
             <TextInput
-              style={[styles.textArea, { backgroundColor: '#292929', borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.textArea, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               placeholder="Escribe la razon aqui..."
               placeholderTextColor={colors.textMuted}
               value={rejectReason}
@@ -413,7 +418,7 @@ const TripRequestsScreen = ({ route }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: '#292929', borderColor: colors.border }]}
+                style={[styles.modalCancelButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
                 onPress={() => setRejectModalVisible(false)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>

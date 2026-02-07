@@ -20,6 +20,7 @@ import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useAuth } from '../../context/AuthContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 // Usar valores directos para evitar problemas de carga
@@ -39,12 +40,11 @@ const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 200;
 
 const BookingScreen = ({ route, navigation }) => {
-  const colorHook = useColors();
-  const colors = colorHook?.colors || {};
+  const { colors, getCurrentThemeMode, gradients } = useColors();
+  const { user } = useAuth();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  const gradients_hook = colorHook?.gradients || {};
 
   const { trip, existingReservation } = route.params;
 
@@ -53,7 +53,7 @@ const BookingScreen = ({ route, navigation }) => {
     return (
       <LinearGradient colors={['#1F2937', '#111827']} style={styles.container}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>Error: Datos del viaje incompletos</Text>
+          <Text style={[styles.errorText, { color: colors.error || '#EF4444' }]}>Error: Datos del viaje incompletos</Text>
         </View>
       </LinearGradient>
     );
@@ -180,7 +180,31 @@ const BookingScreen = ({ route, navigation }) => {
       const response = await calculateReservationPrice(tripId, seats);
 
       if (response.success) {
-        setPriceData(response.data);
+        // Calcular descuento si el usuario tiene uno disponible
+        const basePrice = response.data.pricing.totalPrice;
+        const userDiscount = user?.discountPercentage || 0;
+        
+        let discountAmount = 0;
+        let finalPrice = basePrice;
+        
+        if (userDiscount > 0) {
+          discountAmount = (basePrice * userDiscount) / 100;
+          finalPrice = basePrice - discountAmount;
+        }
+        
+        // Agregar información de descuento a la respuesta
+        const enhancedPriceData = {
+          ...response.data,
+          pricing: {
+            ...response.data.pricing,
+            originalPrice: basePrice,
+            discountPercentage: userDiscount,
+            discountAmount: Math.round(discountAmount),
+            finalPrice: Math.round(finalPrice)
+          }
+        };
+        
+        setPriceData(enhancedPriceData);
       } else {
         setError('Error al calcular el precio');
       }
@@ -239,7 +263,7 @@ const BookingScreen = ({ route, navigation }) => {
       style={styles.bannerSlide}
     >
       <LinearGradient
-        colors={gradients_hook?.primary || ['#1F2937', '#374151']}
+        colors={gradients?.primary || ['#1F2937', '#374151']}
         style={styles.bannerGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -252,17 +276,17 @@ const BookingScreen = ({ route, navigation }) => {
           />
         ) : (
           <View style={styles.bannerContent}>
-            <Text style={styles.bannerTitle} numberOfLines={2}>
+            <Text style={[styles.bannerTitle, { color: '#FFFFFF' }]} numberOfLines={2}>
               {item.title}
             </Text>
             {item.description && (
-              <Text style={styles.bannerDescription} numberOfLines={2}>
+              <Text style={[styles.bannerDescription, { color: 'rgba(255, 255, 255, 0.9)' }]} numberOfLines={2}>
                 {item.description}
               </Text>
             )}
             {item.clickUrl && (
               <View style={styles.bannerCta}>
-                <Text style={styles.bannerCtaText}>Ver más</Text>
+                <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>Ver más</Text>
                 <Ionicons name="arrow-forward" size={14} color="#FFF" />
               </View>
             )}
@@ -273,7 +297,7 @@ const BookingScreen = ({ route, navigation }) => {
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.bannerOverlay}
           >
-            <Text style={styles.bannerOverlayTitle} numberOfLines={1}>
+            <Text style={[styles.bannerOverlayTitle, { color: '#FFFFFF' }]} numberOfLines={1}>
               {item.title}
             </Text>
           </LinearGradient>
@@ -326,7 +350,7 @@ const BookingScreen = ({ route, navigation }) => {
   // 4. Webhook procesa el pago automáticamente
   if (false) { // Eliminado: showPaymentSelector
     return (
-      <LinearGradient colors={gradients_hook?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
+      <LinearGradient colors={gradients?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
         <Animated.View
           style={[
             styles.animatedContainer,
@@ -349,7 +373,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Información de la reserva */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -401,7 +425,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Opciones de pago */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -441,7 +465,7 @@ const BookingScreen = ({ route, navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={gradients_hook?.primary || ['#1F2937', '#111827']}
+                    colors={gradients?.primary || ['#1F2937', '#111827']}
                     style={styles.paymentMethodIcon}
                   >
                     <Ionicons name="qr-code" size={32} color="#FFFFFF" />
@@ -489,7 +513,7 @@ const BookingScreen = ({ route, navigation }) => {
   // Eliminado: Modal de QR de pago (ya no se usa)
   if (false) { // Eliminado: showPaymentQR
     return (
-      <LinearGradient colors={gradients_hook?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
+      <LinearGradient colors={gradients?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
         <Animated.View
           style={[
             styles.animatedContainer,
@@ -510,7 +534,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Información de la reserva */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -538,7 +562,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Información del pago */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -584,7 +608,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Información importante */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -603,7 +627,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Métodos de pago */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -615,7 +639,7 @@ const BookingScreen = ({ route, navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={gradients_hook?.primary || ['#1F2937', '#111827']}
+                    colors={gradients?.primary || ['#1F2937', '#111827']}
                     style={styles.paymentButtonGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
@@ -649,7 +673,7 @@ const BookingScreen = ({ route, navigation }) => {
 
             {/* Instrucciones */}
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -709,7 +733,7 @@ const BookingScreen = ({ route, navigation }) => {
 
   // Pantalla principal de booking
   return (
-    <LinearGradient colors={gradients_hook?.light || ['#F8F9FA', '#FFFFFF']} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View
         style={[
           styles.animatedContainer,
@@ -721,12 +745,9 @@ const BookingScreen = ({ route, navigation }) => {
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Trip Summary Card */}
-          <LinearGradient
-            colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-            style={styles.card}
-          >
+          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
             <View style={styles.cardBorder}>
-              <Text style={styles.sectionTitle}>Resumen del Viaje</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Resumen del Viaje</Text>
 
               <View style={styles.routeContainer}>
                 <View style={styles.routePoint}>
@@ -734,12 +755,12 @@ const BookingScreen = ({ route, navigation }) => {
                     <Ionicons name="location" size={20} color={colors.primary || '#1F2937'} />
                   </View> */}
                   <View style={styles.routeTextContainer}>
-                    <Text style={styles.routeText}>{trip.origin?.city || 'Origen'}</Text>
+                    <Text style={[styles.routeText, { color: colors.textPrimary }]}>{trip.origin?.city || 'Origen'}</Text>
                     {!!trip.origin?.province && (
-                      <Text style={styles.routeProvince}>{trip.origin.province}</Text>
+                      <Text style={[styles.routeProvince, { color: colors.textSecondary }]}>{trip.origin.province}</Text>
                     )}
                     {!!trip.origin?.address && (
-                      <Text style={styles.routeAddress}>{trip.origin.address}</Text>
+                      <Text style={[styles.routeAddress, { color: colors.textTertiary }]}>{trip.origin.address}</Text>
                     )}
                   </View>
                 </View>
@@ -753,12 +774,12 @@ const BookingScreen = ({ route, navigation }) => {
                     <Ionicons name="location" size={20} color={colors.accentRed || '#EF4444'} />
                   </View> */}
                   <View style={styles.routeTextContainer}>
-                    <Text style={styles.routeText}>{trip.destination?.city || 'Destino'}</Text>
+                    <Text style={[styles.routeText, { color: colors.textPrimary }]}>{trip.destination?.city || 'Destino'}</Text>
                     {!!trip.destination?.province && (
-                      <Text style={styles.routeProvince}>{trip.destination.province}</Text>
+                      <Text style={[styles.routeProvince, { color: colors.textSecondary }]}>{trip.destination.province}</Text>
                     )}
                     {!!trip.destination?.address && (
-                      <Text style={styles.routeAddress}>{trip.destination.address}</Text>
+                      <Text style={[styles.routeAddress, { color: colors.textTertiary }]}>{trip.destination.address}</Text>
                     )}
                   </View>
                 </View>
@@ -766,8 +787,8 @@ const BookingScreen = ({ route, navigation }) => {
 
               <View style={styles.dateTimeContainer}>
                 <View style={styles.dateTimeRow}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.primary || '#1F2937'} />
-                  <Text style={styles.tripDate}>
+                  <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                  <Text style={[styles.tripDate, { color: colors.textSecondary }]}>
                     {new Date(trip.departureDate).toLocaleDateString('es-ES', {
                       weekday: 'long',
                       day: 'numeric',
@@ -776,35 +797,29 @@ const BookingScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
                 <View style={styles.dateTimeRow}>
-                  <Ionicons name="time-outline" size={18} color={colors.primary || '#1F2937'} />
-                  <Text style={styles.tripDate}>{trip.departureTime || 'N/A'} Hs</Text>
+                  <Ionicons name="time-outline" size={18} color={colors.primary} />
+                  <Text style={[styles.tripDate, { color: colors.textSecondary }]}>{trip.departureTime || 'N/A'} Hs</Text>
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Información de cálculo dinámico */}
           {calculatingPrice ? (
-            <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-              style={styles.card}
-            >
+            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
               <View style={styles.cardBorder}>
-                <ActivityIndicator size="large" color={colors.primary || '#1F2937'} />
-                <Text style={[styles.loadingText, { color: colors.textSecondary || '#374151' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
                   Calculando precio dinámico...
                 </Text>
               </View>
-            </LinearGradient>
+            </View>
           ) : priceData ? (
             <>
               {/* Seat Selection Card */}
-              <LinearGradient
-                colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-                style={styles.card}
-              >
+              <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
                 <View style={styles.cardBorder}>
-                  <Text style={styles.sectionTitle}>Número de Asientos</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Número de Asientos</Text>
 
                   <View style={styles.seatSelector}>
                     <TouchableOpacity
@@ -812,7 +827,7 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === 1}
                     >
                       <LinearGradient
-                        colors={seats === 1 ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients_hook?.primary || ['#1F2937', '#111827']}
+                        colors={seats === 1 ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients?.primary || ['#1F2937', '#111827']}
                         style={styles.seatButton}
                       >
                         <Ionicons
@@ -824,8 +839,8 @@ const BookingScreen = ({ route, navigation }) => {
                     </TouchableOpacity>
 
                     <View style={styles.seatCountContainer}>
-                      <Text style={styles.seatCount}>{seats}</Text>
-                      <Text style={styles.seatLabel}>asiento{seats > 1 ? 's' : ''}</Text>
+                      <Text style={[styles.seatCount, { color: colors.textPrimary }]}>{seats}</Text>
+                      <Text style={[styles.seatLabel, { color: colors.textSecondary }]}>asiento{seats > 1 ? 's' : ''}</Text>
                     </View>
 
                     <TouchableOpacity
@@ -833,7 +848,7 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === trip.availableSeats}
                     >
                       <LinearGradient
-                        colors={seats === trip.availableSeats ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients_hook?.primary || ['#1F2937', '#111827']}
+                        colors={seats === trip.availableSeats ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients?.primary || ['#1F2937', '#111827']}
                         style={styles.seatButton}
                       >
                         <Ionicons
@@ -847,16 +862,16 @@ const BookingScreen = ({ route, navigation }) => {
 
                   <View style={styles.availableSeatsContainer}>
                     <Ionicons name="people-outline" size={16} color={colors.textSecondary || '#374151'} />
-                    <Text style={styles.availableSeats}>
+                    <Text style={[styles.availableSeats, { color: colors.textSecondary }]}>
                       {trip.availableSeats || 0} asientos disponibles
                     </Text>
                   </View>
                 </View>
-              </LinearGradient>
+              </View>
             </>
           ) : error ? (
             <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
+              colors={gradients?.card || ['#FFFFFF', '#F8F9FA']}
               style={styles.card}
             >
               <View style={styles.cardBorder}>
@@ -866,96 +881,125 @@ const BookingScreen = ({ route, navigation }) => {
           ) : null}
 
           {/* Driver Info Card */}
-          <LinearGradient
-            colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-            style={styles.card}
-          >
+          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
             <View style={styles.cardBorder}>
-              <Text style={styles.sectionTitle}>Conductor</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Conductor</Text>
 
               <View style={styles.driverInfo}>
-                <LinearGradient
-                  colors={gradients_hook?.primary || ['#1F2937', '#111827']}
-                  style={styles.avatarPlaceholder}
-                >
-                  <Text style={styles.avatarText}>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
+                  <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
                     {trip.driver?.firstName?.[0]}{trip.driver?.lastName?.[0]}
                   </Text>
-                </LinearGradient>
+                </View>
 
                 <View style={styles.driverDetails}>
-                  <Text style={styles.driverName}>
+                  <Text style={[styles.driverName, { color: colors.textPrimary }]}>
                     {trip.driver?.firstName} {trip.driver?.lastName}
                   </Text>
                   <View style={styles.ratingContainer}>
                     <Ionicons name="star" size={16} color={colors.accentOrange || '#F59E0B'} />
-                    <Text style={styles.rating}>
+                    <Text style={[styles.rating, { color: colors.textSecondary }]}>
                       {trip.driver?.rating?.toFixed(1) || '5.0'}
                     </Text>
                   </View>
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Vehicle Info Card */}
           {trip.vehicle && (
-            <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-              style={styles.card}
-            >
+            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
               <View style={styles.cardBorder}>
-                <Text style={styles.sectionTitle}>Vehículo</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Vehículo</Text>
 
                 <View style={styles.vehicleInfo}>
                   <View style={styles.vehicleIconContainer}>
-                    <LinearGradient
-                      colors={gradients_hook?.primary || ['#1F2937', '#111827']}
-                      style={styles.vehicleIcon}
-                    >
+                    <View style={[styles.vehicleIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
                       <Ionicons name="car-sport" size={28} color="#FFFFFF" />
-                    </LinearGradient>
+                    </View>
                   </View>
 
                   <View style={styles.vehicleDetails}>
-                    <Text style={styles.vehicleName}>
+                    <Text style={[styles.vehicleName, { color: colors.textPrimary }]}>
                       {trip.vehicle?.brand || 'N/A'} {trip.vehicle?.model || ''}
                     </Text>
-                    <Text style={styles.vehicleYear}>
+                    <Text style={[styles.vehicleYear, { color: colors.textSecondary }]}>
                       Año {trip.vehicle?.year || 'N/A'}
                     </Text>
                     {trip.vehicle?.color && (
                       <View style={styles.vehicleColorRow}>
                         <View style={[styles.colorDot, { backgroundColor: trip.vehicle.color.toLowerCase() === 'blanco' ? '#E5E7EB' : trip.vehicle.color.toLowerCase() === 'negro' ? '#1F2937' : trip.vehicle.color.toLowerCase() === 'rojo' ? '#EF4444' : trip.vehicle.color.toLowerCase() === 'azul' ? '#3B82F6' : trip.vehicle.color.toLowerCase() === 'gris' ? '#6B7280' : trip.vehicle.color.toLowerCase() === 'plata' ? '#9CA3AF' : '#6B7280' }]} />
-                        <Text style={styles.vehicleColor}>{trip.vehicle.color}</Text>
+                        <Text style={[styles.vehicleColor, { color: colors.textSecondary }]}>{trip.vehicle.color}</Text>
                       </View>
                     )}
                     {trip.vehicle?.plate && (
-                      <View style={styles.plateContainer}>
-                        <Text style={styles.plateText}>{trip.vehicle.plate}</Text>
+                      <View style={[styles.plateContainer, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : '#F3F4F6' }]}>
+                        <Text style={[styles.plateText, { color: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#1F2937' }]}>{trip.vehicle.plate}</Text>
                       </View>
                     )}
                   </View>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
+          )}
+
+          {/* Precio y Descuentos Card */}
+          {priceData && (
+            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+              <View style={styles.cardBorder}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Precio del Viaje</Text>
+
+                <View style={styles.priceBreakdown}>
+                  <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Precio base ({seats} asiento{seats > 1 ? 's' : ''})</Text>
+                  <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>${formatNumber(priceData.pricing.originalPrice || priceData.pricing.totalPrice)} ARS</Text>
+                </View>
+
+                {priceData.pricing.discountPercentage > 0 && (
+                  <View style={styles.priceBreakdown}>
+                    <Text style={[styles.breakdownLabel, { color: '#10B981' }]}>Descuento promocional ({priceData.pricing.discountPercentage}%)</Text>
+                    <Text style={[styles.breakdownValue, { color: '#10B981' }]}>-${formatNumber(priceData.pricing.discountAmount)} ARS</Text>
+                  </View>
+                )}
+
+                <View style={[styles.divider, { backgroundColor: colors.border || '#E5E7EB' }]} />
+
+                <View style={[styles.priceBreakdown, { marginBottom: 0 }]}>
+                  <Text style={[styles.breakdownLabel, { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary }]}>
+                    Total a pagar
+                  </Text>
+                  <Text style={[styles.breakdownValue, { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.primary || '#1F2937' }]}>
+                    ${formatNumber(priceData.pricing.finalPrice || priceData.pricing.totalPrice)} ARS
+                  </Text>
+                </View>
+
+                {priceData.pricing.discountPercentage > 0 && (
+                  <View style={styles.importantBox}>
+                    <Ionicons name="gift" size={20} color="#10B981" />
+                    <View style={{ flex: 1, marginLeft: spacing.md }}>
+                      <Text style={[styles.importantTitle, { color: '#10B981' }]}>¡Descuento aplicado!</Text>
+                      <Text style={[styles.importantText, { color: '#10B981' }]}>
+                        Estás ahorrando ${formatNumber(priceData.pricing.discountAmount)} ARS gracias a tu código promocional.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
           )}
 
           {/* Trip Details Card */}
-          <LinearGradient
-            colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-            style={styles.card}
-          >
+          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
             <View style={styles.cardBorder}>
-              <Text style={styles.sectionTitle}>Detalles del Viaje</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Detalles del Viaje</Text>
 
               <View style={styles.detailRow}>
                 <View style={styles.detailIconWrapper}>
-                  <Ionicons name="people" size={20} color="#1F2937" />
+                  <Ionicons name="people" size={20} color={colors.textSecondary} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Asientos Disponibles</Text>
-                  <Text style={styles.detailValue}>{trip.availableSeats || 0} de {trip.totalSeats || trip.availableSeats || 0}</Text>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Asientos Disponibles</Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{trip.availableSeats || 0} de {trip.totalSeats || trip.availableSeats || 0}</Text>
                 </View>
               </View>
 
@@ -972,25 +1016,22 @@ const BookingScreen = ({ route, navigation }) => {
               {priceData?.distanceKm && (
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconWrapper}>
-                    <Ionicons name="navigate" size={20} color="#1F2937" />
+                    <Ionicons name="navigate" size={20} color={colors.textSecondary} />
                   </View>
                   <View style={styles.detailContent}>
-                    <Text style={styles.detailLabel}>Distancia Estimada</Text>
-                    <Text style={styles.detailValue}>{priceData.distanceKm} km</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Distancia Estimada</Text>
+                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{priceData.distanceKm} km</Text>
                   </View>
                 </View>
               )}
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Trip Preferences Card */}
           {trip.rules && (
-            <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-              style={styles.card}
-            >
+            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
               <View style={styles.cardBorder}>
-                <Text style={styles.sectionTitle}>Preferencias del Viaje</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Preferencias del Viaje</Text>
 
                 <View style={styles.preferencesGrid}>
                   <View style={styles.preferenceItem}>
@@ -999,7 +1040,7 @@ const BookingScreen = ({ route, navigation }) => {
                       size={22}
                       color={trip.rules?.smokingAllowed ? '#10B981' : '#EF4444'}
                     />
-                    <Text style={styles.preferenceText}>
+                    <Text style={[styles.preferenceText, { color: colors.textSecondary }]}>
                       {trip.rules?.smokingAllowed ? 'Permite fumar' : 'No fumar'}
                     </Text>
                   </View>
@@ -1010,7 +1051,7 @@ const BookingScreen = ({ route, navigation }) => {
                       size={22}
                       color={trip.rules?.petsAllowed ? '#10B981' : '#EF4444'}
                     />
-                    <Text style={styles.preferenceText}>
+                    <Text style={[styles.preferenceText, { color: colors.textSecondary }]}>
                       {trip.rules?.petsAllowed ? 'Mascotas OK' : 'Sin mascotas'}
                     </Text>
                   </View>
@@ -1021,7 +1062,7 @@ const BookingScreen = ({ route, navigation }) => {
                       size={22}
                       color={trip.rules?.musicAllowed !== false ? '#10B981' : '#EF4444'}
                     />
-                    <Text style={styles.preferenceText}>
+                    <Text style={[styles.preferenceText, { color: colors.textSecondary }]}>
                       {trip.rules?.musicAllowed !== false ? 'Música OK' : 'Sin música'}
                     </Text>
                   </View>
@@ -1032,29 +1073,26 @@ const BookingScreen = ({ route, navigation }) => {
                       size={22}
                       color="#3B82F6"
                     />
-                    <Text style={styles.preferenceText}>
+                    <Text style={[styles.preferenceText, { color: colors.textSecondary }]}>
                       {trip.rules?.talkative === 'quiet' ? 'Silencioso' : trip.rules?.talkative === 'chatty' ? 'Conversador' : 'Flexible'}
                     </Text>
                   </View>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
           )}
 
           {/* Notes Card */}
           {trip.notes && (
-            <LinearGradient
-              colors={gradients_hook?.card || ['#FFFFFF', '#F8F9FA']}
-              style={styles.card}
-            >
+            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
               <View style={styles.cardBorder}>
-                <Text style={styles.sectionTitle}>Notas del Conductor</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Notas del Conductor</Text>
                 <View style={styles.notesContainer}>
-                  <Ionicons name="document-text-outline" size={20} color="#6B7280" />
-                  <Text style={styles.notesText}>{trip.notes}</Text>
+                  <Ionicons name="document-text-outline" size={20} color={colors.textTertiary} />
+                  <Text style={[styles.notesText, { color: colors.textSecondary }]}>{trip.notes}</Text>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
           )}
 
           {/* Banner Carousel Section */}
@@ -1106,14 +1144,14 @@ const BookingScreen = ({ route, navigation }) => {
         </ScrollView>
 
         {/* Confirm Button */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : '#F8F9FA', borderTopColor: getCurrentThemeMode() === 'dark' ? '#292929' : '#F3F4F6' }]}>
           <TouchableOpacity
             onPress={handleCreateReservation}
             disabled={loading || calculatingPrice || !priceData}
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={gradients_hook?.primary || ['#1F2937', '#111827']}
+              colors={getCurrentThemeMode() === 'dark' ? ['#1F1F1F', '#2A2A2A'] : ['#1F2937', '#111827']}
               style={styles.confirmButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -1124,11 +1162,11 @@ const BookingScreen = ({ route, navigation }) => {
                 <>
                   <View style={styles.confirmButtonContent}>
                     <Ionicons name="send-outline" size={24} color="#FFFFFF" />
-                    <Text style={styles.confirmButtonText}>Solicitar Reserva</Text>
+                    <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Solicitar Reserva</Text>
                   </View>
                   {priceData && (
-                    <Text style={styles.confirmButtonPrice}>
-                      ${formatNumber(priceData.pricing.totalPrice)} ARS
+                    <Text style={[styles.confirmButtonPrice, { color: '#FFFFFF' }]}>
+                      ${formatNumber(priceData.pricing.finalPrice || priceData.pricing.totalPrice)} ARS
                     </Text>
                   )}
                 </>
@@ -1164,7 +1202,7 @@ const BookingScreen = ({ route, navigation }) => {
         confirmText="OK"
         showCancel={false}
       />
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -1427,9 +1465,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: spacing.md,
-    backgroundColor: '#F8F9FA',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   confirmButton: {
     borderRadius: borderRadius.md,
