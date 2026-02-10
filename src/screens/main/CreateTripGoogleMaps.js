@@ -93,8 +93,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const effectiveMaxHeight = keyboardHeight > 0
     ? Math.min(MAX_SHEET_HEIGHT, height - keyboardHeight - 80)
     : MAX_SHEET_HEIGHT;
-  // Altura mínima cuando expandido - permite que el sheet se ajuste al contenido
-  const expandedMinHeight = MIN_SHEET_HEIGHT + 30;
 
   useEffect(() => {
     isMounted.current = true;
@@ -972,7 +970,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               shadowColor: colors.shadow,
               minHeight: sheetHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [MIN_SHEET_HEIGHT, expandedMinHeight],
+                outputRange: [MIN_SHEET_HEIGHT, effectiveMaxHeight],
               }),
               // Evitar que crezca hacia arriba con muchas predicciones: usar altura máxima cuando hay teclado
               maxHeight: keyboardHeight > 0 ? effectiveMaxHeight : undefined,
@@ -1237,6 +1235,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                  keyboardShouldPersistTaps="handled"
                  nestedScrollEnabled={true}
                  showsVerticalScrollIndicator={true}
+                 onScrollBeginDrag={() => Keyboard.dismiss()}
                  contentContainerStyle={{ paddingBottom: 10 }}
                >
                 {autocompleteResults.map((item) => (
