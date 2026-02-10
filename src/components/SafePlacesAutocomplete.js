@@ -100,7 +100,7 @@ const SafePlacesAutocomplete = ({
     
     timeoutRef.current = setTimeout(() => {
       searchPlaces(text);
-    }, 2000);
+    }, 1500);
   };
 
   const handleSelectPlace = async (place) => {

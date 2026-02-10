@@ -1027,7 +1027,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   placeholder="¿Desde dónde sales?"
                   onPress={handleOriginSelect}
                   apiKey={GOOGLE_MAPS_API_KEY}
-                  debounce={2000}
+                  debounce={1500}
                   inputType="origin"
                   onFocusChange={(type) => {
                     if (type === 'origin') {
@@ -1097,7 +1097,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                         placeholder={`Parada ${index + 1} (opcional)`}
                         onPress={(data, details) => handleWaypointSelect(data, details, index)}
                         apiKey={GOOGLE_MAPS_API_KEY}
-                        debounce={2000}
+                        debounce={1500}
                         inputType={`waypoint-${index}`}
                       onFocusChange={(type) => {
                         if (type === `waypoint-${index}`) {
@@ -1176,7 +1176,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   placeholder="¿A dónde vas?"
                   onPress={handleDestinationSelect}
                   apiKey={GOOGLE_MAPS_API_KEY}
-                  debounce={2000}
+                  debounce={1500}
                   inputType="destination"
                   onFocusChange={(type) => {
                     if (type === 'destination') {
