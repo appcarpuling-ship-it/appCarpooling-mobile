@@ -140,22 +140,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       setKeyboardVisible(true);
       setKeyboardHeight(kbHeight);
       
-      // Si el contenedor ya está arriba (porque se presionó un input), mantenerlo ahí
-      // Si hay predicciones, expandir hasta el teclado (sin espacios vacíos)
-      if (activeAutocomplete && autocompleteResults.length > 0) {
-        Animated.timing(bottomSheetHeight, {
-          toValue: kbHeight, // Crecer hasta el teclado para eliminar espacios
-          duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-          useNativeDriver: false,
-        }).start();
-      } else {
-        // Si no hay predicciones, mantener minHeight
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-          useNativeDriver: false,
-        }).start();
-      }
+      // Ajustar altura para que inputs queden justo arriba del teclado
+      const dur = Platform.OS === 'ios' ? (e.duration || 250) : 250;
+      Animated.timing(bottomSheetHeight, {
+        toValue: kbHeight + INPUTS_AREA_HEIGHT,
+        duration: dur,
+        useNativeDriver: false,
+      }).start();
     });
 
     const hideSub = Keyboard.addListener(hideEvent, (e) => {
@@ -231,26 +222,24 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   // Constantes para minHeight y maxHeight del contenedor
   const MIN_SHEET_HEIGHT = 200; // Altura mínima (posición inicial)
   const MAX_SHEET_HEIGHT = height * 0.75; // 75% de la pantalla cuando hay predicciones sin teclado
-  const KEYBOARD_SHEET_HEIGHT = height * 0.85; // 85% de la pantalla cuando aparece el teclado
   
+  // Altura aproximada del area de inputs (handle + inputs + padding)
+  const INPUTS_AREA_HEIGHT = 120;
+
   // Función para subir el contenedor y prepararlo cuando se activa un input
   const moveSheetUpOnInputFocus = () => {
-    // Cuando se activa un input, expandir el sheet más agresivamente como Uber
-    const targetHeight = keyboardVisible && keyboardHeight > 0 
-      ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT) // Usar altura del teclado o máximo 85% de pantalla
-      : KEYBOARD_SHEET_HEIGHT; // Si no hay teclado aún, usar 85% de pantalla
-    
-    // Subir el contenedor más para que los inputs queden más arriba
-    // Mover hacia arriba aproximadamente 200px para dar más espacio
-    const offset = -200;
-    
+    // Crecer el sheet para que los inputs queden justo arriba del teclado
+    const targetHeight = keyboardVisible && keyboardHeight > 0
+      ? keyboardHeight + INPUTS_AREA_HEIGHT
+      : height * 0.5; // Fallback si el teclado aún no apareció
+
+    // Sin offset - la altura del sheet posiciona los inputs naturalmente
     Animated.timing(keyboardOffset, {
-      toValue: offset,
+      toValue: 0,
       duration: 250,
       useNativeDriver: true,
     }).start();
-    
-    // Expandir el contenedor inmediatamente cuando se activa un input
+
     Animated.timing(bottomSheetHeight, {
       toValue: targetHeight,
       duration: 250,
@@ -259,18 +248,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   };
 
   // Efecto para manejar la expansión del bottom sheet cuando hay predicciones
-  // Cuando el usuario activa un input, expandir más agresivamente como Uber
   useEffect(() => {
-    if (keyboardVisible && keyboardHeight > 0) {
-      if (activeAutocomplete) {
-        // Input activo con teclado: usar la altura máxima del teclado o KEYBOARD_SHEET_HEIGHT
-        const targetHeight = Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT);
-        Animated.timing(bottomSheetHeight, {
-          toValue: targetHeight,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      }
+    if (keyboardVisible && keyboardHeight > 0 && activeAutocomplete) {
+      // Input activo con teclado: inputs + resultados arriba del teclado
+      Animated.timing(bottomSheetHeight, {
+        toValue: keyboardHeight + INPUTS_AREA_HEIGHT,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
     } else if (!keyboardVisible && activeAutocomplete) {
       // Input activo sin teclado: usar MAX_SHEET_HEIGHT (75% de pantalla)
       Animated.timing(bottomSheetHeight, {
@@ -1202,6 +1187,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           </View>
         </>
       )}
+      {/* Fondo que cubre el hueco cuando el sheet sube por el teclado */}
+      {keyboardVisible && (
+        <View style={[styles.bottomGapFill, { backgroundColor: colors.cardBackground }]} />
+      )}
+
       <Animated.View
         style={[
           styles.bottomSheetWrapper,
@@ -1300,7 +1290,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       // Si hay resultados, expandir más agresivamente como Uber
                       if (results.length > 0) {
                         const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
+                          ? keyboardHeight + INPUTS_AREA_HEIGHT
                           : MAX_SHEET_HEIGHT;
                         Animated.timing(bottomSheetHeight, {
                           toValue: targetHeight,
@@ -1385,7 +1375,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                           setAutocompleteResults(results);
                           if (results.length > 0) {
                             const targetHeight = keyboardVisible && keyboardHeight > 0 
-                              ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
+                              ? keyboardHeight + INPUTS_AREA_HEIGHT
                               : MAX_SHEET_HEIGHT;
                             Animated.timing(bottomSheetHeight, {
                               toValue: targetHeight,
@@ -1487,7 +1477,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                       // Si hay resultados, expandir más agresivamente como Uber
                       if (results.length > 0) {
                         const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? Math.min(keyboardHeight, KEYBOARD_SHEET_HEIGHT)
+                          ? keyboardHeight + INPUTS_AREA_HEIGHT
                           : MAX_SHEET_HEIGHT;
                         Animated.timing(bottomSheetHeight, {
                           toValue: targetHeight,
@@ -1698,6 +1688,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
+  },
+
+  // Gap fill behind bottom sheet
+  bottomGapFill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    zIndex: 99,
   },
 
   // Bottom sheet
