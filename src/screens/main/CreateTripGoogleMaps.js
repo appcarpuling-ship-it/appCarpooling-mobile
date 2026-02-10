@@ -15,7 +15,6 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +22,6 @@ import SafePlacesAutocomplete from '../../components/SafePlacesAutocomplete';
 import * as Location from 'expo-location';
 import { get_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import { spacing } from '../../theme/colors';
 import { useColors } from '../../hooks/useColors';
 
 const { width, height } = Dimensions.get('window');
@@ -44,20 +42,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const destinationDebounceTimer = useRef(null);
   const waypointDebounceTimers = useRef([]);
 
-  // Animated values
-  const sheetTranslateY = useRef(new Animated.Value(300)).current;
-  const keyboardOffset = useRef(new Animated.Value(0)).current;
-  const handleBarWidth = useRef(new Animated.Value(0)).current;
-  const bottomSheetHeight = useRef(new Animated.Value(0)).current; // Controla la altura desde abajo (paddingBottom)
+  // Bottom sheet: 'mini' = compacto, 'full' = expandido (input activo o resultados)
+  const sheetMode = activeAutocomplete !== null ? 'full' : 'mini';
+  const sheetHeight = useRef(new Animated.Value(0)).current; // 0 = mini, 1 = full
 
   const [vehicles, setVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingRoute, setLoadingRoute] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [activeAutocomplete, setActiveAutocomplete] = useState(null); // 'origin' | 'destination' | 'waypoint-0' | 'waypoint-1' | null
+  const [activeAutocomplete, setActiveAutocomplete] = useState(null);
   const [autocompleteResults, setAutocompleteResults] = useState([]);
-  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const originResultsRef = useRef([]);
   const destinationResultsRef = useRef([]);
   const waypointResultsRef = useRef([]);
@@ -93,6 +87,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     waypoints: [],
   });
 
+  const MIN_SHEET_HEIGHT = 200;
+  const MAX_SHEET_HEIGHT = height * 0.7;
+  // Con teclado abierto: limitar altura para que origen/destino queden visibles
+  const effectiveMaxHeight = keyboardHeight > 0
+    ? Math.min(MAX_SHEET_HEIGHT, height - keyboardHeight - 80)
+    : MAX_SHEET_HEIGHT;
+
   useEffect(() => {
     isMounted.current = true;
     loadVehicles();
@@ -103,69 +104,18 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       Alert.alert('Error', 'La API Key de Google Maps no está configurada');
     }
 
-    // Animación de entrada del bottom sheet
-    // Posición inicial: 3 (de 0 a 10)
-    // Esto significa que el bottom sheet está a una altura inicial desde abajo
-    Animated.spring(sheetTranslateY, {
+    // Animación de entrada inicial (mini)
+    Animated.spring(sheetHeight, {
       toValue: 0,
       tension: 50,
       friction: 9,
-      useNativeDriver: true,
-    }).start();
-    
-    // Altura inicial del bottom (posición 3)
-    // Calculamos que posición 3 = aproximadamente altura base del contenedor
-    // El contenedor tiene una altura base que incluye: handle + inputs + padding
-    const baseSheetHeight = 200; // Altura base aproximada del contenedor
-    Animated.timing(bottomSheetHeight, {
-      toValue: baseSheetHeight,
-      duration: 0,
       useNativeDriver: false,
     }).start();
 
-    // Animación del handle bar
-    Animated.timing(handleBarWidth, {
-      toValue: 40,
-      duration: 600,
-      delay: 300,
-      useNativeDriver: false,
-    }).start();
-
-    // Keyboard listeners para ajustar la posición cuando aparece el teclado
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      const kbHeight = e.endCoordinates.height;
-      setKeyboardVisible(true);
-      setKeyboardHeight(kbHeight);
-      
-      // Ajustar altura para que inputs queden justo arriba del teclado
-      const dur = Platform.OS === 'ios' ? (e.duration || 250) : 250;
-      Animated.timing(bottomSheetHeight, {
-        toValue: kbHeight + INPUTS_AREA_HEIGHT,
-        duration: dur,
-        useNativeDriver: false,
-      }).start();
-    });
-
-    const hideSub = Keyboard.addListener(hideEvent, (e) => {
-      setKeyboardVisible(false);
-      setKeyboardHeight(0);
-      
-      // Restaurar altura inicial (minHeight) y posición
-      Animated.timing(keyboardOffset, {
-        toValue: 0,
-        duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-        useNativeDriver: true,
-      }).start();
-      
-      Animated.timing(bottomSheetHeight, {
-        toValue: MIN_SHEET_HEIGHT,
-        duration: Platform.OS === 'ios' ? (e.duration || 250) : 250,
-        useNativeDriver: false,
-      }).start();
-    });
+    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
 
     return () => {
       isMounted.current = false;
@@ -174,130 +124,33 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     };
   }, []);
 
+  // Animación del sheet según activeAutocomplete
+  useEffect(() => {
+    const target = activeAutocomplete !== null ? 1 : 0;
+    Animated.timing(sheetHeight, {
+      toValue: target,
+      duration: 280,
+      useNativeDriver: false,
+    }).start();
+  }, [activeAutocomplete]);
+
   useEffect(() => {
     if (originMarker && destinationMarker && isMounted.current) {
       getDirections();
     }
   }, [originMarker, destinationMarker, waypointMarkers]);
 
-  // Restaurar estado inicial cuando la pantalla se enfoca (solo al volver de otra pantalla)
   const screenWasBlurred = useRef(false);
-  
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 [CreateTripGoogleMaps] Pantalla enfocada');
-      
-      // Solo restaurar si la pantalla había sido desenfocada (volvimos de otra pantalla)
       if (screenWasBlurred.current) {
-        console.log('🔄 [CreateTripGoogleMaps] Restaurando estado inicial');
-        
-        // Restaurar animaciones a estado inicial
-        Animated.timing(keyboardOffset, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }).start();
-        
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: 0,
-          useNativeDriver: false,
-        }).start();
-        
-        // Limpiar predicciones
         setActiveAutocomplete(null);
         setAutocompleteResults([]);
-        
         screenWasBlurred.current = false;
       }
-      
-      // Función de cleanup que se ejecuta cuando la pantalla se desenfoca
-      return () => {
-        console.log('🔄 [CreateTripGoogleMaps] Pantalla desenfocada');
-        screenWasBlurred.current = true;
-      };
+      return () => { screenWasBlurred.current = true; };
     }, [])
   );
-
-  // Constantes para minHeight y maxHeight del contenedor
-  const MIN_SHEET_HEIGHT = 200; // Altura mínima (posición inicial)
-  const MAX_SHEET_HEIGHT = height * 0.75; // 75% de la pantalla cuando hay predicciones sin teclado
-  
-  // Altura aproximada del area de inputs (handle + inputs + padding)
-  const INPUTS_AREA_HEIGHT = 120;
-
-  // Función para subir el contenedor y prepararlo cuando se activa un input
-  const moveSheetUpOnInputFocus = () => {
-    // Crecer el sheet para que los inputs queden justo arriba del teclado
-    const targetHeight = keyboardVisible && keyboardHeight > 0
-      ? keyboardHeight + INPUTS_AREA_HEIGHT
-      : height * 0.5; // Fallback si el teclado aún no apareció
-
-    // Sin offset - la altura del sheet posiciona los inputs naturalmente
-    Animated.timing(keyboardOffset, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
-
-    Animated.timing(bottomSheetHeight, {
-      toValue: targetHeight,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  // Efecto para manejar la expansión del bottom sheet cuando hay predicciones
-  useEffect(() => {
-    if (keyboardVisible && keyboardHeight > 0 && activeAutocomplete) {
-      // Input activo con teclado: inputs + resultados arriba del teclado
-      Animated.timing(bottomSheetHeight, {
-        toValue: keyboardHeight + INPUTS_AREA_HEIGHT,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    } else if (!keyboardVisible && activeAutocomplete) {
-      // Input activo sin teclado: usar MAX_SHEET_HEIGHT (75% de pantalla)
-      Animated.timing(bottomSheetHeight, {
-        toValue: MAX_SHEET_HEIGHT,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [activeAutocomplete, keyboardVisible, keyboardHeight]);
-
-  // Efecto para subir el contenedor cuando hay una ruta completa (sin teclado)
-  useEffect(() => {
-    if (hasRoute && !keyboardVisible && !activeAutocomplete) {
-      // Cuando hay ruta completa, subir el contenedor un poco para que los botones sean más visibles
-      Animated.timing(keyboardOffset, {
-        toValue: -80, // Subir 80px para que los botones queden visibles
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-      
-      // Ajustar altura del contenedor para que los botones se vean bien
-      // Necesitamos espacio para: handle (~20px) + inputs (~100px) + divider (~1px) + info ruta (~60px) + botones (~60px) + padding (~60px) = ~300px
-      Animated.timing(bottomSheetHeight, {
-        toValue: 320, // Aumentar más la altura para asegurar que los botones sean visibles
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    } else if (!hasRoute && !keyboardVisible && !activeAutocomplete) {
-      // Si no hay ruta, restaurar posición inicial
-      Animated.timing(keyboardOffset, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-      
-      Animated.timing(bottomSheetHeight, {
-        toValue: MIN_SHEET_HEIGHT,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [hasRoute, keyboardVisible, activeAutocomplete]);
 
   const getCurrentLocation = async () => {
     try {
@@ -547,27 +400,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   };
 
   const handleMapPress = async (event) => {
-    // Si no está en modo de selección, solo cerrar el teclado y limpiar el autocompletado
     if (!mapSelectionMode) {
       Keyboard.dismiss();
       setActiveAutocomplete(null);
       setAutocompleteResults([]);
-      
-      // Restaurar la altura del contenedor a la mínima
-      setTimeout(() => {
-        Animated.timing(keyboardOffset, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-        
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      }, 100);
-      
       return;
     }
     
@@ -681,24 +517,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const handleWaypointSelect = (data, details, waypointIndex) => {
     try {
       if (!isMounted.current) return;
-      
+
       setActiveAutocomplete(null);
       setAutocompleteResults([]);
       Keyboard.dismiss();
-      
-      setTimeout(() => {
-        Animated.timing(keyboardOffset, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-        
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      }, 100);
 
       if (details?.geometry?.location) {
         const coords = {
@@ -777,29 +599,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const handleOriginSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
-      
-      // Limpiar predicciones primero
+
       setActiveAutocomplete(null);
       setAutocompleteResults([]);
-      
-      // Cerrar el teclado primero
       Keyboard.dismiss();
-      
-      // Esperar un poco antes de restaurar para que el teclado se cierre
-      setTimeout(() => {
-        // Cuando seleccionas una dirección: restaurar altura inicial (minHeight) y posición
-        Animated.timing(keyboardOffset, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-        
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      }, 100);
 
       if (details?.geometry?.location) {
         const coords = {
@@ -882,29 +685,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const handleDestinationSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
-      
-      // Limpiar predicciones primero
+
       setActiveAutocomplete(null);
       setAutocompleteResults([]);
-      
-      // Cerrar el teclado primero
       Keyboard.dismiss();
-      
-      // Esperar un poco antes de restaurar para que el teclado se cierre
-      setTimeout(() => {
-        // Cuando seleccionas una dirección: restaurar altura inicial (minHeight) y posición
-        Animated.timing(keyboardOffset, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }).start();
-        
-        Animated.timing(bottomSheetHeight, {
-          toValue: MIN_SHEET_HEIGHT,
-          duration: 250,
-          useNativeDriver: false,
-        }).start();
-      }, 100);
 
       if (details?.geometry?.location) {
         const coords = {
@@ -1068,30 +852,16 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     );
   }
 
+  const dismissSheet = () => {
+    if (activeAutocomplete) {
+      Keyboard.dismiss();
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+    }
+  };
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      // Cerrar teclado y limpiar autocompletado al tocar áreas vacías
-      if (activeAutocomplete) {
-        Keyboard.dismiss();
-        setActiveAutocomplete(null);
-        setAutocompleteResults([]);
-        
-        // Restaurar la altura del contenedor a la mínima
-        setTimeout(() => {
-          Animated.timing(keyboardOffset, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-          }).start();
-          
-          Animated.timing(bottomSheetHeight, {
-            toValue: MIN_SHEET_HEIGHT,
-            duration: 250,
-            useNativeDriver: false,
-          }).start();
-        }, 100);
-      }
-    }}>
+    <TouchableWithoutFeedback onPress={dismissSheet}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={colors.statusBarStyle} />
 
@@ -1150,8 +920,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       </MapView>
 
 
-      {/* Botón mi ubicación */}
-      {!keyboardVisible && (
+      {/* Botón mi ubicación - oculto cuando el sheet está expandido (editando) */}
+      {sheetMode === 'mini' && (
         <TouchableOpacity style={[styles.myLocationButton, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]} onPress={() => {
           getCurrentLocation();
           if (userLocation && mapRef.current) {
@@ -1187,40 +957,32 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           </View>
         </>
       )}
-      {/* Fondo que cubre el hueco cuando el sheet sube por el teclado */}
-      {keyboardVisible && (
-        <View style={[styles.bottomGapFill, { backgroundColor: colors.cardBackground }]} />
-      )}
-
-      <Animated.View
-        style={[
-          styles.bottomSheetWrapper,
-          { backgroundColor: colors.cardBackground },
-          {
-            transform: [
-              { translateY: sheetTranslateY },
-              { translateY: keyboardOffset }, // Mover hacia arriba cuando se presiona un input
-            ],
-          },
-        ]}
+      <KeyboardAvoidingView
+        style={[styles.bottomSheetWrapper, { backgroundColor: colors.cardBackground }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-            <Animated.View style={[
-              styles.bottomSheet,
-              keyboardVisible && styles.bottomSheetExpanded,
-              {
-                minHeight: bottomSheetHeight, // Altura mínima animada (crece hacia abajo)
-                backgroundColor: colors.cardBackground,
-                shadowColor: colors.shadow,
-              },
-            ]}>
-              {/* Contenedor interno con flex column para mantener inputs arriba */}
-              <View style={{ flex: 1, flexDirection: 'column' }}>
-                {/* Handle animado */}
-                {!keyboardVisible && (
-                  <View style={styles.handleBarContainer}>
-                    <Animated.View style={[styles.handleBar, { width: handleBarWidth, backgroundColor: colors.border }]} />
-                  </View>
-                )}
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              backgroundColor: colors.cardBackground,
+              shadowColor: colors.shadow,
+              minHeight: sheetHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [MIN_SHEET_HEIGHT, effectiveMaxHeight],
+              }),
+              // Evitar que crezca hacia arriba con muchas predicciones: usar altura máxima cuando hay teclado
+              maxHeight: keyboardHeight > 0 ? effectiveMaxHeight : undefined,
+            },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            {sheetMode === 'mini' && (
+              <View style={styles.handleBarContainer}>
+                <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
+              </View>
+            )}
 
                 {/* Contenedor de inputs con timeline - posición fija arriba (sin flex) */}
                 <View style={[styles.inputsWrapper, { backgroundColor: colors.surface }]}>
@@ -1265,40 +1027,17 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   debounce={2000}
                   inputType="origin"
                   onFocusChange={(type) => {
-                    // Cuando este input recibe el foco, activarlo y mostrar sus resultados
                     if (type === 'origin') {
                       setActiveAutocomplete('origin');
                       setAutocompleteResults(originResultsRef.current);
-                      // Subir el contenedor y prepararlo cuando se activa el input
-                      moveSheetUpOnInputFocus();
-                    } else if (type === null) {
-                      // Si el input pierde el foco pero hay predicciones guardadas, mantener el estado
-                      // para que las predicciones aparezcan cuando lleguen
-                      // NO limpiar activeAutocomplete ni autocompleteResults
-                    } else {
-                      // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
+                    } else if (type !== null) {
                       setActiveAutocomplete(null);
                       setAutocompleteResults([]);
                     }
                   }}
                   onResultsChange={(results) => {
-                    // Guardar resultados en el ref correspondiente
                     originResultsRef.current = results;
-                    // Si este input está activo, actualizar los resultados mostrados
-                    if (activeAutocomplete === 'origin') {
-                      setAutocompleteResults(results);
-                      // Si hay resultados, expandir más agresivamente como Uber
-                      if (results.length > 0) {
-                        const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? keyboardHeight + INPUTS_AREA_HEIGHT
-                          : MAX_SHEET_HEIGHT;
-                        Animated.timing(bottomSheetHeight, {
-                          toValue: targetHeight,
-                          duration: 250,
-                          useNativeDriver: false,
-                        }).start();
-                      }
-                    }
+                    if (activeAutocomplete === 'origin') setAutocompleteResults(results);
                   }}
                   externalResults={[]}
                   externalLoading={false}
@@ -1361,29 +1100,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                         if (type === `waypoint-${index}`) {
                           setActiveAutocomplete(`waypoint-${index}`);
                           setAutocompleteResults(waypointResultsRef.current[index] || []);
-                          moveSheetUpOnInputFocus();
-                        } else if (type === null) {
-                          // Mantener el estado
-                        } else {
+                        } else if (type !== null) {
                           setActiveAutocomplete(null);
                           setAutocompleteResults([]);
                         }
                       }}
                       onResultsChange={(results) => {
                         waypointResultsRef.current[index] = results;
-                        if (activeAutocomplete === `waypoint-${index}`) {
-                          setAutocompleteResults(results);
-                          if (results.length > 0) {
-                            const targetHeight = keyboardVisible && keyboardHeight > 0 
-                              ? keyboardHeight + INPUTS_AREA_HEIGHT
-                              : MAX_SHEET_HEIGHT;
-                            Animated.timing(bottomSheetHeight, {
-                              toValue: targetHeight,
-                              duration: 250,
-                              useNativeDriver: false,
-                            }).start();
-                          }
-                        }
+                        if (activeAutocomplete === `waypoint-${index}`) setAutocompleteResults(results);
                       }}
                       externalResults={[]}
                       externalLoading={false}
@@ -1452,40 +1176,17 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   debounce={2000}
                   inputType="destination"
                   onFocusChange={(type) => {
-                    // Cuando este input recibe el foco, activarlo y mostrar sus resultados
                     if (type === 'destination') {
                       setActiveAutocomplete('destination');
                       setAutocompleteResults(destinationResultsRef.current);
-                      // Subir el contenedor y prepararlo cuando se activa el input (igual que origen)
-                      moveSheetUpOnInputFocus();
-                    } else if (type === null) {
-                      // Si el input pierde el foco pero hay predicciones guardadas, mantener el estado
-                      // para que las predicciones aparezcan cuando lleguen
-                      // NO limpiar activeAutocomplete ni autocompleteResults
-                    } else {
-                      // Si otro input recibe el foco, cambiar al otro y mostrar sus resultados
+                    } else if (type !== null) {
                       setActiveAutocomplete(null);
                       setAutocompleteResults([]);
                     }
                   }}
                   onResultsChange={(results) => {
-                    // Guardar resultados en el ref correspondiente
                     destinationResultsRef.current = results;
-                    // Si este input está activo, actualizar los resultados mostrados
-                    if (activeAutocomplete === 'destination') {
-                      setAutocompleteResults(results);
-                      // Si hay resultados, expandir más agresivamente como Uber
-                      if (results.length > 0) {
-                        const targetHeight = keyboardVisible && keyboardHeight > 0 
-                          ? keyboardHeight + INPUTS_AREA_HEIGHT
-                          : MAX_SHEET_HEIGHT;
-                        Animated.timing(bottomSheetHeight, {
-                          toValue: targetHeight,
-                          duration: 250,
-                          useNativeDriver: false,
-                        }).start();
-                      }
-                    }
+                    if (activeAutocomplete === 'destination') setAutocompleteResults(results);
                   }}
                   externalResults={[]}
                   externalLoading={false}
@@ -1579,38 +1280,13 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           )}
 
           {/* Info de ruta + botones cuando hay ruta */}
-          {hasRoute && !keyboardVisible && (
+          {hasRoute && sheetMode === 'mini' && (
               <View style={[
                 styles.routeSection,
                 { backgroundColor: colors.cardBackground }
               ]}>
               <View style={[styles.routeDivider, { backgroundColor: colors.border }]} />
-
-              {/* {distance && duration && (
-                <View style={styles.routeInfoRow}>
-                  <View style={styles.routeInfoItem}>
-                    <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
-                    <Text style={[styles.routeInfoValue, { color: colors.textPrimary }]}>{distance}</Text>
-                  </View>
-                  <View style={styles.routeInfoDot} />
-                  <View style={styles.routeInfoItem}>
-                    <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
-                    <Text style={[styles.routeInfoValue, { color: colors.textPrimary }]}>{duration}</Text>
-                  </View>
-                </View>
-              )} */}
-
               <View style={styles.routeButtons}>
-                {/* <TouchableOpacity
-                  style={styles.editRouteBtn}
-                  onPress={() => {
-                    clearOrigin();
-                    clearDestination();
-                  }}
-                >
-                  <Text style={[styles.editRouteBtnText, { color: colors.textSecondary }]}>Editar</Text>
-                </TouchableOpacity> */}
-
                 <TouchableOpacity
                   style={[styles.continueBtn, { backgroundColor: '#FFFFFF' }]}
                   onPress={handleContinueToDetails}
@@ -1621,9 +1297,9 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               </View>
               </View>
             )}
-              </View>
-            </Animated.View>
-          </Animated.View>
+          </View>
+        </Animated.View>
+      </KeyboardAvoidingView>
 
       {/* Loading overlay */}
       {loadingRoute && (
@@ -1690,16 +1366,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  // Gap fill behind bottom sheet
-  bottomGapFill: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 300,
-    zIndex: 99,
-  },
-
   // Bottom sheet
   bottomSheetWrapper: {
     position: 'absolute',
@@ -1723,21 +1389,16 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
     overflow: 'visible',
-    justifyContent: 'flex-start', // Asegurar que el contenido empiece desde arriba
-  },
-  bottomSheetExpanded: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    paddingBottom: 8,
+    justifyContent: 'flex-start',
   },
   handleBarContainer: {
     alignItems: 'center',
     marginBottom: 16,
   },
   handleBar: {
+    width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
   },
   sheetTitle: {
     fontSize: 22,
@@ -1837,16 +1498,16 @@ const styles = StyleSheet.create({
     color: 'transparent', // Añadir para usar color dinámico
   },
 
-  // Autocomplete results
+  // Autocomplete results - flex para ocupar solo el espacio restante (scroll interno)
   resultsContainer: {
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
+    flex: 1,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
     marginTop: -2,
-    marginLeft: 0, // Sin margen izquierdo para que quede alineado con los inputs
+    marginLeft: 0,
     marginRight: 0,
     overflow: 'hidden',
-    maxHeight: height * 0.6, // 60% de la pantalla para las predicciones (más espacio como Uber)
+    minHeight: 0, // necesario para que flex + ScrollView funcionen bien
   },
   resultRow: {
     flexDirection: 'row',
