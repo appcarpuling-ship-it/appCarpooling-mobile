@@ -977,7 +977,10 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             },
           ]}
         >
-          <View style={{ flex: 1 }}>
+          <View style={{
+            flex: activeAutocomplete && autocompleteResults.length > 0 ? 0 : 1,
+            flexGrow: activeAutocomplete && autocompleteResults.length > 0 ? 0 : 1,
+          }}>
             {sheetMode === 'mini' && (
               <View style={styles.handleBarContainer}>
                 <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
@@ -1501,6 +1504,8 @@ const styles = StyleSheet.create({
 
   // Autocomplete results - altura libre, se ajusta al contenido
   resultsContainer: {
+    flexGrow: 0,
+    flexShrink: 0,
     marginTop: -2,
     marginLeft: 0,
     marginRight: 0,
