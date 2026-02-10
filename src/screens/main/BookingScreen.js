@@ -40,7 +40,7 @@ const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 200;
 
 const BookingScreen = ({ route, navigation }) => {
-  const { colors, getCurrentThemeMode, gradients } = useColors();
+  const { colors, getCurrentThemeMode, gradients, isDarkMode } = useColors();
   const { user } = useAuth();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -297,9 +297,7 @@ const BookingScreen = ({ route, navigation }) => {
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.bannerOverlay}
           >
-            <Text style={[styles.bannerOverlayTitle, { color: '#FFFFFF' }]} numberOfLines={1}>
-              {item.title}
-            </Text>
+         
           </LinearGradient>
         )}
       </LinearGradient>
@@ -591,7 +589,7 @@ const BookingScreen = ({ route, navigation }) => {
                       </Text>
                     </View>
 
-                    <View style={[styles.divider, { backgroundColor: colors.border || '#E5E7EB' }]} />
+                    <View style={[styles.divider, { backgroundColor: colors.borderLight || colors.border }]} />
 
                     <View style={[styles.priceBreakdown, { marginBottom: 0 }]}>
                       <Text style={[styles.breakdownLabel, { fontWeight: fontWeight.bold }]}>
@@ -745,7 +743,7 @@ const BookingScreen = ({ route, navigation }) => {
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Trip Summary Card */}
-          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
             <View style={styles.cardBorder}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Resumen del Viaje</Text>
 
@@ -806,7 +804,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Información de cálculo dinámico */}
           {calculatingPrice ? (
-            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
               <View style={styles.cardBorder}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -817,7 +815,7 @@ const BookingScreen = ({ route, navigation }) => {
           ) : priceData ? (
             <>
               {/* Seat Selection Card */}
-              <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+              <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
                 <View style={styles.cardBorder}>
                   <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Número de Asientos</Text>
 
@@ -827,13 +825,13 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === 1}
                     >
                       <LinearGradient
-                        colors={seats === 1 ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients?.primary || ['#1F2937', '#111827']}
+                        colors={seats === 1 ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : (isDarkMode ? (gradients?.primary || ['#F9FAFB', '#E5E7EB']) : ['#1F2937', '#111827'])}
                         style={styles.seatButton}
                       >
                         <Ionicons
                           name="remove"
                           size={24}
-                          color={seats === 1 ? (colors.textMuted || '#9CA3AF') : '#FFFFFF'}
+                          color={seats === 1 ? (colors.textMuted || '#9CA3AF') : (isDarkMode ? '#000000' : '#FFFFFF')}
                         />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -848,13 +846,13 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === trip.availableSeats}
                     >
                       <LinearGradient
-                        colors={seats === trip.availableSeats ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : gradients?.primary || ['#1F2937', '#111827']}
+                        colors={seats === trip.availableSeats ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : (isDarkMode ? (gradients?.primary || ['#F9FAFB', '#E5E7EB']) : ['#1F2937', '#111827'])}
                         style={styles.seatButton}
                       >
                         <Ionicons
                           name="add"
                           size={24}
-                          color={seats === trip.availableSeats ? (colors.textMuted || '#9CA3AF') : '#FFFFFF'}
+                          color={seats === trip.availableSeats ? (colors.textMuted || '#9CA3AF') : (isDarkMode ? '#000000' : '#FFFFFF')}
                         />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -881,7 +879,7 @@ const BookingScreen = ({ route, navigation }) => {
           ) : null}
 
           {/* Driver Info Card */}
-          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
             <View style={styles.cardBorder}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Conductor</Text>
 
@@ -909,7 +907,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Vehicle Info Card */}
           {trip.vehicle && (
-            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
               <View style={styles.cardBorder}>
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Vehículo</Text>
 
@@ -946,7 +944,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Precio y Descuentos Card */}
           {priceData && (
-            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
               <View style={styles.cardBorder}>
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Precio del Viaje</Text>
 
@@ -957,12 +955,12 @@ const BookingScreen = ({ route, navigation }) => {
 
                 {priceData.pricing.discountPercentage > 0 && (
                   <View style={styles.priceBreakdown}>
-                    <Text style={[styles.breakdownLabel, { color: '#10B981' }]}>Descuento promocional ({priceData.pricing.discountPercentage}%)</Text>
-                    <Text style={[styles.breakdownValue, { color: '#10B981' }]}>-${formatNumber(priceData.pricing.discountAmount)} ARS</Text>
+                    <Text style={[styles.breakdownLabel, { color: colors.success }]}>Descuento promocional ({priceData.pricing.discountPercentage}%)</Text>
+                    <Text style={[styles.breakdownValue, { color: colors.success }]}>-${formatNumber(priceData.pricing.discountAmount)} ARS</Text>
                   </View>
                 )}
 
-                <View style={[styles.divider, { backgroundColor: colors.border || '#E5E7EB' }]} />
+                <View style={[styles.divider, { backgroundColor: colors.borderLight || colors.border }]} />
 
                 <View style={[styles.priceBreakdown, { marginBottom: 0 }]}>
                   <Text style={[styles.breakdownLabel, { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary }]}>
@@ -974,11 +972,15 @@ const BookingScreen = ({ route, navigation }) => {
                 </View>
 
                 {priceData.pricing.discountPercentage > 0 && (
-                  <View style={styles.importantBox}>
-                    <Ionicons name="gift" size={20} color="#10B981" />
+                  <View style={[styles.importantBox, {
+                    backgroundColor: isDarkMode ? 'rgba(52, 211, 153, 0.12)' : 'rgba(16, 185, 129, 0.08)',
+                  }]}>
+                    <View style={[styles.discountIconWrap, { backgroundColor: isDarkMode ? 'rgba(52, 211, 153, 0.2)' : 'rgba(16, 185, 129, 0.15)' }]}>
+                      <Ionicons name="pricetag" size={20} color={colors.success || '#10B981'} />
+                    </View>
                     <View style={{ flex: 1, marginLeft: spacing.md }}>
-                      <Text style={[styles.importantTitle, { color: '#10B981' }]}>¡Descuento aplicado!</Text>
-                      <Text style={[styles.importantText, { color: '#10B981' }]}>
+                      <Text style={[styles.importantTitle, { color: colors.success || '#10B981' }]}>¡Descuento aplicado!</Text>
+                      <Text style={[styles.importantText, { color: colors.textSecondary }]}>
                         Estás ahorrando ${formatNumber(priceData.pricing.discountAmount)} ARS gracias a tu código promocional.
                       </Text>
                     </View>
@@ -989,12 +991,12 @@ const BookingScreen = ({ route, navigation }) => {
           )}
 
           {/* Trip Details Card */}
-          <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
             <View style={styles.cardBorder}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Detalles del Viaje</Text>
 
               <View style={styles.detailRow}>
-                <View style={styles.detailIconWrapper}>
+                <View style={[styles.detailIconWrapper, { backgroundColor: isDarkMode ? colors.surfaceElevated : 'rgba(31, 41, 55, 0.08)' }]}>
                   <Ionicons name="people" size={20} color={colors.textSecondary} />
                 </View>
                 <View style={styles.detailContent}>
@@ -1015,7 +1017,7 @@ const BookingScreen = ({ route, navigation }) => {
 
               {priceData?.distanceKm && (
                 <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrapper}>
+                  <View style={[styles.detailIconWrapper, { backgroundColor: isDarkMode ? colors.surfaceElevated : 'rgba(31, 41, 55, 0.08)' }]}>
                     <Ionicons name="navigate" size={20} color={colors.textSecondary} />
                   </View>
                   <View style={styles.detailContent}>
@@ -1029,7 +1031,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Trip Preferences Card */}
           {trip.rules && (
-            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
               <View style={styles.cardBorder}>
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Preferencias del Viaje</Text>
 
@@ -1084,10 +1086,10 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Notes Card */}
           {trip.notes && (
-            <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: isDarkMode ? 0 : 1, borderColor: isDarkMode ? 'transparent' : colors.borderLight }]}>
               <View style={styles.cardBorder}>
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Notas del Conductor</Text>
-                <View style={styles.notesContainer}>
+                <View style={[styles.notesContainer, { backgroundColor: isDarkMode ? colors.surfaceElevated : colors.surface }]}>
                   <Ionicons name="document-text-outline" size={20} color={colors.textTertiary} />
                   <Text style={[styles.notesText, { color: colors.textSecondary }]}>{trip.notes}</Text>
                 </View>
@@ -1144,7 +1146,7 @@ const BookingScreen = ({ route, navigation }) => {
         </ScrollView>
 
         {/* Confirm Button */}
-        <View style={[styles.footer, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : '#F8F9FA', borderTopColor: getCurrentThemeMode() === 'dark' ? '#292929' : '#F3F4F6' }]}>
+        <View style={[styles.footer, { backgroundColor: colors.cardBackground, borderTopWidth: isDarkMode ? 0 : 1, borderTopColor: colors.borderLight }]}>
           <TouchableOpacity
             onPress={handleCreateReservation}
             disabled={loading || calculatingPrice || !priceData}
@@ -1250,8 +1252,7 @@ const styles = StyleSheet.create({
   },
   cardBorder: {
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderWidth: 0,
     borderRadius: borderRadius.md,
   },
   sectionTitle: {
@@ -1372,8 +1373,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   breakdownLabel: {
     fontSize: fontSize.md,
@@ -1395,28 +1394,29 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
     marginVertical: spacing.md,
   },
   importantBox: {
     flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+  },
+  discountIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   importantTitle: {
     fontSize: fontSize.md,
     fontFamily: SORA_FONTS.semiBold,
     fontWeight: fontWeight.semiBold,
-    color: '#1E40AF',
     marginBottom: spacing.xs,
   },
   importantText: {
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.regular,
-    color: '#1E40AF',
     lineHeight: 18,
   },
   errorMessage: {
@@ -1496,8 +1496,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   summaryContent: {
     marginLeft: spacing.md,
@@ -1660,14 +1658,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   detailIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(31, 41, 55, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
@@ -1710,7 +1705,6 @@ const styles = StyleSheet.create({
   notesContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F9FAFB',
     padding: spacing.md,
     borderRadius: borderRadius.md,
   },
