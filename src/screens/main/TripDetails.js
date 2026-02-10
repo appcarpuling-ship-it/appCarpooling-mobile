@@ -203,17 +203,17 @@ const TripDetails = ({ navigation, route }) => {
                                     <Text style={[styles.vehicleDetailText, { color: '#9CA3AF' }]}>Patente: {selectedVehicle.licensePlate}</Text>
                                     {selectedVehicle.features && (
                                         <View style={styles.features}>
-                                            {selectedVehicle.features.ac && <Text style={[styles.feature, { 
-                                                color: '#3B82F6',
-                                                backgroundColor: '#1F1F1F' 
+                                            {selectedVehicle.features.ac && <Text style={[styles.feature, {
+                                                color: '#FFFFFF',
+                                                backgroundColor: '#1F1F1F'
                                             }]}>A/C</Text>}
-                                            {selectedVehicle.features.music && <Text style={[styles.feature, { 
-                                                color: '#3B82F6',
-                                                backgroundColor: '#1F1F1F' 
+                                            {selectedVehicle.features.music && <Text style={[styles.feature, {
+                                                color: '#FFFFFF',
+                                                backgroundColor: '#1F1F1F'
                                             }]}>Música</Text>}
-                                            {selectedVehicle.features.luggage && <Text style={[styles.feature, { 
-                                                color: '#3B82F6',
-                                                backgroundColor: '#1F1F1F' 
+                                            {selectedVehicle.features.luggage && <Text style={[styles.feature, {
+                                                color: '#FFFFFF',
+                                                backgroundColor: '#1F1F1F'
                                             }]}>Equipaje</Text>}
                                         </View>
                                     )}
@@ -338,23 +338,20 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Create Button */}
-                        <View style={[styles.createButtonContainer, {
-                            backgroundColor: '#161616',
-                            borderTopColor: '#404040'
-                        }]}>
+                        <View style={styles.createButtonContainer}>
                             <TouchableOpacity
                                 style={[
-                                    styles.createButton, 
-                                    { backgroundColor: '#6B7280' },
-                                    loading && { backgroundColor: '#4B5563' }
+                                    styles.createButton,
+                                    { backgroundColor: '#FFFFFF' },
+                                    loading && { backgroundColor: '#E5E7EB' }
                                 ]}
                                 onPress={handleCreateTrip}
                                 disabled={loading}
                             >
                                 {loading ? (
-                                    <ActivityIndicator color="#FFFFFF" />
+                                    <ActivityIndicator color="#000000" />
                                 ) : (
-                                    <Text style={styles.createButtonText}>Publicar viaje</Text>
+                                    <Text style={[styles.createButtonText, { color: '#000000' }]}>Publicar viaje</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -654,8 +651,8 @@ const styles = StyleSheet.create({
     // Create Button Container
     createButtonContainer: {
         paddingHorizontal: 16,
-        paddingVertical: 20,
-        marginTop: 8,
+        paddingTop: 8,
+        paddingBottom: 32,
     },
     createButton: {
         borderRadius: 8,

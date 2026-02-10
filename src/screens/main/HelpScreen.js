@@ -6,7 +6,7 @@ import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } f
 import useColors from '../../hooks/useColors';
 
 const HelpScreen = () => {
-  const { colors } = useColors();
+  const { colors, isDarkMode } = useColors();
 
   const faqItems = [
     {
@@ -90,9 +90,9 @@ const HelpScreen = () => {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Preguntas Frecuentes</Text>
 
           {faqItems.map((item) => (
-            <View key={item.id} style={[styles.faqItem, { backgroundColor: '#292929', borderRadius: 12, padding: 16 }]}>
+            <View key={item.id} style={[styles.faqItem, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderRadius: 12, padding: 16 }]}>
               <View style={styles.faqHeader}>
-                <Ionicons name="help-circle" size={24} color="#292929" />
+                <Ionicons name="help-circle" size={24} color={colors.textPrimary} />
                 <Text style={[styles.question, { color: colors.textPrimary }]}>{item.question}</Text>
               </View>
               <Text style={[styles.answer, { color: colors.textSecondary }]}>{item.answer}</Text>
@@ -104,11 +104,11 @@ const HelpScreen = () => {
           {contactItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.contactItem, { backgroundColor: '#292929', borderColor: colors.border }]}
+              style={[styles.contactItem, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: colors.border }]}
               onPress={item.onPress}
             >
-              <View style={[styles.contactIcon, { backgroundColor: '#292929' }]}>
-                <Ionicons name={item.icon} size={24} color="#FFFFFF" />
+              <View style={[styles.contactIcon, { backgroundColor: isDarkMode ? '#404040' : colors.surface }]}>
+                <Ionicons name={item.icon} size={24} color={colors.textPrimary} />
               </View>
               <View style={styles.contactInfo}>
                 <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>{item.title}</Text>

@@ -60,7 +60,7 @@ export const lightColors = {
 export const darkColors = {
   // Backgrounds - DARK MODE
   background: '#161616',
-  surface: '#1F2937', 
+  surface: '#292929',
   surfaceElevated: '#374151',
   surfaceHover: '#4B5563',
 
@@ -103,7 +103,7 @@ export const darkColors = {
   placeholder: '#9CA3AF',
 
   // Card colors - DARK MODE
-  cardBackground: '#1F2937',
+  cardBackground: '#1E1E1E',
   cardBorder: '#374151',
 
   // Overlay - DARK MODE

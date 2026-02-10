@@ -1622,11 +1622,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                 </TouchableOpacity> */}
 
                 <TouchableOpacity
-                  style={[styles.continueBtn, { backgroundColor: '#6B7280' }]}
+                  style={[styles.continueBtn, { backgroundColor: '#FFFFFF' }]}
                   onPress={handleContinueToDetails}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.continueBtnText, { color: '#FFFFFF' }]}>Confirmar ruta</Text>
+                  <Text style={[styles.continueBtnText, { color: '#000000' }]}>Confirmar ruta</Text>
                 </TouchableOpacity>
               </View>
               </View>

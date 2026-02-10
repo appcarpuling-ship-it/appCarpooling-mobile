@@ -314,12 +314,12 @@ const TripRequestsScreen = ({ route }) => {
             <View style={styles.tripRoute}>
               <View style={styles.routeRow}>
                 <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{item.origin?.city}</Text>
+                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{[item.origin?.address, item.origin?.city, item.origin?.province].filter(Boolean).join(', ')}</Text>
               </View>
               <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
               <View style={styles.routeRow}>
                 <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.error }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{item.destination?.city}</Text>
+                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{[item.destination?.address, item.destination?.city, item.destination?.province].filter(Boolean).join(', ')}</Text>
               </View>
             </View>
             <View style={styles.tripMeta}>
