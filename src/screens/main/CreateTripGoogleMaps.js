@@ -1499,15 +1499,12 @@ const styles = StyleSheet.create({
     color: 'transparent', // Añadir para usar color dinámico
   },
 
-  // Autocomplete results - se ajusta al contenido; maxHeight para muchas predicciones (scroll)
+  // Autocomplete results - altura libre, se ajusta al contenido
   resultsContainer: {
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
     marginTop: -2,
     marginLeft: 0,
     marginRight: 0,
     overflow: 'hidden',
-    maxHeight: height * 0.5,
   },
   resultRow: {
     flexDirection: 'row',
