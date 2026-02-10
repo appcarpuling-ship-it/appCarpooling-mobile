@@ -32,7 +32,7 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const CreateTripGoogleMaps = ({ navigation, route }) => {
-  const { colors } = useColors();
+  const { colors, isDarkMode } = useColors();
   const mapRef = useRef(null);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
@@ -879,7 +879,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         {/* Marcador de ubicación del usuario */}
         {userLocation && (
           <Marker coordinate={userLocation} title="Tu ubicación">
-            <View style={styles.userLocationMarkerContainer}>
+            <View style={[styles.userLocationMarkerContainer, { backgroundColor: isDarkMode ? 'transparent' : '#292929' }]}>
               <View style={styles.userLocationDot} />
             </View>
           </Marker>
@@ -985,11 +985,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             )}
 
                 {/* Contenedor de inputs con timeline - posición fija arriba (sin flex) */}
-                <View style={[styles.inputsWrapper, { backgroundColor: colors.surface }]}>
+                <View style={[styles.inputsWrapper, { backgroundColor: isDarkMode ? 'transparent' : colors.surface }]}>
             {/* Timeline dots */}
             <View style={[
               styles.timelineContainer,
-              { backgroundColor: colors.surface },
+              { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
               activeAutocomplete && autocompleteResults.length > 0 && {
                 borderBottomLeftRadius: 0, // Quitar el radio cuando hay predicciones para evitar espacio blanco
               },
@@ -1000,7 +1000,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               {/* Waypoints dots */}
               {formData.waypoints.map((_, index) => (
                 <React.Fragment key={`waypoint-${index}`}>
-                  <View style={[styles.waypointDot, { backgroundColor: '#666', borderColor: colors.surface }]} />
+                  <View style={[styles.waypointDot, { backgroundColor: '#666', borderColor: isDarkMode ? 'transparent' : colors.surface }]} />
                   <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
                 </React.Fragment>
               ))}
@@ -1011,7 +1011,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             {/* Inputs */}
             <View style={[
               styles.inputsContainer,
-              { backgroundColor: colors.surface },
+              { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
               activeAutocomplete && autocompleteResults.length > 0 && {
                 borderBottomLeftRadius: 0,
                 borderBottomRightRadius: 0,
@@ -1068,7 +1068,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     style={[
                       styles.mapSelectBtn,
-                      { backgroundColor: colors.surface },
+                      { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
                       mapSelectionMode === 'origin' && { backgroundColor: '#6B7280' },
                     ]}
                   >
@@ -1135,7 +1135,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                           }}
                           style={[
                             styles.mapSelectBtn,
-                            { backgroundColor: colors.surface },
+                            { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
                             mapSelectionMode === `waypoint-${index}` && { backgroundColor: '#6B7280' },
                           ]}
                         >
@@ -1217,7 +1217,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     style={[
                       styles.mapSelectBtn,
-                      { backgroundColor: colors.surface },
+                      { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
                       mapSelectionMode === 'destination' && { backgroundColor: '#6B7280' },
                     ]}
                   >
@@ -1230,7 +1230,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
            {/* Contenedor de resultados de autocompletado - debajo de los inputs */}
            {activeAutocomplete && autocompleteResults.length > 0 && (
-             <View style={[styles.resultsContainer, { backgroundColor: colors.surface }]}>
+             <View style={[styles.resultsContainer, { backgroundColor: isDarkMode ? 'transparent' : colors.surface }]}>
                <ScrollView
                  keyboardShouldPersistTaps="handled"
                  nestedScrollEnabled={true}
@@ -1263,7 +1263,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     activeOpacity={0.6}
                   >
-                    <View style={[styles.resultIconContainer, { backgroundColor: '#292929' }]}>
+                    <View style={[styles.resultIconContainer, { backgroundColor: isDarkMode ? 'transparent' : '#292929' }]}>
                       <Ionicons name="location-sharp" size={18} color={colors.textSecondary} />
                     </View>
                     <View style={{ flex: 1 }}>
