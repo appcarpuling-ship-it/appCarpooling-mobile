@@ -271,12 +271,7 @@ const RegisterScreen = ({ navigation }) => {
             >
               {/* Header */}
               <View style={styles.header}>
-                <LinearGradient
-                  colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
-                  style={styles.logoContainer}
-                >
-                  <Ionicons name="person-add" size={32} color="#FFF" />
-                </LinearGradient>
+             
                 <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Crear Cuenta</Text>
                 <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Únete a la comunidad de Carpuling</Text>
               </View>
@@ -450,15 +445,15 @@ const RegisterScreen = ({ navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                     style={styles.button}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#fff" />
+                      <ActivityIndicator color={isDarkMode ? "#000000" : "#fff"} />
                     ) : (
-                      <Text style={styles.buttonText}>Registrarse</Text>
+                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#FFF' }]}>Registrarse</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -472,12 +467,12 @@ const RegisterScreen = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.loginLinkGradient}
                   >
-                    <Text style={styles.loginLink}>Inicia Sesión</Text>
+                    <Text style={[styles.loginLink, { color: isDarkMode ? '#000000' : '#FFF' }]}>Inicia Sesión</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>

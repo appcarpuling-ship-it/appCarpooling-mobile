@@ -374,7 +374,7 @@ const ChatsScreen = ({ navigation }) => {
               </View>
 
               {item.trip && (
-                <Text style={[styles.tripInfo, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+                <Text style={[styles.tripInfo, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
                   {item.trip.origin?.city} → {item.trip.destination?.city}
                 </Text>
               )}
@@ -399,7 +399,7 @@ const ChatsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
-        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+        <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#000000'} />
       </View>
     );
   }
@@ -443,7 +443,7 @@ const ChatsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'all' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+              filter === 'all' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
             ]}
             onPress={() => setFilter('all')}
             activeOpacity={0.7}
@@ -451,7 +451,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'all' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'all' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'all' ? '600' : '500'
               }
             ]}>
@@ -461,7 +461,7 @@ const ChatsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
             ]}
             onPress={() => setFilter('trips')}
             activeOpacity={0.7}
@@ -469,7 +469,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'trips' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'trips' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'trips' ? '600' : '500'
               }
             ]}>
@@ -479,7 +479,7 @@ const ChatsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]
+              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
             ]}
             onPress={() => setFilter('direct')}
             activeOpacity={0.7}
@@ -487,7 +487,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'direct' ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'direct' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'direct' ? '600' : '500'
               }
             ]}>
@@ -503,7 +503,7 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+                tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
               />
             }
           >
@@ -538,7 +538,7 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+                tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
               />
             }
           />

@@ -513,14 +513,14 @@ const HomeScreen = ({ navigation }) => {
             style={[
               styles.searchButton, 
               { 
-                backgroundColor: getCurrentThemeMode() === 'dark' ? colors.primary : '#000000'
+                backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
               }
             ]} 
             onPress={handleSearch} 
             activeOpacity={0.8}
           >
             {/* <Ionicons name="search" size={20} color={colors.background} /> */}
-            <Text style={[styles.searchButtonText, { color: colors.background }]}>Buscar viajes</Text>
+            <Text style={[styles.searchButtonText, { color: isDarkMode ? '#000000' : colors.background }]}>Buscar viajes</Text>
           </TouchableOpacity>
 
           {(origin || destination || selectedDate || selectedSeats) && (

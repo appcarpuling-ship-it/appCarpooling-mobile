@@ -136,15 +136,12 @@ const LoginScreen = ({ navigation }) => {
             >
               {/* Logo y título */}
               <View style={styles.header}>
-                <LinearGradient
-                  colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
-                  style={styles.logoContainer}
-                >
+                <View style={styles.logoContainer}>
                   <Image
                     source={LOGO_SOURCE}
                     style={styles.logo}
                   />
-                </LinearGradient>
+                </View>
                 <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Carpuling</Text>
                 <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Viaja inteligente, ahorra más</Text>
               </View>
@@ -201,15 +198,15 @@ const LoginScreen = ({ navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                     style={styles.button}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#fff" />
+                      <ActivityIndicator color={isDarkMode ? "#000000" : "#fff"} />
                     ) : (
-                      <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Iniciar Sesión</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -231,12 +228,12 @@ const LoginScreen = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.registerLinkGradient}
                   >
-                    <Text style={styles.registerLink}>Regístrate</Text>
+                    <Text style={[styles.registerLink, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Regístrate</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
