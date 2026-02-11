@@ -26,6 +26,7 @@ const TripRequestsScreen = ({ route }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [acceptingRequestId, setAcceptingRequestId] = useState(null);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -96,6 +97,7 @@ const TripRequestsScreen = ({ route }) => {
         {
           text: 'Aceptar',
           onPress: async () => {
+            setAcceptingRequestId(requestId);
             try {
               if (isSeatReservation && seatReservationId) {
                 const response = await approveOrRejectReservation(seatReservationId, 'approve');
@@ -113,6 +115,8 @@ const TripRequestsScreen = ({ route }) => {
               }
             } catch (error) {
               Alert.alert('Error', error?.response?.data?.message || error.message);
+            } finally {
+              setAcceptingRequestId(null);
             }
           },
         },
@@ -272,9 +276,19 @@ const TripRequestsScreen = ({ route }) => {
             <TouchableOpacity
               style={[styles.acceptButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000' }]}
               onPress={() => handleAccept(item)}
+              disabled={acceptingRequestId === (item._id || item.id)}
             >
-              <Ionicons name="checkmark" size={18} color={getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'} />
-              <Text style={[styles.acceptButtonText, { color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF' }]}>Aceptar</Text>
+              {acceptingRequestId === (item._id || item.id) ? (
+                <ActivityIndicator 
+                  size="small" 
+                  color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#FFFFFF'} 
+                />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={18} color={getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'} />
+                  <Text style={[styles.acceptButtonText, { color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF' }]}>Aceptar</Text>
+                </>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.rejectButton, { backgroundColor: colors.error + '20' }]}
