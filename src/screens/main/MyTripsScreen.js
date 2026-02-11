@@ -329,7 +329,7 @@ const MyTripsScreen = ({ navigation }) => {
       {/* Tabs */}
       <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity
-          style={[styles.tab, { backgroundColor: colors.borderLight }, activeTab === 'upcoming' && { backgroundColor: colors.textPrimary }]}
+          style={[styles.tab, { backgroundColor: isDarkMode ? '#292929' : colors.borderLight }, activeTab === 'upcoming' && { backgroundColor: colors.textPrimary }]}
           onPress={() => setActiveTab('upcoming')}
         >
           <Text style={[styles.tabText, { color: colors.textTertiary }, activeTab === 'upcoming' && { color: colors.background }]}>
@@ -337,7 +337,7 @@ const MyTripsScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, { backgroundColor: colors.borderLight }, activeTab === 'past' && { backgroundColor: colors.textPrimary }]}
+          style={[styles.tab, { backgroundColor: isDarkMode ? '#292929' : colors.borderLight }, activeTab === 'past' && { backgroundColor: colors.textPrimary }]}
           onPress={() => setActiveTab('past')}
         >
           <Text style={[styles.tabText, { color: colors.textTertiary }, activeTab === 'past' && { color: colors.background }]}>
