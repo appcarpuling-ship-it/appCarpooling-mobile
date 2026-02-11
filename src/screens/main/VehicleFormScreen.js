@@ -405,7 +405,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 activeOpacity={0.7}
               >
                 <View style={styles.featureLeft}>
-                  <Ionicons name={feature.icon} size={22} color={getCurrentThemeMode() === 'dark' ? colors.textMuted : colors.primary} />
+                  <Ionicons name={feature.icon} size={22} color={getCurrentThemeMode() === 'dark' ? colors.textMuted : '#000000'} />
                   <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>{feature.label}</Text>
                 </View>
                 <View style={[
@@ -413,12 +413,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   { backgroundColor: colors.border },
                   features[feature.key] && { 
                     ...styles.toggleActive, 
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000' 
                   }
                 ]}>
                   <View style={[
                     styles.toggleCircle,
-                    { backgroundColor: "#FFFFFF" },
+                    { backgroundColor: features[feature.key] && getCurrentThemeMode() === 'dark' ? "#000000" : "#FFFFFF" },
                     features[feature.key] && styles.toggleCircleActive
                   ]} />
                 </View>
@@ -429,16 +429,16 @@ const VehicleFormScreen = ({ navigation, route }) => {
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled, { 
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+              backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000' 
             }]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color={colors.textPrimary} size="small" />
+              <ActivityIndicator color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} size="small" />
             ) : (
-              <Text style={[styles.submitButtonText, { color: "#FFFFFF" }]}>
+              <Text style={[styles.submitButtonText, { color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF' }]}>
                 {isEdit ? 'Guardar cambios' : 'Crear vehiculo'}
               </Text>
             )}

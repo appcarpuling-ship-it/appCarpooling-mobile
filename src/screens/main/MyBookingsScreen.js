@@ -213,19 +213,22 @@ const MyBookingsScreen = ({ navigation }) => {
         {item.status === 'pending' && (
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={styles.payButton}
+              style={[styles.payButton, { backgroundColor: '#000000' }]}
               onPress={() => navigation.navigate('TripDetailFromCarpoolings', { 
                 tripId: item.trip?._id,
                 openPayment: true 
               })}
             >
-              <Text style={styles.payButtonText}>Ir a pagar</Text>
+              <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>Ir a pagar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { 
+                backgroundColor: isDarkMode ? '#FFFFFF' : 'transparent',
+                borderColor: isDarkMode ? '#FFFFFF' : colors.textSecondary 
+              }]}
               onPress={() => handleCancelBooking(item._id)}
             >
-              <Text style={styles.cancelButtonText}>Cancelar reserva</Text>
+              <Text style={[styles.cancelButtonText, { color: isDarkMode ? '#000000' : colors.textSecondary }]}>Cancelar reserva</Text>
             </TouchableOpacity>
           </View>
         )}

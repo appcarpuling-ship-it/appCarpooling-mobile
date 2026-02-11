@@ -390,7 +390,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
             style={[
               styles.input,
               { 
-                backgroundColor: colors.inputBackground,
+                backgroundColor: '#292929',
                 borderColor: colors.inputBorder,
                 color: colors.textPrimary
               }
