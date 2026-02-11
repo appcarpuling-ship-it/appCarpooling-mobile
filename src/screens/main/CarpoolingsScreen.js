@@ -220,7 +220,7 @@ const CarpoolingsScreen = ({ navigation }) => {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Gestionar Viajes</Text>
+              <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>Gestionar Viajes</Text>
               <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                 Crea viajes o revisa tus reservas
               </Text>
@@ -258,7 +258,7 @@ const CarpoolingsScreen = ({ navigation }) => {
                           style={[
                             styles.iconContainer, 
                             { 
-                              backgroundColor: getCurrentThemeMode() === 'dark' ? '#000000' : '#292929',
+                              backgroundColor: getCurrentThemeMode() === 'dark' ? '#000000' : '#000000',
                               shadowColor: getCurrentThemeMode() === 'dark' ? 'transparent' : '',
                               shadowOpacity: getCurrentThemeMode() === 'dark' ? 0 : 0.3,
                               elevation: getCurrentThemeMode() === 'dark' ? 0 : 4

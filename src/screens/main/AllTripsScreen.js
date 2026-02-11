@@ -244,7 +244,7 @@ const AllTripsScreen = ({ navigation }) => {
                     defaultSource={require('../../../assets/logo/192x192-black.png')}
                   />
                 ) : (
-                  <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}>
+                  <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
                     <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
                       {driver.firstName?.[0]}{driver.lastName?.[0]}
                     </Text>
@@ -311,13 +311,13 @@ const AllTripsScreen = ({ navigation }) => {
                   style={[
                     styles.provinceOptionText,
                     { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    selected === province && { color: isDarkMode ? '#3B82F6' : '#6366F1', fontWeight: '600' },
+                    selected === province && { color: isDarkMode ? '#FFFFFF' : '#000000', fontWeight: '600' },
                   ]}
                 >
                   {province}
                 </Text>
                 {selected === province && (
-                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
                 )}
               </TouchableOpacity>
             ))}
@@ -360,7 +360,7 @@ const AllTripsScreen = ({ navigation }) => {
                 <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+                style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }]}
                 onPress={() => {
                   if (tempTime) {
                     setSelectedTime(tempTime);
@@ -406,7 +406,7 @@ const AllTripsScreen = ({ navigation }) => {
                   style={[
                     styles.provinceOptionText,
                     { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    minAvailableSeats === option && { color: isDarkMode ? '#3B82F6' : '#6366F1', fontWeight: '600' },
+                    minAvailableSeats === option && { color: isDarkMode ? '#FFFFFF' : '#000000', fontWeight: '600' },
                   ]}
                 >
                   {option === '1+' ? '1 o más lugares' :
@@ -415,7 +415,7 @@ const AllTripsScreen = ({ navigation }) => {
                    '4 o más lugares'}
                 </Text>
                 {minAvailableSeats === option && (
-                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
                 )}
               </TouchableOpacity>
             ))}
@@ -436,7 +436,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  originProvince && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                  originProvince && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => setShowOriginPicker(true)}
                 activeOpacity={0.7}
@@ -456,7 +456,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  destinationProvince && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                  destinationProvince && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => setShowDestinationPicker(true)}
                 activeOpacity={0.7}
@@ -476,7 +476,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  selectedDate && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                  selectedDate && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => {
                   setTempDate(selectedDate || new Date());
@@ -499,7 +499,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  selectedTime && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                  selectedTime && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => {
                   setTempTime(selectedTime || new Date());
@@ -522,7 +522,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  minAvailableSeats && { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }
+                  minAvailableSeats && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => setShowSeatsPicker(true)}
                 activeOpacity={0.7}
@@ -533,7 +533,7 @@ const AllTripsScreen = ({ navigation }) => {
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
                   minAvailableSeats && { color: '#FFFFFF' }
                 ]}>
-                  {minAvailableSeats ? `${minAvailableSeats} lugares` : 'Lugares'}
+                  {minAvailableSeats ? `${minAvailableSeats} lugares` : 'Asientos'}
                 </Text>
               </TouchableOpacity>
 
@@ -554,7 +554,7 @@ const AllTripsScreen = ({ navigation }) => {
           {/* Trip List */}
           {loading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+              <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#000000'} />
               <Text style={[styles.loadingText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>Cargando viajes...</Text>
             </View>
           ) : (
@@ -568,8 +568,8 @@ const AllTripsScreen = ({ navigation }) => {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={() => loadTrips(true)}
-                  tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
-                  colors={[isDarkMode ? '#3B82F6' : '#6366F1']}
+                  tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
+                  colors={[isDarkMode ? '#FFFFFF' : '#000000']}
                 />
               }
               ListEmptyComponent={
@@ -582,8 +582,8 @@ const AllTripsScreen = ({ navigation }) => {
                       : 'No hay viajes disponibles por el momento'}
                   </Text>
                   {hasActiveFilters && (
-                    <TouchableOpacity style={[styles.clearButton, { borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]} onPress={clearFilters} activeOpacity={0.7}>
-                      <Text style={[styles.clearButtonText, { color: isDarkMode ? '#3B82F6' : '#6366F1' }]}>Limpiar filtros</Text>
+                    <TouchableOpacity style={[styles.clearButton, { borderColor: isDarkMode ? 'transparent' : '#000000' }]} onPress={clearFilters} activeOpacity={0.7}>
+                      <Text style={[styles.clearButtonText, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>Limpiar filtros</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -649,7 +649,7 @@ const AllTripsScreen = ({ navigation }) => {
                       <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1', borderColor: isDarkMode ? '#3B82F6' : '#6366F1' }]}
+                      style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }]}
                       onPress={() => {
                         if (tempDate) {
                           setSelectedDate(tempDate);
@@ -764,8 +764,6 @@ const styles = StyleSheet.create({
   cardGradient: {
     padding: spacing.md,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   tripHeader: {
     flexDirection: 'row',

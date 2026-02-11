@@ -215,7 +215,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.messagePrimary} />
+        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'} />
       </View>
     );
   }
