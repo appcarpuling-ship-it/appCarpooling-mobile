@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert, Linking, AppState } from 'react-native';
+import { Linking, AppState } from 'react-native';
+import { showAlertAsync } from '../context/AlertContext';
 
 export const useGalleryPermissions = () => {
   const [permissionStatus, setPermissionStatus] = useState(null);
@@ -155,7 +156,7 @@ export const useGalleryPermissions = () => {
   };
 
   const showPermissionAlert = () => {
-    Alert.alert(
+    showAlertAsync(
       'Permisos de Galería',
       'Para seleccionar imágenes necesitamos acceso a tu galería. ¿Quieres ir a configuración para habilitarlo?',
       [
@@ -221,7 +222,7 @@ export const useGalleryPermissions = () => {
       return null;
     } catch (error) {
       console.error('Error seleccionando imagen:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+      showAlertAsync('Error', 'No se pudo seleccionar la imagen');
       return null;
     }
   };

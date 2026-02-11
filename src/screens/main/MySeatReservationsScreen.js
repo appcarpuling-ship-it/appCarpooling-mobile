@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Animated,
   RefreshControl,
   Linking,
@@ -18,11 +17,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation } from '../../services/seatReservationService';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import NativeCheckout from '../../components/NativeCheckout';
 import Toast from '../../components/Toast';
 import AnimatedCard from '../../components/AnimatedCard';
 
 const MySeatReservationsScreen = ({ navigation }) => {
+  const { showAlert } = useAlert();
   const { colors, gradients, createColorArray } = useColors();
   const safeGradients = {
     card: Array.isArray(gradients?.card) && gradients.card.length > 0 ? gradients.card : ['#FFFFFF', '#F8F9FA'],
@@ -49,7 +50,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
         setReservations(response.data.reservations || []);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las reservas');
+      showAlert('Error', 'No se pudieron cargar las reservas');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,11 +86,11 @@ const MySeatReservationsScreen = ({ navigation }) => {
           onPaymentError: handlePaymentError
         });
       } else {
-        Alert.alert('Error', 'No se encontró la URL de pago');
+        showAlert('Error', 'No se encontró la URL de pago');
       }
     } catch (error) {
       console.error('Error opening payment URL:', error);
-      Alert.alert('Error', 'No se pudo procesar el pago');
+      showAlert('Error', 'No se pudo procesar el pago');
     }
   };
 
@@ -116,11 +117,11 @@ const MySeatReservationsScreen = ({ navigation }) => {
     const seatReservationId = reservation.seatReservation?._id || reservation.seatReservation?.id;
 
     if (!seatReservationId) {
-      Alert.alert('Error', 'No se puede cancelar esta reserva');
+      showAlert('Error', 'No se puede cancelar esta reserva');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Cancelar Reserva',
       '¿Estás seguro que deseas cancelar esta reserva? Solo puedes cancelar reservas pendientes de pago.',
       [

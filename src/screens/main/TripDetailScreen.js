@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
 } from 'react-native';
@@ -19,10 +18,12 @@ import NativeCheckout from '../../components/NativeCheckout';
 import Toast from '../../components/Toast';
 import { useColors } from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode } = useColors();
   
   const [trip, setTrip] = useState(null);
@@ -70,7 +71,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         await checkUserBooking();
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo cargar el viaje');
+      showAlert('Error', 'No se pudo cargar el viaje');
     } finally {
       setLoading(false);
     }
@@ -94,7 +95,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleBookTrip = () => {
     if (!trip || trip.availableSeats === 0) {
-      Alert.alert('Error', 'No hay asientos disponibles');
+      showAlert('Error', 'No hay asientos disponibles');
       return;
     }
     navigation.navigate('Booking', { trip });
@@ -138,13 +139,13 @@ const TripDetailScreen = ({ route, navigation }) => {
             onPaymentError: handlePaymentError
           });
         } else {
-          Alert.alert('Error', 'No se encontro la URL de pago');
+          showAlert('Error', 'No se encontro la URL de pago');
         }
       } else if (reservationStatus === 'pending_approval') {
-        Alert.alert('Pendiente', 'Tu solicitud esta esperando aprobacion del conductor');
+        showAlert('Pendiente', 'Tu solicitud esta esperando aprobacion del conductor');
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo procesar el pago');
+      showAlert('Error', 'No se pudo procesar el pago');
     } finally {
       setPaymentLoading(false);
     }
@@ -163,7 +164,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleCancelPendingReservation = async () => {
-    Alert.alert('Cancelar reserva', 'Estas seguro?', [
+    showAlert('Cancelar reserva', 'Estas seguro?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Si, cancelar',
@@ -178,7 +179,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             }
             await loadTripDetail();
           } catch (error) {
-            Alert.alert('Error', 'No se pudo cancelar');
+            showAlert('Error', 'No se pudo cancelar');
           } finally {
             setPaymentLoading(false);
           }
@@ -203,7 +204,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         });
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo iniciar el chat');
+      showAlert('Error', 'No se pudo iniciar el chat');
     }
   };
 

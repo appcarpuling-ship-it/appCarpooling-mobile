@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
+import { showAlertAsync } from '../context/AlertContext';
 import * as WebBrowser from 'expo-web-browser';
 
 /**
@@ -58,7 +59,7 @@ const NativeCheckout = {
       if (onPaymentError) {
         onPaymentError(error);
       } else {
-        Alert.alert('Error', 'No se pudo abrir la página de pago');
+        showAlertAsync('Error', 'No se pudo abrir la página de pago');
       }
     }
   },
@@ -99,7 +100,7 @@ const NativeCheckout = {
             paymentStatus: 'approved'
           });
         } else {
-          Alert.alert(
+          showAlertAsync(
             '✅ Pago Completado',
             'Tu pago se ha procesado correctamente. La reserva será confirmada en breve.'
           );
@@ -114,7 +115,7 @@ const NativeCheckout = {
             paymentStatus: 'pending'
           });
         } else {
-          Alert.alert(
+          showAlertAsync(
             '⏳ Pago Pendiente',
             'Tu pago está siendo procesado. Te notificaremos cuando se confirme.'
           );
@@ -124,7 +125,7 @@ const NativeCheckout = {
         if (onPaymentError) {
           onPaymentError(new Error('El pago fue rechazado'));
         } else {
-          Alert.alert('Error', 'El pago fue rechazado. Por favor, intenta nuevamente.');
+          showAlertAsync('Error', 'El pago fue rechazado. Por favor, intenta nuevamente.');
         }
       } else {
         console.log('⚠️ [NativeCheckout] Estado desconocido:', status);

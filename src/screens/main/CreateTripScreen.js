@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
   Animated,
@@ -21,10 +20,12 @@ import { post_withauth, get_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 const CreateTripScreen = ({ navigation }) => {
+  const { showAlert } = useAlert();
   const { colors, gradients, fontFamily, createColorArray } = useColors();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -323,11 +324,11 @@ const CreateTripScreen = ({ navigation }) => {
         // }
       } else {
         console.warn('⚠️ [CreateTrip] Error cargando vehículos:', response.message);
-        Alert.alert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
+        showAlert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('❌ [CreateTrip] Error loading vehicles:', error);
-      Alert.alert('Error', 'Error al cargar vehículos: ' + error.message);
+      showAlert('Error', 'Error al cargar vehículos: ' + error.message);
     } finally {
       setLoadingVehicles(false);
     }

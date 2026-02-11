@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Image,
 } from 'react-native';
@@ -14,10 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import useColors from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import socketService from '../../services/socketService';
 
 const MyBookingsScreen = ({ navigation }) => {
   const { colors, isDarkMode, getCurrentThemeMode } = useColors();
+  const { showAlert } = useAlert();
   
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,7 @@ const MyBookingsScreen = ({ navigation }) => {
         setBookings(response.data);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las reservas');
+      showAlert('Error', 'No se pudieron cargar las reservas');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -88,7 +89,7 @@ const MyBookingsScreen = ({ navigation }) => {
   };
 
   const handleCancelBooking = (bookingId) => {
-    Alert.alert(
+    showAlert(
       'Cancelar reserva',
       'Estas seguro?',
       [
@@ -103,7 +104,7 @@ const MyBookingsScreen = ({ navigation }) => {
                 loadMyBookings();
               }
             } catch (error) {
-              Alert.alert('Error', error.message);
+              showAlert('Error', error.message);
             }
           },
         },

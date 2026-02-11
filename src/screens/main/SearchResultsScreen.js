@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,10 +16,12 @@ import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import { typography } from '../../theme/typography';
 
 const SearchResultsScreen = ({ route, navigation }) => {
   const { colors, gradients, createColorArray, getCurrentThemeMode } = useColors();
+  const { showAlert } = useAlert();
   const { origin, destination } = route.params || {};
 
   const [trips, setTrips] = useState([]);
@@ -340,7 +341,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Error loading search results:', error);
-      Alert.alert('Error', 'No se pudieron cargar los viajes');
+      showAlert('Error', 'No se pudieron cargar los viajes');
     } finally {
       setLoading(false);
     }

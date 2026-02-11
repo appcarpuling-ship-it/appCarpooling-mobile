@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { buildImageUri } from '../../services/apiService';
 import { Image } from 'react-native';
 import useColors from '../../hooks/useColors';
@@ -30,6 +30,7 @@ const SORA_FONTS = {
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const { showAlert } = useAlert();
   const { user, logout, isAuthenticated } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { colors, fontFamily, createColorArray, getCurrentThemeMode, setThemeMode } = useColors();
@@ -98,44 +99,27 @@ const ProfileScreen = () => {
     console.log('handleLogout - Botón presionado');
     console.log('Estado actual - isAuthenticated:', isAuthenticated, 'user:', user);
 
-    // Mostrar alert de confirmación
-    console.log('Preparando Alert.alert...');
-
-    try {
-      Alert.alert(
-        'Cerrar Sesión',
-        '¿Estás seguro que deseas cerrar sesión?',
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-            onPress: () => {
-              console.log('Logout cancelado por el usuario');
-            }
-          },
-          {
-            text: 'Cerrar Sesión',
-            style: 'destructive',
-            onPress: () => {
-              console.log('✅ Usuario confirmó logout - iniciando proceso...');
-              performLogout();
-            },
-          },
-        ],
+    showAlert(
+      'Cerrar Sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
         {
-          cancelable: true,
-          onDismiss: () => {
-            console.log('Alert cerrado sin seleccionar');
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            console.log('Logout cancelado por el usuario');
           }
-        }
-      );
-      console.log('✅ Alert.alert llamado exitosamente');
-    } catch (error) {
-      console.error('❌ Error al mostrar Alert:', error);
-      // Si el Alert falla, ejecutar logout directamente
-      console.log('Ejecutando logout directamente debido a error en Alert');
-      performLogout();
-    }
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: () => {
+            console.log('✅ Usuario confirmó logout - iniciando proceso...');
+            performLogout();
+          },
+        },
+      ]
+    );
   };
 
   const performLogout = async () => {
@@ -165,7 +149,7 @@ const ProfileScreen = () => {
 
     } catch (error) {
       console.error('❌ Error al cerrar sesión:', error);
-      Alert.alert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
+      showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
     }
   };
 
@@ -175,10 +159,10 @@ const ProfileScreen = () => {
     // Ciclo: light -> dark -> light
     if (currentMode === 'light') {
       setThemeMode('dark');
-      Alert.alert('Tema Cambiado', '🌙 Modo oscuro activado');
+      showAlert('Tema Cambiado', '🌙 Modo oscuro activado');
     } else {
       setThemeMode('light');
-      Alert.alert('Tema Cambiado', '🌞 Modo claro activado');
+      showAlert('Tema Cambiado', '🌞 Modo claro activado');
     }
   };
 

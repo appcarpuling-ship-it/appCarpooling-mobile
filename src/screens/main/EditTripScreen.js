@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
   Animated,
@@ -21,6 +20,7 @@ import { post_withauth, get_withauth, put_withauth } from '../../services/apiSer
 import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 // Usar valores directos para evitar problemas de carga
@@ -36,6 +36,7 @@ const SORA_FONTS = {
 };
 
 const EditTripScreen = ({ navigation, route }) => {
+  const { showAlert } = useAlert();
   const { colors, gradients, createColorArray } = useColors();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -364,11 +365,11 @@ const EditTripScreen = ({ navigation, route }) => {
         setFormData(newFormData);
       } else {
         console.warn('⚠️ [EditTrip] Error en respuesta:', response.message);
-        Alert.alert('Error', response.message || 'No se pudo cargar el viaje');
+        showAlert('Error', response.message || 'No se pudo cargar el viaje');
       }
     } catch (error) {
       console.error('❌ [EditTrip] Error cargando viaje:', error);
-      Alert.alert('Error', 'No se pudo cargar el viaje');
+      showAlert('Error', 'No se pudo cargar el viaje');
     } finally {
       setLoadingTrip(false);
     }
@@ -389,11 +390,11 @@ const EditTripScreen = ({ navigation, route }) => {
         // NO establecer vehículo por defecto aquí, se hará en loadTripData
       } else {
         console.warn('⚠️ [EditTrip] Error cargando vehículos:', response.message);
-        Alert.alert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
+        showAlert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('❌ [EditTrip] Error loading vehicles:', error);
-      Alert.alert('Error', 'Error al cargar vehículos: ' + error.message);
+      showAlert('Error', 'Error al cargar vehículos: ' + error.message);
     } finally {
       setLoadingVehicles(false);
     }

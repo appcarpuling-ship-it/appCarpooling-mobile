@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Linking,
 } from 'react-native';
 import { useColors } from '../hooks/useColors';

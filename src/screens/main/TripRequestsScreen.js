@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
   Image,
@@ -16,9 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { approveOrRejectReservation } from '../../services/seatReservationService';
 import { useColors } from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 
 const TripRequestsScreen = ({ route }) => {
   const { colors, getCurrentThemeMode } = useColors();
+  const { showAlert } = useAlert();
   const { tripId } = route.params || {};
 
   const [trips, setTrips] = useState([]);
@@ -51,7 +52,7 @@ const TripRequestsScreen = ({ route }) => {
         setTrips([]);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar tus viajes');
+      showAlert('Error', 'No se pudieron cargar tus viajes');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,7 +69,7 @@ const TripRequestsScreen = ({ route }) => {
         setRequests(response.data);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las solicitudes');
+      showAlert('Error', 'No se pudieron cargar las solicitudes');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -89,7 +90,7 @@ const TripRequestsScreen = ({ route }) => {
     const isSeatReservation = request.bookingType === 'seat_reservation';
     const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
 
-    Alert.alert(
+    showAlert(
       'Aceptar Solicitud',
       `Aceptar ${request.seatsBooked || request.seatsRequested} asiento(s)?`,
       [
@@ -102,19 +103,19 @@ const TripRequestsScreen = ({ route }) => {
               if (isSeatReservation && seatReservationId) {
                 const response = await approveOrRejectReservation(seatReservationId, 'approve');
                 if (response.success) {
-                  Alert.alert('Aprobado', 'El pasajero recibira una notificacion para completar el pago.', [
+                  showAlert('Aprobado', 'El pasajero recibira una notificacion para completar el pago.', [
                     { text: 'OK', onPress: () => loadRequests() }
                   ]);
                 }
               } else {
                 const response = await put_withauth(`/bookings/${requestId}/confirm`);
                 if (response.success) {
-                  Alert.alert('Exito', 'Solicitud aceptada');
+                  showAlert('Exito', 'Solicitud aceptada');
                   loadRequests();
                 }
               }
             } catch (error) {
-              Alert.alert('Error', error?.response?.data?.message || error.message);
+              showAlert('Error', error?.response?.data?.message || error.message);
             } finally {
               setAcceptingRequestId(null);
             }
@@ -126,7 +127,7 @@ const TripRequestsScreen = ({ route }) => {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      Alert.alert('Error', 'Ingresa una razon para el rechazo');
+      showAlert('Error', 'Ingresa una razon para el rechazo');
       return;
     }
 
@@ -138,7 +139,7 @@ const TripRequestsScreen = ({ route }) => {
       if (isSeatReservation && seatReservationId) {
         const response = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
         if (response.success) {
-          Alert.alert('Exito', 'Solicitud rechazada');
+          showAlert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
@@ -149,7 +150,7 @@ const TripRequestsScreen = ({ route }) => {
           reason: rejectReason,
         });
         if (response.success) {
-          Alert.alert('Exito', 'Solicitud rechazada');
+          showAlert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
@@ -157,7 +158,7 @@ const TripRequestsScreen = ({ route }) => {
         }
       }
     } catch (error) {
-      Alert.alert('Error', error?.response?.data?.message || error.message);
+      showAlert('Error', error?.response?.data?.message || error.message);
     }
   };
 

@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAlert } from '../context/AlertContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -27,6 +27,7 @@ const CheckoutWebView = ({
   onPaymentError,
   reservationId
 }) => {
+  const { showAlert } = useAlert();
   const webViewRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
@@ -103,7 +104,7 @@ const CheckoutWebView = ({
     setLoading(false);
 
     if (nativeEvent.description?.includes('net::ERR')) {
-      Alert.alert(
+      showAlert(
         'Error de Conexión',
         'No se pudo cargar la página de pago. Verifica tu conexión a internet.',
         [{ text: 'Cerrar', onPress: onClose }]

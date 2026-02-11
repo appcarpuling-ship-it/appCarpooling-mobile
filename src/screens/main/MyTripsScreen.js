@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Modal,
   TextInput,
@@ -15,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import socketService from '../../services/socketService';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
+  const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,7 @@ const MyTripsScreen = ({ navigation }) => {
         setTrips(response.data);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los viajes');
+      showAlert('Error', 'No se pudieron cargar los viajes');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,7 +55,7 @@ const MyTripsScreen = ({ navigation }) => {
   };
 
   const handleCancelTrip = (tripId) => {
-    Alert.alert(
+    showAlert(
       'Cancelar Viaje',
       'Esto cancelara todas las reservas asociadas.',
       [
@@ -73,14 +74,14 @@ const MyTripsScreen = ({ navigation }) => {
                     timestamp: new Date().toISOString()
                   });
                 }
-                Alert.alert('Viaje Cancelado', 'El viaje ha sido cancelado.', [
+                showAlert('Viaje Cancelado', 'El viaje ha sido cancelado.', [
                   { text: 'OK', onPress: () => { loadMyTrips(); refreshUser(); } }
                 ]);
               } else {
-                Alert.alert('Error', response.message || 'No se pudo cancelar el viaje');
+                showAlert('Error', response.message || 'No se pudo cancelar el viaje');
               }
             } catch (error) {
-              Alert.alert('Error', error.message || 'Error al cancelar el viaje');
+              showAlert('Error', error.message || 'Error al cancelar el viaje');
             }
           },
         },
@@ -89,7 +90,7 @@ const MyTripsScreen = ({ navigation }) => {
   };
 
   const handleStartTrip = (tripId) => {
-    Alert.alert(
+    showAlert(
       'Iniciar Viaje',
       'Los pasajeros seran notificados.',
       [
@@ -101,13 +102,13 @@ const MyTripsScreen = ({ navigation }) => {
             try {
               const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
               if (response.success) {
-                Alert.alert('Viaje Iniciado', 'El viaje ha comenzado.');
+                showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
                 loadMyTrips();
               } else {
-                Alert.alert('Error', response.message || 'No se pudo iniciar el viaje');
+                showAlert('Error', response.message || 'No se pudo iniciar el viaje');
               }
             } catch (error) {
-              Alert.alert('Error', error.message || 'Error al iniciar el viaje');
+              showAlert('Error', error.message || 'Error al iniciar el viaje');
             } finally {
               setStartingTripId(null);
             }
@@ -126,7 +127,7 @@ const MyTripsScreen = ({ navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      Alert.alert('Error', 'Ingresa un costo valido mayor a 0');
+      showAlert('Error', 'Ingresa un costo valido mayor a 0');
       return;
     }
 
@@ -134,14 +135,14 @@ const MyTripsScreen = ({ navigation }) => {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost });
       if (response.success) {
         setShowCostModal(false);
-        Alert.alert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
+        showAlert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
         loadMyTrips();
         await refreshUser();
       } else {
-        Alert.alert('Error', response.message || 'No se pudo completar el viaje');
+        showAlert('Error', response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al completar el viaje');
+      showAlert('Error', error.message || 'Error al completar el viaje');
     }
   };
 

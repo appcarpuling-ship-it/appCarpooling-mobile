@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 
@@ -54,6 +54,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const { showAlert } = useAlert();
   const { isDarkMode } = useTheme();
 
   // Logo dinámico según el tema
@@ -81,7 +82,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      showAlert('Error', 'Por favor completa todos los campos');
       return;
     }
 
@@ -92,7 +93,7 @@ const LoginScreen = ({ navigation }) => {
     if (!result.success) {
       // Si el usuario no está verificado, redirigir a la pantalla de verificación
       if (result.requiresVerification) {
-        Alert.alert(
+        showAlert(
           'Cuenta no verificada',
           'Tu cuenta aún no ha sido verificada. Por favor verifica tu email para continuar.',
           [
@@ -109,7 +110,7 @@ const LoginScreen = ({ navigation }) => {
           ]
         );
       } else {
-        Alert.alert('Error', result.message || 'Error al iniciar sesión');
+        showAlert('Error', result.message || 'Error al iniciar sesión');
       }
     }
   };

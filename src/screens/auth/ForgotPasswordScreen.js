@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { post_public } from '../../services/apiService';
+import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 
@@ -50,6 +50,7 @@ const safeColors = (() => {
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showAlert } = useAlert();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -71,7 +72,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert('Error', 'Por favor ingresa tu email');
+      showAlert('Error', 'Por favor ingresa tu email');
       return;
     }
 
@@ -79,7 +80,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     try {
       const response = await post_public(ENDPOINTS.FORGOT_PASSWORD, { email });
 
-      Alert.alert(
+      showAlert(
         'Éxito',
         'Se ha enviado un enlace de recuperación a tu email',
         [
@@ -90,7 +91,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         ]
       );
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al enviar el email');
+      showAlert('Error', error.message || 'Error al enviar el email');
     } finally {
       setLoading(false);
     }

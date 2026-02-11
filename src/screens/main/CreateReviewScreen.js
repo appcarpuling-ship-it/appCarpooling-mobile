@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
@@ -15,12 +14,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { post_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 
 const CreateReviewScreen = ({ route, navigation }) => {
+  const { showAlert } = useAlert();
   const { colors, gradients, createColorArray } = useColors();
   const { trip, reviewedUser, reviewType } = route.params || {};
   const [rating, setRating] = useState(0);
@@ -52,12 +53,12 @@ const CreateReviewScreen = ({ route, navigation }) => {
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
-      Alert.alert('Error', 'Por favor selecciona una calificación');
+      showAlert('Error', 'Por favor selecciona una calificación');
       return;
     }
 
     if (comment.trim().length < 10) {
-      Alert.alert('Error', 'Por favor escribe un comentario de al menos 10 caracteres');
+      showAlert('Error', 'Por favor escribe un comentario de al menos 10 caracteres');
       return;
     }
 
@@ -75,7 +76,7 @@ const CreateReviewScreen = ({ route, navigation }) => {
       const response = await post_withauth(ENDPOINTS.CREATE_REVIEW, reviewData);
 
       if (response.success) {
-        Alert.alert(
+        showAlert(
           'Reseña Enviada',
           'Tu reseña ha sido enviada exitosamente',
           [
@@ -86,10 +87,10 @@ const CreateReviewScreen = ({ route, navigation }) => {
           ]
         );
       } else {
-        Alert.alert('Error', response.message || 'Error al enviar la reseña');
+        showAlert('Error', response.message || 'Error al enviar la reseña');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al enviar la reseña');
+      showAlert('Error', error.message || 'Error al enviar la reseña');
     } finally {
       setLoading(false);
     }

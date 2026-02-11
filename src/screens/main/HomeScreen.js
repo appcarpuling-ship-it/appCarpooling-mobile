@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   RefreshControl,
@@ -26,6 +25,7 @@ import { ENDPOINTS } from '../../config/api';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
@@ -108,6 +108,7 @@ const HomeScreen = ({ navigation }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   const { isDarkMode } = useTheme();
+  const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode } = useColors();
 
   // Logo dinámico según el tema
@@ -258,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
     }
 
     if (!origin && !destination) {
-      Alert.alert('Error', 'Por favor completa al menos el origen o destino');
+      showAlert('Error', 'Por favor completa al menos el origen o destino');
       return;
     }
 

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Platform,
   Dimensions,
@@ -23,6 +22,7 @@ import * as Location from 'expo-location';
 import { get_withauth } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { useColors } from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -33,6 +33,7 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const CreateTripGoogleMaps = ({ navigation, route }) => {
   const { colors, isDarkMode } = useColors();
+  const { showAlert } = useAlert();
   const mapRef = useRef(null);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
@@ -101,7 +102,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
     if (!GOOGLE_MAPS_API_KEY) {
       console.error('❌ GOOGLE_MAPS_API_KEY no está configurada');
-      Alert.alert('Error', 'La API Key de Google Maps no está configurada');
+      showAlert('Error', 'La API Key de Google Maps no está configurada');
     }
 
     // Animación de entrada inicial (mini)
@@ -411,7 +412,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     const locationData = await reverseGeocode(latitude, longitude);
     
     if (!locationData) {
-      Alert.alert('Error', 'No se pudo obtener la dirección de esta ubicación');
+      showAlert('Error', 'No se pudo obtener la dirección de esta ubicación');
       return;
     }
     
@@ -466,7 +467,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   const addWaypoint = () => {
     if (formData.waypoints.length >= 3) {
-      Alert.alert('Límite alcanzado', 'Máximo 3 paradas intermedias permitidas');
+      showAlert('Límite alcanzado', 'Máximo 3 paradas intermedias permitidas');
       return;
     }
     
@@ -758,19 +759,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) {
-      Alert.alert('Datos incompletos', 'Por favor selecciona origen y destino');
+      showAlert('Datos incompletos', 'Por favor selecciona origen y destino');
       return;
     }
 
     // Si aún está cargando vehículos, mostrar mensaje
     if (loadingVehicles) {
-      Alert.alert('Un momento', 'Estamos verificando tus vehículos...');
+      showAlert('Un momento', 'Estamos verificando tus vehículos...');
       return;
     }
 
     // Si no hay vehículos, mostrar el mensaje de error
     if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
-      Alert.alert(
+      showAlert(
         'Vehículo requerido', 
         'Necesitas registrar un vehículo antes de crear un viaje',
         [

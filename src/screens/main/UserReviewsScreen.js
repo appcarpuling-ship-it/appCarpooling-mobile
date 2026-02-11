@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Animated,
   TouchableOpacity,
   RefreshControl,
@@ -16,9 +15,11 @@ import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import { useColors } from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 
 const UserReviewsScreen = ({ route, navigation }) => {
   const { userId, userName } = route.params || {};
+  const { showAlert } = useAlert();
   const { colors, createColorArray } = useColors();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +71,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
         });
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las reseñas');
+      showAlert('Error', 'No se pudieron cargar las reseñas');
     } finally {
       setLoading(false);
       setRefreshing(false);

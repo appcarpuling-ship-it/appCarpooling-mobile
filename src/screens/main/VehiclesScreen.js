@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Image,
   Animated,
   RefreshControl,
@@ -17,6 +16,7 @@ import { get_withauth, delete_withauth, buildImageUri } from '../../services/api
 import { ENDPOINTS } from '../../config/api';
 import {  gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import { useColors } from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 
 // Componente separado para el item del vehículo
 const VehicleItem = ({ item, index, navigation, onDelete }) => {
@@ -121,6 +121,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
+  const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode } = useColors();
   
   const [vehicles, setVehicles] = useState([]);
@@ -172,7 +173,7 @@ const VehiclesScreen = () => {
         setVehicles(response.data);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los vehículos');
+      showAlert('Error', 'No se pudieron cargar los vehículos');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -185,7 +186,7 @@ const VehiclesScreen = () => {
   };
 
   const handleDeleteVehicle = (vehicleId) => {
-    Alert.alert(
+    showAlert(
       'Eliminar Vehículo',
       '¿Estás seguro que deseas eliminar este vehículo?',
       [
@@ -198,10 +199,10 @@ const VehiclesScreen = () => {
               const response = await delete_withauth(ENDPOINTS.DELETE_VEHICLE(vehicleId));
               if (response.success) {
                 loadVehicles();
-                Alert.alert('Éxito', 'Vehículo eliminado');
+                showAlert('Éxito', 'Vehículo eliminado');
               }
             } catch (error) {
-              Alert.alert('Error', error.message);
+              showAlert('Error', error.message);
             }
           },
         },

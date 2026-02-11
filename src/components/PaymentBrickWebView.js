@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Linking,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../theme/colors';
+import { useAlert } from '../context/AlertContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,6 +29,7 @@ const PaymentBrickWebView = ({
   onPaymentError,
   publicKey
 }) => {
+  const { showAlert } = useAlert();
   const webViewRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [brickReady, setBrickReady] = useState(false);
@@ -64,21 +65,21 @@ const PaymentBrickWebView = ({
       // Validar parámetros
       if (!preferenceId) {
         console.error('❌ [WebView] ERROR: preferenceId no definido');
-        Alert.alert('Error', 'No se pudo inicializar el pago: falta preferenceId');
+        showAlert('Error', 'No se pudo inicializar el pago: falta preferenceId');
         onClose();
         return;
       }
 
       if (!amount || amount <= 0) {
         console.error('❌ [WebView] ERROR: amount inválido:', amount);
-        Alert.alert('Error', 'No se pudo inicializar el pago: monto inválido');
+        showAlert('Error', 'No se pudo inicializar el pago: monto inválido');
         onClose();
         return;
       }
 
       if (!publicKey || publicKey === 'TEST-your-public-key') {
         console.error('❌ [WebView] ERROR: publicKey no definido o inválido');
-        Alert.alert('Error', 'No se pudo inicializar el pago: falta configuración de MercadoPago');
+        showAlert('Error', 'No se pudo inicializar el pago: falta configuración de MercadoPago');
         onClose();
         return;
       }
@@ -727,7 +728,7 @@ const PaymentBrickWebView = ({
         case 'BRICK_ERROR':
           console.error('❌ [PaymentBrick] Error:', message.error);
           setLoading(false);
-          Alert.alert('Error', message.error || 'Error en el formulario');
+          showAlert('Error', message.error || 'Error en el formulario');
           if (onPaymentError) onPaymentError(new Error(message.error));
           break;
 
@@ -811,7 +812,7 @@ const PaymentBrickWebView = ({
             console.error('❌ [WebView] Error nativo:', e.nativeEvent);
             console.error('❌ [WebView] Error completo:', JSON.stringify(e.nativeEvent, null, 2));
             setLoading(false);
-            Alert.alert(
+            showAlert(
               'Error al cargar',
               'No se pudo cargar el formulario de pago. Verifica tu conexión a internet e intenta nuevamente.',
               [
@@ -830,7 +831,7 @@ const PaymentBrickWebView = ({
             console.error('❌ [WebView] Status code:', e.nativeEvent.statusCode);
             if (e.nativeEvent.statusCode >= 400) {
               setLoading(false);
-              Alert.alert(
+              showAlert(
                 'Error de conexión',
                 `Error HTTP ${e.nativeEvent.statusCode}: No se pudo cargar el formulario. Verifica tu conexión a internet.`,
                 [{ text: 'Cerrar', onPress: onClose }]

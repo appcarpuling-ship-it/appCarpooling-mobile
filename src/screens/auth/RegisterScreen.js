@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
@@ -59,6 +59,7 @@ const safeColors = (() => {
 
 const RegisterScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
+  const { showAlert } = useAlert();
   
   // Usar el hook de validación
   const {
@@ -186,7 +187,7 @@ const RegisterScreen = ({ navigation }) => {
       // Mostrar el primer error encontrado
       const firstErrorField = Object.keys(formErrors)[0];
       const firstError = formErrors[firstErrorField];
-      Alert.alert('Error de validación', firstError);
+      showAlert('Error de validación', firstError);
       return;
     }
 
@@ -229,7 +230,7 @@ const RegisterScreen = ({ navigation }) => {
       const result = await register(formDataToSend);
 
       if (result.success) {
-        Alert.alert(
+        showAlert(
           'Registro exitoso',
           'Te hemos enviado un código de verificación a tu email',
           [
@@ -240,10 +241,10 @@ const RegisterScreen = ({ navigation }) => {
           ]
         );
       } else {
-        Alert.alert('Error', result.message || 'Error al registrar usuario');
+        showAlert('Error', result.message || 'Error al registrar usuario');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al registrar usuario');
+      showAlert('Error', error.message || 'Error al registrar usuario');
     } finally {
       setLoading(false);
     }

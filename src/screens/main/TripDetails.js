@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Alert,
     ActivityIndicator,
     Switch,
     KeyboardAvoidingView,
@@ -17,11 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../services/apiService';
+import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
 
 
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, distance, duration, vehicles } = route.params;
+    const { showAlert } = useAlert();
 
     // Estados
     const [loading, setLoading] = useState(false);
@@ -89,7 +90,7 @@ const TripDetails = ({ navigation, route }) => {
         const { vehicle, departureDate, departureTime, availableSeats } = formData;
 
         if (!vehicle || !departureDate || !departureTime || !availableSeats) {
-            Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
+            showAlert('Error', 'Por favor completa todos los campos obligatorios');
             return;
         }
 
@@ -118,7 +119,7 @@ const TripDetails = ({ navigation, route }) => {
             const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
 
             if (response.success) {
-                Alert.alert('Viaje creado', 'Tu viaje ha sido publicado exitosamente', [
+                showAlert('Viaje creado', 'Tu viaje ha sido publicado exitosamente', [
                     {
                         text: 'Continuar',
                         onPress: () => navigation.navigate('Carpoolings'),
@@ -126,7 +127,7 @@ const TripDetails = ({ navigation, route }) => {
                 ]);
             }
         } catch (error) {
-            Alert.alert('Error', error.message || 'Error al crear el viaje');
+            showAlert('Error', error.message || 'Error al crear el viaje');
         } finally {
             setLoading(false);
         }

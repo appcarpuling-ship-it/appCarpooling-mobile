@@ -7,17 +7,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const { showAlert } = useAlert();
   const { isDarkMode } = useTheme();
   const {
     notifications = [],
@@ -80,7 +81,7 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const handleMarkAllAsRead = () => {
-    Alert.alert(
+    showAlert(
       'Marcar todas como leidas',
       'Marcar todas las notificaciones como leidas?',
       [

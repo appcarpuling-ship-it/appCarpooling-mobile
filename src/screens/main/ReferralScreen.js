@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Share,
   ActivityIndicator,
   ScrollView,
@@ -12,11 +11,13 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { get_withauth } from '../../services/apiService';
 import useColors from '../../hooks/useColors';
 
 const ReferralScreen = ({ navigation }) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode } = useColors();
   const [referralInfo, setReferralInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ const ReferralScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading referral info:', error);
-      Alert.alert('Error', 'No se pudo cargar la información de referidos');
+      showAlert('Error', 'No se pudo cargar la información de referidos');
     } finally {
       setLoading(false);
     }
@@ -43,7 +44,7 @@ const ReferralScreen = ({ navigation }) => {
   const copyToClipboard = async () => {
     if (referralInfo?.myReferralCode) {
       await Clipboard.setStringAsync(referralInfo.myReferralCode);
-      Alert.alert('¡Copiado!', 'Tu código promocional ha sido copiado al portapapeles');
+      showAlert('¡Copiado!', 'Tu código promocional ha sido copiado al portapapeles');
     }
   };
 

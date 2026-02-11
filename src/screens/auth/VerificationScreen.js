@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 
@@ -52,6 +52,7 @@ const VerificationScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const { verifyEmail, resendVerification } = useAuth();
+  const { showAlert } = useAlert();
   const { isDarkMode } = useTheme();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -74,7 +75,7 @@ const VerificationScreen = ({ route, navigation }) => {
 
   const handleVerify = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
-      Alert.alert('Error', 'Por favor ingresa un código válido de 6 dígitos');
+      showAlert('Error', 'Por favor ingresa un código válido de 6 dígitos');
       return;
     }
 
@@ -84,7 +85,7 @@ const VerificationScreen = ({ route, navigation }) => {
       const result = await verifyEmail(email, verificationCode);
 
       if (result.success) {
-        Alert.alert(
+        showAlert(
           'Verificación Exitosa',
           'Tu cuenta ha sido verificada correctamente. Ya puedes iniciar sesión.',
           [
@@ -97,7 +98,7 @@ const VerificationScreen = ({ route, navigation }) => {
       } else {
         // Mostrar mensaje específico si es un problema de backend
         if (result.isBackendIssue) {
-          Alert.alert(
+          showAlert(
             'Problema del Servidor',
             'Hay un problema con la verificación de email en el servidor. Por favor contacta al soporte técnico.\n\nDetalles técnicos:\n' +
             (result.errorDetails ?
@@ -109,11 +110,11 @@ const VerificationScreen = ({ route, navigation }) => {
             ]
           );
         } else {
-          Alert.alert('Error', result.message || 'Código de verificación inválido');
+          showAlert('Error', result.message || 'Código de verificación inválido');
         }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al verificar el código');
+      showAlert('Error', error.message || 'Error al verificar el código');
     } finally {
       setLoading(false);
     }
@@ -126,11 +127,11 @@ const VerificationScreen = ({ route, navigation }) => {
       const result = await resendVerification(email);
 
       if (result.success) {
-        Alert.alert('Código Enviado', 'Se ha enviado un nuevo código de verificación a tu email');
+        showAlert('Código Enviado', 'Se ha enviado un nuevo código de verificación a tu email');
       } else {
         // Mostrar mensaje específico si es un problema de backend
         if (result.isBackendIssue) {
-          Alert.alert(
+          showAlert(
             'Problema del Servidor',
             'No se puede reenviar el código debido a un problema en el servidor. Por favor contacta al soporte técnico.',
             [
@@ -139,11 +140,11 @@ const VerificationScreen = ({ route, navigation }) => {
             ]
           );
         } else {
-          Alert.alert('Error', result.message || 'Error al enviar el código');
+          showAlert('Error', result.message || 'Error al enviar el código');
         }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Error al enviar el código');
+      showAlert('Error', error.message || 'Error al enviar el código');
     } finally {
       setResending(false);
     }
