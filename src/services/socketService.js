@@ -22,8 +22,11 @@ class SocketService {
         return;
       }
 
+      const url = getSocketURL();
+      console.log('🔌 Conectando WebSocket a:', url);
+
       // Crear conexión socket
-      this.socket = io(getSocketURL(), {
+      this.socket = io(url, {
         auth: {
           token
         },
@@ -42,7 +45,7 @@ class SocketService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('Error de conexión:', error.message);
+        console.error('Error de conexión WebSocket:', error.message, '(URL:', url, ')');
         this.isConnected = false;
       });
 

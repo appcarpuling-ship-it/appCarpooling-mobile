@@ -1,18 +1,14 @@
 /**
  * Configuración de WebSocket
  *
- * IMPORTANTE: Lee la URL desde .env o constants de Expo
+ * Usa la misma fuente que api.js para consistencia.
+ * La URL del socket es la base de la API sin /api
  */
 
-import Constants from 'expo-constants';
-
-// Obtener URL base de la configuración
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 
-                     process.env.API_BASE_URL || 
-                     'http://192.168.1.6:5000/api';
+import { API_CONFIG } from './api';
 
 // Remover '/api' del final para obtener la URL base del socket
-const SOCKET_URL = API_BASE_URL.replace('/api', '');
+const SOCKET_URL = API_CONFIG.BASE_URL.replace(/\/api\/?$/, '') || 'https://appcarpuling.cloud';
 
 export const SOCKET_CONFIG = {
   URL: SOCKET_URL,
