@@ -159,7 +159,7 @@ const TripDetails = ({ navigation, route }) => {
                             </View>
                             <View style={[styles.routeLine, { backgroundColor: '#404040' }]} />
                             <View style={styles.routeItem}>
-                                <View style={[styles.routeDot, { backgroundColor: '#3B82F6' }]} />
+                                <View style={[styles.routeDot, { backgroundColor: '#FFFFFF' }]} />
                                 <Text style={[styles.routeText, { color: '#FFFFFF' }]} numberOfLines={1}>
                                     {[destination.address, destination.city, destination.province].filter(Boolean).join(', ')}
                                 </Text>
@@ -179,7 +179,7 @@ const TripDetails = ({ navigation, route }) => {
                             <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Vehículo</Text>
                             <TouchableOpacity 
                                 style={[styles.inputContainer, {
-                                    backgroundColor: '#292929',
+                                    backgroundColor: '#1F1F1F',
                                     borderColor: '#404040'
                                 }]}
                                 onPress={() => setShowVehicleModal(true)}
@@ -287,9 +287,12 @@ const TripDetails = ({ navigation, route }) => {
 
                             <View style={[styles.inputContainer, {
                                 backgroundColor: '#1F1F1F',
-                                borderColor: '#404040'
+                                borderColor: '#404040',
+                                alignItems: 'flex-start'
                             }]}>
-                                <Ionicons name="document-text-outline" size={20} color={'#9CA3AF'} />
+                                <View style={{ paddingTop: 12 }}>
+                                    <Ionicons name="document-text-outline" size={20} color={'#9CA3AF'} />
+                                </View>
                                 <TextInput
                                     style={[styles.input, styles.textArea, { color: '#FFFFFF' }]}
                                     placeholder="Notas adicionales (opcional)"
@@ -318,8 +321,8 @@ const TripDetails = ({ navigation, route }) => {
                                 <Switch
                                     value={formData.allowSmoking}
                                     onValueChange={(value) => handleChange('allowSmoking', value)}
-                                    trackColor={{ false: '#404040', true: '#3B82F6' }}
-                                    thumbColor={'#FFFFFF'}
+                                    trackColor={{ false: '#404040', true: '#FFFFFF' }}
+                                    thumbColor={formData.allowSmoking ? '#000000' : '#FFFFFF'}
                                 />
                             </View>
 
@@ -331,8 +334,8 @@ const TripDetails = ({ navigation, route }) => {
                                 <Switch
                                     value={formData.allowPets}
                                     onValueChange={(value) => handleChange('allowPets', value)}
-                                    trackColor={{ false: '#404040', true: '#3B82F6' }}
-                                    thumbColor={'#FFFFFF'}
+                                    trackColor={{ false: '#404040', true: '#FFFFFF' }}
+                                    thumbColor={formData.allowPets ? '#000000' : '#FFFFFF'}
                                 />
                             </View>
                         </View>
@@ -368,7 +371,7 @@ const TripDetails = ({ navigation, route }) => {
                     <SafeAreaView style={[styles.modalContainer, { backgroundColor: '#161616' }]}>
                         <View style={[styles.modalHeader, { borderBottomColor: '#404040' }]}>
                             <TouchableOpacity onPress={() => setShowVehicleModal(false)}>
-                                <Text style={[styles.modalCancel, { color: '#3B82F6' }]}>Cancelar</Text>
+                                <Text style={[styles.modalCancel, { color: '#FFFFFF' }]}>Cancelar</Text>
                             </TouchableOpacity>
                             <Text style={[styles.modalTitle, { color: '#FFFFFF' }]}>Seleccionar vehículo</Text>
                             <View style={styles.modalRight} />
@@ -396,7 +399,7 @@ const TripDetails = ({ navigation, route }) => {
                                         <Text style={[styles.vehiclePlate, { color: '#9CA3AF' }]}>{vehicle.licensePlate}</Text>
                                     </View>
                                     {formData.vehicle === vehicle._id && (
-                                        <Ionicons name="checkmark" size={20} color={'#3B82F6'} />
+                                        <Ionicons name="checkmark" size={20} color={'#FFFFFF'} />
                                     )}
                                 </TouchableOpacity>
                             ))}
@@ -445,7 +448,7 @@ const TripDetails = ({ navigation, route }) => {
                                         onDateChange({ type: 'set' }, date);
                                     }}
                                 >
-                                    <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#3B82F6' }]}>Confirmar</Text>
+                                    <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -492,7 +495,7 @@ const TripDetails = ({ navigation, route }) => {
                                         onTimeChange({ type: 'set' }, time);
                                     }}
                                 >
-                                    <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#3B82F6' }]}>Confirmar</Text>
+                                    <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>

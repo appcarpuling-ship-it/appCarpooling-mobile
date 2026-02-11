@@ -762,6 +762,25 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       return;
     }
 
+    // Si aún está cargando vehículos, mostrar mensaje
+    if (loadingVehicles) {
+      Alert.alert('Un momento', 'Estamos verificando tus vehículos...');
+      return;
+    }
+
+    // Si no hay vehículos, mostrar el mensaje de error
+    if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
+      Alert.alert(
+        'Vehículo requerido', 
+        'Necesitas registrar un vehículo antes de crear un viaje',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Agregar Vehículo', onPress: () => navigation.navigate('Vehicles') }
+        ]
+      );
+      return;
+    }
+
     navigation.navigate('TripDetails', {
       origin: formData.origin,
       destination: formData.destination,
@@ -825,15 +844,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   };
 
   const hasRoute = originMarker && destinationMarker;
-
-  if (loadingVehicles) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Cargando vehículos...</Text>
-      </View>
-    );
-  }
 
   if (!loadingVehicles && (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0)) {
     return (
@@ -1284,7 +1294,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           )}
 
           {/* Info de ruta + botones cuando hay ruta */}
-          {hasRoute && sheetMode === 'mini' && (
+          {hasRoute && (
               <View style={[
                 styles.routeSection,
                 { backgroundColor: colors.cardBackground }
@@ -1292,11 +1302,19 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               <View style={[styles.routeDivider, { backgroundColor: colors.border }]} />
               <View style={styles.routeButtons}>
                 <TouchableOpacity
-                  style={[styles.continueBtn, { backgroundColor: '#FFFFFF' }]}
+                  style={[styles.continueBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
                   onPress={handleContinueToDetails}
                   activeOpacity={0.8}
+                  disabled={loadingVehicles}
                 >
-                  <Text style={[styles.continueBtnText, { color: '#000000' }]}>Confirmar ruta</Text>
+                  {loadingVehicles ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                      <Text style={[styles.continueBtnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Verificando...</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.continueBtnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Confirmar ruta</Text>
+                  )}
                 </TouchableOpacity>
               </View>
               </View>
