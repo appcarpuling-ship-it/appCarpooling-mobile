@@ -156,6 +156,7 @@ const AllTripsScreen = ({ navigation }) => {
     setSelectedDate(null);
     setSelectedTime(null);
     setMinAvailableSeats('');
+    setFilteredTrips(trips);
   };
 
   const hasActiveFilters = originProvince || destinationProvince || selectedDate || selectedTime || minAvailableSeats;
