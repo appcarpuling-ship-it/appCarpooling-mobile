@@ -206,13 +206,8 @@ const CarpoolingsScreen = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
               <View style={[
-                styles.headerIcon, 
-                { 
-                  backgroundColor: isDarkMode ? '' : '',
-                  shadowColor: isDarkMode ? 'transparent' : '',
-                  shadowOpacity: isDarkMode ? 0 : 0.3,
-                  elevation: isDarkMode ? 0 : 5
-                }
+                styles.headerIcon,
+                
               ]}>
                 <Image
                   source={isDarkMode ? require('../../../assets/logo/192x192-white.png') : require('../../../assets/logo/192x192-black.png')}
@@ -465,11 +460,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
     borderRadius: borderRadius.xl || 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
     backgroundColor: '#1F2937',
   },
   bannerGradient: {
