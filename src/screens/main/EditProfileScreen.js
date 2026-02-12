@@ -372,9 +372,10 @@ const EditProfileScreen = ({ navigation }) => {
                 style={[
                   styles.input, 
                   styles.textArea,
-                  { 
+                  {
                     color: colors.textPrimary,
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground
+                    borderWidth: 1,
+                    borderColor: colors.border
                   }
                 ]}
                 value={formData.bio}
@@ -393,9 +394,9 @@ const EditProfileScreen = ({ navigation }) => {
             style={[
               styles.saveButton, 
               { 
-                backgroundColor: loading 
-                  ? colors.textMuted 
-                  : getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+                backgroundColor: loading
+                  ? colors.textMuted
+                  : getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'
               }
             ]}
             onPress={handleSave}
@@ -403,9 +404,9 @@ const EditProfileScreen = ({ navigation }) => {
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} size="small" />
             ) : (
-              <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>Guardar cambios</Text>
+              <Text style={[styles.saveButtonText, { color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF' }]}>Guardar cambios</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -415,7 +416,7 @@ const EditProfileScreen = ({ navigation }) => {
       <Modal
         visible={showProvincePicker}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowProvincePicker(false)}
       >
         <View style={styles.modalOverlay}>
@@ -565,8 +566,6 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 80,
     paddingTop: 12,
-    borderBottomWidth: 0,
-
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -604,13 +603,13 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderRadius: 16,
     maxHeight: '70%',
+    width: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
