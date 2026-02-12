@@ -20,7 +20,7 @@ import { useAlert } from '../../context/AlertContext';
 
 // Componente separado para el item del vehículo
 const VehicleItem = ({ item, index, navigation, onDelete }) => {
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
   
   const itemFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -45,8 +45,8 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
       >
         <View
           style={[styles.vehicleCard, { 
-            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-            borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border 
+            backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+            borderColor: isDarkMode ? '#404040' : colors.border 
           }]}
         >
           <View style={styles.vehicleContent}>
@@ -58,9 +58,9 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
               />
             ) : (
               <View
-                style={[styles.vehicleIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}
+                style={[styles.vehicleIcon, { backgroundColor: isDarkMode ? '#292929' : colors.surface }]}
               >
-                <Ionicons name="car-sport" size={28} color="#292929" />
+                <Ionicons name="car-sport" size={28} color={isDarkMode ? '#FFFFFF' : '#292929'} />
               </View>
             )}
 
@@ -81,7 +81,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                 )}
               </View>
               <View style={styles.plateContainer}>
-                <Ionicons name="card-outline" size={14} color="#292929" />
+                <Ionicons name="card-outline" size={14} color={isDarkMode ? '#FFFFFF' : '#292929'} />
                 <Text style={[styles.vehiclePlate, { color: colors.textPrimary }]}>{item.licensePlate || item.plate}</Text>
               </View>
               {item.capacity && (
@@ -100,7 +100,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
                   navigation.navigate('VehicleForm', { vehicle: item });
                 }}
               >
-                <Ionicons name="create-outline" size={22} color="#292929" />
+                <Ionicons name="create-outline" size={22} color={isDarkMode ? '#FFFFFF' : '#292929'} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteButton}
@@ -122,7 +122,7 @@ const VehicleItem = ({ item, index, navigation, onDelete }) => {
 const VehiclesScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
   
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +222,7 @@ const VehiclesScreen = () => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary} />
+        <ActivityIndicator size="large" color={isDarkMode ? '#292929' : colors.primary} />
       </View>
     );
   }
@@ -248,10 +248,10 @@ const VehiclesScreen = () => {
         <View style={styles.emptyContainer}>
           <View
             style={[styles.emptyIconContainer, { 
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+              backgroundColor: isDarkMode ? '#292929' : colors.primary 
             }]}
           >
-            <Ionicons name="car-sport-outline" size={48} color={getCurrentThemeMode() === 'dark' ? colors.textPrimary : '#FFFFFF'} />
+            <Ionicons name="car-sport-outline" size={48} color={isDarkMode ? colors.textPrimary : '#FFFFFF'} />
           </View>
           <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No tienes vehículos registrados</Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
@@ -266,11 +266,11 @@ const VehiclesScreen = () => {
         activeOpacity={0.8}
       >
         <View
-          style={[styles.fab, { 
-            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary 
+          style={[styles.fab, {
+            backgroundColor: isDarkMode ? '#FFFFFF' : colors.primary
           }]}
         >
-          <Ionicons name="add" size={32} color="#FFFFFF" />
+          <Ionicons name="add" size={32} color={isDarkMode ? '#000000' : '#FFFFFF'} />
         </View>
       </TouchableOpacity>
     </View>

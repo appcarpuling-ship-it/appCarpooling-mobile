@@ -890,8 +890,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         {/* Marcador de ubicación del usuario */}
         {userLocation && (
           <Marker coordinate={userLocation} title="Tu ubicación">
-            <View style={[styles.userLocationMarkerContainer, { backgroundColor: isDarkMode ? 'transparent' : '#292929' }]}>
-              <View style={styles.userLocationDot} />
+            <View style={[styles.userLocationMarkerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#FFFFFF' : '#292929' }]}>
+              <View style={[styles.userLocationDot, { backgroundColor: isDarkMode ? '#FFFFFF' : '#292929' }]} />
             </View>
           </Marker>
         )}
@@ -1281,8 +1281,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                     }}
                     activeOpacity={0.6}
                   >
-                    <View style={[styles.resultIconContainer, { backgroundColor: isDarkMode ? 'transparent' : '#292929' }]}>
-                      <Ionicons name="location-sharp" size={18} color={colors.textSecondary} />
+                    <View style={[styles.resultIconContainer, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6' }]}>
+                      <Ionicons name="location-sharp" size={18} color={isDarkMode ? '#FFFFFF' : '#292929'} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.resultMainText, { color: colors.textPrimary }]} numberOfLines={1}>

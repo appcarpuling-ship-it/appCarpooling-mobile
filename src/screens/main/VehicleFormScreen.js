@@ -17,15 +17,12 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../services/apiService';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import { useColors } from '../../hooks/useColors';
+import { useAlert } from '../../context/AlertContext';
 import PermissionModal from '../../components/PermissionModal';
-import ConfirmationModal from '../../components/ConfirmationModal';
 
 const VehicleFormScreen = ({ navigation, route }) => {
-  const { colors, getCurrentThemeMode } = useColors();
-  
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const { colors, isDarkMode } = useColors();
+  const { showAlert } = useAlert();
 
   const isEdit = route.params?.vehicle;
   const vehicleData = route.params?.vehicle;
@@ -110,15 +107,13 @@ const VehicleFormScreen = ({ navigation, route }) => {
         const totalAfterAdd = existingPhotos.length + newPhotos.length;
 
         if (totalAfterAdd > 10) {
-          setModalMessage('Maximo 10 fotos');
-          setShowErrorModal(true);
+          showAlert('Error', 'Maximo 10 fotos');
           return;
         }
         setPhotos(newPhotos);
       }
     } catch (error) {
-      setModalMessage('No se pudieron seleccionar las imagenes');
-      setShowErrorModal(true);
+      showAlert('Error', 'No se pudieron seleccionar las imagenes');
     }
   };
 
@@ -132,36 +127,31 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const handleSubmit = async () => {
     if (!formData.brand || !formData.model || !formData.year || !formData.color || !formData.licensePlate || !formData.capacity) {
-      setModalMessage('Completa todos los campos');
-      setShowErrorModal(true);
+      showAlert('Error', 'Completa todos los campos');
       return;
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
 
     if (!isEdit && totalPhotos < 3) {
-      setModalMessage(`Minimo 3 fotos. Tenes ${totalPhotos}`);
-      setShowErrorModal(true);
+      showAlert('Error', `Minimo 3 fotos. Tenes ${totalPhotos}`);
       return;
     }
 
     if (isEdit && totalPhotos === 0) {
-      setModalMessage('Necesitas al menos 1 foto');
-      setShowErrorModal(true);
+      showAlert('Error', 'Necesitas al menos 1 foto');
       return;
     }
 
     const yearNum = parseInt(formData.year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      setModalMessage('Año no valido');
-      setShowErrorModal(true);
+      showAlert('Error', 'Año no valido');
       return;
     }
 
     const capacityNum = parseInt(formData.capacity);
     if (capacityNum < 1 || capacityNum > 8) {
-      setModalMessage('Capacidad: 1 a 8 pasajeros');
-      setShowErrorModal(true);
+      showAlert('Error', 'Capacidad: 1 a 8 pasajeros');
       return;
     }
 
@@ -200,15 +190,14 @@ const VehicleFormScreen = ({ navigation, route }) => {
       }
 
       if (response.success) {
-        setModalMessage(isEdit ? 'Vehiculo actualizado' : 'Vehiculo creado');
-        setShowSuccessModal(true);
+        showAlert('Listo', isEdit ? 'Vehiculo actualizado' : 'Vehiculo creado', [
+          { text: 'OK', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }
+        ]);
       } else {
-        setModalMessage(response.message || 'Error al guardar');
-        setShowErrorModal(true);
+        showAlert('Error', response.message || 'Error al guardar');
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al guardar');
-      setShowErrorModal(true);
+      showAlert('Error', error.message || 'Error al guardar');
     } finally {
       setLoading(false);
     }
@@ -279,8 +268,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
               {/* Add button */}
               {(existingPhotos.length + photos.length) < 10 && (
                 <TouchableOpacity style={[styles.addButton, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                  borderColor: isDarkMode ? '#404040' : colors.border 
                 }]} onPress={pickImages}>
                   <Ionicons name="add" size={32} color={colors.textMuted} />
                 </TouchableOpacity>
@@ -296,8 +285,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: colors.textSecondary }]}>Marca</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                  borderColor: isDarkMode ? '#404040' : colors.border, 
                   color: colors.textPrimary 
                 }]}
                 value={formData.brand}
@@ -311,8 +300,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: colors.textSecondary }]}>Modelo</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                  borderColor: isDarkMode ? '#404040' : colors.border, 
                   color: colors.textPrimary 
                 }]}
                 value={formData.model}
@@ -327,8 +316,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Año</Text>
                 <TextInput
                   style={[styles.input, { 
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                    borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                    backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                    borderColor: isDarkMode ? '#404040' : colors.border, 
                     color: colors.textPrimary 
                   }]}
                   value={formData.year}
@@ -344,8 +333,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Color</Text>
                 <TextInput
                   style={[styles.input, { 
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                    borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                    backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                    borderColor: isDarkMode ? '#404040' : colors.border, 
                     color: colors.textPrimary 
                   }]}
                   value={formData.color}
@@ -360,8 +349,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: colors.textSecondary }]}>Patente</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                  borderColor: isDarkMode ? '#404040' : colors.border, 
                   color: colors.textPrimary 
                 }]}
                 value={formData.licensePlate}
@@ -376,8 +365,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: colors.textSecondary }]}>Capacidad de pasajeros</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
-                  borderColor: getCurrentThemeMode() === 'dark' ? '#404040' : colors.border, 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
+                  borderColor: isDarkMode ? '#404040' : colors.border, 
                   color: colors.textPrimary 
                 }]}
                 value={formData.capacity}
@@ -398,14 +387,14 @@ const VehicleFormScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 key={feature.key}
                 style={[styles.featureRow, { 
-                  backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, 
+                  backgroundColor: isDarkMode ? '#292929' : colors.cardBackground, 
                   borderColor: colors.border 
                 }]}
                 onPress={() => toggleFeature(feature.key)}
                 activeOpacity={0.7}
               >
                 <View style={styles.featureLeft}>
-                  <Ionicons name={feature.icon} size={22} color={getCurrentThemeMode() === 'dark' ? colors.textMuted : '#000000'} />
+                  <Ionicons name={feature.icon} size={22} color={isDarkMode ? '#FFFFFF' : '#000000'} />
                   <Text style={[styles.featureLabel, { color: colors.textPrimary }]}>{feature.label}</Text>
                 </View>
                 <View style={[
@@ -413,12 +402,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   { backgroundColor: colors.border },
                   features[feature.key] && { 
                     ...styles.toggleActive, 
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000' 
+                    backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' 
                   }
                 ]}>
                   <View style={[
                     styles.toggleCircle,
-                    { backgroundColor: features[feature.key] && getCurrentThemeMode() === 'dark' ? "#000000" : "#FFFFFF" },
+                    { backgroundColor: features[feature.key] && isDarkMode ? "#000000" : "#FFFFFF" },
                     features[feature.key] && styles.toggleCircleActive
                   ]} />
                 </View>
@@ -429,16 +418,16 @@ const VehicleFormScreen = ({ navigation, route }) => {
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled, { 
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000' 
+              backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' 
             }]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} size="small" />
+              <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} size="small" />
             ) : (
-              <Text style={[styles.submitButtonText, { color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF' }]}>
+              <Text style={[styles.submitButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
                 {isEdit ? 'Guardar cambios' : 'Crear vehiculo'}
               </Text>
             )}
@@ -455,30 +444,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
         onRefreshPermissions={forceRefreshPermissions}
       />
 
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          navigation.navigate('Vehicles', { refreshVehicles: true });
-        }}
-        type="success"
-        title="Listo"
-        message={modalMessage}
-        confirmText="OK"
-        showCancel={false}
-      />
-
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        type="error"
-        title="Error"
-        message={modalMessage}
-        confirmText="OK"
-        showCancel={false}
-      />
     </View>
   );
 };
