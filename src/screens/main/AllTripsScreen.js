@@ -165,7 +165,7 @@ const AllTripsScreen = ({ navigation }) => {
   const handleTimeChange = (event, time) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
-      if (time) {
+      if (event.type === 'set' && time) {
         setSelectedTime(time);
       }
       return;
@@ -178,7 +178,7 @@ const AllTripsScreen = ({ navigation }) => {
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
-      if (date) {
+      if (event.type === 'set' && date) {
         setSelectedDate(date);
       }
       return;
@@ -329,27 +329,42 @@ const AllTripsScreen = ({ navigation }) => {
     </Modal>
   );
 
-  const renderTimeRangeModal = () => (
-    <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => { setTempTime(null); setShowTimePicker(false); }}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
-          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
-            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Hora</Text>
-            <TouchableOpacity onPress={() => { setTempTime(null); setShowTimePicker(false); }}>
-              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
-            <DateTimePicker
-              value={tempTime || selectedTime || new Date()}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleTimeChange}
-              textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
-              themeVariant={isDarkMode ? 'dark' : 'light'}
-            />
-          </View>
-          {Platform.OS === 'ios' && (
+  const renderTimeRangeModal = () => {
+    if (!showTimePicker) return null;
+
+    // Android: solo el picker nativo (ya es un diálogo)
+    if (Platform.OS === 'android') {
+      return (
+        <DateTimePicker
+          value={tempTime || selectedTime || new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
+        />
+      );
+    }
+
+    // iOS: modal con spinner + botones
+    return (
+      <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => { setTempTime(null); setShowTimePicker(false); }}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+            <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+              <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Hora</Text>
+              <TouchableOpacity onPress={() => { setTempTime(null); setShowTimePicker(false); }}>
+                <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+              <DateTimePicker
+                value={tempTime || selectedTime || new Date()}
+                mode="time"
+                display="spinner"
+                onChange={handleTimeChange}
+                textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
+                themeVariant={isDarkMode ? 'dark' : 'light'}
+              />
+            </View>
             <View style={styles.pickerButtons}>
               <TouchableOpacity
                 style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
@@ -374,11 +389,11 @@ const AllTripsScreen = ({ navigation }) => {
                 <Text style={[styles.pickerButtonConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
               </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   const renderSeatsModal = () => (
     <Modal transparent animationType="fade" visible={showSeatsPicker} onRequestClose={() => setShowSeatsPicker(false)}>
@@ -617,7 +632,16 @@ const AllTripsScreen = ({ navigation }) => {
         {renderSeatsModal()}
 
         {/* Date Picker */}
-        {showDatePicker && (
+        {showDatePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={tempDate || selectedDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+          />
+        )}
+        {showDatePicker && Platform.OS === 'ios' && (
           <Modal transparent animationType="fade" onRequestClose={() => { setTempDate(null); setShowDatePicker(false); }}>
             <View style={styles.modalOverlay}>
               <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
@@ -631,39 +655,37 @@ const AllTripsScreen = ({ navigation }) => {
                   <DateTimePicker
                     value={tempDate || selectedDate || new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display="spinner"
                     onChange={handleDateChange}
                     minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
                     textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
                     themeVariant={isDarkMode ? 'dark' : 'light'}
                   />
                 </View>
-                {Platform.OS === 'ios' && (
-                  <View style={styles.pickerButtons}>
-                    <TouchableOpacity
-                      style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
-                      onPress={() => {
-                        setSelectedDate(null);
-                        setTempDate(null);
-                        setShowDatePicker(false);
-                      }}
-                    >
-                      <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }]}
-                      onPress={() => {
-                        if (tempDate) {
-                          setSelectedDate(tempDate);
-                        }
-                        setTempDate(null);
-                        setShowDatePicker(false);
-                      }}
-                    >
-                      <Text style={[styles.pickerButtonConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                <View style={styles.pickerButtons}>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                    onPress={() => {
+                      setSelectedDate(null);
+                      setTempDate(null);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerButtonText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Limpiar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }]}
+                    onPress={() => {
+                      if (tempDate) {
+                        setSelectedDate(tempDate);
+                      }
+                      setTempDate(null);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerButtonConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </Modal>
