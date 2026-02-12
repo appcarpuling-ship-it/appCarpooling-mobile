@@ -35,6 +35,7 @@ const ProfileStackNavigator = () => {
           color: colors.textPrimary,
         },
         headerBackTitleVisible: false,
+        headerTitleAlign: 'center',
       }}
     >
       <Stack.Screen

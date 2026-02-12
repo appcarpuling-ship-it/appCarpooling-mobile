@@ -825,13 +825,13 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === 1}
                     >
                       <LinearGradient
-                        colors={seats === 1 ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : (isDarkMode ? (gradients?.primary || ['#F9FAFB', '#E5E7EB']) : ['#1F2937', '#111827'])}
+                        colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                         style={styles.seatButton}
                       >
                         <Ionicons
                           name="remove"
                           size={24}
-                          color={seats === 1 ? (colors.textMuted || '#9CA3AF') : (isDarkMode ? '#000000' : '#FFFFFF')}
+                          color={isDarkMode ? '#000000' : '#FFFFFF'}
                         />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -846,13 +846,13 @@ const BookingScreen = ({ route, navigation }) => {
                       disabled={seats === trip.availableSeats}
                     >
                       <LinearGradient
-                        colors={seats === trip.availableSeats ? [colors.surfaceElevated || '#E5E7EB', colors.surface || '#F8F9FA'] : (isDarkMode ? (gradients?.primary || ['#F9FAFB', '#E5E7EB']) : ['#1F2937', '#111827'])}
-                        style={styles.seatButton}
+                        colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
+                        style={[styles.seatButton, seats === trip.availableSeats && { opacity: 0.4 }]}
                       >
                         <Ionicons
                           name="add"
                           size={24}
-                          color={seats === trip.availableSeats ? (colors.textMuted || '#9CA3AF') : (isDarkMode ? '#000000' : '#FFFFFF')}
+                          color={isDarkMode ? '#000000' : '#FFFFFF'}
                         />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -884,8 +884,8 @@ const BookingScreen = ({ route, navigation }) => {
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Conductor</Text>
 
               <View style={styles.driverInfo}>
-                <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
-                  <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#FFFFFF' : colors.primary }]}>
+                  <Text style={[styles.avatarText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
                     {trip.driver?.firstName?.[0]}{trip.driver?.lastName?.[0]}
                   </Text>
                 </View>
@@ -913,8 +913,8 @@ const BookingScreen = ({ route, navigation }) => {
 
                 <View style={styles.vehicleInfo}>
                   <View style={styles.vehicleIconContainer}>
-                    <View style={[styles.vehicleIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
-                      <Ionicons name="car-sport" size={28} color="#FFFFFF" />
+                    <View style={[styles.vehicleIcon, { backgroundColor: isDarkMode ? '#FFFFFF' : colors.primary }]}>
+                      <Ionicons name="car-sport" size={28} color={isDarkMode ? '#000000' : '#FFFFFF'} />
                     </View>
                   </View>
 
@@ -1153,21 +1153,21 @@ const BookingScreen = ({ route, navigation }) => {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={getCurrentThemeMode() === 'dark' ? ['#1F1F1F', '#2A2A2A'] : ['#1F2937', '#111827']}
+              colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
               style={styles.confirmButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="large" />
+                <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} size="large" />
               ) : (
                 <>
                   <View style={styles.confirmButtonContent}>
-                    <Ionicons name="send-outline" size={24} color="#FFFFFF" />
-                    <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Solicitar Reserva</Text>
+                    {/* <Ionicons name="send-outline" size={24} color={isDarkMode ? '#000000' : '#FFFFFF'} /> */}
+                    <Text style={[styles.confirmButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Solicitar Reserva</Text>
                   </View>
                   {priceData && (
-                    <Text style={[styles.confirmButtonPrice, { color: '#FFFFFF' }]}>
+                    <Text style={[styles.confirmButtonPrice, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
                       ${formatNumber(priceData.pricing.finalPrice || priceData.pricing.totalPrice)} ARS
                     </Text>
                   )}

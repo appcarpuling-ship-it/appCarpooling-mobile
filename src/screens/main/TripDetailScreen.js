@@ -24,7 +24,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user } = useAuth();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, getCurrentThemeMode, isDarkMode } = useColors();
   
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -542,20 +542,20 @@ const TripDetailScreen = ({ route, navigation }) => {
               style={[
                 styles.bookButton, 
                 { 
-                  backgroundColor: trip.availableSeats === 0 
-                    ? colors.textMuted 
-                    : (getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000')
+                  backgroundColor: trip.availableSeats === 0
+                    ? colors.textMuted
+                    : (isDarkMode ? '#FFFFFF' : '#000000')
                 }
               ]}
               onPress={handleBookTrip}
               disabled={trip.availableSeats === 0}
             >
               <Text style={[
-                styles.bookButtonText, 
-                { 
-                  color: trip.availableSeats === 0 
-                    ? colors.textPrimary 
-                    : (getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF')
+                styles.bookButtonText,
+                {
+                  color: trip.availableSeats === 0
+                    ? colors.textPrimary
+                    : (isDarkMode ? '#000000' : '#FFFFFF')
                 }
               ]}>
                 {trip.availableSeats === 0 ? 'Sin asientos' : 'Reservar'}

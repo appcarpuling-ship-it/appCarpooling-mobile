@@ -38,6 +38,7 @@ const CarpoolingsStackNavigator = () => {
           color: isDarkMode ? '#FFFFFF' : '#1F2937',
         },
         headerBackTitleVisible: false,
+        headerTitleAlign: 'center',
       }}
     >
       <Stack.Screen

@@ -416,7 +416,6 @@ const ChatsScreen = ({ navigation }) => {
               borderColor: isDarkMode ? '#404040' : '#E5E7EB'
             }
           ]}>
-            <Ionicons name="search-outline" size={20} color={isDarkMode ? '#9CA3AF' : '#6B7280'} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
               placeholder="Buscar conversaciones..."
@@ -491,7 +490,7 @@ const ChatsScreen = ({ navigation }) => {
                 fontWeight: filter === 'direct' ? '600' : '500'
               }
             ]}>
-              Mensajes Directos
+              Directos
             </Text>
           </TouchableOpacity>
         </View>
