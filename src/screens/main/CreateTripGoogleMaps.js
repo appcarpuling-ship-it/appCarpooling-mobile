@@ -969,7 +969,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         </>
       )}
       <KeyboardAvoidingView
-        style={[styles.bottomSheetWrapper, { backgroundColor: colors.cardBackground }]}
+        style={[
+          styles.bottomSheetWrapper,
+          { backgroundColor: colors.cardBackground },
+          Platform.OS === 'android' && keyboardHeight > 0 && { bottom: keyboardHeight },
+        ]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >

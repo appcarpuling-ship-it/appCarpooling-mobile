@@ -82,8 +82,10 @@ const AllTripsScreen = ({ navigation }) => {
           return parseInt(aTime, 10) - parseInt(bTime, 10);
         });
         setTrips(sorted);
+        setFilteredTrips(sorted);
       } else {
         setTrips([]);
+        setFilteredTrips([]);
       }
     } catch (error) {
       console.error('Error loading trips:', error);
@@ -441,11 +443,11 @@ const AllTripsScreen = ({ navigation }) => {
                 onPress={() => setShowOriginPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="radio-button-on" size={14} color={originProvince ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="radio-button-on" size={14} color={originProvince ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  originProvince && { color: '#FFFFFF' }
+                  originProvince && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]} numberOfLines={1}>
                   {originProvince || 'Origen'}
                 </Text>
@@ -461,11 +463,11 @@ const AllTripsScreen = ({ navigation }) => {
                 onPress={() => setShowDestinationPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="location" size={14} color={destinationProvince ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="location" size={14} color={destinationProvince ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  destinationProvince && { color: '#FFFFFF' }
+                  destinationProvince && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]} numberOfLines={1}>
                   {destinationProvince || 'Destino'}
                 </Text>
@@ -484,11 +486,11 @@ const AllTripsScreen = ({ navigation }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="calendar-outline" size={14} color={selectedDate ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="calendar-outline" size={14} color={selectedDate ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  selectedDate && { color: '#FFFFFF' }
+                  selectedDate && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]}>
                   {selectedDate ? selectedDate.toLocaleDateString('es-ES') : 'Fecha'}
                 </Text>
@@ -507,11 +509,11 @@ const AllTripsScreen = ({ navigation }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="time-outline" size={14} color={selectedTime ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="time-outline" size={14} color={selectedTime ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  selectedTime && { color: '#FFFFFF' }
+                  selectedTime && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]}>
                   {selectedTime ? selectedTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Hora'}
                 </Text>
@@ -527,11 +529,11 @@ const AllTripsScreen = ({ navigation }) => {
                 onPress={() => setShowSeatsPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="people-outline" size={14} color={minAvailableSeats ? '#FFFFFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="people-outline" size={14} color={minAvailableSeats ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  minAvailableSeats && { color: '#FFFFFF' }
+                  minAvailableSeats && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]}>
                   {minAvailableSeats ? `${minAvailableSeats} lugares` : 'Asientos'}
                 </Text>

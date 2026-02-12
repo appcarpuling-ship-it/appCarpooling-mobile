@@ -137,7 +137,7 @@ const LoginScreen = ({ navigation }) => {
             >
               {/* Logo y título */}
               <View style={styles.header}>
-                <View style={styles.logoContainer}>
+                <View style={[styles.logoContainer, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                   <Image
                     source={LOGO_SOURCE}
                     style={styles.logo}
@@ -280,10 +280,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
     elevation: 8,
   },
   title: {
