@@ -488,6 +488,8 @@ const HomeScreen = ({ navigation }) => {
               value={selectedSeats}
               onChangeText={setSelectedSeats}
               keyboardType="numeric"
+              textAlignVertical="center"
+              numberOfLines={1} 
             />
           </View>
 
@@ -725,7 +727,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    height: 50, // <- AGREGAR ALTURA FIJA
     gap: 12,
   },
   inputDot: {
@@ -749,6 +751,15 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
+    paddingVertical: 0, // <- AGREGAR
+    margin: 0, // <- AGREGAR
+    ...Platform.select({
+      android: {
+        paddingTop: 0,
+        paddingBottom: 0,
+        includeFontPadding: false,
+      },
+    }),
   },
   searchButton: {
     flexDirection: 'row',
