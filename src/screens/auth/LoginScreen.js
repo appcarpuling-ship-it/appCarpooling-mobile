@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -61,6 +62,8 @@ const LoginScreen = ({ navigation }) => {
   const LOGO_SOURCE = isDarkMode 
     ? require('../../../assets/logo/192x192-white.png')
     : require('../../../assets/logo/192x192-black.png');
+
+  const version = Constants.expoConfig?.version ?? '1.0.0';
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -238,6 +241,11 @@ const LoginScreen = ({ navigation }) => {
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
+
+              {/* Versión */}
+              <Text style={[styles.versionText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
+                v{version}
+              </Text>
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -357,6 +365,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  versionText: {
+    textAlign: 'center',
+    fontSize: fontSize.xs,
+    marginTop: spacing.lg,
   },
   registerLink: {
     color: '#FFFFFF',

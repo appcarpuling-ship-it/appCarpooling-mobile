@@ -238,3 +238,16 @@ Depende de:
 ---
 
 **Fin del README**
+
+
+VERSIONS APP
+Cuándo cambiar cada uno
+
+1.0.0 → 2.0.0
+cambios grandes / rediseño total
+
+1.0.0 → 1.1.0
+nuevas funciones
+
+1.0.0 → 1.0.1
+bug fixes
