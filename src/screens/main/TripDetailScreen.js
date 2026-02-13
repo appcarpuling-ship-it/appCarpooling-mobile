@@ -139,7 +139,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             onPaymentError: handlePaymentError
           });
         } else {
-          showAlert('Error', 'No se encontro la URL de pago');
+          showAlert('Error', 'No se puede realizar el pago para este viaje. Por favor, contacta al soporte.');
         }
       } else if (reservationStatus === 'pending_approval') {
         showAlert('Pendiente', 'Tu solicitud esta esperando aprobacion del conductor');
@@ -275,9 +275,6 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
                 {trip.origin?.address}
               </Text>
-              <Text style={[styles.routeCity, { color: colors.textSecondary }]}>
-                {trip.origin?.city}, {trip.origin?.province}
-              </Text>
             </View>
           </View>
           <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
@@ -311,9 +308,6 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={styles.routeContent}>
               <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
                 {trip.destination?.address}
-              </Text>
-              <Text style={[styles.routeCity, { color: colors.textSecondary }]}>
-                {trip.destination?.city}, {trip.destination?.province}
               </Text>
             </View>
           </View>
