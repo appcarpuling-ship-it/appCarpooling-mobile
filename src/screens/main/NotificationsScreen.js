@@ -40,43 +40,125 @@ const NotificationsScreen = ({ navigation }) => {
 
   const handleNotificationPress = (notification) => {
     if (!notification.isRead && !optimisticRead.has(notification._id)) {
-      // Optimistic update - show as read immediately
       setOptimisticRead(prev => new Set([...prev, notification._id]));
-      // Fire and forget - don't await
       markAsRead(notification._id);
     }
 
-    switch (notification.type) {
-      case 'booking':
-      case 'booking_update':
-        if (notification.data?.tripId) {
-          navigation.navigate('TripDetail', { tripId: notification.data.tripId });
-        }
-        break;
-      case 'trip':
-        if (notification.data?.tripId) {
-          navigation.navigate('TripDetail', { tripId: notification.data.tripId });
-        }
-        break;
-      case 'message':
-      case 'new_message':
-        if (notification.data?.conversationId) {
-          navigation.navigate('ChatDetail', {
-            conversation: { _id: notification.data.conversationId },
-            otherUser: notification.data.sender || {},
+    // Obtener IDs de referencias (pueden ser objeto poblado o string)
+    const getTripId = () => {
+      if (notification.relatedTrip) return notification.relatedTrip._id || notification.relatedTrip;
+      if (notification.data?.tripId) return notification.data.tripId;
+      return null;
+    };
+    const getBookingId = () => {
+      if (notification.relatedBooking) return notification.relatedBooking._id || notification.relatedBooking;
+      if (notification.data?.bookingId) return notification.data.bookingId;
+      return null;
+    };
+    const getConversationId = () => {
+      if (notification.data?.conversationId) return notification.data.conversationId;
+      if (notification.actionUrl?.startsWith('/chat/')) {
+        const match = notification.actionUrl.match(/\/chat\/([^/]+)/);
+        return match ? match[1] : null;
+      }
+      return null;
+    };
+
+    const tripId = getTripId();
+    const bookingId = getBookingId();
+    const conversationId = getConversationId();
+
+    // Prioridad: actionUrl > relatedTrip/relatedBooking > type + data
+    if (notification.actionUrl) {
+      const path = notification.actionUrl.replace(/^\//, '');
+      const parts = path.split('/');
+      if (path.startsWith('trips/')) {
+        const id = parts[1];
+        if (parts[2] === 'requests' && id) {
+          navigation.navigate('CarpoolingsTab', {
+            screen: 'TripRequests',
+            params: { tripId: id },
+          });
+        } else if (parts[2] === 'review' && id) {
+          navigation.navigate('CarpoolingsTab', {
+            screen: 'CreateReviewFromTrip',
+            params: { tripId: id },
+          });
+        } else if (id) {
+          navigation.navigate('HomeTab', {
+            screen: 'TripDetail',
+            params: { tripId: id },
           });
         }
-        break;
-      case 'review':
-        navigation.navigate('Profile');
-        break;
-      case 'user':
-        if (notification.data?.userId) {
-          navigation.navigate('UserProfile', { userId: notification.data.userId });
+      } else if (path.startsWith('bookings/')) {
+        const id = parts[1];
+        if (id) {
+          navigation.navigate('CarpoolingsTab', {
+            screen: 'MyBookings',
+          });
         }
-        break;
-      default:
-        break;
+      } else if (path.startsWith('chat/')) {
+        const id = parts[1];
+        if (id) {
+          navigation.navigate('ChatsTab', {
+            screen: 'ChatDetail',
+            params: {
+              conversation: { _id: id },
+              otherUser: notification.relatedUser || {},
+            },
+          });
+        }
+      } else if (path === 'seat-reservations' || path.startsWith('seat-reservations/')) {
+        navigation.navigate('CarpoolingsTab', {
+          screen: 'MySeatReservations',
+        });
+      } else if (path === 'profile') {
+        navigation.navigate('ProfileTab', {
+          screen: 'Profile',
+        });
+      }
+      return;
+    }
+
+    // Fallback: usar relatedTrip, relatedBooking, type
+    if (tripId) {
+      const type = notification.type || '';
+      if (type.includes('booking_created') || type.includes('seat_reservation_request')) {
+        navigation.navigate('CarpoolingsTab', {
+          screen: 'TripRequests',
+          params: { tripId },
+        });
+      } else if (type.includes('review')) {
+        navigation.navigate('CarpoolingsTab', {
+          screen: 'CreateReviewFromTrip',
+          params: { tripId },
+        });
+      } else {
+        navigation.navigate('HomeTab', {
+          screen: 'TripDetail',
+          params: { tripId },
+        });
+      }
+      return;
+    }
+    if (conversationId) {
+      navigation.navigate('ChatsTab', {
+        screen: 'ChatDetail',
+        params: {
+          conversation: { _id: conversationId },
+          otherUser: notification.relatedUser || notification.data?.sender || {},
+        },
+      });
+      return;
+    }
+    if (bookingId) {
+      navigation.navigate('CarpoolingsTab', {
+        screen: 'MyBookings',
+      });
+      return;
+    }
+    if (notification.type === 'review_received') {
+      navigation.navigate('ProfileTab', { screen: 'Profile' });
     }
   };
 
@@ -100,26 +182,15 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'booking':
-      case 'booking_update':
-        return 'calendar-outline';
-      case 'trip':
-        return 'car-outline';
-      case 'payment':
-        return 'card-outline';
-      case 'review':
-        return 'star-outline';
-      case 'message':
-      case 'new_message':
-        return 'chatbubble-outline';
-      case 'user':
-        return 'person-outline';
-      case 'system':
-        return 'settings-outline';
-      default:
-        return 'notifications-outline';
-    }
+    const t = type || '';
+    if (t.includes('booking') || t.includes('seat_reservation')) return 'calendar-outline';
+    if (t.includes('trip')) return 'car-outline';
+    if (t.includes('payment')) return 'card-outline';
+    if (t.includes('review')) return 'star-outline';
+    if (t.includes('message')) return 'chatbubble-outline';
+    if (t.includes('user') || t.includes('referral')) return 'person-outline';
+    if (t.includes('profile') || t.includes('verified')) return 'checkmark-circle-outline';
+    return 'notifications-outline';
   };
 
   const getRelativeTime = (dateString) => {
