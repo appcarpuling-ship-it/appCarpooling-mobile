@@ -111,7 +111,7 @@ const HomeScreen = ({ navigation }) => {
   const { colors, getCurrentThemeMode } = useColors();
 
   // Logo dinámico según el tema
-  const LOGO_SOURCE = isDarkMode 
+  const LOGO_SOURCE = isDarkMode
     ? require('../../../assets/logo/192x192-white.png')
     : require('../../../assets/logo/192x192-black.png');
   const [origin, setOrigin] = useState('');
@@ -267,9 +267,9 @@ const HomeScreen = ({ navigation }) => {
   const renderTripCard = (trip) => (
     <TouchableOpacity
       key={trip._id}
-      style={[styles.tripCard, { 
+      style={[styles.tripCard, {
         backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-        borderColor: colors.border 
+        borderColor: colors.border
       }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
@@ -355,22 +355,22 @@ const HomeScreen = ({ navigation }) => {
                   onClose();
                 }}
                 style={[
-                  styles.provinceOption, 
+                  styles.provinceOption,
                   selected === province && styles.provinceOptionSelected,
                   {
-                    backgroundColor: selected === province 
-                      ? colors.primaryLight 
+                    backgroundColor: selected === province
+                      ? colors.primaryLight
                       : getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
                     borderBottomColor: colors.borderLight
                   }
                 ]}
               >
                 <Text style={[
-                  styles.provinceOptionText, 
-                  { 
-                    color: selected === province 
-                      ? colors.primary 
-                      : colors.textPrimary 
+                  styles.provinceOptionText,
+                  {
+                    color: selected === province
+                      ? colors.primary
+                      : colors.textPrimary
                   }
                 ]}>
                   {province}
@@ -404,9 +404,9 @@ const HomeScreen = ({ navigation }) => {
           {isAuthenticated && (
             <TouchableOpacity
               onPress={() => setShowNotificationsModal(true)}
-              style={[styles.notificationButton, { 
+              style={[styles.notificationButton, {
                 backgroundColor: colors.cardBackground,
-                borderColor: colors.border 
+                borderColor: colors.border
               }]}
               activeOpacity={0.7}
             >
@@ -429,9 +429,9 @@ const HomeScreen = ({ navigation }) => {
         {/* Search */}
         <View style={styles.searchContainer}>
           <TouchableOpacity
-            style={[styles.inputContainer, { 
+            style={[styles.inputContainer, {
               backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border 
+              borderColor: colors.border
             }]}
             onPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
@@ -445,9 +445,9 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.inputContainer, { 
+            style={[styles.inputContainer, {
               backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border 
+              borderColor: colors.border
             }]}
             onPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
@@ -461,9 +461,9 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.inputContainer, { 
+            style={[styles.inputContainer, {
               backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border 
+              borderColor: colors.border
             }]}
             onPress={() => handleDatePickerOpen()}
             activeOpacity={0.7}
@@ -476,9 +476,9 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          <View style={[styles.inputContainer, { 
+          <View style={[styles.inputContainer, {
             backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-            borderColor: colors.border 
+            borderColor: colors.border
           }]}>
             <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
             <TextInput
@@ -491,14 +491,14 @@ const HomeScreen = ({ navigation }) => {
             />
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.searchButton, 
-              { 
+              styles.searchButton,
+              {
                 backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
               }
-            ]} 
-            onPress={handleSearch} 
+            ]}
+            onPress={handleSearch}
             activeOpacity={0.8}
           >
             {/* <Ionicons name="search" size={20} color={colors.background} /> */}
@@ -516,7 +516,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersEnterprise}  />
+            <ContinuousCarousel banners={bannersEnterprise} />
           </View>
         )}
 
@@ -555,14 +555,14 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersVip}  />
+            <ContinuousCarousel banners={bannersVip} />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersPremium}  />
+            <ContinuousCarousel banners={bannersPremium} />
           </View>
         )}
       </ScrollView>
@@ -596,9 +596,9 @@ const HomeScreen = ({ navigation }) => {
                   </View>
                   <View style={[styles.pickerButtons, { backgroundColor: colors.background }]}>
                     <TouchableOpacity
-                      style={[styles.pickerButtonClear, { 
+                      style={[styles.pickerButtonClear, {
                         backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
-                        borderColor: colors.border 
+                        borderColor: colors.border
                       }]}
                       onPress={() => {
                         setSelectedDate(null);
@@ -634,6 +634,8 @@ const HomeScreen = ({ navigation }) => {
         visible={showNotificationsModal}
         animationType="slide"
         presentationStyle="fullScreen"
+        statusBarTranslucent={true}
+        transparent={false}
         onRequestClose={() => setShowNotificationsModal(false)}
       >
         <NotificationsScreen
