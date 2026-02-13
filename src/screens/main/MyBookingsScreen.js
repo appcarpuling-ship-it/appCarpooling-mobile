@@ -19,7 +19,7 @@ import socketService from '../../services/socketService';
 const MyBookingsScreen = ({ navigation }) => {
   const { colors, isDarkMode, getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
-  
+
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -156,16 +156,20 @@ const MyBookingsScreen = ({ navigation }) => {
         <View style={styles.routeSection}>
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {item.trip?.origin?.city}
-            </Text>
+            <View style={styles.addressContainer}>
+              <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
+                {item.trip?.origin?.address}
+              </Text>
+            </View>
           </View>
           <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.error, borderColor: colors.error }]} />
-            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {item.trip?.destination?.city}
-            </Text>
+            <View style={styles.addressContainer}>
+              <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
+                {item.trip?.destination?.address}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -215,17 +219,17 @@ const MyBookingsScreen = ({ navigation }) => {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.payButton, { backgroundColor: '#000000' }]}
-              onPress={() => navigation.navigate('TripDetailFromCarpoolings', { 
+              onPress={() => navigation.navigate('TripDetailFromCarpoolings', {
                 tripId: item.trip?._id,
-                openPayment: true 
+                openPayment: true
               })}
             >
               <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>Ir a pagar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.cancelButton, { 
+              style={[styles.cancelButton, {
                 backgroundColor: isDarkMode ? '#FFFFFF' : 'transparent',
-                borderColor: isDarkMode ? '#FFFFFF' : colors.textSecondary 
+                borderColor: isDarkMode ? '#FFFFFF' : colors.textSecondary
               }]}
               onPress={() => handleCancelBooking(item._id)}
             >

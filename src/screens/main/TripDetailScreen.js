@@ -25,7 +25,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode, isDarkMode } = useColors();
-  
+
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userBooking, setUserBooking] = useState(null);
@@ -112,7 +112,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           updatedBooking = response.data.find(b => (b.trip?._id || b.trip) === tripId);
           if (updatedBooking) setUserBooking(updatedBooking);
         }
-      } catch (err) {}
+      } catch (err) { }
 
       const currentBooking = updatedBooking || userBooking;
       const seatReservation = currentBooking?.seatReservation;
@@ -272,13 +272,18 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
             <View style={styles.routeContent}>
-              <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{trip.origin?.address}</Text>
+              <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
+                {trip.origin?.address}
+              </Text>
+              <Text style={[styles.routeCity, { color: colors.textSecondary }]}>
+                {trip.origin?.city}, {trip.origin?.province}
+              </Text>
             </View>
           </View>
           <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-          
+
           {/* Paradas Intermedias */}
-          {trip.intermediateStops && trip.intermediateStops.length > 0 && 
+          {trip.intermediateStops && trip.intermediateStops.length > 0 &&
             trip.intermediateStops
               .sort((a, b) => a.order - b.order)
               .map((stop, index) => (
@@ -288,8 +293,11 @@ const TripDetailScreen = ({ route, navigation }) => {
                       <Text style={styles.routeDotNumber}>{stop.order}</Text>
                     </View>
                     <View style={styles.routeContent}>
-                      <Text style={[styles.routeCityIntermediate, { color: colors.textSecondary }]}>
-                        Parada {stop.order}: {stop.address}, {stop.city}
+                      <Text style={[styles.routeAddress, { color: colors.textSecondary }]}>
+                        Parada {stop.order}: {stop.address}
+                      </Text>
+                      <Text style={[styles.routeCityIntermediate, { color: colors.textTertiary }]}>
+                        {stop.city}, {stop.province}
                       </Text>
                     </View>
                   </View>
@@ -297,11 +305,16 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </React.Fragment>
               ))
           }
-          
+
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.error }]} />
             <View style={styles.routeContent}>
-              <Text style={[styles.routeCity, { color: colors.textPrimary }]}>{trip.destination?.address}</Text>
+              <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
+                {trip.destination?.address}
+              </Text>
+              <Text style={[styles.routeCity, { color: colors.textSecondary }]}>
+                {trip.destination?.city}, {trip.destination?.province}
+              </Text>
             </View>
           </View>
         </View>
@@ -365,8 +378,8 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Vehiculo</Text>
               <View style={styles.vehicleContainer}>
                 {vehicleImage ? (
-                  <Image 
-                    source={{ uri: buildImageUri(vehicleImage) }} 
+                  <Image
+                    source={{ uri: buildImageUri(vehicleImage) }}
                     style={styles.vehicleImage}
                   />
                 ) : (
@@ -463,22 +476,22 @@ const TripDetailScreen = ({ route, navigation }) => {
         animationType="fade"
         onRequestClose={() => setImageModalVisible(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setImageModalVisible(false)}
         >
           <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
             <View style={styles.imageModalContent}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setImageModalVisible(false)}
               >
                 <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
               {selectedImage && (
-                <Image 
-                  source={{ uri: selectedImage }} 
+                <Image
+                  source={{ uri: selectedImage }}
                   style={styles.modalImage}
                   resizeMode="contain"
                 />
@@ -506,8 +519,8 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
                 <TouchableOpacity
                   style={[
-                    styles.payButton, 
-                    { 
+                    styles.payButton,
+                    {
                       backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'
                     }
                   ]}
@@ -515,14 +528,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                   disabled={paymentLoading}
                 >
                   {paymentLoading ? (
-                    <ActivityIndicator 
-                      size="small" 
-                      color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} 
+                    <ActivityIndicator
+                      size="small"
+                      color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'}
                     />
                   ) : (
                     <Text style={[
-                      styles.payButtonText, 
-                      { 
+                      styles.payButtonText,
+                      {
                         color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'
                       }
                     ]}>
@@ -540,8 +553,8 @@ const TripDetailScreen = ({ route, navigation }) => {
           ) : (
             <TouchableOpacity
               style={[
-                styles.bookButton, 
-                { 
+                styles.bookButton,
+                {
                   backgroundColor: trip.availableSeats === 0
                     ? colors.textMuted
                     : (isDarkMode ? '#FFFFFF' : '#000000')
