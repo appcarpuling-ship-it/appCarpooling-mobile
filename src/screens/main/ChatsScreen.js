@@ -676,8 +676,6 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     marginRight: spacing.md,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
   },
   avatarPlaceholder: {
     justifyContent: 'center',

@@ -401,15 +401,11 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#F8F9FA',
   },
   avatarImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#F8F9FA',
   },
   avatarText: {
     fontSize: 44,
