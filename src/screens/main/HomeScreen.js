@@ -35,7 +35,7 @@ const BANNER_HEIGHT = 180;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 const BANNER_SCROLL_SPEED = 30;
 
-const ContinuousCarousel = ({ banners, onBannerPress }) => {
+const ContinuousCarousel = ({ banners }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const totalWidth = banners.length * BANNER_ITEM_WIDTH;
 
@@ -70,7 +70,6 @@ const ContinuousCarousel = ({ banners, onBannerPress }) => {
           <TouchableOpacity
             key={`${item._id}-${index}`}
             activeOpacity={0.95}
-            onPress={() => onBannerPress(item)}
             style={styles.bannerSlide}
           >
             {item.imageUrl ? (
@@ -203,24 +202,6 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const handleBannerPress = async (banner) => {
-    try {
-      await get_public(ENDPOINTS.REGISTER_BANNER_CLICK(banner._id));
-    } catch (error) {
-      console.error('Error registering banner click:', error);
-    }
-
-    if (banner.clickUrl) {
-      try {
-        const canOpen = await Linking.canOpenURL(banner.clickUrl);
-        if (canOpen) {
-          await Linking.openURL(banner.clickUrl);
-        }
-      } catch (error) {
-        console.error('Error opening banner URL:', error);
-      }
-    }
-  };
 
   const onRefresh = () => {
     loadRecentTrips(true);
@@ -535,7 +516,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersEnterprise} onBannerPress={handleBannerPress} />
+            <ContinuousCarousel banners={bannersEnterprise}  />
           </View>
         )}
 
@@ -574,14 +555,14 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersVip} onBannerPress={handleBannerPress} />
+            <ContinuousCarousel banners={bannersVip}  />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersPremium} onBannerPress={handleBannerPress} />
+            <ContinuousCarousel banners={bannersPremium}  />
           </View>
         )}
       </ScrollView>

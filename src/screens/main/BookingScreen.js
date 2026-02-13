@@ -229,25 +229,6 @@ const BookingScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleBannerPress = async (banner) => {
-    try {
-      await get_public(ENDPOINTS.REGISTER_BANNER_CLICK(banner._id));
-    } catch (error) {
-      console.error('Error registering banner click:', error);
-    }
-
-    if (banner.clickUrl) {
-      try {
-        const canOpen = await Linking.canOpenURL(banner.clickUrl);
-        if (canOpen) {
-          await Linking.openURL(banner.clickUrl);
-        }
-      } catch (error) {
-        console.error('Error opening banner URL:', error);
-      }
-    }
-  };
-
   const onBannerScroll = (event) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = Math.floor(event.nativeEvent.contentOffset.x / slideSize);
@@ -259,7 +240,6 @@ const BookingScreen = ({ route, navigation }) => {
   const renderBannerItem = ({ item }) => (
     <TouchableOpacity
       activeOpacity={0.95}
-      onPress={() => handleBannerPress(item)}
       style={styles.bannerSlide}
     >
       <LinearGradient
