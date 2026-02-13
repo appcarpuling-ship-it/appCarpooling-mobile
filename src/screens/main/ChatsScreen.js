@@ -588,7 +588,6 @@ const styles = StyleSheet.create({
     // backgroundColor: '#FFFFFF', // Ahora dinámico
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
-    // borderColor: '#E5E7EB', // Ahora dinámico
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     shadowColor: '#000',
@@ -659,8 +658,6 @@ const styles = StyleSheet.create({
   },
   conversationGradient: {
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
