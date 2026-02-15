@@ -18,7 +18,7 @@ npm install -g expo-cli
 ```
 
 Instalar EAS CLI:
-
+ 
 ```bash
 npm install -g eas-cli
 ```
@@ -32,7 +32,7 @@ eas login
 ---
 
 ## 2) Inicializar EAS en el proyecto
-
+ 
 Desde la raíz del proyecto:
 
 ```bash
