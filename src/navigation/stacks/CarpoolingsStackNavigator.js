@@ -3,8 +3,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import CarpoolingsScreen from '../../screens/main/CarpoolingsScreen';
-// import CreateTripScreen from '../../screens/main/CreateTripScreen';
-import CreateTripGoogleMaps from '../../screens/main/CreateTripGoogleMaps';
 import TripDetails from '../../screens/main/TripDetails';
 import EditTripScreen from '../../screens/main/EditTripScreen';
 import MyTripsScreen from '../../screens/main/MyTripsScreen';
@@ -45,12 +43,6 @@ const CarpoolingsStackNavigator = () => {
         name="Carpoolings"
         component={CarpoolingsScreen}
         options={{ title: 'Mis Viajes' }}
-      />
-      <Stack.Screen
-        name="CreateTrip"
-        component={CreateTripGoogleMaps}
-        // component={CreateTripScreen}
-        options={{ title: 'Crear Viaje' }}
       />
       <Stack.Screen
         name="TripDetails"

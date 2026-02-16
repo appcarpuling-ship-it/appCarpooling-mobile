@@ -122,7 +122,10 @@ const TripDetails = ({ navigation, route }) => {
                 showAlert('Viaje creado', 'Tu viaje ha sido publicado exitosamente', [
                     {
                         text: 'Continuar',
-                        onPress: () => navigation.navigate('Carpoolings'),
+                        onPress: () => navigation.navigate('Main', {
+                            screen: 'CarpoolingsTab',
+                            params: { screen: 'Carpoolings' },
+                        }),
                     },
                 ]);
             }

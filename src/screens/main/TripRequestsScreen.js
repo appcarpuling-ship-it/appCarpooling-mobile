@@ -139,21 +139,25 @@ const TripRequestsScreen = ({ route }) => {
       if (isSeatReservation && seatReservationId) {
         const response = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
         if (response.success) {
-          showAlert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
+          const rejectedId = selectedRequest;
           setSelectedRequest(null);
+          setRequests(prev => prev.filter(r => (r._id || r.id) !== rejectedId));
+          showAlert('Exito', 'Solicitud rechazada');
           loadRequests();
         }
       } else {
-        const response = await put_withauth(`/bookings/${selectedRequest}/reject`, {
+        const bookingId = selectedRequest;
+        const response = await put_withauth(`/bookings/${bookingId}/reject`, {
           reason: rejectReason,
         });
         if (response.success) {
-          showAlert('Exito', 'Solicitud rechazada');
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
+          setRequests(prev => prev.filter(r => (r._id || r.id) !== bookingId));
+          showAlert('Exito', 'Solicitud rechazada');
           loadRequests();
         }
       }

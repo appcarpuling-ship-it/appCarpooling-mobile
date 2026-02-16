@@ -179,9 +179,10 @@ const MyTripsScreen = ({ navigation }) => {
         return new Date(a.departureDate) - new Date(b.departureDate);
       });
     } else {
-      return tripsArray.filter(trip =>
+      const filtered = tripsArray.filter(trip =>
         trip.status === 'completed' || trip.status === 'cancelled'
       );
+      return filtered.sort((a, b) => new Date(b.departureDate) - new Date(a.departureDate));
     }
   };
 

@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import SafePlacesAutocomplete from '../../components/SafePlacesAutocomplete';
@@ -33,6 +34,7 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const CreateTripGoogleMaps = ({ navigation, route }) => {
   const { colors, isDarkMode } = useColors();
+  const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const mapRef = useRef(null);
   const originInputRef = useRef(null);
@@ -88,8 +90,8 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     waypoints: [],
   });
 
-  const MIN_SHEET_HEIGHT = 200;
-  const MAX_SHEET_HEIGHT = height * 0.7;
+  const MIN_SHEET_HEIGHT = 250;
+  const MAX_SHEET_HEIGHT = height * 0.4;
   // Con teclado abierto: limitar altura para que origen/destino queden visibles
   const effectiveMaxHeight = keyboardHeight > 0
     ? Math.min(MAX_SHEET_HEIGHT, height - keyboardHeight - 80)
@@ -779,7 +781,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         'Necesitas registrar un vehículo antes de crear un viaje',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Agregar Vehículo', onPress: () => navigation.navigate('Vehicles') }
+          // { text: 'Agregar Vehículo', onPress: () => navigation.navigate('Vehicles') }
         ]
       );
       return;
@@ -868,17 +870,6 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
         <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
           Necesitas registrar un vehículo antes de crear un viaje
         </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Vehicles')}>
-          <View style={[
-            styles.addVehicleButton,
-            { backgroundColor: isDarkMode ? '#FFFFFF' : colors.primary }
-          ]}>
-            <Text style={[
-              styles.addVehicleButtonText,
-              { color: isDarkMode ? '#000000' : '#FFFFFF' }
-            ]}>Agregar Vehículo</Text>
-          </View>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -896,13 +887,29 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={colors.statusBarStyle} />
 
+      {/* Top bar - botón volver */}
+      <View style={[styles.topBar, { paddingTop: insets.top }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+
       {/* Mapa full screen */}
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
-        onRegionChangeComplete={setRegion}
+        onRegionChangeComplete={(newRegion, details = {}) => {
+          // Solo actualizar estado en gestos del usuario para evitar bucle de feedback
+          // que causa desplazamiento continuo del mapa (Issue #4876 react-native-maps)
+          if (details.isGesture) setRegion(newRegion);
+        }}
+        paddingAdjustmentBehavior="never"
         showsUserLocation={false}
         showsMyLocationButton={false}
         onPress={handleMapPress}
@@ -970,7 +977,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
       {/* Panel inferior estilo Uber - Animated */}
       {mapSelectionMode && (
         <>
-          <View style={[styles.mapSelectionIndicator, { backgroundColor: '#6B7280', shadowColor: colors.shadow }]}>
+          <View style={[styles.mapSelectionIndicator, { backgroundColor: '#6B7280', shadowColor: colors.shadow, top: insets.top + 80 }]}>
             <Text style={[styles.mapSelectionText, { color: '#FFFFFF' }]}>
               {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
                mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
@@ -984,7 +991,9 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
           <View style={styles.centerMapIndicator} pointerEvents="none">
-            <View style={[styles.centerDot, { backgroundColor: '#6B7280', shadowColor: colors.shadow }]} />
+            <View style={styles.centerPinSoft}>
+              <Ionicons name="location" size={18} color="#1F2937" />
+            </View>
           </View>
         </>
       )}
@@ -1369,6 +1378,8 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+    width,
+    height,
   },
 
   // Top bar
@@ -1771,7 +1782,6 @@ const styles = StyleSheet.create({
   // Map selection indicator
   mapSelectionIndicator: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
     right: 20,
     backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
@@ -1807,24 +1817,19 @@ const styles = StyleSheet.create({
   },
   centerMapIndicator: {
     position: 'absolute',
-    top: height * 0.35 - 8,
-    left: width / 2 - 8,
-    width: 16,
-    height: 16,
+    top: height / 2 - 31,
+    left: width / 2 - 22,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 40,
   },
-  centerDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
+  centerPinSoft: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
