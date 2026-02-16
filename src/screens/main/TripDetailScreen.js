@@ -83,7 +83,7 @@ const TripDetailScreen = ({ route, navigation }) => {
       if (response.success && response.data) {
         const existingBooking = response.data.find(booking => {
           const bookingTripId = booking.trip?._id || booking.trip;
-          const activeStatuses = ['pending', 'confirmed', 'accepted', 'active', 'completed'];
+          const activeStatuses = ['pending', 'confirmed', 'accepted', 'active', 'completed', 'cancelled'];
           return bookingTripId === tripId && activeStatuses.includes(booking.status);
         });
         setUserBooking(existingBooking);
@@ -120,6 +120,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
       if (reservationStatus === 'pending_payment') {
         let paymentUrl = seatReservation?.reservationPayment?.paymentUrl ||
+          seatReservation?.reservationPayment?.checkoutLink ||
           seatReservation?.paymentUrl ||
           currentBooking?.paymentUrl;
 
@@ -499,7 +500,12 @@ const TripDetailScreen = ({ route, navigation }) => {
       {!isOwnTrip && (
         <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           {userBooking ? (
-            (userBooking.seatReservation?.reservationStatus === 'pending_payment' ||
+            (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
+              <View style={[styles.confirmedBadge, { backgroundColor: colors.textMuted + '20' }]}>
+                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                <Text style={[styles.confirmedText, { color: colors.textMuted }]}>Reserva cancelada</Text>
+              </View>
+            ) : (userBooking.seatReservation?.reservationStatus === 'pending_payment' ||
               userBooking.paymentStatus === 'pending_payment') ? (
               <View style={styles.pendingContainer}>
                 <View style={styles.pendingHeader}>

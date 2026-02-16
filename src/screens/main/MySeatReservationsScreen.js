@@ -75,8 +75,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   const handlePayReservation = async (reservation) => {
     try {
-      const paymentUrl = reservation.seatReservation?.paymentUrl ||
-        reservation.seatReservation?.reservationPayment?.paymentUrl ||
+      const paymentUrl = reservation.seatReservation?.reservationPayment?.paymentUrl ||
+        reservation.seatReservation?.paymentUrl ||
+        reservation.seatReservation?.reservationPayment?.checkoutLink ||
         reservation.paymentUrl;
 
       if (paymentUrl) {
@@ -159,8 +160,10 @@ const MySeatReservationsScreen = ({ navigation }) => {
         return { color: '#10B981', text: 'Confirmada', icon: 'checkmark-circle-outline' };
       case 'rejected':
         return { color: '#EF4444', text: 'Rechazada', icon: 'close-circle-outline' };
+      case 'cancelled':
+        return { color: '#6B7280', text: 'Cancelada', icon: 'close-circle-outline' };
       default:
-        return { color: '#6B7280', text: status, icon: 'help-circle-outline' };
+        return { color: '#6B7280', text: status || 'Desconocido', icon: 'help-circle-outline' };
     }
   };
 
@@ -438,6 +441,15 @@ const MySeatReservationsScreen = ({ navigation }) => {
               <Ionicons name="close-circle" size={16} color="#EF4444" />
               <Text style={styles.rejectedText}>
                 El conductor rechazó tu solicitud de reserva.
+              </Text>
+            </View>
+          )}
+
+          {status === 'cancelled' && (
+            <View style={[styles.rejectedBox, { backgroundColor: '#6B728020' }]}>
+              <Ionicons name="close-circle-outline" size={16} color="#6B7280" />
+              <Text style={[styles.rejectedText, { color: '#6B7280' }]}>
+                Esta reserva fue cancelada.
               </Text>
             </View>
           )}

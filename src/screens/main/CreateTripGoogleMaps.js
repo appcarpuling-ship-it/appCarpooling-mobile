@@ -391,6 +391,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           address: addressToShow,
           city: city,
           province: province,
+          country: 'Argentina',
           coordinates: { latitude, longitude },
         };
       }
@@ -653,6 +654,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             address: data?.description || '',
             city: city,
             province: province,
+            country: 'Argentina',
             coordinates: coords,
           },
         }));
@@ -739,6 +741,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             address: data?.description || '',
             city: city,
             province: province,
+            country: 'Argentina',
             coordinates: coords,
           },
         }));
@@ -846,7 +849,18 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
   const hasRoute = originMarker && destinationMarker;
 
-  if (!loadingVehicles && (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0)) {
+  // Mostrar verificación de vehículos de inmediato (sin cargar mapa)
+  if (loadingVehicles) {
+    return (
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 16 }]}>Verificando vehículos...</Text>
+      </View>
+    );
+  }
+
+  // Sin vehículos: mostrar error de inmediato (sin cargar mapa)
+  if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
@@ -855,8 +869,14 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           Necesitas registrar un vehículo antes de crear un viaje
         </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Vehicles')}>
-          <View style={[styles.addVehicleButton, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.addVehicleButtonText, { color: colors.textPrimary }]}>Agregar Vehículo</Text>
+          <View style={[
+            styles.addVehicleButton,
+            { backgroundColor: isDarkMode ? '#FFFFFF' : colors.primary }
+          ]}>
+            <Text style={[
+              styles.addVehicleButtonText,
+              { color: isDarkMode ? '#000000' : '#FFFFFF' }
+            ]}>Agregar Vehículo</Text>
           </View>
         </TouchableOpacity>
       </View>
