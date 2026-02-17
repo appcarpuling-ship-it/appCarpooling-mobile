@@ -202,7 +202,7 @@ const LoginScreen = ({ navigation }) => {
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#000000', '#000000']}
                     style={styles.button}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
@@ -232,7 +232,7 @@ const LoginScreen = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
+                    colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#000000', '#000000']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.registerLinkGradient}
@@ -288,7 +288,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-    elevation: 8,
   },
   title: {
     fontSize: fontSize.xxxl,

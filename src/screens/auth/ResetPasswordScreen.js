@@ -19,9 +19,12 @@ import { ENDPOINTS } from '../../config/api';
 import { useColors } from '../../hooks/useColors';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 
-
-const ForgotPasswordScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+const ResetPasswordScreen = ({ navigation, route }) => {
+  const { email } = route.params;
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
@@ -45,27 +48,46 @@ const ForgotPasswordScreen = ({ navigation }) => {
   }, []);
 
   const handleResetPassword = async () => {
-    if (!email) {
-      showAlert('Error', 'Por favor ingresa tu email');
+    if (!code) {
+      showAlert('Error', 'Por favor ingresa el código de recuperación');
+      return;
+    }
+
+    if (!newPassword) {
+      showAlert('Error', 'Por favor ingresa tu nueva contraseña');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showAlert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showAlert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
     setLoading(true);
     try {
-      await post_public(ENDPOINTS.FORGOT_PASSWORD, { email });
+      await post_public(ENDPOINTS.RESET_PASSWORD, {
+        email,
+        code,
+        newPassword,
+      });
 
       showAlert(
-        'Código enviado',
-        'Hemos enviado un código de recuperación a tu email',
+        'Contraseña restablecida',
+        'Tu contraseña se ha cambiado exitosamente. Ya puedes iniciar sesión.',
         [
           {
-            text: 'Ingresar código',
-            onPress: () => navigation.navigate('ResetPassword', { email }),
+            text: 'Iniciar Sesión',
+            onPress: () => navigation.navigate('Login'),
           },
         ]
       );
     } catch (error) {
-      showAlert('Error', error.message || 'Error al enviar el email');
+      showAlert('Error', error.message || 'Error al restablecer la contraseña');
     } finally {
       setLoading(false);
     }
@@ -101,37 +123,79 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
                   }]}
                 >
-                  <Ionicons name="key-outline" size={40} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                  <Ionicons name="lock-open-outline" size={40} color={isDarkMode ? '#000000' : '#FFFFFF'} />
                 </View>
-                <Text style={[styles.title, { color: colors.textPrimary }]}>Recuperar Contraseña</Text>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>Nueva Contraseña</Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Ingresa tu email y te enviaremos un código para restablecer tu contraseña
+                  Ingresa el código que enviamos a {email} y tu nueva contraseña
                 </Text>
               </View>
 
               {/* Form */}
               <View style={styles.form}>
-                {/* Email Input */}
+                {/* Code Input */}
                 <View style={[styles.inputWrapper, {
                   backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
                   borderColor: isDarkMode ? '#404040' : colors.inputBorder,
                 }]}>
                   <View style={styles.inputIconContainer}>
-                    <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
+                    <Ionicons name="keypad-outline" size={20} color={colors.textTertiary} />
                   </View>
                   <TextInput
                     style={[styles.input, { color: colors.textPrimary }]}
-                    placeholder="Email"
+                    placeholder="Código de 6 dígitos"
                     placeholderTextColor={colors.placeholder}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
+                    value={code}
+                    onChangeText={setCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
                   />
                 </View>
 
-                {/* Reset Password Button */}
+                {/* New Password Input */}
+                <View style={[styles.inputWrapper, {
+                  backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
+                  borderColor: isDarkMode ? '#404040' : colors.inputBorder,
+                }]}>
+                  <View style={styles.inputIconContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
+                  </View>
+                  <TextInput
+                    style={[styles.input, { color: colors.textPrimary }]}
+                    placeholder="Nueva contraseña"
+                    placeholderTextColor={colors.placeholder}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textTertiary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Confirm Password Input */}
+                <View style={[styles.inputWrapper, {
+                  backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
+                  borderColor: isDarkMode ? '#404040' : colors.inputBorder,
+                }]}>
+                  <View style={styles.inputIconContainer}>
+                    <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
+                  </View>
+                  <TextInput
+                    style={[styles.input, { color: colors.textPrimary }]}
+                    placeholder="Confirmar contraseña"
+                    placeholderTextColor={colors.placeholder}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                </View>
+
+                {/* Reset Button */}
                 <TouchableOpacity
                   onPress={handleResetPassword}
                   disabled={loading}
@@ -145,17 +209,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
                     {loading ? (
                       <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
                     ) : (
-                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Enviar Código</Text>
+                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Restablecer Contraseña</Text>
                     )}
                   </View>
                 </TouchableOpacity>
 
-                {/* Back to Login */}
+                {/* Back */}
                 <TouchableOpacity
                   style={styles.linkButton}
                   onPress={() => navigation.goBack()}
                 >
-                  <Text style={[styles.linkText, { color: colors.primary }]}>Volver al inicio de sesión</Text>
+                  <Text style={[styles.linkText, { color: colors.primary }]}>Volver</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -258,4 +322,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ForgotPasswordScreen;
+export default ResetPasswordScreen;
