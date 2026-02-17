@@ -140,7 +140,7 @@ const TripDetails = ({ navigation, route }) => {
 
     return (
         <>
-            <SafeAreaView style={[styles.container, { backgroundColor: '#161616' }]} edges={['left', 'right']}>
+            <SafeAreaView style={[styles.container, { backgroundColor: '#161616' }]} edges={['bottom', 'left', 'right']}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={styles.keyboardView}
