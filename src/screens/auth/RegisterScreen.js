@@ -60,7 +60,7 @@ const safeColors = (() => {
 const STEPS = [
   {
     title: 'Sobre vos',
-    subtitle: 'Cuéntanos quién sos',
+    subtitle: 'Cuéntanos quién eres',
     fields: ['firstName', 'lastName'],
   },
   {
