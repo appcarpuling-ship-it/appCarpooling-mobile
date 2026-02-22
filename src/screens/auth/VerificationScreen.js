@@ -222,18 +222,18 @@ const VerificationScreen = ({ route, navigation }) => {
                   colors={
                     loading || verificationCode.length !== 6
                       ? [isDarkMode ? '#374151' : '#F3F4F6', isDarkMode ? '#292929' : '#E5E7EB']
-                      : isDarkMode ? ['#6B7280', '#4B5563'] : ['#6366F1', '#8B5CF6']
+                      : isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']
                   }
                   style={styles.button}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={isDarkMode ? '#000000' : '#fff'} />
                   ) : (
                     <>
-                      <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                      <Text style={styles.buttonText}>Verificar Código</Text>
+                      <Ionicons name="checkmark-circle-outline" size={20} color={isDarkMode ? '#000000' : '#fff'} />
+                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#fff' }]}>Verificar Código</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -252,12 +252,12 @@ const VerificationScreen = ({ route, navigation }) => {
                     <ActivityIndicator size="small" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
                   ) : (
                     <LinearGradient
-                      colors={isDarkMode ? ['#6B7280', '#4B5563'] : ['#6366F1', '#8B5CF6']}
+                      colors={isDarkMode ? ['#FFFFFF', '#FFFFFF'] : ['#1F2937', '#111827']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.resendLinkGradient}
                     >
-                      <Text style={styles.resendLink}>Reenviar Código</Text>
+                      <Text style={[styles.resendLink, { color: isDarkMode ? '#000000' : '#FFF' }]}>Reenviar Código</Text>
                     </LinearGradient>
                   )}
                 </TouchableOpacity>
