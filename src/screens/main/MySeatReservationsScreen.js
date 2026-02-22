@@ -424,6 +424,16 @@ const MySeatReservationsScreen = ({ navigation }) => {
                   <Text style={styles.cancelButtonTextSmall}>Cancelar</Text>
                 </TouchableOpacity>
               </View>
+              {(item.seatReservation?.reservationPayment?.fallbackUrl) && (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(item.seatReservation.reservationPayment.fallbackUrl)}
+                  style={styles.fallbackLink}
+                >
+                  <Text style={styles.fallbackLinkText}>
+                    ¿El pago falló o no te redirigió? Tocá aquí para volver
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -829,6 +839,16 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semiBold,
+  },
+  fallbackLink: {
+    marginTop: 8,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  fallbackLinkText: {
+    fontSize: 12,
+    color: '#6B7280',
+    textDecorationLine: 'underline',
   },
   confirmedBox: {
     flexDirection: 'row',
