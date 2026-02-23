@@ -43,7 +43,7 @@ export const registerForPushNotificationsAsync = async () => {
 
     // Obtener el push token
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: undefined, // Expo lo detectará automáticamente
+      projectId: 'ddcb99f7-c978-4627-bc9c-505a90fe674f',
     });
 
     token = tokenData.data;

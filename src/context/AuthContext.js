@@ -49,6 +49,15 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         // Conectar WebSocket cuando el usuario ya está autenticado
         socketService.connect();
+        // Registrar push token en cada apertura de app
+        try {
+          const pushToken = await registerForPushNotificationsAsync();
+          if (pushToken) {
+            await savePushTokenToServer(pushToken);
+          }
+        } catch (pushError) {
+          console.log('⚠️ Error registrando push token en loadUser:', pushError);
+        }
       }
     } catch (error) {
       console.error('Error cargando usuario:', error);
