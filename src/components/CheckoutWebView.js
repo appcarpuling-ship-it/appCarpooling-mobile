@@ -44,12 +44,12 @@ const CheckoutWebView = ({
     const url = navState.url;
     setCurrentUrl(url);
 
-    // Detectar URLs de confirmación de MercadoPago
+    // Detectar URLs de confirmación de MercadoPago, AstroPay
     if (url.includes('/payments/confirmation') ||
       url.includes('status=approved') ||
-      url.includes('status=approved') ||
       url.includes('payment_id=') ||
-      url.includes('preference_id=')) {
+      url.includes('preference_id=') ||
+      (url.includes('provider=astropay') && url.includes('external_reference'))) {
 
       console.log('✅ [CheckoutWebView] Pago completado detectado:', url);
 
@@ -58,8 +58,9 @@ const CheckoutWebView = ({
       const status = urlParams.get('status') || 'approved';
       const paymentId = urlParams.get('payment_id');
       const preferenceId = urlParams.get('preference_id');
+      const provider = urlParams.get('provider');
 
-      if (status === 'approved' || status === 'pending') {
+      if (status === 'approved' || status === 'pending' || (provider === 'astropay' && status === 'approved')) {
         // Cerrar el modal y notificar éxito
         setTimeout(() => {
           onPaymentSuccess({
@@ -167,9 +168,11 @@ const CheckoutWebView = ({
             scalesPageToFit={true}
             // Permitir navegación dentro del checkout
             onShouldStartLoadWithRequest={(request) => {
-              // Permitir todas las URLs de MercadoPago
+              // Permitir URLs de MercadoPago, AstroPay y HTTPS
               if (request.url.includes('mercadopago.com') ||
                 request.url.includes('mercadolibre.com') ||
+                request.url.includes('astropay.com') ||
+                request.url.includes('getapp.astropay.com') ||
                 request.url.startsWith('https://')) {
                 return true;
               }

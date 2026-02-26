@@ -19,6 +19,7 @@ import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fon
 import useColors from '../../hooks/useColors';
 import { useAlert } from '../../context/AlertContext';
 import NativeCheckout from '../../components/NativeCheckout';
+import AstroPayPaymentOptions from '../../components/AstroPayPaymentOptions';
 import Toast from '../../components/Toast';
 import AnimatedCard from '../../components/AnimatedCard';
 
@@ -73,22 +74,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
     await Promise.all([loadReservations(), loadPendingPayments()]);
   };
 
-  const handlePayReservation = async (reservation) => {
+  const handleOpenCheckout = async (paymentUrl) => {
     try {
-      const paymentUrl = reservation.seatReservation?.reservationPayment?.paymentUrl ||
-        reservation.seatReservation?.paymentUrl ||
-        reservation.seatReservation?.reservationPayment?.checkoutLink ||
-        reservation.paymentUrl;
-
-      if (paymentUrl) {
-        // Abrir checkout nativo (Custom Tabs/Safari View Controller)
-        await NativeCheckout.openCheckout(paymentUrl, {
-          onPaymentSuccess: handlePaymentSuccess,
-          onPaymentError: handlePaymentError
-        });
-      } else {
-        showAlert('Error', 'No se encontró la URL de pago');
-      }
+      await NativeCheckout.openCheckout(paymentUrl, {
+        onPaymentSuccess: handlePaymentSuccess,
+        onPaymentError: handlePaymentError
+      });
     } catch (error) {
       console.error('Error opening payment URL:', error);
       showAlert('Error', 'No se pudo procesar el pago');
@@ -404,19 +395,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
                   Expira en: {getTimeRemaining(item.seatReservation.expiresAt)}
                 </Text>
               )}
+              <AstroPayPaymentOptions
+                paymentUrl={item.seatReservation?.reservationPayment?.paymentUrl || item.seatReservation?.paymentUrl}
+                qrDataUrl={item.seatReservation?.reservationPayment?.qrDataUrl}
+                amount={item.seatReservation?.reservationAmount}
+                formatCurrency={formatCurrency}
+                onCheckoutPress={handleOpenCheckout}
+              />
               <View style={styles.paymentActions}>
-                <TouchableOpacity
-                  onPress={() => handlePayReservation(item)}
-                  style={styles.payButton}
-                >
-                  <LinearGradient
-                    colors={['#F97316', '#EA580C']}
-                    style={styles.payButtonGradient}
-                  >
-                    <Ionicons name="card-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.payButtonText}>Pagar Ahora</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleCancelReservation(item)}
                   style={styles.cancelButtonSmall}

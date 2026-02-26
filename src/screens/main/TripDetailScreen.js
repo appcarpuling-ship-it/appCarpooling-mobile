@@ -15,6 +15,7 @@ import { get_public, get_withauth, post_withauth, buildImageUri } from '../../se
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations } from '../../services/seatReservationService';
 import NativeCheckout from '../../components/NativeCheckout';
+import AstroPayPaymentOptions from '../../components/AstroPayPaymentOptions';
 import Toast from '../../components/Toast';
 import { useColors } from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +31,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userBooking, setUserBooking] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [paymentModalData, setPaymentModalData] = useState({ paymentUrl: null, qrDataUrl: null, amount: null });
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -123,22 +126,23 @@ const TripDetailScreen = ({ route, navigation }) => {
           seatReservation?.reservationPayment?.checkoutLink ||
           seatReservation?.paymentUrl ||
           currentBooking?.paymentUrl;
+        let qrDataUrl = seatReservation?.reservationPayment?.qrDataUrl;
+        let amount = seatReservation?.reservationAmount;
 
-        if (!paymentUrl) {
+        if (!paymentUrl && !qrDataUrl) {
           const pendingResponse = await getPendingPaymentReservations();
-          if (pendingResponse.success && pendingResponse.data?.pendingReservations) {
-            const pending = pendingResponse.data.pendingReservations.find(
-              r => r.trip?._id === tripId || r.trip?.id === tripId
-            );
-            if (pending) paymentUrl = pending.paymentUrl;
+          const pendingData = pendingResponse?.data?.pendingReservations || pendingResponse?.pendingReservations;
+          const pending = pendingData?.find(r => (r.trip?._id || r.trip?.id) === tripId);
+          if (pending) {
+            paymentUrl = pending.paymentUrl;
+            qrDataUrl = pending.qrDataUrl;
+            amount = pending.reservationAmount;
           }
         }
 
-        if (paymentUrl) {
-          await NativeCheckout.openCheckout(paymentUrl, {
-            onPaymentSuccess: handlePaymentSuccess,
-            onPaymentError: handlePaymentError
-          });
+        if (paymentUrl || qrDataUrl) {
+          setPaymentModalData({ paymentUrl, qrDataUrl, amount });
+          setPaymentModalVisible(true);
         } else {
           showAlert('Error', 'No se puede realizar el pago para este viaje. Por favor, contacta al soporte.');
         }
@@ -463,6 +467,38 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         <View style={{ height: 180 }} />
       </ScrollView>
+
+      {/* Payment Options Modal (Checkout + QR) */}
+      <Modal
+        visible={paymentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View style={styles.paymentModalOverlay}>
+          <View style={[styles.paymentModalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.paymentModalHeader}>
+              <Text style={[styles.paymentModalTitle, { color: colors.textPrimary }]}>Completar pago</Text>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <AstroPayPaymentOptions
+              paymentUrl={paymentModalData.paymentUrl}
+              qrDataUrl={paymentModalData.qrDataUrl}
+              amount={paymentModalData.amount}
+              formatCurrency={(n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n)}
+              onCheckoutPress={async (url) => {
+                setPaymentModalVisible(false);
+                await NativeCheckout.openCheckout(url, {
+                  onPaymentSuccess: handlePaymentSuccess,
+                  onPaymentError: handlePaymentError
+                });
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Image Modal */}
       <Modal
@@ -905,6 +941,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  paymentModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  paymentModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  paymentModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  paymentModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
   },
   imageModalContent: {
     position: 'relative',
