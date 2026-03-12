@@ -14,12 +14,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation } from '../../services/seatReservationService';
+import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation, confirmFromCallback } from '../../services/seatReservationService';
 import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import useColors from '../../hooks/useColors';
 import { useAlert } from '../../context/AlertContext';
-import NativeCheckout from '../../components/NativeCheckout';
-import AstroPayPaymentOptions from '../../components/AstroPayPaymentOptions';
+import CheckoutWebView from '../../components/CheckoutWebView';
+import RebillPaymentOptions from '../../components/RebillPaymentOptions';
 import Toast from '../../components/Toast';
 import AnimatedCard from '../../components/AnimatedCard';
 
@@ -38,6 +38,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
 
   useEffect(() => {
     loadReservations();
@@ -74,16 +75,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
     await Promise.all([loadReservations(), loadPendingPayments()]);
   };
 
-  const handleOpenCheckout = async (paymentUrl) => {
-    try {
-      await NativeCheckout.openCheckout(paymentUrl, {
-        onPaymentSuccess: handlePaymentSuccess,
-        onPaymentError: handlePaymentError
-      });
-    } catch (error) {
-      console.error('Error opening payment URL:', error);
-      showAlert('Error', 'No se pudo procesar el pago');
+  const handleOpenCheckout = (paymentUrl) => {
+    if (!paymentUrl) {
+      showAlert('Error', 'No hay URL de pago disponible');
+      return;
     }
+    setCheckoutModal({ visible: true, paymentUrl });
   };
 
   const handlePaymentSuccess = async (paymentData) => {
@@ -91,10 +88,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
     showToast('✅ Pago completado exitosamente', 'success');
 
-    // Recargar las reservas después de un breve delay para que se vea el toast
-    setTimeout(async () => {
-      await Promise.all([loadReservations(), loadPendingPayments()]);
-    }, 1000);
+    try {
+      if (paymentData?.externalReference && paymentData?.status === 'approved') {
+        await confirmFromCallback(paymentData.externalReference, 'approved');
+      }
+    } catch (e) {
+      console.warn('Confirmación de pago:', e?.message);
+    }
+    await Promise.all([loadReservations(), loadPendingPayments()]);
   };
 
   const handlePaymentError = (error) => {
@@ -395,7 +396,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
                   Expira en: {getTimeRemaining(item.seatReservation.expiresAt)}
                 </Text>
               )}
-              <AstroPayPaymentOptions
+              <RebillPaymentOptions
                 paymentUrl={item.seatReservation?.reservationPayment?.paymentUrl || item.seatReservation?.paymentUrl}
                 qrDataUrl={item.seatReservation?.reservationPayment?.qrDataUrl}
                 amount={item.seatReservation?.reservationAmount}
@@ -537,6 +538,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
           </Text>
         </View>
       )}
+
+      <CheckoutWebView
+        visible={checkoutModal.visible}
+        paymentUrl={checkoutModal.paymentUrl}
+        onClose={() => setCheckoutModal({ visible: false, paymentUrl: null })}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentError={handlePaymentError}
+      />
     </LinearGradient>
   );
 };

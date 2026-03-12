@@ -13,9 +13,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import { getPendingPaymentReservations } from '../../services/seatReservationService';
-import NativeCheckout from '../../components/NativeCheckout';
-import AstroPayPaymentOptions from '../../components/AstroPayPaymentOptions';
+import { getPendingPaymentReservations, confirmFromCallback } from '../../services/seatReservationService';
+import CheckoutWebView from '../../components/CheckoutWebView';
+import RebillPaymentOptions from '../../components/RebillPaymentOptions';
 import Toast from '../../components/Toast';
 import { useColors } from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
@@ -33,6 +33,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [paymentModalData, setPaymentModalData] = useState({ paymentUrl: null, qrDataUrl: null, amount: null });
+  const [checkoutWebViewVisible, setCheckoutWebViewVisible] = useState(false);
+  const [checkoutWebViewUrl, setCheckoutWebViewUrl] = useState(null);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -83,13 +85,16 @@ const TripDetailScreen = ({ route, navigation }) => {
   const checkUserBooking = async () => {
     try {
       const response = await get_withauth('/bookings/my-bookings');
-      if (response.success && response.data) {
-        const existingBooking = response.data.find(booking => {
-          const bookingTripId = booking.trip?._id || booking.trip;
+      const bookings = response?.data || [];
+      if (response?.success && Array.isArray(bookings)) {
+        const tid = String(tripId || '');
+        const existingBooking = bookings.find(booking => {
+          const bt = booking.trip?._id || booking.trip;
+          const bookingTripId = bt ? String(bt) : '';
           const activeStatuses = ['pending', 'confirmed', 'accepted', 'active', 'completed', 'cancelled'];
-          return bookingTripId === tripId && activeStatuses.includes(booking.status);
+          return bookingTripId === tid && activeStatuses.includes(booking.status);
         });
-        setUserBooking(existingBooking);
+        setUserBooking(existingBooking || null);
       }
     } catch (error) {
       setUserBooking(null);
@@ -111,16 +116,22 @@ const TripDetailScreen = ({ route, navigation }) => {
       let updatedBooking = userBooking;
       try {
         const response = await get_withauth('/bookings/my-bookings');
-        if (response.success && response.data) {
-          updatedBooking = response.data.find(b => (b.trip?._id || b.trip) === tripId);
+        const bookings = response?.data || [];
+        if (response?.success && Array.isArray(bookings)) {
+          const tid = String(tripId || '');
+          updatedBooking = bookings.find(b => String(b.trip?._id || b.trip || '') === tid);
           if (updatedBooking) setUserBooking(updatedBooking);
         }
       } catch (err) { }
 
       const currentBooking = updatedBooking || userBooking;
       const seatReservation = currentBooking?.seatReservation;
-      const reservationStatus = seatReservation?.reservationStatus || currentBooking?.paymentStatus;
+      const reservationStatus = seatReservation?.reservationStatus;
 
+      if (reservationStatus === 'pending_approval') {
+        showAlert('Pendiente', 'Tu solicitud está esperando aprobación del conductor');
+        return;
+      }
       if (reservationStatus === 'pending_payment') {
         let paymentUrl = seatReservation?.reservationPayment?.paymentUrl ||
           seatReservation?.reservationPayment?.checkoutLink ||
@@ -146,8 +157,6 @@ const TripDetailScreen = ({ route, navigation }) => {
         } else {
           showAlert('Error', 'No se puede realizar el pago para este viaje. Por favor, contacta al soporte.');
         }
-      } else if (reservationStatus === 'pending_approval') {
-        showAlert('Pendiente', 'Tu solicitud esta esperando aprobacion del conductor');
       }
     } catch (error) {
       showAlert('Error', 'No se pudo procesar el pago');
@@ -156,12 +165,32 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    showToast('Pago completado', 'success');
+  const handlePaymentSuccess = async (paymentData) => {
+    showToast('Pago completado - Actualizando...', 'success');
+    let confirmOk = false;
+    try {
+      if (paymentData?.externalReference && paymentData?.status === 'approved') {
+        const res = await confirmFromCallback(paymentData.externalReference, 'approved');
+        confirmOk = res?.success !== false;
+      }
+    } catch (e) {
+      console.error('confirmFromCallback error:', e?.response?.data || e?.message);
+      showAlert(
+        'Error al confirmar pago',
+        (e?.response?.data?.message || e?.message || 'No se pudo confirmar. El pago puede estar procesándose.') + '\n\n¿Reintentar?',
+        [
+          { text: 'Cerrar', style: 'cancel' },
+          { text: 'Reintentar', onPress: async () => { await checkUserBooking(); await loadTripDetail(); } }
+        ]
+      );
+    }
+    await checkUserBooking();
+    await loadTripDetail();
+    if (confirmOk) showToast('Reserva confirmada', 'success');
     setTimeout(async () => {
       await checkUserBooking();
       await loadTripDetail();
-    }, 1000);
+    }, 2500);
   };
 
   const handlePaymentError = (error) => {
@@ -483,22 +512,31 @@ const TripDetailScreen = ({ route, navigation }) => {
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <AstroPayPaymentOptions
+            <RebillPaymentOptions
               paymentUrl={paymentModalData.paymentUrl}
               qrDataUrl={paymentModalData.qrDataUrl}
               amount={paymentModalData.amount}
               formatCurrency={(n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n)}
-              onCheckoutPress={async (url) => {
+              onCheckoutPress={(url) => {
                 setPaymentModalVisible(false);
-                await NativeCheckout.openCheckout(url, {
-                  onPaymentSuccess: handlePaymentSuccess,
-                  onPaymentError: handlePaymentError
-                });
+                setCheckoutWebViewUrl(url);
+                setCheckoutWebViewVisible(true);
               }}
             />
           </View>
         </View>
       </Modal>
+
+      <CheckoutWebView
+        visible={checkoutWebViewVisible}
+        paymentUrl={checkoutWebViewUrl}
+        onClose={() => {
+          setCheckoutWebViewVisible(false);
+          setCheckoutWebViewUrl(null);
+        }}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentError={handlePaymentError}
+      />
 
       {/* Image Modal */}
       <Modal
@@ -541,8 +579,12 @@ const TripDetailScreen = ({ route, navigation }) => {
                 <Ionicons name="close-circle" size={20} color={colors.textMuted} />
                 <Text style={[styles.confirmedText, { color: colors.textMuted }]}>Reserva cancelada</Text>
               </View>
-            ) : (userBooking.seatReservation?.reservationStatus === 'pending_payment' ||
-              userBooking.paymentStatus === 'pending_payment') ? (
+            ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
+              <View style={[styles.confirmedBadge, { backgroundColor: (colors.warning || '#F59E0B') + '20' }]}>
+                <Ionicons name="time-outline" size={20} color={colors.warning || '#F59E0B'} />
+                <Text style={[styles.confirmedText, { color: colors.warning || '#F59E0B' }]}>Esperando aprobación del conductor</Text>
+              </View>
+            ) : userBooking.seatReservation?.reservationStatus === 'pending_payment' ? (
               <View style={styles.pendingContainer}>
                 <View style={styles.pendingHeader}>
                   <View style={styles.pendingIndicator}>
@@ -583,7 +625,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             ) : (
               <View style={[styles.confirmedBadge, { backgroundColor: colors.success + '20' }]}>
                 <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={[styles.confirmedText, { color: colors.success }]}>Reserva confirmada</Text>
+                <Text style={[styles.confirmedText, { color: colors.success }]}>Reserva paga</Text>
               </View>
             )
           ) : (

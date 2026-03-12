@@ -15,51 +15,69 @@ const NativeCheckout = {
    */
   async openCheckout(paymentUrl, callbacks = {}) {
     const { onPaymentSuccess, onPaymentError } = callbacks;
+    let subscriptionRemoved = false;
 
-    try {
-      console.log('💳 [NativeCheckout] Abriendo checkout nativo:', paymentUrl);
-
-      // Configurar listener para deep links antes de abrir el navegador
-      const subscription = Linking.addEventListener('url', (event) => {
-        console.log('🔗 [NativeCheckout] Deep link recibido:', event.url);
-        this.handleDeepLink(event.url, { onPaymentSuccess, onPaymentError });
-        subscription.remove(); // Remover listener después de recibir el link
-      });
-
-      // Abrir el navegador nativo (Custom Tabs en Android, Safari View Controller en iOS)
-      // Este navegador nativo se cierra automáticamente cuando detecta un deep link válido
-      const result = await WebBrowser.openBrowserAsync(paymentUrl, {
-        // Opciones para mejor experiencia
-        showTitle: true,
-        enableBarCollapsing: false,
-        // Colores de la barra (opcional)
-        toolbarColor: '#1F2937',
-        controlsColor: '#FFFFFF',
-        // En Android, esto permite que Custom Tabs se cierre automáticamente al detectar deep link
-        // En iOS, Safari View Controller también maneja esto automáticamente
-      });
-
-      console.log('📱 [NativeCheckout] Navegador cerrado:', result.type);
-
-      // Si el usuario cerró el navegador sin completar el pago
-      if (result.type === 'cancel') {
-        console.log('⚠️ [NativeCheckout] Usuario canceló el pago');
-        if (onPaymentError) {
-          onPaymentError(new Error('Pago cancelado por el usuario'));
+    const safeRemoveSubscription = (sub) => {
+      if (!subscriptionRemoved && sub?.remove) {
+        try {
+          sub.remove();
+          subscriptionRemoved = true;
+        } catch (e) {
+          // Ignorar si ya fue removido
         }
       }
+    };
 
-      // Remover listener si no se recibió ningún deep link
-      setTimeout(() => {
-        subscription.remove();
-      }, 1000);
+    try {
+      console.log('💳 [NativeCheckout] Abriendo checkout:', paymentUrl?.substring?.(0, 60) + '...');
 
+      const subscription = Linking.addEventListener('url', (event) => {
+        if (!event?.url) return;
+        console.log('🔗 [NativeCheckout] Deep link recibido');
+        this.handleDeepLink(event.url, { onPaymentSuccess, onPaymentError });
+        safeRemoveSubscription(subscription);
+      });
+
+      // Abrir navegador (Custom Tabs / Safari View Controller)
+      const result = await WebBrowser.openBrowserAsync(paymentUrl, {
+        showTitle: true,
+        enableBarCollapsing: false,
+        toolbarColor: '#1F2937',
+        controlsColor: '#FFFFFF',
+      });
+
+      console.log('📱 [NativeCheckout] Navegador cerrado:', result?.type || 'unknown');
+
+      if (result?.type === 'cancel' || result?.type === 'dismiss') {
+        if (!subscriptionRemoved) {
+          safeRemoveSubscription(subscription);
+          if (onPaymentError) {
+            onPaymentError(new Error('Pago cancelado o navegador cerrado'));
+          }
+        }
+      } else {
+        safeRemoveSubscription(subscription);
+      }
     } catch (error) {
-      console.error('❌ [NativeCheckout] Error abriendo checkout:', error);
+      console.error('❌ [NativeCheckout] Error:', error?.message || error);
+      // Fallback: abrir en navegador externo (más estable en algunos dispositivos)
+      try {
+        const canOpen = await Linking.canOpenURL(paymentUrl);
+        if (canOpen) {
+          await Linking.openURL(paymentUrl);
+          showAlertAsync(
+            'Pago abierto',
+            'Completá el pago en el navegador y volvé a la app cuando termines.'
+          );
+          return;
+        }
+      } catch (linkErr) {
+        console.warn('Fallback Linking.openURL falló:', linkErr);
+      }
       if (onPaymentError) {
         onPaymentError(error);
       } else {
-        showAlertAsync('Error', 'No se pudo abrir la página de pago');
+        showAlertAsync('Error', 'No se pudo abrir la página de pago. Intentá desde el navegador.');
       }
     }
   },
@@ -73,14 +91,23 @@ const NativeCheckout = {
     const { onPaymentSuccess, onPaymentError } = callbacks;
 
     try {
-      console.log('🔍 [NativeCheckout] Procesando deep link:', url);
+      console.log('🔍 [NativeCheckout] Procesando deep link');
 
-      // Parsear la URL para extraer parámetros
-      const urlObj = new URL(url);
-      const status = urlObj.searchParams.get('status');
-      const paymentId = urlObj.searchParams.get('payment_id');
-      const preferenceId = urlObj.searchParams.get('preference_id');
-      const paymentStatus = urlObj.searchParams.get('payment_status');
+      // Parsear URL (carpooling:// o https://)
+      let searchParams;
+      try {
+        const urlObj = new URL(url);
+        searchParams = urlObj.searchParams;
+      } catch {
+        const qs = url.includes('?') ? url.split('?')[1] : '';
+        searchParams = new URLSearchParams(qs || '');
+      }
+
+      const status = searchParams.get('status');
+      const paymentId = searchParams.get('payment_id');
+      const preferenceId = searchParams.get('preference_id');
+      const paymentStatus = searchParams.get('payment_status');
+      const externalReference = searchParams.get('external_reference');
 
       console.log('📊 [NativeCheckout] Parámetros extraídos:', {
         status,
@@ -97,7 +124,8 @@ const NativeCheckout = {
             status: 'approved',
             paymentId,
             preferenceId,
-            paymentStatus: 'approved'
+            paymentStatus: 'approved',
+            externalReference
           });
         } else {
           showAlertAsync(

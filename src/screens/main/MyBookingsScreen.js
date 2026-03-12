@@ -112,12 +112,28 @@ const MyBookingsScreen = ({ navigation }) => {
     );
   };
 
-  const getStatusConfig = (status) => {
+  const getStatusConfig = (item) => {
+    const reservationStatus = item.seatReservation?.reservationStatus;
+    const status = item.status;
+
+    // Para reservas de asiento: diferenciar pendiente de aprobación vs pendiente de pago
+    if (reservationStatus === 'pending_approval') {
+      return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
+    }
+    if (reservationStatus === 'pending_payment') {
+      return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente de pago' };
+    }
+    if (reservationStatus === 'reserved' || reservationStatus === 'cancelled') {
+      return reservationStatus === 'reserved'
+        ? { color: colors.success, bg: colors.success + '20', text: 'Reserva paga' }
+        : { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
+    }
+
     switch (status) {
       case 'pending':
         return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
       case 'confirmed':
-        return { color: colors.success, bg: colors.success + '20', text: 'Confirmado' };
+        return { color: colors.success, bg: colors.success + '20', text: 'Reserva paga' };
       case 'cancelled':
         return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
       case 'completed':
@@ -136,7 +152,7 @@ const MyBookingsScreen = ({ navigation }) => {
   const renderBookingItem = ({ item }) => {
     if (!item.trip?.driver?.firstName) return null;
 
-    const statusConfig = getStatusConfig(item.status);
+    const statusConfig = getStatusConfig(item);
     const driver = item.trip.driver;
 
     return (
@@ -215,17 +231,21 @@ const MyBookingsScreen = ({ navigation }) => {
         </View>
 
         {/* Action Buttons */}
-        {item.status === 'pending' && (
+        {(item.seatReservation?.reservationStatus === 'pending_approval' ||
+          item.seatReservation?.reservationStatus === 'pending_payment' ||
+          (item.status === 'pending' && !item.seatReservation)) && (
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.payButton, { backgroundColor: '#000000' }]}
-              onPress={() => navigation.navigate('TripDetailFromCarpoolings', {
-                tripId: item.trip?._id,
-                openPayment: true
-              })}
-            >
-              <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>Ir a pagar</Text>
-            </TouchableOpacity>
+            {(item.seatReservation?.reservationStatus === 'pending_payment' || (item.status === 'pending' && !item.seatReservation)) && (
+              <TouchableOpacity
+                style={[styles.payButton, { backgroundColor: '#000000' }]}
+                onPress={() => navigation.navigate('TripDetailFromCarpoolings', {
+                  tripId: item.trip?._id,
+                  openPayment: true
+                })}
+              >
+                <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>Ir a pagar</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.cancelButton, {
                 backgroundColor: isDarkMode ? '#FFFFFF' : 'transparent',

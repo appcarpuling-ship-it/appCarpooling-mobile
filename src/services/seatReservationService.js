@@ -168,6 +168,26 @@ export const getPendingApprovalReservations = async () => {
 };
 
 /**
+ * Confirmar pago desde callback (Rebill redirige tras el pago)
+ * Asegura que el backend procese el pago aunque el webhook tarde
+ * @param {string} externalReference - ID del PaymentIntent
+ * @param {string} status - 'approved' | 'rejected'
+ * @returns {Promise<Object>}
+ */
+export const confirmFromCallback = async (externalReference, status) => {
+  try {
+    const response = await post_withauth(
+      `${ENDPOINTS.SEAT_RESERVATIONS}/confirm-from-callback`,
+      { external_reference: externalReference, status }
+    );
+    return response;
+  } catch (error) {
+    console.warn('confirmFromCallback:', error?.response?.data?.message || error.message);
+    throw error;
+  }
+};
+
+/**
  * Endpoint de diagnóstico para verificar el estado de una reserva
  * @param {string} reservationId - ID de la reserva
  * @returns {Promise<Object>} - Información de diagnóstico de la reserva

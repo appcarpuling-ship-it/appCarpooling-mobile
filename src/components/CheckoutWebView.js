@@ -31,11 +31,13 @@ const CheckoutWebView = ({
   const webViewRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [currentUrl, setCurrentUrl] = useState('');
+  const processedRef = useRef(false);
 
   useEffect(() => {
     if (visible && paymentUrl) {
       setLoading(true);
       setCurrentUrl(paymentUrl);
+      processedRef.current = false;
     }
   }, [visible, paymentUrl]);
 
@@ -44,33 +46,37 @@ const CheckoutWebView = ({
     const url = navState.url;
     setCurrentUrl(url);
 
-    // Detectar URLs de confirmación de MercadoPago, AstroPay
-    if (url.includes('/payments/confirmation') ||
+    // Detectar URLs de confirmación (MercadoPago, AstroPay, Rebill)
+    const isConfirmationUrl = url.includes('/payments/confirmation') ||
       url.includes('status=approved') ||
+      url.includes('status=rejected') ||
       url.includes('payment_id=') ||
       url.includes('preference_id=') ||
-      (url.includes('provider=astropay') && url.includes('external_reference'))) {
+      (url.includes('provider=rebill') && url.includes('external_reference')) ||
+      (url.includes('provider=astropay') && url.includes('external_reference'));
 
-      console.log('✅ [CheckoutWebView] Pago completado detectado:', url);
+    if (isConfirmationUrl && !processedRef.current) {
+      processedRef.current = true;
+      console.log('✅ [CheckoutWebView] Pago detectado:', url.substring(0, 80) + '...');
 
-      // Extraer parámetros de la URL
       const urlParams = new URLSearchParams(url.split('?')[1] || '');
       const status = urlParams.get('status') || 'approved';
       const paymentId = urlParams.get('payment_id');
       const preferenceId = urlParams.get('preference_id');
       const provider = urlParams.get('provider');
+      const externalReference = urlParams.get('external_reference');
 
-      if (status === 'approved' || status === 'pending' || (provider === 'astropay' && status === 'approved')) {
-        // Cerrar el modal y notificar éxito
+      if (status === 'approved' || status === 'pending' || (provider === 'rebill' && status === 'approved') || (provider === 'astropay' && status === 'approved')) {
         setTimeout(() => {
           onPaymentSuccess({
             status,
             paymentId,
             preferenceId,
+            externalReference,
             reservationId
           });
           onClose();
-        }, 1000);
+        }, 800);
       } else if (status === 'rejected' || status === 'failure') {
         onPaymentError(new Error('El pago fue rechazado'));
         onClose();
@@ -126,7 +132,7 @@ const CheckoutWebView = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <View style={styles.container}>
@@ -166,16 +172,19 @@ const CheckoutWebView = ({
             domStorageEnabled={true}
             startInLoadingState={true}
             scalesPageToFit={true}
+            thirdPartyCookiesEnabled={true}
             // Permitir navegación dentro del checkout
             onShouldStartLoadWithRequest={(request) => {
-              // Permitir URLs de MercadoPago, AstroPay y HTTPS
-              if (request.url.includes('mercadopago.com') ||
-                request.url.includes('mercadolibre.com') ||
-                request.url.includes('astropay.com') ||
-                request.url.includes('getapp.astropay.com') ||
-                request.url.startsWith('https://')) {
+              const u = request?.url || '';
+              if (u.startsWith('https://') ||
+                u.includes('rebill.com') ||
+                u.includes('mercadopago.com') ||
+                u.includes('mercadolibre.com') ||
+                u.includes('astropay.com') ||
+                u.includes('carpuling.com.ar')) {
                 return true;
               }
+              if (u.startsWith('http://')) return true;
               return false;
             }}
           />

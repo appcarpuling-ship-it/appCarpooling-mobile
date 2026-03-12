@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
- * Muestra opciones de pago AstroPay: Checkout (redirect) y QR
+ * Muestra opciones de pago Rebill: Checkout (redirect) y QR
  */
-const AstroPayPaymentOptions = ({
+const RebillPaymentOptions = ({
   paymentUrl,
   qrDataUrl,
   amount,
@@ -56,7 +56,7 @@ const AstroPayPaymentOptions = ({
           {showQR && (
             <View style={styles.qrContent}>
               <Text style={styles.qrHint}>
-                Escaneá el QR con la app de AstroPay
+                Escaneá el QR con la app de Rebill
               </Text>
               <View style={styles.qrImageContainer}>
                 <Image
@@ -142,4 +142,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AstroPayPaymentOptions;
+export default RebillPaymentOptions;
