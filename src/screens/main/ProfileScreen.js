@@ -305,7 +305,7 @@ const ProfileScreen = () => {
           <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
           
           {/* Indicador de Descuento */}
-          {user?.discountPercentage && user.discountPercentage > 0 && (
+          {(user?.discountPercentage ?? 0) > 0 && (
             <View style={[styles.discountBadge, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
               <Ionicons name="pricetag" size={14} color={colors.success} />
               <Text style={[styles.discountText, { color: colors.success }]}>
