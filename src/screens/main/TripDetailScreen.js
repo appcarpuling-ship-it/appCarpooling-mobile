@@ -271,7 +271,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'started': return { color: colors.info, bg: colors.info + '20', text: 'En curso' };
+      case 'started': return { color: colors.info, bg: colors.info + '20', text: 'Viaje iniciado' };
       case 'completed': return { color: colors.success, bg: colors.success + '20', text: 'Finalizado' };
       case 'cancelled': return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
       case 'active': return { color: colors.textMuted, bg: colors.border, text: 'Programado' };
