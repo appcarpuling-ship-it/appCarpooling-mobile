@@ -6,15 +6,17 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { buildImageUri } from '../../services/apiService';
+import { Image } from 'react-native';
 import useColors from '../../hooks/useColors';
 
+// Usar valores directos para evitar problemas de carga en estilos estáticos
 const SORA_FONTS = {
   thin: 'Sora_100Thin',
   extraLight: 'Sora_200ExtraLight',
@@ -31,284 +33,472 @@ const ProfileScreen = () => {
   const { showAlert } = useAlert();
   const { user, logout, isAuthenticated } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { colors, fontFamily, getCurrentThemeMode, setThemeMode } = useColors();
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const { colors, fontFamily, createColorArray, getCurrentThemeMode, setThemeMode } = useColors();
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const cardBg   = isDarkMode ? '#1C1C1C' : '#FFFFFF';
-  const screenBg = isDarkMode ? '#0E0E0E' : '#F6F6F6';
-  const sep      = isDarkMode ? '#252525' : '#F0F0F0';
-  const shadow   = isDarkMode ? {} : {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  };
+  // Dynamic styles that depend on fontFamily from hook
+  const dynamicStyles = StyleSheet.create({
+    statValue: {
+      fontSize: 24,
+      fontFamily: fontFamily.bold,
+      fontWeight: 'bold',
+      // color: '#000000', // Ahora dinámico
+    },
+    statLabel: {
+      fontSize: 13,
+      // color: '#6B7280', // Ahora dinámico
+      fontFamily: fontFamily.medium,
+      fontWeight: '500',
+      letterSpacing: 0.3,
+    },
+    sectionTitle: {
+      fontSize: 11,
+      fontFamily: fontFamily.semiBold,
+      fontWeight: '600',
+      // color: '#9CA3AF', // Ahora dinámico
+      textTransform: 'uppercase',
+      letterSpacing: 1.2,
+      marginBottom: 14,
+      marginLeft: 4,
+    },
+    menuItemText: {
+      flex: 1,
+      marginLeft: 14,
+      fontSize: 16,
+      // color: '#000000', // Ahora dinámico
+      fontFamily: fontFamily.medium,
+      fontWeight: '500',
+    },
+  });
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
+  // Efecto para detectar cuando el usuario se desautentica
   useEffect(() => {
+    console.log('ProfileScreen - isAuthenticated:', isAuthenticated, 'user:', user);
     if (!isAuthenticated && !user) {
-      // El AppNavigator redirige automáticamente
+      console.log('Usuario desautenticado detectado en ProfileScreen');
+      // El AppNavigator debería redirigir automáticamente
     }
   }, [isAuthenticated, user]);
 
   const handleLogout = () => {
-    showAlert('Cerrar Sesion', 'Estas seguro que deseas cerrar sesion?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar Sesion',
-        style: 'destructive',
-        onPress: async () => {
-          try { await logout(); }
-          catch { showAlert('Error', 'No se pudo cerrar sesion. Intenta nuevamente.'); }
+    console.log('handleLogout - Botón presionado');
+    console.log('Estado actual - isAuthenticated:', isAuthenticated, 'user:', user);
+
+    showAlert(
+      'Cerrar Sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            console.log('Logout cancelado por el usuario');
+          }
         },
-      },
-    ]);
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: () => {
+            console.log('✅ Usuario confirmó logout - iniciando proceso...');
+            performLogout();
+          },
+        },
+      ]
+    );
   };
 
-  const handleThemeToggle = () => {
-    if (getCurrentThemeMode() === 'light') {
-      setThemeMode('dark');
-      showAlert('Tema cambiado', 'Modo oscuro activado');
-    } else {
-      setThemeMode('light');
-      showAlert('Tema cambiado', 'Modo claro activado');
+  const performLogout = async () => {
+    try {
+      await logout();
+      // El AppNavigator redirige automáticamente cuando isAuthenticated cambia a false
+    } catch (error) {
+      console.error('❌ Error al cerrar sesión:', error);
+      showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
     }
   };
 
-  const getThemeLabel = () => getCurrentThemeMode() === 'light' ? 'Cambiar a oscuro' : 'Cambiar a claro';
-  const getThemeIcon  = () => getCurrentThemeMode() === 'light' ? 'moon-outline' : 'sunny-outline';
+  const handleThemeToggle = () => {
+    const currentMode = getCurrentThemeMode();
+
+    // Ciclo: light -> dark -> light
+    if (currentMode === 'light') {
+      setThemeMode('dark');
+      showAlert('Tema Cambiado', '🌙 Modo oscuro activado');
+    } else {
+      setThemeMode('light');
+      showAlert('Tema Cambiado', '🌞 Modo claro activado');
+    }
+  };
+
+  const getThemeButtonText = () => {
+    const currentMode = getCurrentThemeMode();
+    if (currentMode === 'light') return 'Cambiar a Oscuro';
+    return 'Cambiar a Claro';
+  };
+
+  const getThemeIcon = () => {
+    const currentMode = getCurrentThemeMode();
+    if (currentMode === 'light') return 'moon-outline';
+    return 'sunny-outline';
+  };
 
   const menuSections = [
     {
       title: 'Perfil',
       items: [
-        { id: 1, title: 'Editar Perfil',   icon: 'person-outline',       onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, title: 'Mis Vehiculos',   icon: 'car-outline',           onPress: () => navigation.navigate('Vehicles') },
+        {
+          id: 1,
+          title: 'Editar Perfil',
+          icon: 'person-outline',
+          onPress: () => navigation.navigate('EditProfile'),
+        },
+        {
+          id: 2,
+          title: 'Mis Vehículos',
+          icon: 'car-outline',
+          onPress: () => navigation.navigate('Vehicles'),
+        },
+        // {
+        //   id: 3,
+        //   title: 'Mis Reseñas',
+        //   icon: 'star-outline',
+        //   onPress: () => navigation.navigate('UserReviews', {
+        //     userId: user?._id,
+        //     userName: `${user?.firstName} ${user?.lastName}`,
+        //   }),
+        // },
       ],
     },
     {
-      title: 'Informacion',
+      title: 'Información',
       items: [
-        { id: 4, title: 'Terminos y Condiciones', icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
-        { id: 5, title: 'Ayuda',                  icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
-        { id: 6, title: getThemeLabel(),           icon: getThemeIcon(),           onPress: handleThemeToggle },
+        // {
+        //   id: 3,
+        //   title: 'Notificaciones',
+        //   icon: 'notifications-outline',
+        //   onPress: () => navigation.navigate('Notifications'),
+        // },
+        {
+          id: 4,
+          title: 'Términos y Condiciones',
+          icon: 'document-text-outline',
+          onPress: () => navigation.navigate('Terms'),
+        },
+        {
+          id: 5,
+          title: 'Ayuda',
+          icon: 'help-circle-outline',
+          onPress: () => navigation.navigate('Help'),
+        },
+        {
+          id: 6,
+          title: getThemeButtonText(),
+          icon: getThemeIcon(),
+          onPress: handleThemeToggle,
+        },
       ],
     },
     {
       title: 'Referidos y Descuentos',
       items: [
-        { id: 8, title: 'Mi Codigo Promocional', icon: 'gift-outline', onPress: () => navigation.navigate('ReferralScreen') },
+        {
+          id: 8,
+          title: 'Mi Código Promocional',
+          icon: 'gift-outline',
+          onPress: () => navigation.navigate('ReferralScreen'),
+        },
       ],
     },
+    // {
+    //   title: 'Reservas',
+    //   items: [
+    //     {
+    //       id: 6,
+    //       title: 'Mis Reservas de Asiento',
+    //       icon: 'calendar-outline',
+    //       onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' }),
+    //     },
+    //   ],
+    // },
     {
-      title: 'Sesion',
+      title: 'Sesión',
       items: [
-        { id: 7, title: 'Cerrar Sesion', icon: 'log-out-outline', onPress: handleLogout, danger: true },
+        {
+          id: 7,
+          title: 'Cerrar Sesión',
+          icon: 'log-out-outline',
+          onPress: handleLogout,
+          danger: true,
+        },
       ],
     },
   ];
 
-  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`;
-
   return (
-    <View style={[styles.screen, { backgroundColor: screenBg }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-        {/* Header */}
-        <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          {/* Avatar */}
-          <View style={[styles.avatarWrap, shadow, { backgroundColor: cardBg }]}>
+    <View style={[styles.gradient, { backgroundColor: colors.background }]}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.avatarContainer}>
             {user?.avatar ? (
-              <Image source={{ uri: buildImageUri(user.avatar) || undefined }} style={styles.avatarImg} />
+              <Image
+                source={{ uri: buildImageUri(user.avatar) || undefined }}
+                style={styles.avatarImage}
+                onError={() => console.log('Error loading avatar from:', user.avatar)}
+              />
             ) : (
-              <Text style={[styles.avatarInitials, { color: colors.textPrimary, fontFamily: SORA_FONTS.bold }]}>
-                {initials}
-              </Text>
+              <View
+                style={[styles.avatar, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+              >
+                <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </Text>
+              </View>
             )}
           </View>
-
-          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: SORA_FONTS.bold }]}>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>
             {user?.firstName} {user?.lastName}
           </Text>
-          <Text style={[styles.email, { color: colors.textTertiary, fontFamily: SORA_FONTS.regular }]}>
-            {user?.email}
-          </Text>
+          <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
 
+          {/* Indicador de Descuento */}
           {(user?.discountPercentage ?? 0) > 0 && (
-            <View style={[styles.discountBadge, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}>
-              <Ionicons name="pricetag-outline" size={13} color={colors.success} />
-              <Text style={[styles.discountTxt, { color: colors.success, fontFamily: SORA_FONTS.medium }]}>
+            <View style={[styles.discountBadge, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
+              <Ionicons name="pricetag" size={14} color={colors.success} />
+              <Text style={[styles.discountText, { color: colors.success }]}>
                 {user.discountPercentage}% de descuento activo
               </Text>
             </View>
           )}
         </Animated.View>
 
-        {/* Menu */}
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textMuted, fontFamily: fontFamily.semiBold }]}>
-                {section.title}
-              </Text>
-
-              <View style={[styles.sectionCard, { backgroundColor: cardBg, borderColor: sep }, shadow]}>
-                {section.items.map((item, idx) => (
-                  <View key={item.id}>
-                    <TouchableOpacity
-                      style={styles.row}
-                      onPress={item.onPress}
-                      activeOpacity={0.6}
-                    >
-                      <View style={[
-                        styles.iconBox,
-                        {
-                          backgroundColor: item.danger
-                            ? 'rgba(239,68,68,0.08)'
-                            : isDarkMode ? '#252525' : '#F5F5F5',
-                        },
-                      ]}>
-                        <Ionicons
-                          name={item.icon}
-                          size={20}
-                          color={item.danger ? colors.error : colors.textPrimary}
-                        />
-                      </View>
-
-                      <Text style={[
-                        styles.rowLabel,
-                        {
-                          color: item.danger ? colors.error : colors.textPrimary,
-                          fontFamily: fontFamily.medium,
-                        },
-                      ]}>
-                        {item.title}
-                      </Text>
-
+              <Text style={[dynamicStyles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
+              {section.items.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.menuItem, {
+                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
+                    borderColor: colors.border
+                  }]}
+                  onPress={item.onPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.menuItemContent}>
+                    <View style={[
+                      styles.iconContainer,
+                      item.danger && styles.iconContainerDanger,
+                      {
+                        backgroundColor: item.danger
+                          ? 'rgba(239, 68, 68, 0.1)'
+                          : getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
+                        borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
+                      }
+                    ]}>
                       <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={item.danger ? colors.error + '80' : isDarkMode ? '#444' : '#CCC'}
+                        name={item.icon}
+                        size={22}
+                        color={item.danger ? colors.error : colors.textPrimary}
                       />
-                    </TouchableOpacity>
-
-                    {idx < section.items.length - 1 && (
-                      <View style={[styles.rowSep, { backgroundColor: sep, marginLeft: 58 }]} />
-                    )}
+                    </View>
+                    <Text
+                      style={[
+                        dynamicStyles.menuItemText,
+                        { color: item.danger ? colors.error : colors.textPrimary },
+                        item.danger && styles.menuItemDanger,
+                      ]}
+                    >
+                      {item.title}
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={item.danger ? colors.error : colors.textSecondary}
+                    />
                   </View>
-                ))}
-              </View>
+                </TouchableOpacity>
+              ))}
             </View>
           ))}
         </Animated.View>
-
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen:  { flex: 1 },
-  scroll:  { paddingBottom: 40 },
-
-  // Header
-  header: {
-    alignItems: 'center',
-    paddingTop: 48,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
+  gradient: {
+    flex: 1,
   },
-  avatarWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+  container: {
+    flex: 1,
+  },
+  header: {
+    padding: 24,
+    paddingTop: 48,
+    paddingBottom: 32,
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    overflow: 'hidden',
   },
-  avatarImg: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+  avatarImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
-  avatarInitials: {
-    fontSize: 32,
+  avatarText: {
+    fontSize: 44,
+    fontFamily: SORA_FONTS.bold,
     fontWeight: 'bold',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   name: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.2,
+    fontSize: 28,
+    fontFamily: SORA_FONTS.bold,
+    fontWeight: 'bold',
+    // color: '#000000', // Ahora dinámico
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   email: {
-    fontSize: 14,
-    marginBottom: 10,
+    fontSize: 15,
+    fontFamily: SORA_FONTS.regular,
+    // color: '#6B7280', // Ahora dinámico
+    marginBottom: 12,
   },
   discountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    marginTop: 6,
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  discountTxt: {
+  discountText: {
     fontSize: 13,
+    fontFamily: SORA_FONTS.medium,
     fontWeight: '600',
   },
-
-  // Menu
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  sectionCard: {
-    borderRadius: 14,
+  statsContainer: {
+    flexDirection: 'row',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
     borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#1F2937',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginBottom: 10,
+    minWidth: 70,
+    alignItems: 'center',
+    shadowColor: '#1F2937',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 12,
+  },
+  content: {
+    padding: 24,
+    paddingTop: 8,
+  },
+  section: {
+    marginBottom: 28,
+  },
+  menuItem: {
+    // backgroundColor: '#FFFFFF', // Ahora dinámico
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    // borderColor: '#F3F4F6', // Ahora dinámico
     overflow: 'hidden',
   },
-  row: {
+  menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    gap: 12,
+    padding: 16,
   },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    // backgroundColor: '#F8F9FA', // Ahora dinámico
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    // borderColor: '#F3F4F6', // Ahora dinámico
   },
-  rowLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
+  iconContainerDanger: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
-  rowSep: {
-    height: 1,
+  menuItemDanger: {
+    color: '#EF4444',
   },
 });
 
