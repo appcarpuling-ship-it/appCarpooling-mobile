@@ -22,20 +22,26 @@ const ReferralScreen = ({ navigation }) => {
   const [referralInfo, setReferralInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReferralInfo();
-  }, []);
+  const isDarkMode = getCurrentThemeMode() === 'dark';
+  const cardBg   = isDarkMode ? '#1C1C1C' : '#FFFFFF';
+  const screenBg = isDarkMode ? '#0E0E0E' : '#F6F6F6';
+  const sep      = isDarkMode ? '#252525' : '#F0F0F0';
+  const shadow   = isDarkMode ? {} : {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  };
+
+  useEffect(() => { loadReferralInfo(); }, []);
 
   const loadReferralInfo = async () => {
     try {
-      setLoading(true);
       const response = await get_withauth('/users/referral-info');
-      if (response.success) {
-        setReferralInfo(response.data);
-      }
-    } catch (error) {
-      console.error('Error loading referral info:', error);
-      showAlert('Error', 'No se pudo cargar la información de referidos');
+      if (response.success) setReferralInfo(response.data);
+    } catch {
+      showAlert('Error', 'No se pudo cargar la informacion de referidos');
     } finally {
       setLoading(false);
     }
@@ -44,151 +50,137 @@ const ReferralScreen = ({ navigation }) => {
   const copyToClipboard = async () => {
     if (referralInfo?.myReferralCode) {
       await Clipboard.setStringAsync(referralInfo.myReferralCode);
-      showAlert('¡Copiado!', 'Tu código promocional ha sido copiado al portapapeles');
+      showAlert('Copiado', 'Tu codigo promocional fue copiado al portapapeles');
     }
   };
 
   const shareReferralCode = async () => {
     if (!referralInfo?.myReferralCode) return;
-    
-    const message = `¡Únete a nuestra app de carpooling con mi código promocional ${referralInfo.myReferralCode}! 🚗✨\n\nDescarga la app y usa mi código al registrarte para ayudarme a obtener descuentos.`;
-    
     try {
       await Share.share({
-        message,
-        title: '¡Únete a nuestro carpooling!',
+        message: `Unete a nuestra app de carpooling con mi codigo promocional ${referralInfo.myReferralCode}!\n\nDescargala y usalo al registrarte para ayudarme a obtener descuentos.`,
+        title: 'Unete a nuestro carpooling!',
       });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
+    } catch {}
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Cargando información de referidos...
-        </Text>
+      <View style={[styles.centered, { backgroundColor: screenBg }]}>
+        <ActivityIndicator size="large" color={colors.textPrimary} />
       </View>
     );
   }
 
+  const discount = referralInfo?.myDiscountPercentage ?? 0;
+  const code     = referralInfo?.myReferralCode ?? '—';
+
+  const steps = [
+    {
+      icon: 'person-add-outline',
+      title: 'Invita a tus amigos',
+      desc: 'Comparte tu codigo con amigos y familiares',
+    },
+    {
+      icon: 'checkmark-circle-outline',
+      title: 'Se registran con tu codigo',
+      desc: 'Cuando se registren usando tu codigo, tu ganas',
+    },
+    {
+      icon: 'pricetag-outline',
+      title: 'Obtenes 20% de descuento',
+      desc: 'Usalo en tu proximo viaje. Los descuentos se acumulan hasta 100%',
+      accent: true,
+    },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        
-        {/* Header con descuento */}
-        <View style={styles.headerContainer}>
-          <View style={[styles.discountBadge, { backgroundColor: colors.success + '15' }]}>
-            <Text style={[styles.discountPercentage, { color: colors.success }]}>
-              {referralInfo?.myDiscountPercentage || 0}%
-            </Text>
-            <Text style={[styles.discountLabel, { color: colors.success }]}>
-              de descuento
-            </Text>
-          </View>
+    <View style={[styles.screen, { backgroundColor: screenBg }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          {discount > 0 ? (
+            <View style={[styles.discountCircle, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
+              <Text style={[styles.discountNum, { color: colors.success }]}>{discount}%</Text>
+              <Text style={[styles.discountSub, { color: colors.success }]}>de descuento</Text>
+            </View>
+          ) : (
+            <View style={[styles.discountCircle, { backgroundColor: isDarkMode ? '#1C1C1C' : '#F0F0F0', borderColor: isDarkMode ? '#2A2A2A' : '#E0E0E0' }]}>
+              <Text style={[styles.discountNum, { color: colors.textMuted }]}>0%</Text>
+              <Text style={[styles.discountSub, { color: colors.textMuted }]}>de descuento</Text>
+            </View>
+          )}
+
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            ¡Invita amigos y ahorra!
+            Invita amigos y ahorra
           </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.headerDesc, { color: colors.textTertiary }]}>
             Por cada amigo que invites obtienes 20% de descuento
           </Text>
         </View>
 
-        {/* Código Promocional */}
-        <View style={[styles.promoCodeCard, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
-          <View style={styles.promoCodeHeader}>
-            <View style={[styles.giftIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary + '15' }]}>
-              <Ionicons name="gift" size={20} color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : colors.primary} />
-            </View>
-            <Text style={[styles.promoCodeTitle, { color: colors.textPrimary }]}>
-              Tu código promocional
-            </Text>
+        {/* Codigo promocional */}
+        <View style={[styles.card, { backgroundColor: cardBg }, shadow]}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Tu codigo promocional</Text>
+
+          <View style={[styles.codeBox, { backgroundColor: isDarkMode ? '#141414' : '#F8F8F8', borderColor: sep }]}>
+            <Text style={[styles.codeText, { color: colors.textPrimary }]}>{code}</Text>
           </View>
-          
-          <View style={[styles.codeDisplay, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.codeText, { color: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : colors.primary }]}>
-              {referralInfo?.myReferralCode || 'Cargando...'}
-            </Text>
-          </View>
-          
-          <View style={styles.promoActions}>
-            <TouchableOpacity 
-              style={[styles.primaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}
+
+          <View style={styles.btnRow}>
+            <TouchableOpacity
+              style={[styles.btnMain, { backgroundColor: colors.textPrimary, flex: 1 }]}
               onPress={copyToClipboard}
             >
-              <Ionicons name="copy-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Copiar código</Text>
+              <Ionicons name="copy-outline" size={16} color={cardBg} />
+              <Text style={[styles.btnMainTxt, { color: cardBg }]}>Copiar</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.secondaryButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : 'transparent', borderColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.border }]}
+
+            <TouchableOpacity
+              style={[styles.btnOutline, { borderColor: isDarkMode ? '#2A2A2A' : '#E0E0E0', flex: 1 }]}
               onPress={shareReferralCode}
             >
-              <Ionicons name="share-outline" size={18} color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : colors.primary} />
-              <Text style={[styles.secondaryButtonText, { color: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : colors.primary }]}>Compartir</Text>
+              <Ionicons name="share-outline" size={16} color={colors.textPrimary} />
+              <Text style={[styles.btnOutlineTxt, { color: colors.textPrimary }]}>Compartir</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Cómo funciona */}
-        <View style={[styles.howItWorksCard, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.howItWorksTitle, { color: colors.textPrimary }]}>
-            ¿Cómo funciona?
-          </Text>
-          
-          <View style={styles.stepsList}>
-            <View style={styles.stepItem}>
-              <View style={[styles.stepIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
-                <Ionicons name="person-add" size={16} color="#FFFFFF" />
+        {/* Como funciona */}
+        <View style={[styles.card, { backgroundColor: cardBg }, shadow]}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Como funciona</Text>
+
+          {steps.map((step, idx) => (
+            <View key={idx}>
+              <View style={styles.stepRow}>
+                <View style={[
+                  styles.stepIcon,
+                  {
+                    backgroundColor: step.accent
+                      ? colors.success + '15'
+                      : isDarkMode ? '#252525' : '#F5F5F5',
+                  },
+                ]}>
+                  <Ionicons
+                    name={step.icon}
+                    size={18}
+                    color={step.accent ? colors.success : colors.textPrimary}
+                  />
+                </View>
+                <View style={styles.stepText}>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{step.title}</Text>
+                  <Text style={[styles.stepDesc, { color: colors.textTertiary }]}>{step.desc}</Text>
+                </View>
               </View>
-              <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-                  Invita a tus amigos
-                </Text>
-                <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-                  Comparte tu código promocional con amigos y familiares
-                </Text>
-              </View>
+              {idx < steps.length - 1 && (
+                <View style={[styles.stepSep, { backgroundColor: sep, marginLeft: 54 }]} />
+              )}
             </View>
-            
-            <View style={styles.stepItem}>
-              <View style={[styles.stepIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#1F1F1F' : colors.primary }]}>
-                <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-                  Se registran con tu código
-                </Text>
-                <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-                  Cuando se registren usando tu código, ¡tú ganas!
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.stepItem}>
-              <View style={[styles.stepIcon, { backgroundColor: colors.success }]}>
-                <Ionicons name="pricetag" size={16} color="#FFFFFF" />
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
-                  Obtén 20% de descuento
-                </Text>
-                <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-                  Úsalo en tu próximo viaje. Los descuentos se acumulan hasta 100%
-                </Text>
-              </View>
-            </View>
-          </View>
+          ))}
         </View>
 
       </ScrollView>
@@ -197,165 +189,133 @@ const ReferralScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  screen:   { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll:   { padding: 16, paddingBottom: 40 },
+
+  // Header
+  header: {
+    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
   },
-  centerContainer: {
-    flex: 1,
+  discountCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+  discountNum: {
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 30,
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  
-  // Header Section
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-    paddingTop: 20,
-  },
-  discountBadge: {
-    borderRadius: 60,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  discountPercentage: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  discountLabel: {
-    fontSize: 14,
+  discountSub: {
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 4,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 6,
     textAlign: 'center',
-    marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 16,
+  headerDesc: {
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  
-  // Promo Code Card
-  promoCodeCard: {
+
+  // Card
+  card: {
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    padding: 18,
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 14,
+  },
+
+  // Codigo
+  codeBox: {
+    borderRadius: 10,
     borderWidth: 1,
-  },
-  promoCodeHeader: {
-    flexDirection: 'row',
+    paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  giftIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  promoCodeTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  codeDisplay: {
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    alignItems: 'center',
+    marginBottom: 14,
   },
   codeText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 3,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 4,
   },
-  promoActions: {
+
+  // Botones
+  btnRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
-  primaryButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    flex: 1,
+  btnMain: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
+    gap: 7,
+    paddingVertical: 13,
+    borderRadius: 10,
   },
-  secondaryButtonText: {
-    fontSize: 16,
+  btnMainTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  btnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  btnOutlineTxt: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  
-  // How it works Card
-  howItWorksCard: {
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-  },
-  howItWorksTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  stepsList: {
-    gap: 16,
-  },
-  stepItem: {
+
+  // Steps
+  stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 16,
+    gap: 14,
+    paddingVertical: 12,
   },
   stepIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepContent: {
+  stepText: {
     flex: 1,
+    justifyContent: 'center',
   },
   stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  stepDescription: {
     fontSize: 14,
-    lineHeight: 20,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  stepDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  stepSep: {
+    height: 1,
   },
 });
 
