@@ -190,9 +190,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
       }
 
       if (response.success) {
-        showAlert('Listo', isEdit ? 'Vehiculo actualizado' : 'Vehiculo creado', [
-          { text: 'OK', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }
-        ]);
+        showAlert(
+          isEdit ? 'Vehículo Actualizado' : 'Vehículo Creado',
+          isEdit ? '🚗 Tu vehículo ha sido actualizado correctamente' : '🚗 Tu vehículo ha sido registrado correctamente',
+          [{ text: 'OK', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }]
+        );
       } else {
         showAlert('Error', response.message || 'Error al guardar');
       }

@@ -264,6 +264,15 @@ const HomeScreen = ({ navigation }) => {
     return `${driver.firstName?.[0] || ''}${driver.lastName?.[0] || ''}`;
   };
 
+  const formatAddress = (location) => {
+    if (!location) return '';
+    let raw = location.address || location.street || '';
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    const city = location.city || location.name || '';
+    if (raw) return raw;
+    return city;
+  };
+
   const renderTripCard = (trip) => (
     <TouchableOpacity
       key={trip._id}
@@ -310,10 +319,10 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.routeTexts}>
           <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
-            {trip.origin.address ? `${trip.origin.address}, ${trip.origin.city}` : trip.origin.city}
+            {formatAddress(trip.origin) || trip.origin?.city}
           </Text>
           <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
-            {trip.destination.address ? `${trip.destination.address}, ${trip.destination.city}` : trip.destination.city}
+            {formatAddress(trip.destination) || trip.destination?.city}
           </Text>
         </View>
       </View>
