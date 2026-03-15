@@ -18,6 +18,7 @@ import useColors from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
+import { handleBannerPress } from '../../utils/bannerNavigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -106,21 +107,36 @@ const CarpoolingsScreen = ({ navigation }) => {
     <TouchableOpacity
       activeOpacity={0.95}
       style={styles.bannerSlide}
+      onPress={() => handleBannerPress(item, navigation)}
     >
       <View
         style={[styles.bannerGradient, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA' }]}
       >
         {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
+          <>
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            {(item.buttonText || item.appGoTo || item.clickUrl) && (
+              <View style={styles.bannerCtaOverlay}>
+                <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : 'rgba(255,255,255,0.3)' }]}>
+                  <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
+                    {item.buttonText || 'Ver más'}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                </View>
+              </View>
+            )}
+          </>
         ) : (
           <View style={styles.bannerContent}>
-            {item.clickUrl && (
+            {(item.buttonText || item.appGoTo || item.clickUrl) && (
             <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : '' }]}>
-              <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>Ver más</Text>
+              <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
+                {item.buttonText || 'Ver más'}
+              </Text>
               <Ionicons name="arrow-forward" size={14} color={'#FFFFFF'} />
               </View>
             )}
@@ -475,6 +491,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full || 20,
+  },
+  bannerCtaOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
   },
   bannerCtaText: {
     fontSize: fontSize.sm,

@@ -29,13 +29,15 @@ import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
+import { handleBannerPress } from '../../utils/bannerNavigation';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 180;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 const BANNER_SCROLL_SPEED = 30;
 
-const ContinuousCarousel = ({ banners }) => {
+const ContinuousCarousel = ({ banners, navigation }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const totalWidth = banners.length * BANNER_ITEM_WIDTH;
 
@@ -71,13 +73,24 @@ const ContinuousCarousel = ({ banners }) => {
             key={`${item._id}-${index}`}
             activeOpacity={0.95}
             style={styles.bannerSlide}
+            onPress={() => handleBannerPress(item, navigation)}
           >
             {item.imageUrl ? (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.bannerImage}
-                resizeMode="cover"
-              />
+              <View style={StyleSheet.absoluteFillObject}>
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+                {(item.buttonText || item.appGoTo || item.clickUrl) && (
+                  <View style={[styles.bannerCta, styles.bannerCtaOverlay]}>
+                    <Text style={styles.bannerCtaText}>
+                      {item.buttonText || 'Ver más'}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={14} color="#FFF" />
+                  </View>
+                )}
+              </View>
             ) : (
               <View style={styles.bannerContent}>
                 <Text style={styles.bannerTitle} numberOfLines={2}>
@@ -88,9 +101,11 @@ const ContinuousCarousel = ({ banners }) => {
                     {item.description}
                   </Text>
                 )}
-                {item.clickUrl && (
+                {(item.buttonText || item.appGoTo || item.clickUrl) && (
                   <View style={styles.bannerCta}>
-                    <Text style={styles.bannerCtaText}>Ver más</Text>
+                    <Text style={styles.bannerCtaText}>
+                      {item.buttonText || 'Ver más'}
+                    </Text>
                     <Ionicons name="arrow-forward" size={14} color="#FFF" />
                   </View>
                 )}
@@ -527,7 +542,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersEnterprise} />
+            <ContinuousCarousel banners={bannersEnterprise} navigation={navigation} />
           </View>
         )}
 
@@ -566,14 +581,14 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersVip} />
+            <ContinuousCarousel banners={bannersVip} navigation={navigation} />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersPremium} />
+            <ContinuousCarousel banners={bannersPremium} navigation={navigation} />
           </View>
         )}
       </ScrollView>
@@ -1080,6 +1095,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
+  },
+  bannerCtaOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
   },
   bannerCtaText: {
     fontSize: 13,

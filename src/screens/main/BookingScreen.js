@@ -22,6 +22,7 @@ import { colors as staticColors, gradients, spacing, borderRadius, fontSize, fon
 import useColors from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { handleBannerPress } from '../../utils/bannerNavigation';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -241,6 +242,7 @@ const BookingScreen = ({ route, navigation }) => {
     <TouchableOpacity
       activeOpacity={0.95}
       style={styles.bannerSlide}
+      onPress={() => handleBannerPress(item, navigation)}
     >
       <LinearGradient
         colors={gradients?.primary || ['#1F2937', '#374151']}
@@ -249,11 +251,23 @@ const BookingScreen = ({ route, navigation }) => {
         end={{ x: 1, y: 1 }}
       >
         {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
+          <>
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            {(item.buttonText || item.appGoTo || item.clickUrl) && (
+              <View style={styles.bannerCtaOverlay}>
+                <View style={styles.bannerCta}>
+                  <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
+                    {item.buttonText || 'Ver más'}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={14} color="#FFF" />
+                </View>
+              </View>
+            )}
+          </>
         ) : (
           <View style={styles.bannerContent}>
             <Text style={[styles.bannerTitle, { color: '#FFFFFF' }]} numberOfLines={2}>
@@ -264,9 +278,11 @@ const BookingScreen = ({ route, navigation }) => {
                 {item.description}
               </Text>
             )}
-            {item.clickUrl && (
+            {(item.buttonText || item.appGoTo || item.clickUrl) && (
               <View style={styles.bannerCta}>
-                <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>Ver más</Text>
+                <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
+                  {item.buttonText || 'Ver más'}
+                </Text>
                 <Ionicons name="arrow-forward" size={14} color="#FFF" />
               </View>
             )}
@@ -1753,6 +1769,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+  },
+  bannerCtaOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
   },
   bannerCtaText: {
     fontSize: 14,
