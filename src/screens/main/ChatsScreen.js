@@ -231,16 +231,13 @@ const ChatsScreen = ({ navigation }) => {
     setConversations(prevConversations => {
       return prevConversations.map(conv => {
         if (conv._id === conversationId && conv.lastMessage) {
-          const userId = user._id || user.id;
+          const uid = user._id || user.id;
           const currentReadBy = conv.lastMessage.readBy || [];
-
-          // Solo agregar si no está ya en la lista
-          const isAlreadyRead = currentReadBy.includes(userId);
+          const isAlreadyRead = currentReadBy.some(id => (id?._id || id)?.toString() === (uid || '').toString());
           if (!isAlreadyRead) {
-            console.log(`✅ [ChatsScreen] Marcando conversación ${conversationId} como leída`);
             const updatedLastMessage = {
               ...conv.lastMessage,
-              readBy: [...currentReadBy, userId]
+              readBy: [...currentReadBy, uid]
             };
             return { ...conv, lastMessage: updatedLastMessage };
           }
@@ -294,26 +291,14 @@ const ChatsScreen = ({ navigation }) => {
     const lastMessagePreview = item.lastMessage?.content || 'Sin mensajes';
     const userId = user?._id || user?.id;
 
-    // Debug unread logic
     const hasLastMessage = !!item.lastMessage;
     const hasUserId = !!userId;
     const readBy = item.lastMessage?.readBy || [];
-    const isInReadBy = readBy.includes(userId);
-    const isFromOtherUser = item.lastMessage?.sender !== userId;
+    const messageSenderId = item.lastMessage?.sender?._id || item.lastMessage?.sender;
+    const isInReadBy = readBy.some(id => (id?._id || id)?.toString() === (userId || '').toString());
+    const isFromOtherUser = messageSenderId && messageSenderId.toString() !== (userId || '').toString();
 
     const isUnread = hasLastMessage && hasUserId && !isInReadBy && isFromOtherUser;
-
-    console.log('🔍 [ChatsScreen] Unread debug:', {
-      conversationId: item._id,
-      hasLastMessage,
-      hasUserId,
-      userId,
-      readBy,
-      isInReadBy,
-      messageSender: item.lastMessage?.sender,
-      isFromOtherUser,
-      isUnread
-    });
 
     return (
       <TouchableOpacity
@@ -354,10 +339,7 @@ const ChatsScreen = ({ navigation }) => {
                 <View style={[styles.unreadDot, { 
                   backgroundColor: isDarkMode ? '#EF4444' : '#DC2626', 
                   borderColor: isDarkMode ? '#161616' : '#FFFFFF' 
-                }]}>
-                  {/* Debug: Red dot is rendering */}
-                  <Text style={{ fontSize: 8, color: 'white', textAlign: 'center' }}>●</Text>
-                </View>
+                }]} />
               )}
             </View>
 

@@ -12,6 +12,7 @@ import {
   Image,
   Animated
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const { conversation, otherUser } = route.params;
   const { user } = useAuth();
   const { colors } = useColors();
+  const isFocused = useIsFocused();
+  const isFocusedRef = useRef(isFocused);
   
   const { loadUnreadCount, setActiveConversation, clearActiveConversation } = useUnreadMessages();
   const [messages, setMessages] = useState([]);
@@ -33,6 +36,10 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    isFocusedRef.current = isFocused;
+  }, [isFocused]);
 
   useEffect(() => {
     // Marcar esta conversación como activa para evitar incrementar el contador
@@ -142,35 +149,29 @@ const ChatDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     // Escuchar mensajes en tiempo real
     const handleMessageReceived = async (message) => {
-      if (message.conversation === conversation._id) {
-        setMessages(prev => {
-          // Evitar duplicados: remover mensaje temporal si existe
-          const filtered = (Array.isArray(prev) ? prev : []).filter(m => !m.isTemp);
-          // Evitar duplicados: verificar si el mensaje ya existe
-          const exists = filtered.some(m => m._id === message._id);
-          if (exists) {
-            return prev;
-          }
-          return [...filtered, message];
-        });
-        scrollToBottom();
+      if (message.conversation !== conversation._id) return;
 
-        // Marcar como leído automáticamente cuando llega un mensaje nuevo mientras está en el chat
-        // Usar API directamente para asegurar que se marca correctamente
-        try {
-          await apiService.put(`/chat/conversation/${conversation._id}/read`);
-          console.log('✅ [ChatDetailScreen] Mensaje marcado como leído al recibir');
-        } catch (error) {
-          console.error('❌ [ChatDetailScreen] Error al marcar mensaje como leído:', error);
-          // Fallback: usar socket
-          socketService.markMessagesAsRead(conversation._id);
-        }
+      setMessages(prev => {
+        // Evitar duplicados: remover mensaje temporal si existe
+        const filtered = (Array.isArray(prev) ? prev : []).filter(m => !m.isTemp);
+        const exists = filtered.some(m => m._id === message._id);
+        if (exists) return prev;
+        return [...filtered, message];
+      });
+      scrollToBottom();
 
-        // Recargar contador después de marcar como leído
-        setTimeout(() => {
-          loadUnreadCount();
-        }, 500);
+      // Solo marcar como leído si el usuario está viendo el chat (pantalla enfocada)
+      // Evita que al volver a ChatsScreen el handler "fantasma" marque mensajes como leídos
+      if (!isFocusedRef.current) return;
+
+      try {
+        await apiService.put(`/chat/conversation/${conversation._id}/read`);
+        console.log('✅ [ChatDetailScreen] Mensaje marcado como leído al recibir');
+      } catch (error) {
+        console.error('❌ [ChatDetailScreen] Error al marcar mensaje como leído:', error);
+        socketService.markMessagesAsRead(conversation._id);
       }
+      setTimeout(() => loadUnreadCount(), 500);
     };
 
     // Escuchar cuando el otro usuario está escribiendo

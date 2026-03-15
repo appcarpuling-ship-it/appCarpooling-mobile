@@ -21,6 +21,7 @@ const TripRequestsScreen = ({ route }) => {
   const { colors, getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
   const { tripId } = route.params || {};
+  const isDarkMode = getCurrentThemeMode() === 'dark';
 
   const [trips, setTrips] = useState([]);
   const [selectedTripId, setSelectedTripId] = useState(tripId);
@@ -34,10 +35,12 @@ const TripRequestsScreen = ({ route }) => {
   const [pendingCounts, setPendingCounts] = useState({});
 
   useEffect(() => {
+    loadUserTrips();
+  }, []);
+
+  useEffect(() => {
     if (selectedTripId) {
       loadRequests();
-    } else {
-      loadUserTrips();
     }
   }, [selectedTripId]);
 
@@ -47,10 +50,9 @@ const TripRequestsScreen = ({ route }) => {
       if (response.success && response.data.length > 0) {
         const activeTrips = response.data.filter(t => t.status === 'active' || t.status === 'started');
         setTrips(response.data);
-        if (response.data.length === 1) {
+        if (response.data.length === 1 && !selectedTripId) {
           setSelectedTripId(response.data[0]._id);
         }
-        // Cargar pendientes de cada viaje activo en paralelo
         const counts = {};
         await Promise.all(
           activeTrips.map(async (trip) => {
@@ -79,7 +81,6 @@ const TripRequestsScreen = ({ route }) => {
 
   const loadRequests = async () => {
     if (!selectedTripId) return;
-
     setLoading(true);
     try {
       const response = await get_withauth(`/bookings/trip/${selectedTripId}`);
@@ -96,11 +97,8 @@ const TripRequestsScreen = ({ route }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    if (selectedTripId) {
-      loadRequests();
-    } else {
-      loadUserTrips();
-    }
+    if (selectedTripId) loadRequests();
+    else loadUserTrips();
   };
 
   const handleAccept = async (request) => {
@@ -121,14 +119,14 @@ const TripRequestsScreen = ({ route }) => {
               if (isSeatReservation && seatReservationId) {
                 const response = await approveOrRejectReservation(seatReservationId, 'approve');
                 if (response.success) {
-                  showAlert('Aprobado', 'El pasajero recibira una notificacion para completar el pago.', [
+                  showAlert('Aprobado', 'El pasajero recibirá una notificación para completar el pago.', [
                     { text: 'OK', onPress: () => loadRequests() }
                   ]);
                 }
               } else {
                 const response = await put_withauth(`/bookings/${requestId}/confirm`);
                 if (response.success) {
-                  showAlert('Exito', 'Solicitud aceptada');
+                  showAlert('Éxito', 'Solicitud aceptada');
                   loadRequests();
                 }
               }
@@ -145,10 +143,9 @@ const TripRequestsScreen = ({ route }) => {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      showAlert('Error', 'Ingresa una razon para el rechazo');
+      showAlert('Error', 'Ingresa una razón para el rechazo');
       return;
     }
-
     try {
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
       const isSeatReservation = request?.bookingType === 'seat_reservation';
@@ -159,23 +156,15 @@ const TripRequestsScreen = ({ route }) => {
         if (response.success) {
           setRejectModalVisible(false);
           setRejectReason('');
-          const rejectedId = selectedRequest;
           setSelectedRequest(null);
-          setRequests(prev => prev.filter(r => (r._id || r.id) !== rejectedId));
-          showAlert('Exito', 'Solicitud rechazada');
           loadRequests();
         }
       } else {
-        const bookingId = selectedRequest;
-        const response = await put_withauth(`/bookings/${bookingId}/reject`, {
-          reason: rejectReason,
-        });
+        const response = await put_withauth(`/bookings/${selectedRequest}/reject`, { reason: rejectReason });
         if (response.success) {
           setRejectModalVisible(false);
           setRejectReason('');
           setSelectedRequest(null);
-          setRequests(prev => prev.filter(r => (r._id || r.id) !== bookingId));
-          showAlert('Exito', 'Solicitud rechazada');
           loadRequests();
         }
       }
@@ -190,64 +179,56 @@ const TripRequestsScreen = ({ route }) => {
   };
 
   const getStatusConfig = (status) => {
-    switch (status) {
-      case 'pending':
-        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
-      case 'confirmed':
-        return { color: colors.success, bg: colors.success + '20', text: 'Confirmado' };
-      case 'cancelled':
-        return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
-      case 'completed':
-        return { color: colors.info, bg: colors.info + '20', text: 'Completado' };
-      case 'pending_approval':
-        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
-      case 'pending_payment':
-        return { color: colors.warning, bg: colors.warning + '20', text: 'Pago pendiente' };
-      case 'reserved':
-        return { color: colors.success, bg: colors.success + '20', text: 'Confirmada' };
-      case 'accepted':
-        return { color: colors.success, bg: colors.success + '20', text: 'Aceptada' };
-      case 'rejected':
-        return { color: colors.error, bg: colors.error + '20', text: 'Rechazada' };
-      default:
-        return { color: colors.textMuted, bg: colors.border, text: status };
-    }
+    const configs = {
+      pending: { color: '#F59E0B', bg: '#FEF3C7', text: 'Pendiente', icon: 'time-outline' },
+      confirmed: { color: '#10B981', bg: '#D1FAE5', text: 'Confirmado', icon: 'checkmark-circle' },
+      cancelled: { color: '#EF4444', bg: '#FEE2E2', text: 'Cancelado', icon: 'close-circle' },
+      completed: { color: '#3B82F6', bg: '#DBEAFE', text: 'Completado', icon: 'checkmark-done' },
+      pending_approval: { color: '#F59E0B', bg: '#FEF3C7', text: 'Esperando tu aprobación', icon: 'hourglass-outline' },
+      pending_payment: { color: '#8B5CF6', bg: '#EDE9FE', text: 'Pago pendiente', icon: 'card-outline' },
+      reserved: { color: '#10B981', bg: '#D1FAE5', text: 'Confirmada', icon: 'checkmark-circle' },
+      rejected: { color: '#EF4444', bg: '#FEE2E2', text: 'Rechazada', icon: 'close-circle' },
+    };
+    return configs[status] || { color: colors.textMuted, bg: colors.border, text: status, icon: 'help-circle-outline' };
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const options = { weekday: 'short', day: 'numeric', month: 'short' };
-    return date.toLocaleDateString('es-ES', options);
+    return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
   const formatAddress = (address, city, province) => {
     if (!address) return [city, province].filter(Boolean).join(', ');
-
-    // Solo stripea códigos postales con letra prefix (E3202, B1638BIA) — nunca números de calle
     let cleaned = address
       .replace(/\b[A-Za-z]\d{4}[A-Za-z]{0,3}\b,?\s*/g, '')
-      .replace(/,?\s*Argentina\s*$/i, '')  // quita "Argentina" del final
+      .replace(/,?\s*Argentina\s*$/i, '')
       .replace(/,\s*,/g, ',')
       .replace(/,\s*$/, '')
       .trim();
-
-    // Si la ciudad ya está dentro del address, no la concatenamos de nuevo
     const cityIncluded = city && cleaned.toLowerCase().includes(city.toLowerCase());
     if (cityIncluded) return cleaned;
-
     return [cleaned, city, province].filter(Boolean).join(', ');
   };
 
+  const formatCurrency = (num) => {
+    if (num == null || isNaN(num)) return '-';
+    return '$' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const pendingRequests = requests.filter(r => {
+    const rs = r.seatReservation?.reservationStatus || r.status;
+    return rs === 'pending_approval' || rs === 'pending';
+  });
+  const selectedTrip = trips.find(t => t._id === selectedTripId);
+
   const renderRequestItem = ({ item }) => {
     if (!item.passenger || !item.passenger._id) {
-    return (
-      <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
-        <View style={styles.passengerSection}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-            <Ionicons name="person" size={24} color={colors.textPrimary} />
+      return (
+        <View style={[styles.requestCard, { backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF' }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#333' : '#F3F4F6' }]}>
+            <Ionicons name="person" size={28} color={colors.textMuted} />
           </View>
           <Text style={[styles.passengerName, { color: colors.textPrimary }]}>Usuario no disponible</Text>
-          </View>
         </View>
       );
     }
@@ -256,171 +237,224 @@ const TripRequestsScreen = ({ route }) => {
     const reservationStatus = item.seatReservation?.reservationStatus || item.status;
     const statusConfig = getStatusConfig(reservationStatus);
     const isPending = reservationStatus === 'pending_approval' || reservationStatus === 'pending';
+    const reservationAmount = item.seatReservation?.reservationAmount;
 
     return (
-      <View style={[styles.card, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}>
-        {/* Passenger Info */}
-        <View style={styles.passengerSection}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-              <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>
-                {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
-              </Text>
-            </View>
-          )}
-          <View style={styles.passengerInfo}>
-            <Text style={[styles.passengerName, { color: colors.textPrimary }]}>
-              {item.passenger?.firstName} {item.passenger?.lastName}
-            </Text>
-            {item.passenger?.city && (
-              <Text style={[styles.passengerLocation, { color: colors.textSecondary }]}>
-                {item.passenger.city}, {item.passenger.province}
-              </Text>
+      <View style={[
+        styles.requestCard,
+        {
+          backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF',
+          borderLeftWidth: 4,
+          borderLeftColor: isPending ? '#F59E0B' : statusConfig.color,
+        }
+      ]}>
+        {/* Header: Avatar + Info + Status */}
+        <View style={styles.cardHeader}>
+          <View style={styles.passengerRow}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#333' : '#EEF2FF' }]}>
+                <Text style={[styles.avatarInitials, { color: isDarkMode ? '#A5B4FC' : '#6366F1' }]}>
+                  {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
+                </Text>
+              </View>
             )}
+            <View style={styles.passengerInfo}>
+              <Text style={[styles.passengerName, { color: colors.textPrimary }]}>
+                {item.passenger?.firstName} {item.passenger?.lastName}
+              </Text>
+              {item.passenger?.city && (
+                <Text style={[styles.passengerLocation, { color: colors.textSecondary }]}>
+                  {item.passenger.city}{item.passenger.province ? `, ${item.passenger.province}` : ''}
+                </Text>
+              )}
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.text}
-            </Text>
+          <View style={[styles.statusChip, { backgroundColor: isDarkMode ? statusConfig.color + '30' : statusConfig.bg }]}>
+            <Ionicons name={statusConfig.icon} size={12} color={statusConfig.color} />
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.text}</Text>
           </View>
         </View>
 
-        {/* Details */}
-        <View style={[styles.detailsSection, { borderBottomColor: colors.border }]}>
-          <View style={styles.detailItem}>
-            <Ionicons name="people-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-              {item.seatsBooked || item.seatsRequested} {(item.seatsBooked || item.seatsRequested) === 1 ? 'asiento' : 'asientos'}
+        {/* Details row */}
+        <View style={[styles.detailsRow, { borderTopColor: isDarkMode ? '#333' : '#F3F4F6' }]}>
+          <View style={styles.detailChip}>
+            <Ionicons name="people" size={14} color={colors.textMuted} />
+            <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
+              {item.seatsBooked || item.seatsRequested} asiento{(item.seatsBooked || item.seatsRequested) === 1 ? '' : 's'}
             </Text>
           </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-              {formatDate(item.createdAt)}
-            </Text>
+          <View style={styles.detailChip}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+            <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{formatDate(item.createdAt)}</Text>
           </View>
+          {reservationAmount != null && (
+            <View style={[styles.detailChip, styles.amountChip]}>
+              <Ionicons name="cash-outline" size={14} color="#10B981" />
+              <Text style={[styles.detailChipText, { color: '#10B981', fontWeight: '600' }]}>
+                {formatCurrency(reservationAmount)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Message */}
         {item.message && (
-          <View style={[styles.messageSection, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-            <Ionicons name="chatbubble-outline" size={14} color={colors.textMuted} />
-            <Text style={[styles.messageText, { color: colors.textSecondary }]}>{item.message}</Text>
+          <View style={[styles.messageBubble, { backgroundColor: isDarkMode ? '#292929' : '#F9FAFB' }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.messageText, { color: colors.textSecondary }]} numberOfLines={3}>{item.message}</Text>
           </View>
         )}
 
         {/* Actions */}
         {isPending && (
-          <View style={styles.actionsSection}>
+          <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={[styles.acceptButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? colors.textSecondary : '#000000' }]}
+              style={[styles.acceptBtn, { backgroundColor: isDarkMode ? '#10B981' : '#059669' }]}
               onPress={() => handleAccept(item)}
               disabled={acceptingRequestId === (item._id || item.id)}
+              activeOpacity={0.8}
             >
               {acceptingRequestId === (item._id || item.id) ? (
-                <ActivityIndicator 
-                  size="small" 
-                  color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#FFFFFF'} 
-                />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={18} color={getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF'} />
-                  <Text style={[styles.acceptButtonText, { color: getCurrentThemeMode() === 'dark' ? colors.cardBackground : '#FFFFFF' }]}>Aceptar</Text>
+                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  <Text style={styles.acceptBtnText}>Aceptar</Text>
                 </>
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.rejectButton, { backgroundColor: colors.error + '20' }]}
+              style={[styles.rejectBtn, { backgroundColor: isDarkMode ? '#EF444420' : '#FEE2E2' }]}
               onPress={() => openRejectModal(item._id)}
+              activeOpacity={0.8}
             >
-              <Ionicons name="close" size={18} color={colors.error} />
-              <Text style={[styles.rejectButtonText, { color: colors.error }]}>Rechazar</Text>
+              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+              <Text style={[styles.rejectBtnText, { color: '#EF4444' }]}>Rechazar</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Rejection Reason */}
         {item.status === 'rejected' && item.rejectionReason && (
-          <View style={[styles.rejectionSection, { backgroundColor: colors.error + '20', borderLeftColor: colors.error }]}>
-            <Text style={[styles.rejectionText, { color: colors.error }]}>Razon: {item.rejectionReason}</Text>
+          <View style={[styles.rejectionBubble, { borderLeftColor: '#EF4444' }]}>
+            <Text style={[styles.rejectionText, { color: colors.textSecondary }]}>Razón: {item.rejectionReason}</Text>
           </View>
         )}
       </View>
     );
   };
 
-  const renderTripSelector = () => (
-    <View style={[styles.selectorContainer, { backgroundColor: colors.background }]}>
-      {/* <Text style={[styles.selectorTitle, { color: colors.textPrimary }]}>Selecciona un viaje</Text> */}
-      {/* <Text style={[styles.selectorSubtitle, { color: colors.textSecondary }]}>
-        Elige el viaje del cual quieres ver las solicitudes
-      </Text> */}
+  const renderTripChip = ({ item }) => {
+    const isSelected = item._id === selectedTripId;
+    const pending = pendingCounts[item._id] || 0;
 
-      <FlatList
-        data={trips}
-        keyExtractor={(item) => item._id}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'}
-          />
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.tripCard, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
-            onPress={() => setSelectedTripId(item._id)}
-          >
-            <View style={styles.tripRoute}>
-              <View style={styles.routeRow}>
-                <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{formatAddress(item.origin?.address, item.origin?.city, item.origin?.province)}</Text>
-              </View>
-              <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-              <View style={styles.routeRow}>
-                <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.error }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{formatAddress(item.destination?.address, item.destination?.city, item.destination?.province)}</Text>
-              </View>
+    return (
+      <TouchableOpacity
+        style={[
+          styles.tripCard,
+          {
+            backgroundColor: isSelected ? (isDarkMode ? '#6366F1' : '#4F46E5') : (isDarkMode ? '#1F1F1F' : '#FFFFFF'),
+            borderColor: isSelected ? (isDarkMode ? '#6366F1' : '#4F46E5') : colors.border,
+          }
+        ]}
+        onPress={() => setSelectedTripId(item._id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.tripCardRoute}>
+          <View style={styles.tripCardRouteRow}>
+            <View style={[styles.tripCardDot, { backgroundColor: '#10B981' }]} />
+            <Text style={[styles.tripCardCity, { color: isSelected ? '#FFF' : colors.textPrimary }]} numberOfLines={1}>
+              {formatAddress(item.origin?.address, item.origin?.city, item.origin?.province)}
+            </Text>
+          </View>
+          <View style={[styles.tripCardLine, { backgroundColor: isSelected ? 'rgba(255,255,255,0.5)' : colors.border }]} />
+          <View style={styles.tripCardRouteRow}>
+            <View style={[styles.tripCardDot, styles.tripCardDotDest, { borderColor: '#EF4444' }]} />
+            <Text style={[styles.tripCardCity, { color: isSelected ? '#FFF' : colors.textPrimary }]} numberOfLines={1}>
+              {formatAddress(item.destination?.address, item.destination?.city, item.destination?.province)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.tripCardFooter}>
+          <View style={styles.tripCardMeta}>
+            <Ionicons name="calendar-outline" size={14} color={isSelected ? 'rgba(255,255,255,0.8)' : colors.textMuted} />
+            <Text style={[styles.tripCardDate, { color: isSelected ? 'rgba(255,255,255,0.9)' : colors.textSecondary }]}>
+              {formatDate(item.departureDate)} · {item.departureTime}
+            </Text>
+          </View>
+          {pending > 0 && (
+            <View style={[styles.pendingPill, { backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#FEF3C7' }]}>
+              <Text style={[styles.pendingPillText, { color: isSelected ? '#FFF' : '#B45309' }]}>
+                {pending} pendiente{pending > 1 ? 's' : ''}
+              </Text>
             </View>
-            <View style={styles.tripCardFooter}>
-              <View style={styles.tripMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.departureDate)}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.departureTime}</Text>
-                </View>
-              </View>
-              {pendingCounts[item._id] > 0 && (
-                <View style={styles.pendingBadge}>
-                  <Text style={styles.pendingBadgeText}>{pendingCounts[item._id]}</Text>
-                  <Text style={styles.pendingBadgeLabel}> pendiente{pendingCounts[item._id] > 1 ? 's' : ''}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.tripList}
-      />
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderEmptyState = (icon, title, subtitle) => (
+    <View style={styles.emptyState}>
+      <View style={[styles.emptyIconWrap, { backgroundColor: isDarkMode ? '#262626' : '#F3F4F6' }]}>
+        <Ionicons name={icon} size={56} color={colors.textMuted} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
     </View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary} />
+        <ActivityIndicator size="large" color={isDarkMode ? '#6366F1' : '#4F46E5'} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Cargando solicitudes...</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header con resumen */}
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        {selectedTripId && trips.length > 1 && (
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => setSelectedTripId(null)}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.headerContent}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            {selectedTripId ? 'Solicitudes' : 'Mis viajes'}
+          </Text>
+          {selectedTripId && (
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              {pendingRequests.length > 0
+                ? `${pendingRequests.length} esperando tu respuesta`
+                : `${requests.length} solicitud${requests.length !== 1 ? 'es' : ''} en total`}
+            </Text>
+          )}
+        </View>
+      </View>
+
       {!selectedTripId && trips.length > 0 ? (
-        renderTripSelector()
+        <FlatList
+          data={trips.filter(t => t.status === 'active' || t.status === 'started')}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => renderTripChip({ item })}
+          contentContainerStyle={styles.tripListContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textPrimary} />
+          }
+          ListHeaderComponent={
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              Elige un viaje para ver sus solicitudes
+            </Text>
+          }
+        />
       ) : selectedTripId && requests.length > 0 ? (
         <FlatList
           data={requests}
@@ -428,56 +462,45 @@ const TripRequestsScreen = ({ route }) => {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={getCurrentThemeMode() === 'dark' ? '#292929' : colors.primary}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textPrimary} />
+          }
+          ListHeaderComponent={
+            selectedTrip && (
+              <View style={[styles.selectedTripBanner, { backgroundColor: isDarkMode ? '#1E1B4B' : '#EEF2FF' }]}>
+                <View style={styles.selectedTripInfo}>
+                  <View style={styles.selectedTripRoute}>
+                    <Text style={[styles.selectedTripCity, { color: isDarkMode ? '#A5B4FC' : '#4F46E5' }]} numberOfLines={1}>
+                      {selectedTrip.origin?.city} → {selectedTrip.destination?.city}
+                    </Text>
+                    <Text style={[styles.selectedTripDate, { color: colors.textSecondary }]}>
+                      {formatDate(selectedTrip.departureDate)} · {selectedTrip.departureTime}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )
           }
         />
       ) : selectedTripId ? (
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-            <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin solicitudes</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Las solicitudes para este viaje apareceran aqui
-          </Text>
-        </View>
+        renderEmptyState('people-outline', 'Sin solicitudes', 'Las solicitudes para este viaje aparecerán aquí')
       ) : (
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-            <Ionicons name="car-outline" size={48} color={colors.textMuted} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin viajes</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Crea un viaje para recibir solicitudes
-          </Text>
-        </View>
+        renderEmptyState('car-outline', 'Sin viajes activos', 'Crea un viaje para recibir solicitudes de reserva')
       )}
 
-      {/* Reject Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={rejectModalVisible}
-        onRequestClose={() => setRejectModalVisible(false)}
-      >
+      {/* Modal Rechazar */}
+      <Modal animationType="fade" transparent visible={rejectModalVisible} onRequestClose={() => setRejectModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Rechazar solicitud</Text>
               <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
-
-            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Indica la razon del rechazo:</Text>
-
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Indica la razón del rechazo:</Text>
             <TextInput
-              style={[styles.textArea, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
-              placeholder="Escribe la razon aqui..."
+              style={[styles.textArea, { backgroundColor: isDarkMode ? '#292929' : '#F9FAFB', borderColor: colors.border, color: colors.textPrimary }]}
+              placeholder="Escribe la razón aquí..."
               placeholderTextColor={colors.textMuted}
               value={rejectReason}
               onChangeText={setRejectReason}
@@ -485,19 +508,15 @@ const TripRequestsScreen = ({ route }) => {
               numberOfLines={4}
               textAlignVertical="top"
             />
-
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
+                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
                 onPress={() => setRejectModalVisible(false)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirmButton, { backgroundColor: colors.error }]}
-                onPress={handleReject}
-              >
-                <Text style={[styles.modalConfirmText, { color: colors.textPrimary }]}>Rechazar</Text>
+              <TouchableOpacity style={[styles.modalConfirmBtn, { backgroundColor: '#EF4444' }]} onPress={handleReject}>
+                <Text style={styles.modalConfirmText}>Rechazar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -508,250 +527,285 @@ const TripRequestsScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
   },
-  listContent: {
-    padding: 16,
-  },
-  // Card
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  // Passenger
-  passengerSection: {
+  loadingText: { fontSize: 14 },
+
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 8,
+    borderBottomWidth: 1,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerContent: { flex: 1 },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+
+  tripListContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  sectionLabel: {
+    fontSize: 14,
     marginBottom: 16,
   },
+  tripCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+  },
+  tripCardRoute: {
+    marginBottom: 12,
+  },
+  tripCardRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tripCardDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  tripCardDotDest: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+  },
+  tripCardLine: {
+    width: 2,
+    height: 16,
+    marginLeft: 4,
+    marginVertical: 4,
+  },
+  tripCardCity: {
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+  },
+  tripCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tripCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tripCardDate: {
+    fontSize: 13,
+  },
+  pendingPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pendingPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  selectedTripBanner: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  selectedTripInfo: { flex: 1 },
+  selectedTripRoute: { gap: 4 },
+  selectedTripCity: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  selectedTripDate: {
+    fontSize: 13,
+  },
+
+  requestCard: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  passengerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   passengerInfo: {
+    marginLeft: 14,
     flex: 1,
-    marginLeft: 12,
   },
   passengerName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   passengerLocation: {
     fontSize: 13,
     marginTop: 2,
   },
-  statusBadge: {
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 6,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  // Details
-  detailsSection: {
+  detailsRow: {
     flexDirection: 'row',
-    gap: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
   },
-  detailItem: {
+  detailChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  detailText: {
-    fontSize: 14,
+  detailChipText: {
+    fontSize: 13,
   },
-  // Message
-  messageSection: {
+  amountChip: {
+    marginLeft: 'auto',
+  },
+  messageBubble: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 12,
+    gap: 10,
+    marginTop: 14,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   messageText: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
   },
-  // Actions
-  actionsSection: {
+  actionsRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 16,
   },
-  acceptButton: {
+  acceptBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
-  acceptButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  acceptBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  rejectButton: {
+  rejectBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
-  rejectButtonText: {
-    fontSize: 14,
+  rejectBtnText: {
+    fontSize: 15,
     fontWeight: '600',
   },
-  // Rejection
-  rejectionSection: {
+  rejectionBubble: {
     marginTop: 12,
     padding: 12,
     borderRadius: 8,
     borderLeftWidth: 3,
+    backgroundColor: 'rgba(239,68,68,0.08)',
   },
   rejectionText: {
     fontSize: 13,
     fontStyle: 'italic',
   },
-  // Trip Selector
-  selectorContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  selectorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  selectorSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  tripList: {
-    paddingBottom: 16,
-  },
-  tripCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  tripRoute: {
-    marginBottom: 12,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routeDotDestination: {
-    borderWidth: 2,
-  },
-  routeLine: {
-    width: 2,
-    height: 16,
-    marginLeft: 4,
-    marginVertical: 4,
-  },
-  routeCity: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  tripCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  tripMeta: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EF444420',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  pendingBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#EF4444',
-  },
-  pendingBadgeLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#EF4444',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-  },
-  // Empty
-  emptyContainer: {
+
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 40,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  emptyIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
     textAlign: 'center',
   },
-  // Modal
+  emptySubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -760,7 +814,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -772,17 +826,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
   },
   modalSubtitle: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   textArea: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
     fontSize: 15,
     minHeight: 100,
     marginBottom: 20,
@@ -791,10 +845,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  modalCancelButton: {
+  modalCancelBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
   },
@@ -802,15 +856,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  modalConfirmButton: {
+  modalConfirmBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
   modalConfirmText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

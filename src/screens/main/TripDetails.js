@@ -50,7 +50,7 @@ const TripDetails = ({ navigation, route }) => {
 
     const onDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
-        if (selectedDate && event.type === 'set') {
+        if (selectedDate && event?.type === 'set') {
             setDate(selectedDate);
             const year = selectedDate.getFullYear();
             const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -62,7 +62,7 @@ const TripDetails = ({ navigation, route }) => {
 
     const onTimeChange = (event, selectedTime) => {
         setShowTimePicker(false);
-        if (selectedTime && event.type === 'set') {
+        if (selectedTime && event?.type === 'set') {
             setTime(selectedTime);
             const hours = selectedTime.getHours().toString().padStart(2, '0');
             const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
@@ -412,8 +412,17 @@ const TripDetails = ({ navigation, route }) => {
                 </Modal>
             </SafeAreaView>
 
-            {/* Date Picker */}
-            {showDatePicker && (
+            {/* Date Picker - Android: diálogo nativo sin Modal. iOS: Modal con botones */}
+            {Platform.OS === 'android' && showDatePicker && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                />
+            )}
+            {Platform.OS === 'ios' && (
                 <Modal
                     transparent
                     animationType="fade"
@@ -429,11 +438,9 @@ const TripDetails = ({ navigation, route }) => {
                                 <DateTimePicker
                                     value={date}
                                     mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    display="spinner"
                                     onChange={(event, selectedDate) => {
-                                        if (selectedDate) {
-                                            setDate(selectedDate);
-                                        }
+                                        if (selectedDate) setDate(selectedDate);
                                     }}
                                     minimumDate={new Date()}
                                     textColor={'#FFFFFF'}
@@ -448,9 +455,7 @@ const TripDetails = ({ navigation, route }) => {
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     style={styles.pickerButton}
-                                    onPress={() => {
-                                        onDateChange({ type: 'set' }, date);
-                                    }}
+                                    onPress={() => onDateChange({ type: 'set' }, date)}
                                 >
                                     <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
                                 </TouchableOpacity>
@@ -460,8 +465,16 @@ const TripDetails = ({ navigation, route }) => {
                 </Modal>
             )}
 
-            {/* Time Picker */}
-            {showTimePicker && (
+            {/* Time Picker - Android: diálogo nativo sin Modal. iOS: Modal con botones */}
+            {Platform.OS === 'android' && showTimePicker && (
+                <DateTimePicker
+                    value={time}
+                    mode="time"
+                    display="default"
+                    onChange={onTimeChange}
+                />
+            )}
+            {Platform.OS === 'ios' && (
                 <Modal
                     transparent
                     animationType="fade"
@@ -477,11 +490,9 @@ const TripDetails = ({ navigation, route }) => {
                                 <DateTimePicker
                                     value={time}
                                     mode="time"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    display="spinner"
                                     onChange={(event, selectedTime) => {
-                                        if (selectedTime) {
-                                            setTime(selectedTime);
-                                        }
+                                        if (selectedTime) setTime(selectedTime);
                                     }}
                                     textColor={'#FFFFFF'}
                                 />
@@ -495,9 +506,7 @@ const TripDetails = ({ navigation, route }) => {
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     style={styles.pickerButton}
-                                    onPress={() => {
-                                        onTimeChange({ type: 'set' }, time);
-                                    }}
+                                    onPress={() => onTimeChange({ type: 'set' }, time)}
                                 >
                                     <Text style={[styles.pickerButtonText, styles.pickerConfirmText, { color: '#FFFFFF' }]}>Confirmar</Text>
                                 </TouchableOpacity>
