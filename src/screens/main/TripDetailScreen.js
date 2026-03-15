@@ -348,6 +348,13 @@ const TripDetailScreen = ({ route, navigation }) => {
         setShowCostModal(false);
         const total = cost + pay;
         showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
+        // Actualizar trip local con datos del response (asegura que el precio aparezca de inmediato)
+        if (response.data) {
+          const updatedTrip = response.data.trip || response.data;
+          const actualCostVal = updatedTrip?.actualCost ?? response.data.actualCost ?? cost;
+          const driverPayVal = updatedTrip?.driverPay ?? response.data.driverPay ?? pay;
+          setTrip(prev => prev ? { ...prev, ...updatedTrip, actualCost: actualCostVal, driverPay: driverPayVal, status: 'completed' } : prev);
+        }
         await loadTripDetail();
         await refreshUser();
       } else {
@@ -474,8 +481,8 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Actual Cost */}
-        {(trip.status === 'started' || trip.status === 'completed') && trip.actualCost > 0 && (
+        {/* Actual Cost - mostrar cuando el viaje está iniciado/completado y hay costo */}
+        {(trip.status === 'started' || trip.status === 'completed') && (Number(trip.actualCost) > 0 || (trip.status === 'completed' && Number(trip.estimatedCost) > 0)) && (
           <View style={[styles.costBanner, { backgroundColor: colors.success + '20' }]}>
             <Ionicons name="cash-outline" size={20} color={colors.success} />
             <Text style={[styles.costLabel, { color: colors.success }]}>
@@ -483,11 +490,20 @@ const TripDetailScreen = ({ route, navigation }) => {
             </Text>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={[styles.costValue, { color: colors.success }]}>
-                ${formatNumber(trip.actualCost + (trip.driverPay || 0))}
+                ${formatNumber(
+                  Number(trip.actualCost) > 0
+                    ? (Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0)
+                    : Number(trip.estimatedCost) || 0
+                )}
               </Text>
-              {trip.driverPay > 0 && (
+              {Number(trip.actualCost) > 0 && Number(trip.driverPay) > 0 && (
                 <Text style={[styles.costSubtext, { color: colors.success }]}>
                   Gastos ${formatNumber(trip.actualCost)} + Paga ${formatNumber(trip.driverPay)}
+                </Text>
+              )}
+              {trip.status === 'completed' && !(Number(trip.actualCost) > 0) && Number(trip.estimatedCost) > 0 && (
+                <Text style={[styles.costSubtext, { color: colors.success }]}>
+                  (Estimado - costo real no registrado)
                 </Text>
               )}
             </View>
