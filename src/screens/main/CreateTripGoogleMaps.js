@@ -233,11 +233,11 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
           .map(waypoint => `${waypoint.latitude},${waypoint.longitude}`);
         
         if (waypointCoords.length > 0) {
-          waypointsParam = `&waypoints=${waypointCoords.join('|')}`;
+          waypointsParam = `&waypoints=${encodeURIComponent(waypointCoords.join('|'))}`;
         }
       }
 
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}${waypointsParam}&key=${GOOGLE_MAPS_API_KEY}`;
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
 
       const response = await fetch(url);
 
@@ -247,14 +247,41 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
 
       if (!isMounted.current) return;
 
+      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        console.warn('⚠️ Directions API:', data.status, data.error_message || '');
+      }
+
       if (data.routes && Array.isArray(data.routes) && data.routes.length > 0) {
         const route = data.routes[0];
-        if (route.overview_polyline && route.overview_polyline.points) {
-          const points = decodePolyline(route.overview_polyline.points);
+        let points = [];
+
+        // Usar polylines detallados de cada step (siguen las calles con precisión)
+        if (route.legs && route.legs.length > 0) {
+          const allPoints = [];
+          route.legs.forEach(leg => {
+            if (leg.steps && Array.isArray(leg.steps)) {
+              leg.steps.forEach(step => {
+                if (step.polyline && step.polyline.points) {
+                  const stepPoints = decodePolyline(step.polyline.points);
+                  allPoints.push(...stepPoints);
+                }
+              });
+            }
+          });
+          if (allPoints.length > 0) {
+            points = allPoints;
+          }
+        }
+
+        // Fallback al overview simplificado si no hay steps
+        if (points.length === 0 && route.overview_polyline && route.overview_polyline.points) {
+          points = decodePolyline(route.overview_polyline.points);
+        }
+
+        if (points.length > 0) {
           setRouteCoordinates(points);
 
           if (route.legs && route.legs.length > 0) {
-            // Sumar todos los legs (tramos) para obtener distancia y duración total
             let totalDistanceValue = 0;
             let totalDurationValue = 0;
             let distanceText = '';
@@ -269,14 +296,12 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
               }
             });
             
-            // Convertir metros a km
             if (totalDistanceValue >= 1000) {
               distanceText = `${(totalDistanceValue / 1000).toFixed(1)} km`;
             } else {
               distanceText = `${totalDistanceValue} m`;
             }
             
-            // Convertir segundos a minutos/horas
             if (totalDurationValue >= 3600) {
               const hours = Math.floor(totalDurationValue / 3600);
               const minutes = Math.floor((totalDurationValue % 3600) / 60);
@@ -290,7 +315,7 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
             setDuration(durationText);
           }
 
-          if (mapRef.current && isMounted.current && points.length > 0) {
+          if (mapRef.current && isMounted.current) {
             setTimeout(() => {
               if (mapRef.current && isMounted.current) {
                 mapRef.current.fitToCoordinates(points, {
