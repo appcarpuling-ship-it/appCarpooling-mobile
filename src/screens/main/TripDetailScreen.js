@@ -472,7 +472,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={[styles.costBanner, { backgroundColor: colors.success + '20' }]}>
             <Ionicons name="cash-outline" size={20} color={colors.success} />
             <Text style={[styles.costLabel, { color: colors.success }]}>
-              {trip.driverPay > 0 ? 'Costo + Tu paga' : 'Costo final'}
+              Costo total del viaje
             </Text>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={[styles.costValue, { color: colors.success }]}>
@@ -480,7 +480,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               </Text>
               {trip.driverPay > 0 && (
                 <Text style={[styles.costSubtext, { color: colors.success }]}>
-                  ${formatNumber(trip.actualCost)} + ${formatNumber(trip.driverPay)}
+                  Gastos ${formatNumber(trip.actualCost)} + Paga ${formatNumber(trip.driverPay)}
                 </Text>
               )}
             </View>
