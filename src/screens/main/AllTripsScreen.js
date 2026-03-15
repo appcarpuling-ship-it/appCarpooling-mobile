@@ -195,22 +195,23 @@ const AllTripsScreen = ({ navigation }) => {
       const formatAddress = (location) => {
         if (!location) return 'Dirección no disponible';
         
-        const street = location.street || location.address || '';
-        const number = location.number || location.streetNumber || '';
+        let raw = location.street || location.address || '';
+        // Quitar códigos postales argentinos (ej: E3205CUP, E3202, E3202ARN)
+        raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+        
         const city = location.city || location.name || '';
         const province = location.province || '';
         
         let address = '';
-        if (street) {
-          address += street;
-          if (number) address += ` ${number}`;
+        if (raw) {
+          address = raw;
         } else if (city) {
-          address += city;
+          address = city;
         }
         
-        if (province && address) {
+        if (province && address && !address.includes(province)) {
           address += `, ${province}`;
-        } else if (province) {
+        } else if (province && !address) {
           address = province;
         }
         
@@ -554,19 +555,20 @@ const AllTripsScreen = ({ navigation }) => {
                   {minAvailableSeats ? `${minAvailableSeats} lugares` : 'Asientos'}
                 </Text>
               </TouchableOpacity>
-
-              {/* Clear */}
-              {hasActiveFilters && (
-                <TouchableOpacity style={styles.clearChip} onPress={clearFilters} activeOpacity={0.7}>
-                  <Ionicons name="close-circle" size={14} color={isDarkMode ? '#EF4444' : '#DC2626'} />
-                  <Text style={[styles.clearChipText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>Limpiar</Text>
-                </TouchableOpacity>
-              )}
             </ScrollView>
 
-            <Text style={[styles.resultsCount, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
-              {filteredTrips.length} viaje{filteredTrips.length !== 1 ? 's' : ''} encontrado{filteredTrips.length !== 1 ? 's' : ''}
-            </Text>
+            {/* Fila siempre visible: resultados + Limpiar filtros */}
+            <View style={styles.resultsRow}>
+              <Text style={[styles.resultsCount, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
+                {filteredTrips.length} viaje{filteredTrips.length !== 1 ? 's' : ''} encontrado{filteredTrips.length !== 1 ? 's' : ''}
+              </Text>
+              {hasActiveFilters && (
+                <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters} activeOpacity={0.7}>
+                  <Ionicons name="close-circle" size={16} color={isDarkMode ? '#EF4444' : '#DC2626'} />
+                  <Text style={[styles.clearFiltersButtonText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>Limpiar filtros</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Trip List */}
@@ -749,23 +751,28 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: '#FFFFFF',
   },
-  clearChip: {
+  resultsRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: 4,
-  },
-  clearChipText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: '#EF4444',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   resultsCount: {
     fontSize: fontSize.xs,
     color: '#6B7280',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  clearFiltersButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semiBold,
   },
 
   // List
