@@ -41,6 +41,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
   const [actualCost, setActualCost] = useState('');
+  const [driverPay, setDriverPay] = useState('');
   const [startingTrip, setStartingTrip] = useState(false);
   const [passengers, setPassengers] = useState([]);
 
@@ -323,6 +324,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleCompleteTrip = () => {
     setActualCost('');
+    setDriverPay('');
     setShowCostModal(true);
   };
 
@@ -332,11 +334,13 @@ const TripDetailScreen = ({ route, navigation }) => {
       showAlert('Error', 'Ingresa un costo valido mayor a 0');
       return;
     }
+    const pay = parseFloat(driverPay) || 0;
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
         setShowCostModal(false);
-        showAlert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
+        const total = cost + pay;
+        showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
         await loadTripDetail();
         await refreshUser();
       } else {
@@ -467,8 +471,19 @@ const TripDetailScreen = ({ route, navigation }) => {
         {(trip.status === 'started' || trip.status === 'completed') && trip.actualCost > 0 && (
           <View style={[styles.costBanner, { backgroundColor: colors.success + '20' }]}>
             <Ionicons name="cash-outline" size={20} color={colors.success} />
-            <Text style={[styles.costLabel, { color: colors.success }]}>Costo final</Text>
-            <Text style={[styles.costValue, { color: colors.success }]}>${formatNumber(trip.actualCost)}</Text>
+            <Text style={[styles.costLabel, { color: colors.success }]}>
+              {trip.driverPay > 0 ? 'Costo + Tu paga' : 'Costo final'}
+            </Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={[styles.costValue, { color: colors.success }]}>
+                ${formatNumber(trip.actualCost + (trip.driverPay || 0))}
+              </Text>
+              {trip.driverPay > 0 && (
+                <Text style={[styles.costSubtext, { color: colors.success }]}>
+                  ${formatNumber(trip.actualCost)} + ${formatNumber(trip.driverPay)}
+                </Text>
+              )}
+            </View>
           </View>
         )}
 
@@ -765,6 +780,17 @@ const TripDetailScreen = ({ route, navigation }) => {
               onChangeText={setActualCost}
               autoFocus
             />
+            <Text style={[styles.costModalSubtitle, { color: colors.textSecondary, marginTop: 12 }]}>
+              Contribución extra (tu paga)
+            </Text>
+            <TextInput
+              style={[styles.costInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', marginTop: 4 }]}
+              placeholder={actualCost ? `Ej: ${Math.round(parseFloat(actualCost) * 0.15)} (~15%)` : 'Ej: 500'}
+              placeholderTextColor={colors.textMuted}
+              keyboardType="decimal-pad"
+              value={driverPay}
+              onChangeText={setDriverPay}
+            />
             <View style={styles.costModalActions}>
               <TouchableOpacity
                 style={[styles.costModalCancel, { borderColor: colors.border }]}
@@ -1004,6 +1030,10 @@ const styles = StyleSheet.create({
   costValue: {
     fontSize: 18,
     fontWeight: '700',
+  },
+  costSubtext: {
+    fontSize: 11,
+    marginTop: 2,
   },
   // Driver
   driverSection: {

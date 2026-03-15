@@ -30,6 +30,7 @@ const MyTripsScreen = ({ navigation }) => {
   const [showCostModal, setShowCostModal] = useState(false);
   const [completingTripId, setCompletingTripId] = useState(null);
   const [actualCost, setActualCost] = useState('');
+  const [driverPay, setDriverPay] = useState('');
 
   useEffect(() => {
     loadMyTrips();
@@ -121,7 +122,14 @@ const MyTripsScreen = ({ navigation }) => {
   const handleCompleteTrip = (tripId) => {
     setCompletingTripId(tripId);
     setActualCost('');
+    setDriverPay('');
     setShowCostModal(true);
+  };
+
+  const formatNumber = (num) => {
+    if (typeof num !== 'number') num = parseFloat(num);
+    if (isNaN(num)) return num;
+    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
   const submitCompleteTrip = async () => {
@@ -130,12 +138,14 @@ const MyTripsScreen = ({ navigation }) => {
       showAlert('Error', 'Ingresa un costo valido mayor a 0');
       return;
     }
+    const pay = parseFloat(driverPay) || 0;
 
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
         setShowCostModal(false);
-        showAlert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
+        const total = cost + pay;
+        showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
         loadMyTrips();
         await refreshUser();
       } else {
@@ -403,6 +413,18 @@ const MyTripsScreen = ({ navigation }) => {
               value={actualCost}
               onChangeText={setActualCost}
               autoFocus
+            />
+
+            <Text style={[styles.modalSubtitle, { color: colors.textTertiary, marginTop: 12 }]}>
+              Contribución extra (tu paga)
+            </Text>
+            <TextInput
+              style={[styles.costInput, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground, marginTop: 4 }]}
+              placeholder={actualCost ? `Ej: ${Math.round(parseFloat(actualCost) * 0.15)} (~15%)` : 'Ej: 500'}
+              placeholderTextColor={colors.placeholder}
+              keyboardType="decimal-pad"
+              value={driverPay}
+              onChangeText={setDriverPay}
             />
 
             <View style={styles.modalActions}>
