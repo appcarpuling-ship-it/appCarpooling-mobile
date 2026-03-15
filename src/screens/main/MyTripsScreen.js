@@ -55,6 +55,22 @@ const MyTripsScreen = ({ navigation }) => {
     loadMyTrips();
   };
 
+  const formatAddress = (location) => {
+    if (!location) return '';
+    let raw = location.address || location.street || '';
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    const city = location.city || location.name || '';
+    const province = location.province || '';
+    // Si raw ya contiene ciudad y provincia (ej: "Bolivia, Concordia, Entre Ríos, Argentina"), no duplicar
+    const rawLower = raw.toLowerCase();
+    const cityInRaw = city && rawLower.includes(city.toLowerCase());
+    const provinceInRaw = province && rawLower.includes(province.toLowerCase());
+    if (cityInRaw && (provinceInRaw || !province)) {
+      return raw.replace(/,?\s*Argentina\s*$/i, '').replace(/,\s*$/, '').trim();
+    }
+    return [raw, city, province].filter(Boolean).join(', ');
+  };
+
   const handleCancelTrip = (tripId) => {
     showAlert(
       'Cancelar Viaje',
@@ -228,14 +244,14 @@ const MyTripsScreen = ({ navigation }) => {
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, { backgroundColor: colors.textPrimary }]} />
             <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {[item.origin?.address, item.origin?.city, item.origin?.province].filter(Boolean).join(', ')}
+              {formatAddress(item.origin)}
             </Text>
           </View>
           <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.textPrimary }]} />
             <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {[item.destination?.address, item.destination?.city, item.destination?.province].filter(Boolean).join(', ')}
+              {formatAddress(item.destination)}
             </Text>
           </View>
         </View>

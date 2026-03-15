@@ -149,6 +149,13 @@ const MyBookingsScreen = ({ navigation }) => {
     return date.toLocaleDateString('es-ES', options);
   };
 
+  const formatAddress = (location) => {
+    if (!location) return '';
+    let raw = location.address || location.street || '';
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    return raw;
+  };
+
   const renderBookingItem = ({ item }) => {
     if (!item.trip?.driver?.firstName) return null;
 
@@ -174,7 +181,7 @@ const MyBookingsScreen = ({ navigation }) => {
             <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
             <View style={styles.addressContainer}>
               <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
-                {item.trip?.origin?.address}
+                {formatAddress(item.trip?.origin)}
               </Text>
             </View>
           </View>
@@ -183,7 +190,7 @@ const MyBookingsScreen = ({ navigation }) => {
             <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.error, borderColor: colors.error }]} />
             <View style={styles.addressContainer}>
               <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
-                {item.trip?.destination?.address}
+                {formatAddress(item.trip?.destination)}
               </Text>
             </View>
           </View>

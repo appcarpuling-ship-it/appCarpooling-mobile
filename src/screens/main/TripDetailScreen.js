@@ -74,6 +74,13 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  const formatAddress = (location) => {
+    if (!location) return '';
+    let raw = location.address || location.street || '';
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    return raw;
+  };
+
   const loadTripDetail = async () => {
     try {
       const response = await get_public(ENDPOINTS.GET_TRIP(tripId));
@@ -411,7 +418,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
             <View style={styles.routeContent}>
               <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
-                {trip.origin?.address}
+                {formatAddress(trip.origin)}
               </Text>
             </View>
           </View>
@@ -429,7 +436,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                     </View>
                     <View style={styles.routeContent}>
                       <Text style={[styles.routeAddress, { color: colors.textSecondary }]}>
-                        Parada {stop.order}: {stop.address}
+                        Parada {stop.order}: {formatAddress(stop)}
                       </Text>
                       <Text style={[styles.routeCityIntermediate, { color: colors.textTertiary }]}>
                         {stop.city}, {stop.province}
@@ -445,7 +452,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.error }]} />
             <View style={styles.routeContent}>
               <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
-                {trip.destination?.address}
+                {formatAddress(trip.destination)}
               </Text>
             </View>
           </View>
