@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { buildImageUri } from '../../services/apiService';
@@ -124,29 +124,8 @@ const ProfileScreen = () => {
 
   const performLogout = async () => {
     try {
-      console.log('🔄 performLogout - INICIANDO');
-
-      // Ejecutar logout
-      console.log('🔄 performLogout - Ejecutando función logout()...');
       await logout();
-      console.log('✅ performLogout - logout() completado');
-
-      // El AppNavigator debería redirigir automáticamente cuando isAuthenticated cambie a false
-      // pero si necesitas redirigir explícitamente, usa esto:
-      setTimeout(() => {
-        try {
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            })
-          );
-          console.log('✅ Navegación a Login completada');
-        } catch (navError) {
-          console.error('Error en navegación:', navError);
-        }
-      }, 500);
-
+      // El AppNavigator redirige automáticamente cuando isAuthenticated cambia a false
     } catch (error) {
       console.error('❌ Error al cerrar sesión:', error);
       showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');

@@ -31,6 +31,7 @@ const TripRequestsScreen = ({ route }) => {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [pendingCounts, setPendingCounts] = useState({});
 
   useEffect(() => {
     if (selectedTripId) {
@@ -44,10 +45,27 @@ const TripRequestsScreen = ({ route }) => {
     try {
       const response = await get_withauth('/trips/my-trips/driver');
       if (response.success && response.data.length > 0) {
+        const activeTrips = response.data.filter(t => t.status === 'active' || t.status === 'started');
         setTrips(response.data);
         if (response.data.length === 1) {
           setSelectedTripId(response.data[0]._id);
         }
+        // Cargar pendientes de cada viaje activo en paralelo
+        const counts = {};
+        await Promise.all(
+          activeTrips.map(async (trip) => {
+            try {
+              const r = await get_withauth(`/bookings/trip/${trip._id}`);
+              if (r.success) {
+                counts[trip._id] = (r.data || []).filter(b => {
+                  const rs = b.seatReservation?.reservationStatus || b.status;
+                  return rs === 'pending_approval' || rs === 'pending';
+                }).length;
+              }
+            } catch (_) {}
+          })
+        );
+        setPendingCounts(counts);
       } else {
         setTrips([]);
       }
@@ -202,6 +220,24 @@ const TripRequestsScreen = ({ route }) => {
     return date.toLocaleDateString('es-ES', options);
   };
 
+  const formatAddress = (address, city, province) => {
+    if (!address) return [city, province].filter(Boolean).join(', ');
+
+    // Solo stripea códigos postales con letra prefix (E3202, B1638BIA) — nunca números de calle
+    let cleaned = address
+      .replace(/\b[A-Za-z]\d{4}[A-Za-z]{0,3}\b,?\s*/g, '')
+      .replace(/,?\s*Argentina\s*$/i, '')  // quita "Argentina" del final
+      .replace(/,\s*,/g, ',')
+      .replace(/,\s*$/, '')
+      .trim();
+
+    // Si la ciudad ya está dentro del address, no la concatenamos de nuevo
+    const cityIncluded = city && cleaned.toLowerCase().includes(city.toLowerCase());
+    if (cityIncluded) return cleaned;
+
+    return [cleaned, city, province].filter(Boolean).join(', ');
+  };
+
   const renderRequestItem = ({ item }) => {
     if (!item.passenger || !item.passenger._id) {
     return (
@@ -317,14 +353,21 @@ const TripRequestsScreen = ({ route }) => {
 
   const renderTripSelector = () => (
     <View style={[styles.selectorContainer, { backgroundColor: colors.background }]}>
-      <Text style={[styles.selectorTitle, { color: colors.textPrimary }]}>Selecciona un viaje</Text>
-      <Text style={[styles.selectorSubtitle, { color: colors.textSecondary }]}>
+      {/* <Text style={[styles.selectorTitle, { color: colors.textPrimary }]}>Selecciona un viaje</Text> */}
+      {/* <Text style={[styles.selectorSubtitle, { color: colors.textSecondary }]}>
         Elige el viaje del cual quieres ver las solicitudes
-      </Text>
+      </Text> */}
 
       <FlatList
         data={trips}
         keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.tripCard, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.border }]}
@@ -333,23 +376,31 @@ const TripRequestsScreen = ({ route }) => {
             <View style={styles.tripRoute}>
               <View style={styles.routeRow}>
                 <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{[item.origin?.address, item.origin?.city, item.origin?.province].filter(Boolean).join(', ')}</Text>
+                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{formatAddress(item.origin?.address, item.origin?.city, item.origin?.province)}</Text>
               </View>
               <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
               <View style={styles.routeRow}>
                 <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground, borderColor: colors.error }]} />
-                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{[item.destination?.address, item.destination?.city, item.destination?.province].filter(Boolean).join(', ')}</Text>
+                <Text style={[styles.routeCity, { color: colors.textPrimary }]} numberOfLines={1}>{formatAddress(item.destination?.address, item.destination?.city, item.destination?.province)}</Text>
               </View>
             </View>
-            <View style={styles.tripMeta}>
-              <View style={styles.metaItem}>
-                <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.departureDate)}</Text>
+            <View style={styles.tripCardFooter}>
+              <View style={styles.tripMeta}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.departureDate)}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.departureTime}</Text>
+                </View>
               </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.departureTime}</Text>
-              </View>
+              {pendingCounts[item._id] > 0 && (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>{pendingCounts[item._id]}</Text>
+                  <Text style={styles.pendingBadgeLabel}> pendiente{pendingCounts[item._id] > 1 ? 's' : ''}</Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         )}
@@ -641,9 +692,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  tripCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   tripMeta: {
     flexDirection: 'row',
     gap: 20,
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF444420',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  pendingBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  pendingBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#EF4444',
   },
   metaItem: {
     flexDirection: 'row',

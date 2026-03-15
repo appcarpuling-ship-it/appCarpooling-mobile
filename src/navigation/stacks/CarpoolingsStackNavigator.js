@@ -12,6 +12,7 @@ import TripDetailScreen from '../../screens/main/TripDetailScreen';
 import TripRequestsScreen from '../../screens/main/TripRequestsScreen';
 import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
 import UserReviewsScreen from '../../screens/main/UserReviewsScreen';
+import UserProfileScreen from '../../screens/main/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -88,6 +89,11 @@ const CarpoolingsStackNavigator = () => {
         name="UserReviewsFromTrip"
         component={UserReviewsScreen}
         options={{ title: 'Reseñas del Usuario' }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ title: 'Perfil' }}
       />
     </Stack.Navigator>
   );

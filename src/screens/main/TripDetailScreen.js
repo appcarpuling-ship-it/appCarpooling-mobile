@@ -8,10 +8,11 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { get_public, get_withauth, post_withauth, buildImageUri } from '../../services/apiService';
+import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback } from '../../services/seatReservationService';
 import CheckoutWebView from '../../components/CheckoutWebView';
@@ -23,7 +24,7 @@ import { useAlert } from '../../context/AlertContext';
 
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode, isDarkMode } = useColors();
 
@@ -38,6 +39,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [actualCost, setActualCost] = useState('');
+  const [startingTrip, setStartingTrip] = useState(false);
+  const [passengers, setPassengers] = useState([]);
 
   useEffect(() => {
     loadTripDetail();
@@ -73,13 +78,33 @@ const TripDetailScreen = ({ route, navigation }) => {
       const response = await get_public(ENDPOINTS.GET_TRIP(tripId));
       if (response.success) {
         setTrip(response.data);
-        await checkUserBooking();
+        const userId = user?._id || user?.id;
+        const driverId = response.data.driver?._id || response.data.driver?.id;
+        if (userId && driverId && userId === driverId) {
+          await loadPassengers();
+        } else {
+          await checkUserBooking();
+        }
       }
     } catch (error) {
       showAlert('Error', 'No se pudo cargar el viaje');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadPassengers = async () => {
+    try {
+      const response = await get_withauth(`/bookings/trip/${tripId}`);
+      if (response.success) {
+        const confirmed = (response.data || []).filter(b => {
+          const rs = b.seatReservation?.reservationStatus;
+          const s = b.status;
+          return rs === 'reserved' || ['confirmed', 'accepted', 'completed'].includes(s);
+        });
+        setPassengers(confirmed);
+      }
+    } catch (_) {}
   };
 
   const checkUserBooking = async () => {
@@ -242,9 +267,84 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleChatWithPassenger = async (passengerId) => {
+    try {
+      const response = await post_withauth('/chat/conversation', {
+        participantId: passengerId,
+        tripId: trip._id,
+      });
+      if (response.success) {
+        navigation.navigate('ChatsTab', {
+          screen: 'ChatDetail',
+          params: {
+            conversation: response.data,
+            otherUser: response.data.participants?.find(p => p._id !== (user?._id || user?.id)),
+          },
+        });
+      }
+    } catch (_) {
+      showAlert('Error', 'No se pudo iniciar el chat');
+    }
+  };
+
   const handleImagePress = (imageUri) => {
     setSelectedImage(imageUri);
     setImageModalVisible(true);
+  };
+
+  const handleStartTrip = () => {
+    showAlert(
+      'Iniciar Viaje',
+      'Los pasajeros seran notificados.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Si, iniciar',
+          onPress: async () => {
+            setStartingTrip(true);
+            try {
+              const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
+              if (response.success) {
+                showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
+                await loadTripDetail();
+              } else {
+                showAlert('Error', response.message || 'No se pudo iniciar el viaje');
+              }
+            } catch (error) {
+              showAlert('Error', error.message || 'Error al iniciar el viaje');
+            } finally {
+              setStartingTrip(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCompleteTrip = () => {
+    setActualCost('');
+    setShowCostModal(true);
+  };
+
+  const submitCompleteTrip = async () => {
+    const cost = parseFloat(actualCost);
+    if (!actualCost || isNaN(cost) || cost <= 0) {
+      showAlert('Error', 'Ingresa un costo valido mayor a 0');
+      return;
+    }
+    try {
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost });
+      if (response.success) {
+        setShowCostModal(false);
+        showAlert('Viaje Completado', `Costo final: $${cost.toFixed(2)}`);
+        await loadTripDetail();
+        await refreshUser();
+      } else {
+        showAlert('Error', response.message || 'No se pudo completar el viaje');
+      }
+    } catch (error) {
+      showAlert('Error', error.message || 'Error al completar el viaje');
+    }
   };
 
   if (loading) {
@@ -494,6 +594,52 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Pasajeros (solo conductor) */}
+        {isOwnTrip && passengers.length > 0 && (
+          <View style={[styles.section, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+              Pasajeros ({passengers.length})
+            </Text>
+            {passengers.map((booking) => {
+              const p = booking.passenger;
+              const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
+              return (
+                <TouchableOpacity
+                  key={booking._id}
+                  style={[styles.passengerRow, { borderColor: colors.border, backgroundColor: isDarkMode ? '#292929' : colors.cardBackground }]}
+                  onPress={() => navigation.navigate('UserProfile', { userId: p?._id, tripId: trip._id })}
+                  activeOpacity={0.7}
+                >
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.passengerAvatar} />
+                  ) : (
+                    <View style={[styles.passengerAvatarPlaceholder, { backgroundColor: isDarkMode ? '#404040' : colors.surface }]}>
+                      <Text style={[styles.passengerInitials, { color: colors.textPrimary }]}>
+                        {p?.firstName?.[0]}{p?.lastName?.[0]}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.passengerInfo}>
+                    <Text style={[styles.passengerName, { color: colors.textPrimary }]}>
+                      {p?.firstName} {p?.lastName}
+                    </Text>
+                    <Text style={[styles.passengerSeats, { color: colors.textSecondary }]}>
+                      {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.passengerChatBtn, { backgroundColor: isDarkMode ? '#404040' : colors.surface, borderColor: colors.border }]}
+                    onPress={(e) => { e.stopPropagation(); handleChatWithPassenger(p?._id); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="chatbubble-outline" size={18} color={colors.textPrimary} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         <View style={{ height: 180 }} />
       </ScrollView>
 
@@ -570,7 +716,74 @@ const TripDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Footer */}
+      {/* Footer conductor */}
+      {isOwnTrip && (trip.status === 'active' || trip.status === 'started') && (
+        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          {trip.status === 'active' && trip.occupiedSeats > 0 && (
+            <TouchableOpacity
+              style={[styles.bookButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+              onPress={handleStartTrip}
+              disabled={startingTrip}
+            >
+              <Text style={[styles.bookButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+                {startingTrip ? 'Iniciando...' : 'Iniciar Viaje'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {trip.status === 'started' && (
+            <TouchableOpacity
+              style={[styles.bookButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+              onPress={handleCompleteTrip}
+            >
+              <Text style={[styles.bookButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+                Completar Viaje
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Modal costo */}
+      <Modal
+        visible={showCostModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCostModal(false)}
+      >
+        <View style={styles.costModalOverlay}>
+          <View style={[styles.costModalContent, { backgroundColor: colors.cardBackground || colors.background }]}>
+            <Text style={[styles.costModalTitle, { color: colors.textPrimary }]}>Completar Viaje</Text>
+            <Text style={[styles.costModalSubtitle, { color: colors.textSecondary }]}>
+              Ingresa el costo real del viaje
+            </Text>
+            <TextInput
+              style={[styles.costInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}
+              placeholder="Ej: 1500"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="decimal-pad"
+              value={actualCost}
+              onChangeText={setActualCost}
+              autoFocus
+            />
+            <View style={styles.costModalActions}>
+              <TouchableOpacity
+                style={[styles.costModalCancel, { borderColor: colors.border }]}
+                onPress={() => setShowCostModal(false)}
+              >
+                <Text style={[styles.costModalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.costModalConfirm, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+                onPress={submitCompleteTrip}
+              >
+                <Text style={[styles.costModalConfirmText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Completar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Footer pasajero */}
       {!isOwnTrip && (
         <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           {userBooking ? (
@@ -975,6 +1188,119 @@ const styles = StyleSheet.create({
   },
   confirmedText: {
     fontSize: 16,
+    fontWeight: '600',
+  },
+  // Passengers
+  passengerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  passengerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  passengerAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passengerInitials: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  passengerInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  passengerName: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  passengerSeats: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  passengerChatBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passengerPaidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  passengerPaidText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Cost Modal
+  costModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  costModalContent: {
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  costModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  costModalSubtitle: {
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  costInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  costModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  costModalCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  costModalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  costModalConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  costModalConfirmText: {
+    fontSize: 15,
     fontWeight: '600',
   },
   // Image Modal

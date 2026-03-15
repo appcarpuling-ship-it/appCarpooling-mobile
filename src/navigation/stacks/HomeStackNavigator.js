@@ -8,6 +8,7 @@ import SearchTripsScreen from '../../screens/main/SearchTripsScreen';
 import SearchResultsScreen from '../../screens/main/SearchResultsScreen';
 import BookingScreen from '../../screens/main/BookingScreen';
 import AllTripsScreen from '../../screens/main/AllTripsScreen';
+import UserProfileScreen from '../../screens/main/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -68,6 +69,11 @@ const HomeStackNavigator = () => {
         name="AllTrips"
         component={AllTripsScreen}
         options={{ title: 'Todos los Viajes' }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ title: 'Perfil' }}
       />
     </Stack.Navigator>
   );
