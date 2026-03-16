@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,83 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Modal,
   TextInput,
+  Dimensions,
 } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BANNER_WIDTH = SCREEN_WIDTH - 48;
+const BANNER_HEIGHT = 150;
+const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
+const BANNER_SCROLL_SPEED = 30;
+
+const BannerCarousel = ({ banners, onPress }) => {
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const totalWidth = banners.length * BANNER_ITEM_WIDTH;
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const duration = (totalWidth / BANNER_SCROLL_SPEED) * 1000;
+    const animation = Animated.loop(
+      Animated.timing(scrollX, {
+        toValue: -totalWidth,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [banners]);
+
+  const duplicated = banners.length > 1 ? [...banners, ...banners] : banners;
+
+  return (
+    <View style={{ overflow: 'hidden' }}>
+      <Animated.View style={{ flexDirection: 'row', paddingHorizontal: 24, gap: 16, transform: [{ translateX: scrollX }] }}>
+        {duplicated.map((item, index) => (
+          <TouchableOpacity
+            key={`${item._id}-${index}`}
+            activeOpacity={0.92}
+            style={bannerStyles.slide}
+            onPress={() => onPress && onPress(item)}
+          >
+            {item.imageUrl ? (
+              <View style={StyleSheet.absoluteFillObject}>
+                <Image source={{ uri: item.imageUrl }} style={bannerStyles.image} resizeMode="cover" />
+              </View>
+            ) : (
+              <View style={bannerStyles.content}>
+                <Text style={bannerStyles.title} numberOfLines={2}>{item.title}</Text>
+                {item.description && (
+                  <Text style={bannerStyles.desc} numberOfLines={2}>{item.description}</Text>
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </Animated.View>
+    </View>
+  );
+};
+
+const bannerStyles = StyleSheet.create({
+  slide: {
+    width: BANNER_WIDTH,
+    height: BANNER_HEIGHT,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#111',
+  },
+  image: { width: '100%', height: '100%' },
+  content: { flex: 1, padding: 18, justifyContent: 'flex-end' },
+  title: { fontSize: 17, fontWeight: '700', color: '#FFF', marginBottom: 6 },
+  desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+});
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../services/apiService';
@@ -26,7 +99,17 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode, isDarkMode } = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
+
+  const dark = getCurrentThemeMode() === 'dark';
+  const bg = colors.background;
+  const textPrimary = colors.textPrimary;
+  const textSecondary = colors.textSecondary;
+  const textMuted = colors.textMuted;
+  const divider = dark ? '#2A2A2A' : '#F0F0F0';
+  const cardBg = dark ? '#1A1A1A' : '#F7F7F7';
+  const accent = dark ? '#FFFFFF' : '#000000';
+  const accentInverse = dark ? '#000000' : '#FFFFFF';
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +127,11 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [driverPay, setDriverPay] = useState('');
   const [startingTrip, setStartingTrip] = useState(false);
   const [passengers, setPassengers] = useState([]);
+  const [banners, setBanners] = useState([]);
 
   useEffect(() => {
     loadTripDetail();
+    loadBanners();
   }, []);
 
   useFocusEffect(
@@ -68,9 +153,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
-      weekday: 'short',
+      weekday: 'long',
       day: 'numeric',
-      month: 'short',
+      month: 'long',
     });
   };
 
@@ -78,7 +163,16 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
     raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
-    return raw;
+    return raw || location.city || location.name || '';
+  };
+
+  const loadBanners = async () => {
+    try {
+      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('enterprise'), { isActive: true });
+      if (response.success && Array.isArray(response.data)) {
+        setBanners(response.data.filter(b => b.isActive));
+      }
+    } catch (_) {}
   };
 
   const loadTripDetail = async () => {
@@ -145,7 +239,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const handleCompletePendingPayment = async () => {
     try {
       setPaymentLoading(true);
-
       let updatedBooking = userBooking;
       try {
         const response = await get_withauth('/bookings/my-bookings');
@@ -155,14 +248,14 @@ const TripDetailScreen = ({ route, navigation }) => {
           updatedBooking = bookings.find(b => String(b.trip?._id || b.trip || '') === tid);
           if (updatedBooking) setUserBooking(updatedBooking);
         }
-      } catch (err) { }
+      } catch (err) {}
 
       const currentBooking = updatedBooking || userBooking;
       const seatReservation = currentBooking?.seatReservation;
       const reservationStatus = seatReservation?.reservationStatus;
 
       if (reservationStatus === 'pending_approval') {
-        showAlert('Pendiente', 'Tu solicitud está esperando aprobación del conductor');
+        showAlert('Pendiente', 'Tu solicitud esta esperando aprobacion del conductor');
         return;
       }
       if (reservationStatus === 'pending_payment') {
@@ -188,7 +281,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           setPaymentModalData({ paymentUrl, qrDataUrl, amount });
           setPaymentModalVisible(true);
         } else {
-          showAlert('Error', 'No se puede realizar el pago para este viaje. Por favor, contacta al soporte.');
+          showAlert('Error', 'No se puede realizar el pago. Contacta al soporte.');
         }
       }
     } catch (error) {
@@ -210,7 +303,7 @@ const TripDetailScreen = ({ route, navigation }) => {
       console.error('confirmFromCallback error:', e?.response?.data || e?.message);
       showAlert(
         'Error al confirmar pago',
-        (e?.response?.data?.message || e?.message || 'No se pudo confirmar. El pago puede estar procesándose.') + '\n\n¿Reintentar?',
+        (e?.response?.data?.message || e?.message || 'No se pudo confirmar. El pago puede estar procesandose.') + '\n\nReintentar?',
         [
           { text: 'Cerrar', style: 'cancel' },
           { text: 'Reintentar', onPress: async () => { await checkUserBooking(); await loadTripDetail(); } }
@@ -301,32 +394,28 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleStartTrip = () => {
-    showAlert(
-      'Iniciar Viaje',
-      'Los pasajeros seran notificados.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Si, iniciar',
-          onPress: async () => {
-            setStartingTrip(true);
-            try {
-              const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
-              if (response.success) {
-                showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
-                await loadTripDetail();
-              } else {
-                showAlert('Error', response.message || 'No se pudo iniciar el viaje');
-              }
-            } catch (error) {
-              showAlert('Error', error.message || 'Error al iniciar el viaje');
-            } finally {
-              setStartingTrip(false);
+    showAlert('Iniciar Viaje', 'Los pasajeros seran notificados.', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Si, iniciar',
+        onPress: async () => {
+          setStartingTrip(true);
+          try {
+            const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
+            if (response.success) {
+              showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
+              await loadTripDetail();
+            } else {
+              showAlert('Error', response.message || 'No se pudo iniciar el viaje');
             }
-          },
+          } catch (error) {
+            showAlert('Error', error.message || 'Error al iniciar el viaje');
+          } finally {
+            setStartingTrip(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCompleteTrip = () => {
@@ -347,8 +436,9 @@ const TripDetailScreen = ({ route, navigation }) => {
       if (response.success) {
         setShowCostModal(false);
         const total = cost + pay;
-        showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
-        // Actualizar trip local con datos del response (asegura que el precio aparezca de inmediato)
+        showAlert('Viaje Completado', pay > 0
+          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
+          : `Costo final: $${formatNumber(cost)}`);
         if (response.data) {
           const updatedTrip = response.data.trip || response.data;
           const actualCostVal = updatedTrip?.actualCost ?? response.data.actualCost ?? cost;
@@ -367,17 +457,16 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'} />
+      <View style={[styles.centered, { backgroundColor: bg }]}>
+        <ActivityIndicator size="small" color={textMuted} />
       </View>
     );
   }
 
   if (!trip) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-        <Text style={[styles.emptyText, { color: colors.textPrimary }]}>Viaje no encontrado</Text>
+      <View style={[styles.centered, { backgroundColor: bg }]}>
+        <Text style={[styles.emptyText, { color: textMuted }]}>Viaje no encontrado</Text>
       </View>
     );
   }
@@ -387,20 +476,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const isOwnTrip = userId && driverId && userId === driverId;
   const driver = trip.driver;
 
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case 'started': return { color: colors.info, bg: colors.info + '20', text: 'Viaje iniciado' };
-      case 'completed': return { color: colors.success, bg: colors.success + '20', text: 'Finalizado' };
-      case 'cancelled': return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
-      case 'active': return { color: colors.textMuted, bg: colors.border, text: 'Programado' };
-      default: return { color: colors.textMuted, bg: colors.border, text: status };
-    }
+  const statusMap = {
+    started: { color: colors.info, label: 'En curso' },
+    completed: { color: colors.success, label: 'Finalizado' },
+    cancelled: { color: colors.error, label: 'Cancelado' },
   };
-
-  const statusConfig = getStatusConfig(trip.status);
+  const statusCfg = statusMap[trip.status];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -408,156 +492,162 @@ const TripDetailScreen = ({ route, navigation }) => {
         onHide={() => setToast({ ...toast, visible: false })}
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Status Badge */}
-        {trip.status && trip.status !== 'active' && (
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.text}
-            </Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {statusCfg && (
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+              <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+            </View>
           </View>
         )}
 
         {/* Route */}
-        <View style={[styles.routeSection, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <View style={[styles.section, { borderBottomColor: divider }]}>
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-            <View style={styles.routeContent}>
-              <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
-                {formatAddress(trip.origin)}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-
-          {/* Paradas Intermedias */}
-          {trip.intermediateStops && trip.intermediateStops.length > 0 &&
-            trip.intermediateStops
-              .sort((a, b) => a.order - b.order)
-              .map((stop, index) => (
-                <React.Fragment key={`stop-${index}`}>
-                  <View style={styles.routeRow}>
-                    <View style={[styles.routeDotIntermediate, { backgroundColor: colors.textMuted }]}>
-                      <Text style={styles.routeDotNumber}>{stop.order}</Text>
+            <View style={styles.routeDotsCol}>
+              <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
+              <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+              {trip.intermediateStops?.length > 0 && trip.intermediateStops
+                .sort((a, b) => a.order - b.order)
+                .map((stop, i) => (
+                  <React.Fragment key={i}>
+                    <View style={[styles.routeDotStop, { backgroundColor: textMuted }]}>
+                      <Text style={styles.routeDotStopNum}>{stop.order}</Text>
                     </View>
-                    <View style={styles.routeContent}>
-                      <Text style={[styles.routeAddress, { color: colors.textSecondary }]}>
-                        Parada {stop.order}: {formatAddress(stop)}
-                      </Text>
-                      <Text style={[styles.routeCityIntermediate, { color: colors.textTertiary }]}>
-                        {stop.city}, {stop.province}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-                </React.Fragment>
-              ))
-          }
-
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.error }]} />
-            <View style={styles.routeContent}>
-              <Text style={[styles.routeAddress, { color: colors.textPrimary }]}>
-                {formatAddress(trip.destination)}
-              </Text>
+                    <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+                  </React.Fragment>
+                ))}
+              <View style={[styles.routeDotDest, { backgroundColor: accent }]} />
             </View>
-          </View>
-        </View>
 
-        {/* Date & Seats */}
-        <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-          <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDate(trip.departureDate)}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{trip.departureTime} Hs</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="person-outline" size={18} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{trip.availableSeats} asientos</Text>
-          </View>
-        </View>
-
-        {/* Actual Cost - mostrar cuando el viaje está iniciado/completado y hay costo */}
-        {(trip.status === 'started' || trip.status === 'completed') && (Number(trip.actualCost) > 0 || (trip.status === 'completed' && Number(trip.estimatedCost) > 0)) && (
-          <View style={[styles.costBanner, { backgroundColor: colors.success + '20' }]}>
-            <Ionicons name="cash-outline" size={20} color={colors.success} />
-            <Text style={[styles.costLabel, { color: colors.success }]}>
-              Costo total del viaje
-            </Text>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[styles.costValue, { color: colors.success }]}>
-                ${formatNumber(
-                  Number(trip.actualCost) > 0
-                    ? (Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0)
-                    : Number(trip.estimatedCost) || 0
+            <View style={styles.routeLabelsCol}>
+              <View style={styles.routeStop}>
+                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Origen</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.origin)}</Text>
+                {trip.origin?.city && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.origin.city}, {trip.origin.province}</Text>
                 )}
+              </View>
+
+              {trip.intermediateStops?.length > 0 && trip.intermediateStops
+                .sort((a, b) => a.order - b.order)
+                .map((stop, i) => (
+                  <View key={i} style={styles.routeStop}>
+                    <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {stop.order}</Text>
+                    <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
+                    <Text style={[styles.routeStopCity, { color: textMuted }]}>{stop.city}, {stop.province}</Text>
+                  </View>
+                ))}
+
+              <View style={styles.routeStop}>
+                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.destination)}</Text>
+                {trip.destination?.city && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.destination.city}, {trip.destination.province}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Date / time / seats */}
+        <View style={[styles.metaRow, { borderBottomColor: divider }]}>
+          <View style={styles.metaItem}>
+            <Ionicons name="calendar-outline" size={16} color={textMuted} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(trip.departureDate)}</Text>
+          </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={16} color={textMuted} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>{trip.departureTime}</Text>
+          </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+          <View style={styles.metaItem}>
+            <Ionicons name="person-outline" size={16} color={textMuted} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>{trip.availableSeats} asientos</Text>
+          </View>
+        </View>
+
+        {/* Estimated cost card */}
+        {Number(trip.estimatedCost) > 0 && trip.status === 'active' && (
+          <View style={[styles.priceCard, { backgroundColor: cardBg }]}>
+            <View style={styles.priceCardLeft}>
+              <Text style={[styles.priceCardLabel, { color: textMuted }]}>Costo estimado</Text>
+              <Text style={[styles.priceCardValue, { color: textPrimary }]}>
+                ${formatNumber(trip.estimatedCost)}
               </Text>
-              {Number(trip.actualCost) > 0 && Number(trip.driverPay) > 0 && (
-                <Text style={[styles.costSubtext, { color: colors.success }]}>
-                  Gastos ${formatNumber(trip.actualCost)} + Paga ${formatNumber(trip.driverPay)}
-                </Text>
-              )}
-              {trip.status === 'completed' && !(Number(trip.actualCost) > 0) && Number(trip.estimatedCost) > 0 && (
-                <Text style={[styles.costSubtext, { color: colors.success }]}>
-                  (Estimado - costo real no registrado)
-                </Text>
-              )}
+            </View>
+            <View style={[styles.priceCardIcon, { backgroundColor: dark ? '#2A2A2A' : '#EFEFEF' }]}>
+              <Ionicons name="cash-outline" size={22} color={textSecondary} />
             </View>
           </View>
         )}
 
+        {/* Cost banner */}
+        {(trip.status === 'started' || trip.status === 'completed') &&
+          (Number(trip.actualCost) > 0 || (trip.status === 'completed' && Number(trip.estimatedCost) > 0)) && (
+          <View style={[styles.costBanner, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
+            <View style={styles.costBannerLeft}>
+              <Text style={[styles.costBannerLabel, { color: colors.success }]}>Costo del viaje</Text>
+              {Number(trip.actualCost) > 0 && Number(trip.driverPay) > 0 && (
+                <Text style={[styles.costBannerSub, { color: colors.success }]}>
+                  Gastos ${formatNumber(trip.actualCost)} + Paga ${formatNumber(trip.driverPay)}
+                </Text>
+              )}
+            </View>
+            <Text style={[styles.costBannerValue, { color: colors.success }]}>
+              ${formatNumber(
+                Number(trip.actualCost) > 0
+                  ? (Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0)
+                  : Number(trip.estimatedCost) || 0
+              )}
+            </Text>
+          </View>
+        )}
+
         {/* Driver */}
-        <TouchableOpacity
-          style={[styles.driverSection, { borderBottomColor: colors.border }]}
-          // onPress={!isOwnTrip ? handleStartChat : undefined}
-          activeOpacity={isOwnTrip ? 1 : 0.7}
-        >
-          {driver?.avatar ? (
-            <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.driverAvatar} />
-          ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#292929' }]}>
-              <Text style={[styles.driverInitials, { color: colors.textPrimary }]}>
-                {driver?.firstName?.[0]}{driver?.lastName?.[0]}
+        <View style={[styles.section, { borderBottomColor: divider }]}>
+          <Text style={[styles.sectionLabel, { color: textMuted }]}>Conductor</Text>
+          <View style={styles.driverRow}>
+            {driver?.avatar ? (
+              <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.driverAvatar} />
+            ) : (
+              <View style={[styles.driverAvatarPlaceholder, { backgroundColor: cardBg }]}>
+                <Text style={[styles.driverInitials, { color: textSecondary }]}>
+                  {driver?.firstName?.[0]}{driver?.lastName?.[0]}
+                </Text>
+              </View>
+            )}
+            <View style={styles.driverInfo}>
+              <Text style={[styles.driverName, { color: textPrimary }]}>
+                {driver?.firstName} {driver?.lastName}
               </Text>
             </View>
-          )}
-          <View style={styles.driverInfo}>
-            <Text style={[styles.driverName, { color: colors.textPrimary }]}>
-              {driver?.firstName} {driver?.lastName}
-            </Text>
-            <Text style={[styles.driverLabel, { color: colors.textSecondary }]}>Conductor</Text>
           </View>
-          {/* {!isOwnTrip && (
-            <Ionicons name="chatbubble-outline" size={22} color={colors.textMuted} />
-          )} */}
-        </TouchableOpacity>
+        </View>
 
         {/* Vehicle */}
         {trip.vehicle && (() => {
           const vehicleImage = trip.vehicle.photo || (trip.vehicle.photos && trip.vehicle.photos[0]);
           return (
-            <View style={[styles.section, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Vehiculo</Text>
-              <View style={styles.vehicleContainer}>
+            <View style={[styles.section, { borderBottomColor: divider }]}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehiculo</Text>
+              <View style={styles.vehicleRow}>
                 {vehicleImage ? (
-                  <Image
-                    source={{ uri: buildImageUri(vehicleImage) }}
-                    style={styles.vehicleImage}
-                  />
+                  <TouchableOpacity onPress={() => handleImagePress(buildImageUri(vehicleImage))} activeOpacity={0.85}>
+                    <Image source={{ uri: buildImageUri(vehicleImage) }} style={styles.vehicleImage} />
+                  </TouchableOpacity>
                 ) : (
-                  <View style={[styles.vehicleImagePlaceholder, { backgroundColor: '#292929' }]}>
-                    <Ionicons name="car-outline" size={48} color={colors.textMuted} />
+                  <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg }]}>
+                    <Ionicons name="car-outline" size={32} color={textMuted} />
                   </View>
                 )}
-                <View style={styles.vehicleDetails}>
-                  <Text style={[styles.vehicleText, { color: colors.textPrimary }]}>
+                <View style={styles.vehicleInfo}>
+                  <Text style={[styles.vehicleName, { color: textPrimary }]}>
                     {trip.vehicle.brand} {trip.vehicle.model}
                   </Text>
-                  <Text style={[styles.vehicleColor, { color: colors.textSecondary }]}>{trip.vehicle.color}</Text>
+                  <Text style={[styles.vehicleColor, { color: textMuted }]}>{trip.vehicle.color}</Text>
                 </View>
               </View>
             </View>
@@ -566,31 +656,31 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Features */}
         {trip.vehicle?.features && (
-          <View style={[styles.section, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Caracteristicas</Text>
-            <View style={styles.featuresGrid}>
+          <View style={[styles.section, { borderBottomColor: divider }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Caracteristicas</Text>
+            <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
-                <View style={styles.featureItem}>
-                  <Ionicons name="snow-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Aire</Text>
+                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
+                  <Ionicons name="snow-outline" size={15} color={textSecondary} />
+                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Aire</Text>
                 </View>
               )}
               {trip.vehicle.features.music && (
-                <View style={styles.featureItem}>
-                  <Ionicons name="musical-notes-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Musica</Text>
+                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
+                  <Ionicons name="musical-notes-outline" size={15} color={textSecondary} />
+                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Musica</Text>
                 </View>
               )}
               {trip.vehicle.features.pets && (
-                <View style={styles.featureItem}>
-                  <Ionicons name="paw-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Mascotas</Text>
+                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
+                  <Ionicons name="paw-outline" size={15} color={textSecondary} />
+                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Mascotas</Text>
                 </View>
               )}
               {trip.vehicle.features.luggage && (
-                <View style={styles.featureItem}>
-                  <Ionicons name="bag-handle-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.featureText, { color: colors.textSecondary }]}>Equipaje</Text>
+                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
+                  <Ionicons name="bag-handle-outline" size={15} color={textSecondary} />
+                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Equipaje</Text>
                 </View>
               )}
             </View>
@@ -598,26 +688,26 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Rules */}
-        <View style={[styles.section, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Reglas del viaje</Text>
-          <View style={styles.rulesContainer}>
+        <View style={[styles.section, { borderBottomColor: divider }]}>
+          <Text style={[styles.sectionLabel, { color: textMuted }]}>Reglas</Text>
+          <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
               <Ionicons
                 name={trip.rules?.smokingAllowed ? 'checkmark-circle' : 'close-circle'}
-                size={20}
+                size={18}
                 color={trip.rules?.smokingAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+              <Text style={[styles.ruleText, { color: textSecondary }]}>
                 {trip.rules?.smokingAllowed ? 'Se puede fumar' : 'No fumar'}
               </Text>
             </View>
             <View style={styles.ruleItem}>
               <Ionicons
                 name={trip.rules?.petsAllowed ? 'checkmark-circle' : 'close-circle'}
-                size={20}
+                size={18}
                 color={trip.rules?.petsAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>
+              <Text style={[styles.ruleText, { color: textSecondary }]}>
                 {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
               </Text>
             </View>
@@ -626,16 +716,16 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Notes */}
         {trip.notes && (
-          <View style={[styles.section, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Notas</Text>
-            <Text style={[styles.notesText, { color: colors.textSecondary }]}>{trip.notes}</Text>
+          <View style={[styles.section, { borderBottomColor: divider }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Notas</Text>
+            <Text style={[styles.notesText, { color: textSecondary }]}>{trip.notes}</Text>
           </View>
         )}
 
-        {/* Pasajeros (solo conductor) */}
+        {/* Passengers (driver only) */}
         {isOwnTrip && passengers.length > 0 && (
-          <View style={[styles.section, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+          <View style={[styles.section, { borderBottomColor: divider }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>
               Pasajeros ({passengers.length})
             </Text>
             {passengers.map((booking) => {
@@ -644,33 +734,33 @@ const TripDetailScreen = ({ route, navigation }) => {
               return (
                 <TouchableOpacity
                   key={booking._id}
-                  style={[styles.passengerRow, { borderColor: colors.border, backgroundColor: isDarkMode ? '#292929' : colors.cardBackground }]}
+                  style={[styles.passengerRow, { borderBottomColor: divider }]}
                   onPress={() => navigation.navigate('UserProfile', { userId: p?._id, tripId: trip._id })}
                   activeOpacity={0.7}
                 >
                   {avatarUrl ? (
                     <Image source={{ uri: avatarUrl }} style={styles.passengerAvatar} />
                   ) : (
-                    <View style={[styles.passengerAvatarPlaceholder, { backgroundColor: isDarkMode ? '#404040' : colors.surface }]}>
-                      <Text style={[styles.passengerInitials, { color: colors.textPrimary }]}>
+                    <View style={[styles.passengerAvatarPlaceholder, { backgroundColor: cardBg }]}>
+                      <Text style={[styles.passengerInitials, { color: textSecondary }]}>
                         {p?.firstName?.[0]}{p?.lastName?.[0]}
                       </Text>
                     </View>
                   )}
                   <View style={styles.passengerInfo}>
-                    <Text style={[styles.passengerName, { color: colors.textPrimary }]}>
+                    <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {p?.firstName} {p?.lastName}
                     </Text>
-                    <Text style={[styles.passengerSeats, { color: colors.textSecondary }]}>
+                    <Text style={[styles.passengerSeats, { color: textMuted }]}>
                       {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
                     </Text>
                   </View>
                   <TouchableOpacity
-                    style={[styles.passengerChatBtn, { backgroundColor: isDarkMode ? '#404040' : colors.surface, borderColor: colors.border }]}
+                    style={[styles.chatBtn, { backgroundColor: cardBg }]}
                     onPress={(e) => { e.stopPropagation(); handleChatWithPassenger(p?._id); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="chatbubble-outline" size={18} color={colors.textPrimary} />
+                    <Ionicons name="chatbubble-outline" size={17} color={textPrimary} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               );
@@ -678,22 +768,120 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        <View style={{ height: 180 }} />
+        {/* Banners */}
+        {banners.length > 0 && (
+          <View style={styles.bannersSection}>
+            <Text style={[styles.sectionLabel, { color: textMuted, paddingHorizontal: 20, marginBottom: 14 }]}>
+              Destacados
+            </Text>
+            <BannerCarousel banners={banners} onPress={() => {}} />
+          </View>
+        )}
+
+        {/* Footer — driver */}
+        {isOwnTrip && (trip.status === 'active' || trip.status === 'started') && (
+          <View style={[styles.footer, { borderTopColor: divider }]}>
+            {trip.status === 'active' && trip.occupiedSeats > 0 && (
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: accent }]}
+                onPress={handleStartTrip}
+                disabled={startingTrip}
+              >
+                <Text style={[styles.footerBtnText, { color: accentInverse }]}>
+                  {startingTrip ? 'Iniciando...' : 'Iniciar viaje'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {trip.status === 'started' && (
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: accent }]}
+                onPress={handleCompleteTrip}
+              >
+                <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Footer — passenger */}
+        {!isOwnTrip && (
+          <View style={[styles.footer, { borderTopColor: divider }]}>
+            {userBooking ? (
+              (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
+                <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
+                  <Ionicons name="close-circle" size={18} color={textMuted} />
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>Reserva cancelada</Text>
+                </View>
+              ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
+                <View style={[styles.statusFooter, { backgroundColor: (colors.warning || '#F59E0B') + '15' }]}>
+                  <Ionicons name="time-outline" size={18} color={colors.warning || '#F59E0B'} />
+                  <Text style={[styles.statusFooterText, { color: colors.warning || '#F59E0B' }]}>
+                    Esperando aprobacion del conductor
+                  </Text>
+                </View>
+              ) : userBooking.seatReservation?.reservationStatus === 'pending_payment' ? (
+                <View style={styles.pendingWrap}>
+                  <View style={styles.pendingTopRow}>
+                    <View style={styles.pendingIndicator}>
+                      <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
+                      <Text style={[styles.pendingLabel, { color: colors.warning }]}>Pago pendiente</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleCancelPendingReservation}>
+                      <Text style={[styles.cancelLink, { color: colors.error }]}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.footerBtn, { backgroundColor: accent }]}
+                    onPress={handleCompletePendingPayment}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading ? (
+                      <ActivityIndicator size="small" color={accentInverse} />
+                    ) : (
+                      <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar pago</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                  <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
+                </View>
+              )
+            ) : (
+              <TouchableOpacity
+                style={[styles.footerBtn, {
+                  backgroundColor: trip.availableSeats === 0 ? (dark ? '#2A2A2A' : '#E0E0E0') : accent
+                }]}
+                onPress={handleBookTrip}
+                disabled={trip.availableSeats === 0}
+              >
+                <Text style={[styles.footerBtnText, {
+                  color: trip.availableSeats === 0 ? textMuted : accentInverse
+                }]}>
+                  {trip.availableSeats === 0 ? 'Sin asientos disponibles' : 'Reservar'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <View style={{ height: 32 }} />
       </ScrollView>
 
-      {/* Payment Options Modal (Checkout + QR) */}
+      {/* Payment Options Modal */}
       <Modal
         visible={paymentModalVisible}
         transparent
         animationType="slide"
         onRequestClose={() => setPaymentModalVisible(false)}
       >
-        <View style={styles.paymentModalOverlay}>
-          <View style={[styles.paymentModalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.paymentModalHeader}>
-              <Text style={[styles.paymentModalTitle, { color: colors.textPrimary }]}>Completar pago</Text>
-              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
+        <View style={styles.sheetOverlay}>
+          <View style={[styles.sheetContent, { backgroundColor: bg }]}>
+            <View style={[styles.sheetHeader, { borderBottomColor: divider }]}>
+              <Text style={[styles.sheetTitle, { color: textPrimary }]}>Completar pago</Text>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color={textSecondary} />
               </TouchableOpacity>
             </View>
             <RebillPaymentOptions
@@ -714,329 +902,156 @@ const TripDetailScreen = ({ route, navigation }) => {
       <CheckoutWebView
         visible={checkoutWebViewVisible}
         paymentUrl={checkoutWebViewUrl}
-        onClose={() => {
-          setCheckoutWebViewVisible(false);
-          setCheckoutWebViewUrl(null);
-        }}
+        onClose={() => { setCheckoutWebViewVisible(false); setCheckoutWebViewUrl(null); }}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentError={handlePaymentError}
       />
 
       {/* Image Modal */}
-      <Modal
-        visible={imageModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setImageModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setImageModalVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.imageModalContent}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setImageModalVisible(false)}
-              >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              {selectedImage && (
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={styles.modalImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-          </TouchableOpacity>
+      <Modal visible={imageModalVisible} transparent animationType="fade" onRequestClose={() => setImageModalVisible(false)}>
+        <TouchableOpacity style={styles.imageOverlay} activeOpacity={1} onPress={() => setImageModalVisible(false)}>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.imageFullscreen} resizeMode="contain" />
+          )}
         </TouchableOpacity>
       </Modal>
 
-      {/* Footer conductor */}
-      {isOwnTrip && (trip.status === 'active' || trip.status === 'started') && (
-        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          {trip.status === 'active' && trip.occupiedSeats > 0 && (
-            <TouchableOpacity
-              style={[styles.bookButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
-              onPress={handleStartTrip}
-              disabled={startingTrip}
-            >
-              <Text style={[styles.bookButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
-                {startingTrip ? 'Iniciando...' : 'Iniciar Viaje'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {trip.status === 'started' && (
-            <TouchableOpacity
-              style={[styles.bookButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
-              onPress={handleCompleteTrip}
-            >
-              <Text style={[styles.bookButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
-                Completar Viaje
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* Modal costo */}
-      <Modal
-        visible={showCostModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCostModal(false)}
-      >
-        <View style={styles.costModalOverlay}>
-          <View style={[styles.costModalContent, { backgroundColor: colors.cardBackground || colors.background }]}>
-            <Text style={[styles.costModalTitle, { color: colors.textPrimary }]}>Completar Viaje</Text>
-            <Text style={[styles.costModalSubtitle, { color: colors.textSecondary }]}>
-              Ingresa el costo real del viaje
-            </Text>
+      {/* Cost Modal */}
+      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => setShowCostModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: bg }]}>
+            <Text style={[styles.modalTitle, { color: textPrimary }]}>Completar viaje</Text>
+            <Text style={[styles.modalSub, { color: textMuted }]}>Costo real del viaje</Text>
             <TextInput
-              style={[styles.costInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}
+              style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg }]}
               placeholder="Ej: 1500"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={textMuted}
               keyboardType="decimal-pad"
               value={actualCost}
               onChangeText={setActualCost}
               autoFocus
             />
-            <Text style={[styles.costModalSubtitle, { color: colors.textSecondary, marginTop: 12 }]}>
-              Contribución extra (tu paga)
-            </Text>
+            <Text style={[styles.modalSub, { color: textMuted }]}>Tu contribucion extra (opcional)</Text>
             <TextInput
-              style={[styles.costInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', marginTop: 4 }]}
-              placeholder={actualCost ? `Ej: ${Math.round(parseFloat(actualCost) * 0.15)} (~15%)` : 'Ej: 500'}
-              placeholderTextColor={colors.textMuted}
+              style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg, marginTop: 6 }]}
+              placeholder={actualCost ? `Ej: ${Math.round(parseFloat(actualCost) * 0.15)}` : 'Ej: 500'}
+              placeholderTextColor={textMuted}
               keyboardType="decimal-pad"
               value={driverPay}
               onChangeText={setDriverPay}
             />
-            <View style={styles.costModalActions}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.costModalCancel, { borderColor: colors.border }]}
+                style={[styles.modalBtnSecondary, { borderColor: divider }]}
                 onPress={() => setShowCostModal(false)}
               >
-                <Text style={[styles.costModalCancelText, { color: colors.textSecondary }]}>Cancelar</Text>
+                <Text style={[styles.modalBtnSecondaryText, { color: textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.costModalConfirm, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: accent }]}
                 onPress={submitCompleteTrip}
               >
-                <Text style={[styles.costModalConfirmText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Completar</Text>
+                <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Footer pasajero */}
-      {!isOwnTrip && (
-        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          {userBooking ? (
-            (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
-              <View style={[styles.confirmedBadge, { backgroundColor: colors.textMuted + '20' }]}>
-                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-                <Text style={[styles.confirmedText, { color: colors.textMuted }]}>Reserva cancelada</Text>
-              </View>
-            ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
-              <View style={[styles.confirmedBadge, { backgroundColor: (colors.warning || '#F59E0B') + '20' }]}>
-                <Ionicons name="time-outline" size={20} color={colors.warning || '#F59E0B'} />
-                <Text style={[styles.confirmedText, { color: colors.warning || '#F59E0B' }]}>Esperando aprobación del conductor</Text>
-              </View>
-            ) : userBooking.seatReservation?.reservationStatus === 'pending_payment' ? (
-              <View style={styles.pendingContainer}>
-                <View style={styles.pendingHeader}>
-                  <View style={styles.pendingIndicator}>
-                    <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
-                    <Text style={[styles.pendingText, { color: colors.warning }]}>Pago pendiente</Text>
-                  </View>
-                  <TouchableOpacity onPress={handleCancelPendingReservation}>
-                    <Text style={[styles.cancelText, { color: colors.error }]}>Cancelar</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.payButton,
-                    {
-                      backgroundColor: getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'
-                    }
-                  ]}
-                  onPress={handleCompletePendingPayment}
-                  disabled={paymentLoading}
-                >
-                  {paymentLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'}
-                    />
-                  ) : (
-                    <Text style={[
-                      styles.payButtonText,
-                      {
-                        color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'
-                      }
-                    ]}>
-                      Completar pago
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={[styles.confirmedBadge, { backgroundColor: colors.success + '20' }]}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={[styles.confirmedText, { color: colors.success }]}>Reserva paga</Text>
-              </View>
-            )
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.bookButton,
-                {
-                  backgroundColor: trip.availableSeats === 0
-                    ? colors.textMuted
-                    : (isDarkMode ? '#FFFFFF' : '#000000')
-                }
-              ]}
-              onPress={handleBookTrip}
-              disabled={trip.availableSeats === 0}
-            >
-              <Text style={[
-                styles.bookButtonText,
-                {
-                  color: trip.availableSeats === 0
-                    ? colors.textPrimary
-                    : (isDarkMode ? '#000000' : '#FFFFFF')
-                }
-              ]}>
-                {trip.availableSeats === 0 ? 'Sin asientos' : 'Reservar'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 12,
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 15 },
+
   // Status
+  statusRow: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    marginHorizontal: 20,
-    marginTop: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
     gap: 6,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  // Route
-  routeSection: {
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 13, fontWeight: '600' },
+
+  // Section
+  section: {
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    borderBottomWidth: 1,
+    paddingVertical: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 14,
   },
-  routeDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-    marginRight: 16,
+
+  // Route
+  routeRow: { flexDirection: 'row', gap: 16 },
+  routeDotsCol: {
+    width: 18,
+    alignItems: 'center',
+    paddingTop: 4,
   },
-  routeDotDestination: {
+  routeDotOrigin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
   },
-  // Paradas intermedias
-  routeDotIntermediate: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  routeLineV: {
+    width: 1.5,
+    height: 44,
+    marginVertical: 2,
+  },
+  routeDotStop: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    marginTop: 2,
   },
-  routeDotNumber: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  routeCityIntermediate: {
-    fontSize: 15,
+  routeDotStopNum: { fontSize: 9, fontWeight: '700', color: '#FFF' },
+  routeDotDest: { width: 10, height: 10, borderRadius: 5 },
+  routeLabelsCol: { flex: 1, gap: 0 },
+  routeStop: { paddingBottom: 16 },
+  routeStopLabel: {
+    fontSize: 11,
     fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
   },
-  routeLine: {
-    width: 2,
-    height: 32,
-    marginLeft: 5,
-    marginVertical: 4,
-  },
-  routeContent: {
-    flex: 1,
-  },
-  routeTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  routeCity: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  routeAddress: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  // Info Row
-  infoRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 24,
-    borderBottomWidth: 1,
-  },
-  infoItem: {
+  routeStopAddress: { fontSize: 15, fontWeight: '500' },
+  routeStopCity: { fontSize: 13, marginTop: 1 },
+
+  // Meta row
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 0,
   },
-  infoText: {
-    fontSize: 15,
-  },
-  // Cost
+  metaItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaDivider: { width: StyleSheet.hairlineWidth, height: 20, marginHorizontal: 4 },
+  metaText: { fontSize: 13, flex: 1 },
+
+  // Cost banner
   costBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1044,367 +1059,212 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderRadius: 12,
-    gap: 12,
+    borderWidth: 1,
   },
-  costLabel: {
-    fontSize: 14,
-    flex: 1,
-  },
-  costValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  costSubtext: {
-    fontSize: 11,
-    marginTop: 2,
-  },
+  costBannerLeft: { flex: 1 },
+  costBannerLabel: { fontSize: 14, fontWeight: '500' },
+  costBannerSub: { fontSize: 12, marginTop: 2 },
+  costBannerValue: { fontSize: 22, fontWeight: '700' },
+
   // Driver
-  driverSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  driverAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-  },
+  driverRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  driverAvatar: { width: 56, height: 56, borderRadius: 28 },
   driverAvatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 56, height: 56, borderRadius: 28,
+    justifyContent: 'center', alignItems: 'center',
   },
-  driverInitials: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  driverInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  driverName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  driverLabel: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  // Sections
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
+  driverInitials: { fontSize: 18, fontWeight: '600' },
+  driverInfo: { flex: 1 },
+  driverName: { fontSize: 16, fontWeight: '600' },
+
   // Vehicle
-  vehicleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  vehicleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  vehicleImage: {
-    width: 96,
-    height: 72,
-    borderRadius: 8,
-  },
+  vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  vehicleImage: { width: 88, height: 64, borderRadius: 10 },
   vehicleImagePlaceholder: {
-    width: 96,
-    height: 72,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 88, height: 64, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
   },
-  vehicleDetails: {
-    flex: 1,
-  },
-  vehicleText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  vehicleColor: {
-    fontSize: 14,
-    marginTop: 2,
-  },
+  vehicleInfo: { flex: 1 },
+  vehicleName: { fontSize: 15, fontWeight: '600' },
+  vehicleColor: { fontSize: 13, marginTop: 2 },
+
   // Features
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
+  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  featureChip: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 20, gap: 6,
   },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  featureText: {
-    fontSize: 14,
-  },
+  featureChipText: { fontSize: 13 },
+
   // Rules
-  rulesContainer: {
-    gap: 12,
-  },
-  ruleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  ruleText: {
-    fontSize: 15,
-  },
+  rulesRow: { gap: 12 },
+  ruleItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ruleText: { fontSize: 14 },
+
   // Notes
-  notesText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-  },
-  bookButton: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  bookButtonDisabled: {
-    // removed - handled inline
-  },
-  bookButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Pending Payment
-  pendingContainer: {
-    gap: 12,
-  },
-  pendingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pendingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pendingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  pendingText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  cancelText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  payButton: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  payButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Confirmed
-  confirmedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 8,
-    gap: 8,
-  },
-  confirmedText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  notesText: { fontSize: 14, lineHeight: 22 },
+
   // Passengers
   passengerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
   },
-  passengerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
+  passengerAvatar: { width: 40, height: 40, borderRadius: 20 },
   passengerAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
   },
-  passengerInitials: {
-    fontSize: 16,
-    fontWeight: '600',
+  passengerInitials: { fontSize: 14, fontWeight: '600' },
+  passengerInfo: { flex: 1 },
+  passengerName: { fontSize: 14, fontWeight: '500' },
+  passengerSeats: { fontSize: 12, marginTop: 2 },
+  chatBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    justifyContent: 'center', alignItems: 'center',
   },
-  passengerInfo: {
-    flex: 1,
-    marginLeft: 12,
+
+  // Footer
+  footer: {
+    padding: 20,
+    paddingBottom: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
   },
-  passengerName: {
-    fontSize: 15,
-    fontWeight: '600',
+  footerBtn: {
+    height: 52, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
   },
-  passengerSeats: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  passengerChatBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  passengerPaidBadge: {
+  footerBtnText: { fontSize: 16, fontWeight: '600' },
+  statusFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 12,
+    gap: 8,
   },
-  passengerPaidText: {
+  statusFooterText: { fontSize: 15, fontWeight: '500' },
+  pendingWrap: { gap: 12 },
+  pendingTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pendingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pendingDot: { width: 8, height: 8, borderRadius: 4 },
+  pendingLabel: { fontSize: 14, fontWeight: '500' },
+  cancelLink: { fontSize: 14, fontWeight: '500' },
+
+  // Modals
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheetContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+  sheetHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 20, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  sheetTitle: { fontSize: 17, fontWeight: '600' },
+  imageOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  imageFullscreen: { width: '100%', height: '80%' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', padding: 24,
+  },
+  modalCard: { borderRadius: 16, padding: 24, width: '100%', maxWidth: 400 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  modalSub: { fontSize: 13, marginBottom: 12 },
+  modalInput: {
+    borderWidth: 1, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 14,
+    fontSize: 17, marginBottom: 16,
+  },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalBtnSecondary: {
+    flex: 1, height: 48, borderRadius: 10,
+    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
+  },
+  modalBtnSecondaryText: { fontSize: 15, fontWeight: '500' },
+  modalBtnPrimary: {
+    flex: 1, height: 48, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalBtnPrimaryText: { fontSize: 15, fontWeight: '600' },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  headerCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    overflow: 'hidden',
+  },
+  headerOrigin: {
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  headerDest: {
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    flexShrink: 0,
+  },
+  statusPillText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  // Cost Modal
-  costModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  costModalContent: {
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  costModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  costModalSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  costInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  costModalActions: {
+
+  // Price card
+  priceCard: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  costModalCancel: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
     alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 18,
+    borderRadius: 14,
   },
-  costModalCancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  costModalConfirm: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  costModalConfirmText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  // Image Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  priceCardLeft: { flex: 1, gap: 4 },
+  priceCardLabel: { fontSize: 12, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4 },
+  priceCardValue: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  priceCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  paymentModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  paymentModalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  paymentModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  paymentModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  imageModalContent: {
-    position: 'relative',
-    width: '95%',
-    height: '80%',
-    backgroundColor: 'transparent',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 1,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalImage: {
-    width: '100%',
-    height: '100%',
+
+  // Banners section
+  bannersSection: {
+    marginTop: 28,
+    paddingBottom: 4,
   },
 });
 

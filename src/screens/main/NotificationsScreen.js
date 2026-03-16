@@ -17,9 +17,9 @@ import { useTheme } from '../../context/ThemeContext';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const colors = useColors();
+  const { colors, getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
-  const { isDarkMode } = useTheme();
+  useTheme();
   const {
     notifications = [],
     loading,
@@ -30,6 +30,16 @@ const NotificationsScreen = ({ navigation }) => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [optimisticRead, setOptimisticRead] = useState(new Set());
+
+  const dark = getCurrentThemeMode() === 'dark';
+  const bg = colors.background;
+  const textPrimary = colors.textPrimary;
+  const textMuted = colors.textMuted;
+  const divider = dark ? '#2A2A2A' : '#F0F0F0';
+  const accent = dark ? '#FFFFFF' : '#000000';
+  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const unreadBg = dark ? '#1A1F2E' : '#F5F7FF';
+  const unreadDot = dark ? '#6B7280' : '#111111';
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -44,7 +54,6 @@ const NotificationsScreen = ({ navigation }) => {
       markAsRead(notification._id);
     }
 
-    // Obtener IDs de referencias (pueden ser objeto poblado o string)
     const getTripId = () => {
       if (notification.relatedTrip) return notification.relatedTrip._id || notification.relatedTrip;
       if (notification.data?.tripId) return notification.data.tripId;
@@ -68,76 +77,44 @@ const NotificationsScreen = ({ navigation }) => {
     const bookingId = getBookingId();
     const conversationId = getConversationId();
 
-    // Prioridad: actionUrl > relatedTrip/relatedBooking > type + data
     if (notification.actionUrl) {
       const path = notification.actionUrl.replace(/^\//, '');
       const parts = path.split('/');
       if (path.startsWith('trips/')) {
         const id = parts[1];
         if (parts[2] === 'requests' && id) {
-          navigation.navigate('CarpoolingsTab', {
-            screen: 'TripRequests',
-            params: { tripId: id },
-          });
+          navigation.navigate('CarpoolingsTab', { screen: 'TripRequests', params: { tripId: id } });
         } else if (parts[2] === 'review' && id) {
-          navigation.navigate('CarpoolingsTab', {
-            screen: 'CreateReviewFromTrip',
-            params: { tripId: id },
-          });
+          navigation.navigate('CarpoolingsTab', { screen: 'CreateReviewFromTrip', params: { tripId: id } });
         } else if (id) {
-          navigation.navigate('HomeTab', {
-            screen: 'TripDetail',
-            params: { tripId: id },
-          });
+          navigation.navigate('HomeTab', { screen: 'TripDetail', params: { tripId: id } });
         }
       } else if (path.startsWith('bookings/')) {
-        const id = parts[1];
-        if (id) {
-          navigation.navigate('CarpoolingsTab', {
-            screen: 'MyBookings',
-          });
-        }
+        navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' });
       } else if (path.startsWith('chat/')) {
         const id = parts[1];
         if (id) {
           navigation.navigate('ChatsTab', {
             screen: 'ChatDetail',
-            params: {
-              conversation: { _id: id },
-              otherUser: notification.relatedUser || {},
-            },
+            params: { conversation: { _id: id }, otherUser: notification.relatedUser || {} },
           });
         }
       } else if (path === 'seat-reservations' || path.startsWith('seat-reservations/')) {
-        navigation.navigate('CarpoolingsTab', {
-          screen: 'MySeatReservations',
-        });
+        navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' });
       } else if (path === 'profile') {
-        navigation.navigate('ProfileTab', {
-          screen: 'Profile',
-        });
+        navigation.navigate('ProfileTab', { screen: 'Profile' });
       }
       return;
     }
 
-    // Fallback: usar relatedTrip, relatedBooking, type
     if (tripId) {
       const type = notification.type || '';
       if (type.includes('booking_created') || type.includes('seat_reservation_request')) {
-        navigation.navigate('CarpoolingsTab', {
-          screen: 'TripRequests',
-          params: { tripId },
-        });
+        navigation.navigate('CarpoolingsTab', { screen: 'TripRequests', params: { tripId } });
       } else if (type.includes('review')) {
-        navigation.navigate('CarpoolingsTab', {
-          screen: 'CreateReviewFromTrip',
-          params: { tripId },
-        });
+        navigation.navigate('CarpoolingsTab', { screen: 'CreateReviewFromTrip', params: { tripId } });
       } else {
-        navigation.navigate('HomeTab', {
-          screen: 'TripDetail',
-          params: { tripId },
-        });
+        navigation.navigate('HomeTab', { screen: 'TripDetail', params: { tripId } });
       }
       return;
     }
@@ -152,9 +129,7 @@ const NotificationsScreen = ({ navigation }) => {
       return;
     }
     if (bookingId) {
-      navigation.navigate('CarpoolingsTab', {
-        screen: 'MyBookings',
-      });
+      navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' });
       return;
     }
     if (notification.type === 'review_received') {
@@ -171,11 +146,10 @@ const NotificationsScreen = ({ navigation }) => {
         {
           text: 'Confirmar',
           onPress: () => {
-            // Optimistic update for all
             const allIds = notifications.map(n => n._id);
             setOptimisticRead(new Set(allIds));
             markAllAsRead();
-          }
+          },
         },
       ]
     );
@@ -202,89 +176,102 @@ const NotificationsScreen = ({ navigation }) => {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins}m`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays < 7) return `Hace ${diffDays}d`;
-
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  const renderNotificationItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const isRead = item.isRead || optimisticRead.has(item._id);
+    const isLast = index === notifications.length - 1;
 
     return (
       <TouchableOpacity
         style={[
-          styles.card,
-          { 
-            backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
-            borderColor: isDarkMode ? '#404040' : '#E5E7EB'
-          },
-          !isRead && { 
-            backgroundColor: isDarkMode ? '#1F2947' : '#EBF4FF', 
-            borderColor: isDarkMode ? '#3B82F6' : '#93C5FD' 
-          }
+          styles.row,
+          !isRead && { backgroundColor: unreadBg },
+          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
         ]}
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.7}
       >
+        {/* Icon */}
         <View style={[
-          styles.iconContainer, 
-          { backgroundColor: isDarkMode ? '#1F1F1F' : '#F8F9FA' },
-          !isRead && { backgroundColor: isDarkMode ? '#1E3A8A' : '#DBEAFE' }
+          styles.iconWrap,
+          { backgroundColor: dark ? '#2A2A2A' : '#F0F0F0' },
+          !isRead && { backgroundColor: dark ? '#252B3D' : '#E8ECFF' },
         ]}>
           <Ionicons
             name={getNotificationIcon(item.type)}
-            size={22}
-            color={isRead ? (isDarkMode ? '#6B7280' : '#9CA3AF') : (isDarkMode ? '#FFFFFF' : '#1F2937')}
+            size={18}
+            color={isRead ? textMuted : textPrimary}
           />
         </View>
 
-        <View style={styles.content}>
-          <Text style={[
-            styles.title, 
-            { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-            !isRead && { fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#1F2937' }
-          ]}>
-            {item.title}
-          </Text>
-          <Text style={[styles.message, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]} numberOfLines={2}>
+        {/* Content */}
+        <View style={styles.rowContent}>
+          <View style={styles.rowTop}>
+            <Text
+              style={[
+                styles.rowTitle,
+                { color: isRead ? colors.textSecondary : textPrimary },
+                !isRead && { fontWeight: '600' },
+              ]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text style={[styles.rowTime, { color: textMuted }]}>
+              {getRelativeTime(item.createdAt)}
+            </Text>
+          </View>
+          <Text style={[styles.rowMessage, { color: textMuted }]} numberOfLines={2}>
             {item.message}
           </Text>
-          <Text style={[styles.time, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{getRelativeTime(item.createdAt)}</Text>
         </View>
 
-        {!isRead && <View style={[styles.unreadDot, { backgroundColor: isDarkMode ? '#3B82F6' : '#6366F1' }]} />}
+        {/* Unread indicator */}
+        {!isRead && (
+          <View style={[styles.unreadDot, { backgroundColor: unreadDot }]} />
+        )}
       </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
-        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#6366F1'} />
+      <View style={[styles.centered, { paddingTop: insets.top, backgroundColor: bg }]}>
+        <ActivityIndicator size="small" color={textMuted} />
       </View>
     );
   }
 
+  const hasUnread = notifications.some(n => !n.isRead && !optimisticRead.has(n._id));
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: bg }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF', borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+      <View style={[styles.header, { borderBottomColor: divider }]}>
         <TouchableOpacity
-          style={[styles.closeButton, { backgroundColor: isDarkMode ? '#1F1F1F' : '#F8F9FA' }]}
+          style={styles.backBtn}
           onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+          <Ionicons name="arrow-back" size={22} color={textPrimary} />
         </TouchableOpacity>
 
-        {notifications.some(n => !n.isRead && !optimisticRead.has(n._id)) && (
+        <Text style={[styles.headerTitle, { color: textPrimary }]}>Notificaciones</Text>
+
+        {hasUnread ? (
           <TouchableOpacity
-            style={[styles.markAllButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#161616' }]}
+            style={[styles.markAllBtn, { backgroundColor: accent }]}
             onPress={handleMarkAllAsRead}
           >
-            <Text style={[styles.markAllText, { color: isDarkMode ? '#161616' : '#FFFFFF' }]}>Leer todas</Text>
+            <Text style={[styles.markAllText, { color: accentInverse }]}>Leer todas</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.markAllBtn} />
         )}
       </View>
 
@@ -292,7 +279,7 @@ const NotificationsScreen = ({ navigation }) => {
       {notifications.length > 0 ? (
         <FlatList
           data={notifications}
-          renderItem={renderNotificationItem}
+          renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -300,17 +287,14 @@ const NotificationsScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+              tintColor={textMuted}
             />
           }
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA' }]}>
-            <Ionicons name="notifications-outline" size={48} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Sin notificaciones</Text>
-          <Text style={[styles.emptySubtitle, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
+        <View style={styles.emptyWrap}>
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin notificaciones</Text>
+          <Text style={[styles.emptyText, { color: textMuted }]}>
             Cuando recibas notificaciones apareceran aqui
           </Text>
         </View>
@@ -323,102 +307,109 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centerContainer: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   // Header
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 8,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtn: {
+    width: 36,
+    alignItems: 'flex-start',
   },
-  markAllButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  markAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 8,
+    minWidth: 36,
+    alignItems: 'center',
   },
   markAllText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
+
   // List
   listContent: {
-    padding: 16,
+    paddingBottom: 32,
   },
-  // Card
-  card: {
+
+  // Row
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 14,
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    flexShrink: 0,
   },
-  content: {
+  rowContent: {
     flex: 1,
+    gap: 4,
   },
-  title: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 4,
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  message: {
+  rowTitle: {
+    flex: 1,
     fontSize: 14,
-    marginBottom: 4,
-    lineHeight: 20,
+    fontWeight: '500',
   },
-  time: {
+  rowTime: {
     fontSize: 12,
+    flexShrink: 0,
+  },
+  rowMessage: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginLeft: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    flexShrink: 0,
   },
+
   // Empty
-  emptyContainer: {
+  emptyWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 40,
+    gap: 8,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
   },
-  emptySubtitle: {
+  emptyText: {
     fontSize: 14,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

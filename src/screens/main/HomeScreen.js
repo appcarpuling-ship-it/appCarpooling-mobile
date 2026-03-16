@@ -14,7 +14,6 @@ import {
   Platform,
   Dimensions,
   Image,
-  Linking,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,17 +32,16 @@ import { handleBannerPress } from '../../utils/bannerNavigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
-const BANNER_HEIGHT = 180;
+const BANNER_HEIGHT = 160;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 const BANNER_SCROLL_SPEED = 30;
 
-const ContinuousCarousel = ({ banners, navigation }) => {
+const BannerCarousel = ({ banners, navigation }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const totalWidth = banners.length * BANNER_ITEM_WIDTH;
 
   useEffect(() => {
     if (banners.length <= 1) return;
-
     const duration = (totalWidth / BANNER_SCROLL_SPEED) * 1000;
     const animation = Animated.loop(
       Animated.timing(scrollX, {
@@ -65,13 +63,14 @@ const ContinuousCarousel = ({ banners, navigation }) => {
         style={{
           flexDirection: 'row',
           paddingHorizontal: 24,
+          gap: 16,
           transform: [{ translateX: scrollX }],
         }}
       >
         {duplicated.map((item, index) => (
           <TouchableOpacity
             key={`${item._id}-${index}`}
-            activeOpacity={0.95}
+            activeOpacity={0.92}
             style={styles.bannerSlide}
             onPress={() => handleBannerPress(item, navigation)}
           >
@@ -82,14 +81,6 @@ const ContinuousCarousel = ({ banners, navigation }) => {
                   style={styles.bannerImage}
                   resizeMode="cover"
                 />
-                {(item.buttonText || item.appGoTo || item.clickUrl) && (
-                  <View style={[styles.bannerCta, styles.bannerCtaOverlay]}>
-                    <Text style={styles.bannerCtaText}>
-                      {item.buttonText || 'Ver más'}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={14} color="#FFF" />
-                  </View>
-                )}
               </View>
             ) : (
               <View style={styles.bannerContent}>
@@ -100,14 +91,6 @@ const ContinuousCarousel = ({ banners, navigation }) => {
                   <Text style={styles.bannerDescription} numberOfLines={2}>
                     {item.description}
                   </Text>
-                )}
-                {(item.buttonText || item.appGoTo || item.clickUrl) && (
-                  <View style={styles.bannerCta}>
-                    <Text style={styles.bannerCtaText}>
-                      {item.buttonText || 'Ver más'}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={14} color="#FFF" />
-                  </View>
                 )}
               </View>
             )}
@@ -121,14 +104,16 @@ const ContinuousCarousel = ({ banners, navigation }) => {
 const HomeScreen = ({ navigation }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
-  const { isDarkMode } = useTheme();
+  useTheme();
   const { showAlert } = useAlert();
   const { colors, getCurrentThemeMode } = useColors();
 
-  // Logo dinámico según el tema
-  const LOGO_SOURCE = isDarkMode
+  const dark = getCurrentThemeMode() === 'dark';
+
+  const LOGO_SOURCE = dark
     ? require('../../../assets/logo/192x192-white.png')
     : require('../../../assets/logo/192x192-black.png');
+
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
@@ -165,7 +150,6 @@ const HomeScreen = ({ navigation }) => {
     } else {
       setLoading(true);
     }
-
     try {
       const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 10 });
       if (response.success) {
@@ -217,7 +201,6 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-
   const onRefresh = () => {
     loadRecentTrips(true);
     loadBannersEnterprise();
@@ -235,7 +218,6 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleDatePickerOpen = () => {
-    // Si no hay fecha seleccionada, setear la fecha de hoy automáticamente
     if (!selectedDate) {
       setSelectedDate(new Date());
     }
@@ -249,16 +231,13 @@ const HomeScreen = ({ navigation }) => {
 
   const handleSearch = () => {
     if (!origin && !destination && !selectedDate && !selectedSeats) {
-      // Si no hay filtros, mostrar todos los viajes
       navigation.navigate('AllTrips');
       return;
     }
-
     if (!origin && !destination) {
       showAlert('Error', 'Por favor completa al menos el origen o destino');
       return;
     }
-
     navigation.navigate('SearchResults', {
       origin,
       destination,
@@ -275,7 +254,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const getDriverInitials = (driver) => {
-    if (!driver) return '??';
+    if (!driver) return '?';
     return `${driver.firstName?.[0] || ''}${driver.lastName?.[0] || ''}`;
   };
 
@@ -288,74 +267,91 @@ const HomeScreen = ({ navigation }) => {
     return city;
   };
 
+  // Dynamic colors
+  const bg = colors.background;
+  const cardBg = dark ? '#1A1A1A' : '#F7F7F7';
+  const inputBg = dark ? '#1A1A1A' : '#F7F7F7';
+  const textPrimary = colors.textPrimary;
+  const textSecondary = colors.textSecondary;
+  const textMuted = colors.textMuted;
+  const borderColor = dark ? '#2A2A2A' : '#E8E8E8';
+  const accent = dark ? '#FFFFFF' : '#000000';
+  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const divider = dark ? '#2A2A2A' : '#F0F0F0';
+
   const renderTripCard = (trip) => (
     <TouchableOpacity
       key={trip._id}
-      style={[styles.tripCard, {
-        backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-        borderColor: colors.border
-      }]}
+      style={[styles.tripCard, { backgroundColor: cardBg }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
     >
-      {/* Driver info */}
-      <View style={styles.tripHeader}>
+      {/* Driver row */}
+      <View style={styles.tripDriverRow}>
         {trip.driver?.avatar ? (
           <Image
             source={{ uri: buildImageUri(trip.driver.avatar) }}
             style={styles.driverAvatar}
           />
         ) : (
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: '#6B7280' }]}>
-            <Text style={styles.driverInitials}>{getDriverInitials(trip.driver)}</Text>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <Text style={[styles.driverInitials, { color: textSecondary }]}>
+              {getDriverInitials(trip.driver)}
+            </Text>
           </View>
         )}
-        <View style={styles.tripInfo}>
-          <Text style={[styles.driverName, { color: colors.textPrimary }]}>
+        <View style={styles.driverInfo}>
+          <Text style={[styles.driverName, { color: textPrimary }]}>
             {trip.driver?.firstName} {trip.driver?.lastName}
           </Text>
-          <Text style={[styles.tripDate, { color: colors.textSecondary }]}>
+          <Text style={[styles.tripDateTime, { color: textMuted }]}>
             {new Date(trip.departureDate).toLocaleDateString('es-ES', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short'
-            })} - {trip.departureTime}
+              weekday: 'short', day: 'numeric', month: 'short',
+            })}{'  '}{trip.departureTime}
           </Text>
         </View>
-
+        <Ionicons name="chevron-forward" size={16} color={dark ? '#444' : '#CCC'} />
       </View>
 
+      {/* Divider */}
+      <View style={[styles.tripInnerDivider, { backgroundColor: divider }]} />
+
       {/* Route */}
-      <View style={styles.routeContainer}>
-        <View style={styles.routeDotsContainer}>
-          <View style={[styles.routeDotOrigin, { borderColor: colors.primary }]} />
-          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-          <View style={[styles.routeDotDestination, { backgroundColor: colors.primary }]} />
+      <View style={styles.tripRouteRow}>
+        <View style={styles.routeColumn}>
+          <View style={[styles.routeDot, { borderColor: accent }]} />
+          <View style={[styles.routeLineVertical, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+          <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
         </View>
-        <View style={styles.routeTexts}>
-          <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
+        <View style={styles.tripInfoColumn}>
+          <Text style={[styles.routeLabel, { color: textMuted }]}>Origen</Text>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
             {formatAddress(trip.origin) || trip.origin?.city}
           </Text>
-          <Text style={[styles.routeCity, { color: colors.textSecondary }]} numberOfLines={1}>
+          <View style={{ height: 14 }} />
+          <Text style={[styles.routeLabel, { color: textMuted }]}>Destino</Text>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
             {formatAddress(trip.destination) || trip.destination?.city}
           </Text>
         </View>
       </View>
-      {trip.intermediateStops && trip.intermediateStops.length > 0 && (
-        <Text style={[styles.routeCityIntermediate, { color: colors.textTertiary }]} numberOfLines={1}>
-          +{trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
-        </Text>
-      )}
 
       {/* Footer */}
-      <View style={[styles.tripFooter, { borderTopColor: colors.borderLight }]}>
-        <View style={styles.seatsInfo}>
-          <Ionicons name="person-outline" size={14} color={colors.textTertiary} />
-          <Text style={[styles.seatsText, { color: colors.textTertiary }]}>
+      <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
+        <View style={styles.tripFooterItem}>
+          <Ionicons name="person-outline" size={13} color={textMuted} />
+          <Text style={[styles.tripFooterText, { color: textMuted }]}>
             {trip.availableSeats} lugar{trip.availableSeats !== 1 ? 'es' : ''}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        {trip.intermediateStops?.length > 0 && (
+          <View style={styles.tripFooterItem}>
+            <Ionicons name="git-branch-outline" size={13} color={textMuted} />
+            <Text style={[styles.tripFooterText, { color: textMuted }]}>
+              {trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -364,43 +360,32 @@ const HomeScreen = ({ navigation }) => {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.pickerHeader, { borderBottomColor: colors.borderLight }]}>
-            <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.textSecondary} />
+          <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
+            <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={22} color={textSecondary} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={[styles.provinceList, { backgroundColor: colors.surface }]} showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false}>
             {ARGENTINA_PROVINCES.map((province) => (
               <TouchableOpacity
                 key={province}
-                onPress={() => {
-                  onSelect(province);
-                  onClose();
-                }}
+                onPress={() => { onSelect(province); onClose(); }}
                 style={[
                   styles.provinceOption,
-                  selected === province && styles.provinceOptionSelected,
-                  {
-                    backgroundColor: selected === province
-                      ? colors.primaryLight
-                      : getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-                    borderBottomColor: colors.borderLight
-                  }
+                  { borderBottomColor: divider },
+                  selected === province && { backgroundColor: dark ? '#222' : '#F5F5F5' },
                 ]}
               >
                 <Text style={[
                   styles.provinceOptionText,
-                  {
-                    color: selected === province
-                      ? colors.primary
-                      : colors.textPrimary
-                  }
+                  { color: selected === province ? textPrimary : textSecondary },
+                  selected === province && { fontWeight: '600' },
                 ]}>
                   {province}
                 </Text>
                 {selected === province && (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                  <Ionicons name="checkmark" size={18} color={accent} />
                 )}
               </TouchableOpacity>
             ))}
@@ -411,7 +396,7 @@ const HomeScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -419,122 +404,130 @@ const HomeScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
+            tintColor={textMuted}
           />
         }
       >
         {/* Header */}
         <View style={styles.header}>
+          <Image source={LOGO_SOURCE} style={styles.logo} />
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
+          <Text style={[styles.headerSub, { color: textMuted }]}>Viaja inteligente</Text>
           {isAuthenticated && (
             <TouchableOpacity
               onPress={() => setShowNotificationsModal(true)}
-              style={[styles.notificationButton, {
-                backgroundColor: colors.cardBackground,
-                borderColor: colors.border
-              }]}
+              style={[styles.notifBtn, { backgroundColor: inputBg }]}
               activeOpacity={0.7}
             >
-              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+              <Ionicons name="notifications-outline" size={20} color={textPrimary} />
               {unreadCount > 0 && (
-                <View style={[styles.notificationBadge, { borderColor: colors.cardBackground }]}>
-                  <Text style={styles.notificationBadgeText}>
+                <View style={[styles.notifBadge, { borderColor: bg }]}>
+                  <Text style={styles.notifBadgeText}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
           )}
-
-          <Image source={LOGO_SOURCE} style={styles.logo} />
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Carpuling</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Viaja inteligente, ahorra más</Text>
         </View>
 
-        {/* Search */}
-        <View style={styles.searchContainer}>
+        {/* Search block */}
+        <View style={[styles.searchBlock, { backgroundColor: inputBg }]}>
+          {/* Origin */}
           <TouchableOpacity
-            style={[styles.inputContainer, {
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border
-            }]}
+            style={styles.searchRow}
             onPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
           >
-            <View style={[styles.inputDot, { borderColor: colors.primary }]} />
-            <Text style={[styles.inputText, origin && styles.inputTextFilled, {
-              color: origin ? colors.textPrimary : colors.placeholder
-            }]}>
-              {origin || '¿Desde dónde viajas?'}
+            <View style={styles.routeIndicator}>
+              <View style={[styles.dotOutline, { borderColor: accent }]} />
+            </View>
+            <Text style={[
+              styles.searchRowText,
+              { color: origin ? textPrimary : textMuted },
+            ]}>
+              {origin || 'Origen'}
             </Text>
           </TouchableOpacity>
 
+          <View style={[styles.searchDivider, { backgroundColor: divider }]}>
+            <View style={[styles.routeConnector, { backgroundColor: dark ? '#444' : '#CCC' }]} />
+          </View>
+
+          {/* Destination */}
           <TouchableOpacity
-            style={[styles.inputContainer, {
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border
-            }]}
+            style={styles.searchRow}
             onPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
           >
-            <View style={[styles.inputDotFilled, { backgroundColor: colors.primary }]} />
-            <Text style={[styles.inputText, destination && styles.inputTextFilled, {
-              color: destination ? colors.textPrimary : colors.placeholder
-            }]}>
-              {destination || '¿Cuál es tu destino?'}
+            <View style={styles.routeIndicator}>
+              <View style={[styles.dotFilled, { backgroundColor: accent }]} />
+            </View>
+            <Text style={[
+              styles.searchRowText,
+              { color: destination ? textPrimary : textMuted },
+            ]}>
+              {destination || 'Destino'}
             </Text>
           </TouchableOpacity>
 
+          <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />
+
+          {/* Date row */}
           <TouchableOpacity
-            style={[styles.inputContainer, {
-              backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-              borderColor: colors.border
-            }]}
-            onPress={() => handleDatePickerOpen()}
+            style={styles.searchRow}
+            onPress={handleDatePickerOpen}
             activeOpacity={0.7}
           >
-            <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-            <Text style={[styles.inputText, selectedDate && styles.inputTextFilled, {
-              color: selectedDate ? colors.textPrimary : colors.placeholder
-            }]}>
-              {selectedDate ? formatDate(selectedDate) : '¿Cuándo sales?'}
-            </Text>
+            <View style={styles.routeIndicator}>
+              <Ionicons name="calendar-outline" size={16} color={selectedDate ? textPrimary : textMuted} />
+            </View>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: textMuted }]}>Fecha</Text>
+              <Text style={[styles.searchRowValue, { color: selectedDate ? textPrimary : textMuted }]}>
+                {selectedDate ? formatDate(selectedDate) : 'Cualquier dia'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
-          <View style={[styles.inputContainer, {
-            backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-            borderColor: colors.border
-          }]}>
-            <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
-            <TextInput
-              style={[styles.textInput, { color: colors.textPrimary }]}
-              placeholder="¿Cuántos viajan?"
-              placeholderTextColor={colors.placeholder}
-              value={selectedSeats}
-              onChangeText={setSelectedSeats}
-              keyboardType="numeric"
-              textAlignVertical="center"
-              numberOfLines={1} 
-            />
-          </View>
+          <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />
 
+          {/* Seats row */}
+          <View style={styles.searchRow}>
+            <View style={styles.routeIndicator}>
+              <Ionicons name="person-outline" size={16} color={selectedSeats ? textPrimary : textMuted} />
+            </View>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: textMuted }]}>Asientos</Text>
+              <TextInput
+                style={[styles.searchRowInput, { color: selectedSeats ? textPrimary : textMuted }]}
+                placeholder="Cuantos viajan"
+                placeholderTextColor={textMuted}
+                value={selectedSeats}
+                onChangeText={setSelectedSeats}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Actions */}
+        <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[
-              styles.searchButton,
-              {
-                backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
-              }
-            ]}
+            style={[styles.searchBtn, { backgroundColor: accent }]}
             onPress={handleSearch}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            {/* <Ionicons name="search" size={20} color={colors.background} /> */}
-            <Text style={[styles.searchButtonText, { color: isDarkMode ? '#000000' : colors.background }]}>Buscar viajes</Text>
+            <Text style={[styles.searchBtnText, { color: accentInverse }]}>Buscar viajes</Text>
           </TouchableOpacity>
 
           {(origin || destination || selectedDate || selectedSeats) && (
-            <TouchableOpacity style={styles.clearButton} onPress={clearFilters} activeOpacity={0.7}>
-              <Ionicons name="refresh-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>Limpiar filtros</Text>
+            <TouchableOpacity
+              style={[styles.clearBtn, { borderColor: borderColor }]}
+              onPress={clearFilters}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-outline" size={16} color={textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -542,60 +535,52 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersEnterprise} navigation={navigation} />
+            <BannerCarousel banners={bannersEnterprise} navigation={navigation} />
           </View>
         )}
 
-        {/* Recent Trips */}
+        {/* Upcoming trips */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Próximos viajes</Text>
+            <Text style={[styles.sectionTitle, { color: textPrimary }]}>Proximos viajes</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AllTrips')} activeOpacity={0.7}>
+              <Text style={[styles.sectionLink, { color: textMuted }]}>Ver todos</Text>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="small" color={textMuted} />
             </View>
           ) : recentTrips.length > 0 ? (
             recentTrips.map(renderTripCard)
           ) : (
-            <View style={styles.emptyContainer}>
-              <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
-                <Ionicons name="car-outline" size={40} color={colors.textMuted} />
-              </View>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No hay viajes disponibles</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Sé el primero en crear uno</Text>
+            <View style={styles.emptyWrap}>
+              <Text style={[styles.emptyText, { color: textMuted }]}>
+                No hay viajes disponibles
+              </Text>
             </View>
           )}
-
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => navigation.navigate('AllTrips')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.viewAllText, { color: colors.textPrimary }]}>Ver todos los viajes</Text>
-            <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
-          </TouchableOpacity>
         </View>
 
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersVip} navigation={navigation} />
+            <BannerCarousel banners={bannersVip} navigation={navigation} />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <ContinuousCarousel banners={bannersPremium} navigation={navigation} />
+            <BannerCarousel banners={bannersPremium} navigation={navigation} />
           </View>
         )}
       </ScrollView>
 
       {/* Province Pickers */}
-      {renderProvincePicker(showOriginPicker, () => setShowOriginPicker(false), origin, setOrigin, 'Seleccionar origen')}
-      {renderProvincePicker(showDestinationPicker, () => setShowDestinationPicker(false), destination, setDestination, 'Seleccionar destino')}
+      {renderProvincePicker(showOriginPicker, () => setShowOriginPicker(false), origin, setOrigin, 'Origen')}
+      {renderProvincePicker(showDestinationPicker, () => setShowDestinationPicker(false), destination, setDestination, 'Destino')}
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -604,40 +589,34 @@ const HomeScreen = ({ navigation }) => {
             <Modal visible transparent animationType="fade">
               <View style={styles.modalOverlay}>
                 <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-                  <View style={[styles.pickerHeader, { borderBottomColor: colors.borderLight }]}>
-                    <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>Seleccionar fecha</Text>
+                  <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
+                    <Text style={[styles.pickerTitle, { color: textPrimary }]}>Seleccionar fecha</Text>
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Ionicons name="close" size={24} color={colors.textSecondary} />
+                      <Ionicons name="close" size={22} color={textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <View style={[styles.datePickerWrapper, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
+                  <View style={{ padding: 16 }}>
                     <DateTimePicker
                       value={selectedDate || new Date()}
                       mode="date"
                       display="spinner"
                       onChange={handleDateChange}
                       minimumDate={new Date()}
-                      textColor={colors.textPrimary}
+                      textColor={textPrimary}
                     />
                   </View>
-                  <View style={[styles.pickerButtons, { backgroundColor: colors.background }]}>
+                  <View style={[styles.datePickerActions, { borderTopColor: divider }]}>
                     <TouchableOpacity
-                      style={[styles.pickerButtonClear, {
-                        backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
-                        borderColor: colors.border
-                      }]}
-                      onPress={() => {
-                        setSelectedDate(null);
-                        setShowDatePicker(false);
-                      }}
+                      style={[styles.dateBtn, { borderColor: borderColor }]}
+                      onPress={() => { setSelectedDate(null); setShowDatePicker(false); }}
                     >
-                      <Text style={[styles.pickerButtonClearText, { color: colors.textSecondary }]}>Limpiar</Text>
+                      <Text style={[styles.dateBtnText, { color: textSecondary }]}>Limpiar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.pickerButtonConfirm, { backgroundColor: colors.primary }]}
+                      style={[styles.dateBtn, styles.dateBtnPrimary, { backgroundColor: accent }]}
                       onPress={() => setShowDatePicker(false)}
                     >
-                      <Text style={[styles.pickerButtonConfirmText, { color: colors.background }]}>Confirmar</Text>
+                      <Text style={[styles.dateBtnText, { color: accentInverse }]}>Confirmar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -671,7 +650,7 @@ const HomeScreen = ({ navigation }) => {
             navigate: (screen, params) => {
               setShowNotificationsModal(false);
               setTimeout(() => navigation.navigate(screen, params), 300);
-            }
+            },
           }}
         />
       </Modal>
@@ -682,101 +661,118 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#F9FAFB', // Removido - ahora se usa color dinámico
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 40,
   },
+
   // Header
   header: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 20,
     paddingBottom: 24,
     position: 'relative',
-  },
-  notificationButton: {
-    position: 'absolute',
-    top: 16,
-    right: 24,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  notificationBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
   },
   logo: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
     resizeMode: 'contain',
   },
-  title: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 26,
     fontWeight: '700',
-    marginBottom: 4,
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 15,
+  headerSub: {
+    fontSize: 13,
+    marginTop: 4,
   },
-  // Search
-  searchContainer: {
-    paddingHorizontal: 24,
-    gap: 12,
+  notifBtn: {
+    position: 'absolute',
+    top: 20,
+    right: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  inputContainer: {
+  notifBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 2,
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+
+  // Search block
+  searchBlock: {
+    marginHorizontal: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    height: 50, // <- AGREGAR ALTURA FIJA
-    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    minHeight: 58,
   },
-  inputDot: {
+  routeIndicator: {
+    width: 22,
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  dotOutline: {
     width: 10,
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
   },
-  inputDotFilled: {
+  dotFilled: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  inputText: {
+  searchRowText: {
     flex: 1,
     fontSize: 15,
+    fontWeight: '400',
   },
-  inputTextFilled: {
-    // color handled inline
-  },
-  textInput: {
+  searchRowContent: {
     flex: 1,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  searchRowLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  searchRowValue: {
     fontSize: 15,
-    paddingVertical: 0, // <- AGREGAR
-    margin: 0, // <- AGREGAR
+    fontWeight: '400',
+  },
+  searchRowInput: {
+    fontSize: 15,
+    fontWeight: '400',
+    padding: 0,
+    margin: 0,
     ...Platform.select({
       android: {
         paddingTop: 0,
@@ -785,34 +781,87 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  searchButton: {
+  searchDivider: {
+    height: 1,
+    marginLeft: 54,
+    position: 'relative',
+  },
+  routeConnector: {
+    position: 'absolute',
+    left: -24,
+    top: -8,
+    width: 1,
+    height: 16,
+  },
+  searchDividerFull: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 18,
+  },
+
+  // Actions row
+  actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 24,
+    marginTop: 12,
+    gap: 10,
+  },
+  searchBtn: {
+    flex: 1,
+    height: 52,
     borderRadius: 12,
-    paddingVertical: 16,
-    gap: 8,
-    marginTop: 4,
-  },
-  searchButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  clearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
+    alignItems: 'center',
   },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+  searchBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.1,
   },
+  clearBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Banners
+  bannerSection: {
+    marginTop: 28,
+  },
+  bannerSlide: {
+    width: BANNER_WIDTH,
+    height: BANNER_HEIGHT,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#111',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerContent: {
+    flex: 1,
+    padding: 18,
+    justifyContent: 'flex-end',
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  bannerDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
+  },
+
   // Section
   section: {
     paddingHorizontal: 24,
-    paddingTop: 8,
+    marginTop: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -821,290 +870,189 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
+  sectionLink: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
   // Trip Card
   tripCard: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
     marginBottom: 12,
-    borderWidth: 1,
+    overflow: 'hidden',
   },
-  tripHeader: {
+  tripDriverRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    gap: 12,
   },
   driverAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   driverAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   driverInitials: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
-  tripInfo: {
+  driverInfo: {
     flex: 1,
-    marginLeft: 12,
+    gap: 3,
   },
   driverName: {
     fontSize: 15,
     fontWeight: '600',
   },
-  tripDate: {
-    fontSize: 13,
-    marginTop: 2,
+  tripDateTime: {
+    fontSize: 12,
   },
-  priceTag: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  tripInnerDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
   },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  // Route
-  routeContainer: {
+  tripRouteRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
-  routeDotsContainer: {
-    width: 20,
+  routeColumn: {
+    width: 22,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingTop: 4,
+    marginRight: 14,
   },
-  routeDotOrigin: {
-    width: 10,
-    height: 10,
+  routeDot: {
+    width: 9,
+    height: 9,
     borderRadius: 5,
     borderWidth: 2,
   },
-  routeLine: {
-    flex: 1,
-    width: 2,
-    marginVertical: 4,
+  routeLineVertical: {
+    width: 1.5,
+    height: 28,
+    marginVertical: 3,
   },
-  routeDotDestination: {
-    width: 10,
-    height: 10,
+  routeDotFilled: {
+    width: 9,
+    height: 9,
     borderRadius: 5,
   },
-  routeTexts: {
+  tripInfoColumn: {
     flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
-    paddingVertical: 2,
   },
-  routeCity: {
+  routeLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  routeText: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  routeCityIntermediate: {
+  tripFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  tripFooterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  tripFooterText: {
     fontSize: 12,
-    fontStyle: 'italic',
-    textAlign: 'left',
   },
-  tripFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  seatsInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  seatsText: {
-    fontSize: 13,
-  },
+
   // Loading & Empty
-  loadingContainer: {
-    padding: 48,
+  loadingWrap: {
+    padding: 40,
     alignItems: 'center',
   },
-  emptyContainer: {
-    alignItems: 'center',
+  emptyWrap: {
     padding: 32,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emptySubtext: {
     fontSize: 14,
   },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginTop: 4,
-  },
-  viewAllText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    width: '85%',
-    maxHeight: '70%',
+    width: '88%',
+    maxHeight: '75%',
     overflow: 'hidden',
   },
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   pickerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#000000',
-  },
-  provinceList: {
-    maxHeight: 400,
   },
   provinceOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  provinceOptionSelected: {
-    backgroundColor: '#F3F4F6',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   provinceOptionText: {
     fontSize: 15,
-    color: '#374151',
   },
-  provinceOptionTextSelected: {
-    color: '#000000',
-    fontWeight: '600',
-  },
-  datePickerWrapper: {
-    padding: 16,
-  },
-  pickerButtons: {
+  datePickerActions: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
-  pickerButtonClear: {
+  dateBtn: {
     flex: 1,
-    paddingVertical: 14,
+    height: 46,
     borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  pickerButtonClearText: {
+  dateBtnPrimary: {
+    borderWidth: 0,
+  },
+  dateBtnText: {
     fontSize: 15,
-    color: '#6B7280',
     fontWeight: '500',
-  },
-  pickerButtonConfirm: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    // backgroundColor manejado inline
-  },
-  pickerButtonConfirmText: {
-    fontSize: 15,
-    // color manejado inline
-    fontWeight: '600',
-  },
-  // Banners
-  bannerSection: {
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  bannerSlide: {
-    width: BANNER_WIDTH,
-    height: BANNER_HEIGHT,
-    marginRight: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#1F2937',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  bannerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  bannerDescription: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 16,
-  },
-  bannerCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  bannerCtaOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-  },
-  bannerCtaText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
 });
 
