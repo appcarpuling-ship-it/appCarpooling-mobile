@@ -7,8 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Animated,
-  Easing,
+  FlatList,
   RefreshControl,
   Modal,
   Platform,
@@ -28,75 +27,76 @@ import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
-import { handleBannerPress } from '../../utils/bannerNavigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
-const BANNER_SCROLL_SPEED = 30;
-
-const BannerCarousel = ({ banners, navigation }) => {
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const totalWidth = banners.length * BANNER_ITEM_WIDTH;
+const BannerCarousel = ({ banners, dotColor, dotInactiveColor }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef(null);
+  const autoScrollTimer = useRef(null);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
-    const duration = (totalWidth / BANNER_SCROLL_SPEED) * 1000;
-    const animation = Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -totalWidth,
-        duration,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    animation.start();
-    return () => animation.stop();
+    if (banners.length > 1) {
+      autoScrollTimer.current = setInterval(() => {
+        setActiveIndex((prev) => {
+          const next = (prev + 1) % banners.length;
+          scrollRef.current?.scrollToIndex({ index: next, animated: true });
+          return next;
+        });
+      }, 5000);
+    }
+    return () => clearInterval(autoScrollTimer.current);
   }, [banners]);
 
-  const duplicated = banners.length > 1 ? [...banners, ...banners] : banners;
+  const onScroll = (event) => {
+    const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_ITEM_WIDTH));
+    if (index !== activeIndex && index >= 0 && index < banners.length) {
+      setActiveIndex(index);
+    }
+  };
 
   return (
-    <View style={{ overflow: 'hidden' }}>
-      <Animated.View
-        style={{
-          flexDirection: 'row',
-          paddingHorizontal: 24,
-          gap: 16,
-          transform: [{ translateX: scrollX }],
-        }}
-      >
-        {duplicated.map((item, index) => (
-          <TouchableOpacity
-            key={`${item._id}-${index}`}
-            activeOpacity={0.92}
-            style={styles.bannerSlide}
-            onPress={() => handleBannerPress(item, navigation)}
-          >
+    <View>
+      <FlatList
+        ref={scrollRef}
+        data={banners}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <View style={styles.bannerSlide}>
             {item.imageUrl ? (
-              <View style={StyleSheet.absoluteFillObject}>
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={styles.bannerImage}
-                  resizeMode="cover"
-                />
-              </View>
+              <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
             ) : (
-              <View style={styles.bannerContent}>
-                <Text style={styles.bannerTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                {item.description && (
-                  <Text style={styles.bannerDescription} numberOfLines={2}>
-                    {item.description}
-                  </Text>
-                )}
-              </View>
+              <View style={styles.bannerContent} />
             )}
-          </TouchableOpacity>
-        ))}
-      </Animated.View>
+          </View>
+        )}
+        horizontal
+        pagingEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        snapToInterval={BANNER_ITEM_WIDTH}
+        decelerationRate="fast"
+        contentContainerStyle={styles.bannerListContent}
+        getItemLayout={(_, index) => ({
+          length: BANNER_ITEM_WIDTH,
+          offset: BANNER_ITEM_WIDTH * index,
+          index,
+        })}
+      />
+      {banners.length > 1 && (
+        <View style={styles.dots}>
+          {banners.map((_, i) => (
+            <View
+              key={i}
+              style={[styles.dot, dotInactiveColor && { backgroundColor: dotInactiveColor }, i === activeIndex && [styles.dotActive, dotColor && { backgroundColor: dotColor }]]}
+
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -480,7 +480,7 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
-              <Ionicons name="calendar-outline" size={16} color="#000" />
+              <Ionicons name="calendar-outline" size={16} color={textPrimary} />
             </View>
             <View style={styles.searchRowContent}>
               <Text style={[styles.searchRowLabel, { color: textMuted }]}>Fecha</Text>
@@ -495,7 +495,7 @@ const HomeScreen = ({ navigation }) => {
           {/* Seats row */}
           <View style={styles.searchRow}>
             <View style={styles.routeIndicator}>
-              <Ionicons name="person-outline" size={16} color="#000" />
+              <Ionicons name="person-outline" size={16} color={textPrimary} />
             </View>
             <View style={styles.searchRowContent}>
               <Text style={[styles.searchRowLabel, { color: textMuted }]}>Asientos</Text>
@@ -535,7 +535,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersEnterprise} navigation={navigation} />
+            <BannerCarousel banners={bannersEnterprise} dotColor={accent} dotInactiveColor={borderColor} />
           </View>
         )}
 
@@ -566,14 +566,14 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersVip} navigation={navigation} />
+            <BannerCarousel banners={bannersVip} dotColor={accent} dotInactiveColor={borderColor} />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersPremium} navigation={navigation} />
+            <BannerCarousel banners={bannersPremium} dotColor={accent} dotInactiveColor={borderColor} />
           </View>
         )}
       </ScrollView>
@@ -831,9 +831,13 @@ const styles = StyleSheet.create({
   bannerSection: {
     marginTop: 28,
   },
+  bannerListContent: {
+    paddingHorizontal: 24,
+  },
   bannerSlide: {
     width: BANNER_WIDTH,
     height: BANNER_HEIGHT,
+    marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#111',
@@ -844,18 +848,22 @@ const styles = StyleSheet.create({
   },
   bannerContent: {
     flex: 1,
-    padding: 18,
-    justifyContent: 'flex-end',
   },
-  bannerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
   },
-  bannerDescription: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+    backgroundColor: '#D0D0D0',
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: '#000000',
   },
 
   // Section

@@ -5,535 +5,238 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Animated,
-  Dimensions,
   Image,
   FlatList,
-  Linking,
+  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-import useColors from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import { handleBannerPress } from '../../utils/bannerNavigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
-const BANNER_HEIGHT = 200;
+const BANNER_HEIGHT = 180;
+
+const menuItems = [
+  {
+    id: 1,
+    title: 'Crear Viaje',
+    description: 'Publica un nuevo viaje como conductor',
+    icon: 'add-circle-outline',
+    screen: 'CreateTrip',
+  },
+  {
+    id: 2,
+    title: 'Mis Viajes Creados',
+    description: 'Ver viajes que has creado como conductor',
+    icon: 'car-outline',
+    screen: 'MyTrips',
+  },
+  {
+    id: 3,
+    title: 'Mis Reservas',
+    description: 'Ver viajes que has reservado como pasajero',
+    icon: 'list-outline',
+    screen: 'MyBookings',
+  },
+  {
+    id: 4,
+    title: 'Reservas Recibidas',
+    description: 'Ver solicitudes de pasajeros para tus viajes',
+    icon: 'people-outline',
+    screen: 'TripRequests',
+  },
+];
 
 const CarpoolingsScreen = ({ navigation }) => {
-  const { colors, createColorArray, getCurrentThemeMode } = useColors();
   const { isDarkMode } = useTheme();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-
-  // Banner states
   const [banners, setBanners] = useState([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
 
+  const bg = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
+  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+
   useEffect(() => {
     loadBanners();
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    return () => {
-      if (bannerAutoScrollTimer.current) {
-        clearInterval(bannerAutoScrollTimer.current);
-      }
-    };
+    return () => clearInterval(bannerAutoScrollTimer.current);
   }, []);
 
-  // Auto-scroll banners
   useEffect(() => {
     if (banners.length > 1) {
       bannerAutoScrollTimer.current = setInterval(() => {
-        setActiveBannerIndex((prevIndex) => {
-          const nextIndex = (prevIndex + 1) % banners.length;
-          bannerScrollRef.current?.scrollToIndex({
-            index: nextIndex,
-            animated: true,
-          });
-          return nextIndex;
+        setActiveBannerIndex((prev) => {
+          const next = (prev + 1) % banners.length;
+          bannerScrollRef.current?.scrollToIndex({ index: next, animated: true });
+          return next;
         });
       }, 5000);
     }
-
-    return () => {
-      if (bannerAutoScrollTimer.current) {
-        clearInterval(bannerAutoScrollTimer.current);
-      }
-    };
+    return () => clearInterval(bannerAutoScrollTimer.current);
   }, [banners]);
 
   const loadBanners = async () => {
     try {
       const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('free'), { isActive: true });
       if (response.success && Array.isArray(response.data)) {
-        setBanners(response.data.filter(b => b.isActive));
-      } else {
-        setBanners([]);
+        setBanners(response.data.filter((b) => b.isActive));
       }
     } catch (error) {
       console.error('Error loading banners:', error);
     }
   };
 
-
   const onBannerScroll = (event) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = Math.floor(event.nativeEvent.contentOffset.x / slideSize);
+    const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_WIDTH + 16));
     if (index !== activeBannerIndex && index >= 0 && index < banners.length) {
       setActiveBannerIndex(index);
     }
   };
 
   const renderBannerItem = ({ item }) => (
-    <TouchableOpacity
-      activeOpacity={0.95}
-      style={styles.bannerSlide}
-      onPress={() => handleBannerPress(item, navigation)}
-    >
-      <View
-        style={[styles.bannerGradient, { backgroundColor: isDarkMode ? '#292929' : '#F8F9FA' }]}
-      >
-        {item.imageUrl ? (
-          <>
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.bannerImage}
-              resizeMode="cover"
-            />
-            {(item.buttonText || item.appGoTo || item.clickUrl) && (
-              <View style={styles.bannerCtaOverlay}>
-                <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : 'rgba(255,255,255,0.3)' }]}>
-                  <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
-                    {item.buttonText || 'Ver más'}
-                  </Text>
-                  <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
-                </View>
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={styles.bannerContent}>
-            {(item.buttonText || item.appGoTo || item.clickUrl) && (
-            <View style={[styles.bannerCta, { backgroundColor: isDarkMode ? '#3B82F6' : '' }]}>
-              <Text style={[styles.bannerCtaText, { color: '#FFFFFF' }]}>
-                {item.buttonText || 'Ver más'}
-              </Text>
-              <Ionicons name="arrow-forward" size={14} color={'#FFFFFF'} />
-              </View>
-            )}
-          </View>
-        )}
-        {item.imageUrl && item.title && (
-          <View style={styles.bannerOverlay}>
-
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
+    <View style={[styles.bannerSlide, { backgroundColor: cardBg }]}>
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.bannerContent} />
+      )}
+    </View>
   );
 
-  const menuItems = [
-    {
-      id: 1,
-      title: 'Crear Viaje',
-      description: 'Publica un nuevo viaje como conductor',
-      icon: 'add-circle',
-      gradient: ['#1F2937', '#111827'],
-      // onPress: () => navigation.navigate('CreateTrip'),
-      onPress: () => navigation.navigate('CreateTrip'),
-    },
-    {
-      id: 2,
-      title: 'Mis Viajes Creados',
-      description: 'Ver viajes que has creado como conductor',
-      icon: 'car',
-      gradient: ['#1F2937', '#111827'],
-      onPress: () => navigation.navigate('MyTrips'),
-    },
-    {
-      id: 3,
-      title: 'Mis Reservas',
-      description: 'Ver viajes que has reservado como pasajero',
-      icon: 'list',
-      gradient: ['#1F2937', '#111827'],
-      onPress: () => navigation.navigate('MyBookings'),
-    },
-    {
-      id: 4,
-      title: 'Reservas Recibidas',
-      description: 'Ver solicitudes de pasajeros para tus viajes',
-      icon: 'people',
-      gradient: ['#1F2937', '#111827'],
-      onPress: () => navigation.navigate('TripRequests'),
-    },
-  ];
-
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={[
-                styles.headerIcon,
-                
-              ]}>
-                <Image
-                  source={isDarkMode ? require('../../../assets/logo/192x192-white.png') : require('../../../assets/logo/192x192-black.png')}
-                  style={{ width: 32, height: 32 }}
-                  resizeMode="contain"
-                />
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Image
+            source={isDarkMode ? require('../../../assets/logo/192x192-white.png') : require('../../../assets/logo/192x192-black.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={[styles.title, { color: textPrimary }]}>Gestionar Viajes</Text>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>Crea viajes o revisa tus reservas</Text>
+        </View>
+
+        {/* Menu Items */}
+        <View style={styles.menuList}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor: border }]}
+              onPress={() => navigation.navigate(item.screen)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconBox, { backgroundColor: isDarkMode ? '#333333' : '#F0F0F0' }]}>
+                <Ionicons name={item.icon} size={24} color={textPrimary} />
               </View>
-              <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>Gestionar Viajes</Text>
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                Crea viajes o revisa tus reservas
-              </Text>
-            </View>
+              <View style={styles.menuText}>
+                <Text style={[styles.menuTitle, { color: textPrimary }]}>{item.title}</Text>
+                <Text style={[styles.menuDesc, { color: textSecondary }]}>{item.description}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
 
-            {/* Menu Items */}
-            <View style={styles.content}>
-              {menuItems.map((item, index) => (
-                <Animated.View
-                  key={item.id}
-                  style={{
-                    opacity: fadeAnim,
-                    transform: [
-                      {
-                        translateY: slideAnim.interpolate({
-                          inputRange: [0, 30],
-                          outputRange: [0, 30 + index * 10],
-                        }),
-                      },
-                    ],
-                  }}
-                >
-                  <TouchableOpacity
-                    style={styles.menuItemWrapper}
-                    onPress={item.onPress}
-                    activeOpacity={0.7}
-                  >
-                      <View
-                        style={[styles.menuItem, { 
-                          backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', 
-                          borderColor: isDarkMode ? '#404040' : '#E5E7EB' 
-                        }]}
-                      >
-                        <View
-                          style={[
-                            styles.iconContainer, 
-                            { 
-                              backgroundColor: getCurrentThemeMode() === 'dark' ? '#000000' : '#000000',
-                              shadowColor: getCurrentThemeMode() === 'dark' ? 'transparent' : '',
-                              shadowOpacity: getCurrentThemeMode() === 'dark' ? 0 : 0.3,
-                              elevation: getCurrentThemeMode() === 'dark' ? 0 : 4
-                            }
-                          ]}
-                        >
-                          <Ionicons 
-                            name={item.icon} 
-                            size={32} 
-                            color={'#FFFFFF'} 
-                          />
-                        </View>
-                      <View style={styles.menuInfo}>
-                        <Text style={[styles.menuTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>{item.title}</Text>
-                        <Text style={[styles.menuDescription, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>{item.description}</Text>
-                      </View>
-                      <View style={styles.chevronContainer}>
-                        <Ionicons name="chevron-forward" size={24} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
-                      </View>
-                      </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </View>
-
-            {/* Banner Carousel Section */}
-            {banners.length > 0 && (
-              <View style={styles.bannerSection}>
-                <FlatList
-                  ref={bannerScrollRef}
-                  data={banners}
-                  renderItem={renderBannerItem}
-                  keyExtractor={(item) => item._id}
-                  horizontal
-                  pagingEnabled={false}
-                  showsHorizontalScrollIndicator={false}
-                  onScroll={onBannerScroll}
-                  scrollEventThrottle={16}
-                  snapToInterval={BANNER_WIDTH + 16}
-                  decelerationRate="fast"
-                  contentContainerStyle={styles.bannerListContent}
-                  getItemLayout={(data, index) => ({
-                    length: BANNER_WIDTH + 16,
-                    offset: (BANNER_WIDTH + 16) * index,
-                    index,
-                  })}
-                />
+        {/* Banners */}
+        {banners.length > 0 && (
+          <View style={styles.bannerSection}>
+            <FlatList
+              ref={bannerScrollRef}
+              data={banners}
+              renderItem={renderBannerItem}
+              keyExtractor={(item) => item._id}
+              horizontal
+              pagingEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              onScroll={onBannerScroll}
+              scrollEventThrottle={16}
+              snapToInterval={BANNER_WIDTH + 16}
+              decelerationRate="fast"
+              contentContainerStyle={styles.bannerListContent}
+              getItemLayout={(_, index) => ({
+                length: BANNER_WIDTH + 16,
+                offset: (BANNER_WIDTH + 16) * index,
+                index,
+              })}
+            />
+            {banners.length > 1 && (
+              <View style={styles.dots}>
+                {banners.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      { backgroundColor: i === activeBannerIndex ? textPrimary : border },
+                      i === activeBannerIndex && styles.dotActive,
+                    ]}
+                  />
+                ))}
               </View>
             )}
-          </Animated.View>
-        </ScrollView>
+          </View>
+        )}
+
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
+
   header: {
-    padding: spacing.lg,
     paddingTop: 60,
-    paddingBottom: spacing.xl,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
-  headerIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    // shadowOffset: { width: 0, height: 4 },
-    // shadowOpacity: 0.3,
-    shadowRadius: 8,
-    // elevation: 5,
-  },
-  title: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: fontSize.md,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  menuItemWrapper: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
+  logo: { width: 36, height: 36, marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 14, textAlign: 'center' },
+
+  menuList: { paddingHorizontal: 16 },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    padding: 16,
+    marginBottom: 10,
   },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.md,
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  menuInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-    marginRight: spacing.sm,
-  },
-  menuTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
-    marginBottom: spacing.xs,
-  },
-  menuDescription: {
-    fontSize: fontSize.sm,
-    lineHeight: 20,
-  },
-  chevronContainer: {
-    padding: spacing.xs,
-  },
-  infoSection: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  infoCard: {
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  infoIconContainer: {
-    marginBottom: spacing.md,
-  },
-  infoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  infoTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: '#000000',
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  infoText: {
-    fontSize: fontSize.sm,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: spacing.md,
-  },
-  // Banner Carousel Styles
-  bannerSection: {
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  bannerListContent: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
+  menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
+  menuTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  menuDesc: { fontSize: 13, lineHeight: 18 },
+
+  bannerSection: { marginTop: 24 },
+  bannerListContent: { paddingHorizontal: 24 },
   bannerSlide: {
     width: BANNER_WIDTH,
     height: BANNER_HEIGHT,
     marginRight: 16,
-    borderRadius: borderRadius.xl || 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#1F2937',
   },
-  bannerGradient: {
-    flex: 1,
-    borderRadius: borderRadius.xl || 16,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: borderRadius.xl || 16,
-  },
-  bannerContent: {
-    flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-  },
-  bannerTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: '#FFFFFF',
-    marginBottom: spacing.xs,
-  },
-  bannerDescription: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginBottom: spacing.md,
-  },
-  bannerCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full || 20,
-  },
-  bannerCtaOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-  },
-  bannerCtaText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
-    marginRight: spacing.xs,
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomLeftRadius: borderRadius.xl || 16,
-    borderBottomRightRadius: borderRadius.xl || 16,
-  },
-  bannerOverlayTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#FFFFFF',
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(31, 41, 55, 0.3)',
-    marginHorizontal: 4,
-  },
-  paginationDotActive: {
-    backgroundColor: '#1F2937',
-    width: 24,
-  },
+  bannerImage: { width: '100%', height: '100%' },
+  bannerContent: { flex: 1 },
+
+  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
+  dot: { width: 6, height: 6, borderRadius: 3, marginHorizontal: 3 },
+  dotActive: { width: 18 },
 });
 
 export default CarpoolingsScreen;
