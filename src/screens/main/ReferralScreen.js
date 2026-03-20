@@ -10,29 +10,26 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { get_withauth } from '../../services/apiService';
 import useColors from '../../hooks/useColors';
 
-const ReferralScreen = ({ navigation }) => {
-  const { user } = useAuth();
+const ReferralScreen = () => {
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { getCurrentThemeMode } = useColors();
+
+  const isDarkMode   = getCurrentThemeMode() === 'dark';
+  const bg           = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg       = isDarkMode ? '#222222' : '#FFFFFF';
+  const border       = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary  = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted    = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const divider      = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const green        = '#10B981';
+  const greenBg      = isDarkMode ? '#064E3B' : '#D1FAE5';
+
   const [referralInfo, setReferralInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const cardBg   = isDarkMode ? '#1C1C1C' : '#FFFFFF';
-  const screenBg = isDarkMode ? '#0E0E0E' : '#F6F6F6';
-  const sep      = isDarkMode ? '#252525' : '#F0F0F0';
-  const shadow   = isDarkMode ? {} : {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  };
 
   useEffect(() => { loadReferralInfo(); }, []);
 
@@ -41,7 +38,7 @@ const ReferralScreen = ({ navigation }) => {
       const response = await get_withauth('/users/referral-info');
       if (response.success) setReferralInfo(response.data);
     } catch {
-      showAlert('Error', 'No se pudo cargar la informacion de referidos');
+      showAlert('Error', 'No se pudo cargar la información de referidos');
     } finally {
       setLoading(false);
     }
@@ -50,7 +47,7 @@ const ReferralScreen = ({ navigation }) => {
   const copyToClipboard = async () => {
     if (referralInfo?.myReferralCode) {
       await Clipboard.setStringAsync(referralInfo.myReferralCode);
-      showAlert('Copiado', 'Tu codigo promocional fue copiado al portapapeles');
+      showAlert('Copiado', 'Tu código fue copiado al portapapeles');
     }
   };
 
@@ -58,8 +55,8 @@ const ReferralScreen = ({ navigation }) => {
     if (!referralInfo?.myReferralCode) return;
     try {
       await Share.share({
-        message: `Unete a nuestra app de carpooling con mi codigo promocional ${referralInfo.myReferralCode}!\n\nDescargala y usalo al registrarte para ayudarme a obtener descuentos.`,
-        title: 'Unete a nuestro carpooling!',
+        message: `Unite a nuestra app de carpooling con mi código ${referralInfo.myReferralCode}!\n\nDescargala y usalo al registrarte para obtener descuentos.`,
+        title: 'Unite al carpooling',
       });
     } catch {}
   };
@@ -69,8 +66,8 @@ const ReferralScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: screenBg }]}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
+      <View style={[styles.center, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={textPrimary} />
       </View>
     );
   }
@@ -80,108 +77,141 @@ const ReferralScreen = ({ navigation }) => {
 
   const steps = [
     {
-      icon: 'person-add-outline',
-      title: 'Invita a tus amigos',
-      desc: 'Comparte tu codigo con amigos y familiares',
+      icon:  'person-add-outline',
+      title: 'Invitá a tus amigos',
+      desc:  'Compartí tu código con amigos y familiares.',
     },
     {
-      icon: 'checkmark-circle-outline',
-      title: 'Se registran con tu codigo',
-      desc: 'Cuando se registren usando tu codigo, tu ganas',
+      icon:  'checkmark-circle-outline',
+      title: 'Se registran con tu código',
+      desc:  'Cuando se registren usando tu código, vos ganás.',
     },
     {
-      icon: 'pricetag-outline',
-      title: 'Obtenes 20% de descuento',
-      desc: 'Usalo en tu proximo viaje. Los descuentos se acumulan hasta 100%',
+      icon:   'pricetag-outline',
+      title:  'Obtenés 20% de descuento',
+      desc:   'Usalo en tu próximo viaje. Los descuentos se acumulan hasta 100%.',
       accent: true,
     },
   ];
 
   return (
-    <View style={[styles.screen, { backgroundColor: screenBg }]}>
+    <View style={[styles.screen, { backgroundColor: bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
         <View style={styles.header}>
-          {discount > 0 ? (
-            <View style={[styles.discountCircle, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
-              <Text style={[styles.discountNum, { color: colors.success }]}>{discount}%</Text>
-              <Text style={[styles.discountSub, { color: colors.success }]}>de descuento</Text>
-            </View>
-          ) : (
-            <View style={[styles.discountCircle, { backgroundColor: isDarkMode ? '#1C1C1C' : '#F0F0F0', borderColor: isDarkMode ? '#2A2A2A' : '#E0E0E0' }]}>
-              <Text style={[styles.discountNum, { color: colors.textMuted }]}>0%</Text>
-              <Text style={[styles.discountSub, { color: colors.textMuted }]}>de descuento</Text>
-            </View>
-          )}
+          <View style={[
+            styles.discountCircle,
+            { backgroundColor: discount > 0 ? greenBg : divider, borderColor: discount > 0 ? green : border },
+          ]}>
+            <Text style={[styles.discountNum, { color: discount > 0 ? green : textMuted }]}>
+              {discount}%
+            </Text>
+            <Text style={[styles.discountSub, { color: discount > 0 ? green : textMuted }]}>
+              descuento
+            </Text>
+          </View>
 
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            Invita amigos y ahorra
-          </Text>
-          <Text style={[styles.headerDesc, { color: colors.textTertiary }]}>
-            Por cada amigo que invites obtienes 20% de descuento
+          <Text style={[styles.headerTitle, { color: textPrimary }]}>Invitá amigos y ahorrá</Text>
+          <Text style={[styles.headerDesc, { color: textMuted }]}>
+            Por cada amigo que invites obtenés 20% de descuento
           </Text>
         </View>
 
-        {/* Codigo promocional */}
-        <View style={[styles.card, { backgroundColor: cardBg }, shadow]}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Tu codigo promocional</Text>
+        {/* Código */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          <Text style={[styles.cardTitle, { color: textPrimary }]}>Tu código promocional</Text>
 
-          <View style={[styles.codeBox, { backgroundColor: isDarkMode ? '#141414' : '#F8F8F8', borderColor: sep }]}>
-            <Text style={[styles.codeText, { color: colors.textPrimary }]}>{code}</Text>
+          <View style={[styles.codeBox, { backgroundColor: divider }]}>
+            <Text style={[styles.codeText, { color: textPrimary }]}>{code}</Text>
           </View>
 
           <View style={styles.btnRow}>
             <TouchableOpacity
-              style={[styles.btnMain, { backgroundColor: colors.textPrimary, flex: 1 }]}
+              style={[styles.btnPrimary, { backgroundColor: textPrimary }]}
               onPress={copyToClipboard}
+              activeOpacity={0.85}
             >
-              <Ionicons name="copy-outline" size={16} color={cardBg} />
-              <Text style={[styles.btnMainTxt, { color: cardBg }]}>Copiar</Text>
+              <Text style={[styles.btnPrimaryText, { color: cardBg }]}>Copiar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.btnOutline, { borderColor: isDarkMode ? '#2A2A2A' : '#E0E0E0', flex: 1 }]}
+              style={[styles.btnSecondary, { borderColor: border }]}
               onPress={shareReferralCode}
+              activeOpacity={0.7}
             >
-              <Ionicons name="share-outline" size={16} color={colors.textPrimary} />
-              <Text style={[styles.btnOutlineTxt, { color: colors.textPrimary }]}>Compartir</Text>
+              <Text style={[styles.btnSecondaryText, { color: textPrimary }]}>Compartir</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Como funciona */}
-        <View style={[styles.card, { backgroundColor: cardBg }, shadow]}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Como funciona</Text>
+        {/* Cómo funciona */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          <Text style={[styles.cardTitle, { color: textPrimary }]}>Cómo funciona</Text>
 
           {steps.map((step, idx) => (
             <View key={idx}>
               <View style={styles.stepRow}>
                 <View style={[
                   styles.stepIcon,
-                  {
-                    backgroundColor: step.accent
-                      ? colors.success + '15'
-                      : isDarkMode ? '#252525' : '#F5F5F5',
-                  },
+                  { backgroundColor: step.accent ? greenBg : divider },
                 ]}>
                   <Ionicons
                     name={step.icon}
                     size={18}
-                    color={step.accent ? colors.success : colors.textPrimary}
+                    color={step.accent ? green : textPrimary}
                   />
                 </View>
                 <View style={styles.stepText}>
-                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>{step.title}</Text>
-                  <Text style={[styles.stepDesc, { color: colors.textTertiary }]}>{step.desc}</Text>
+                  <Text style={[styles.stepTitle, { color: textPrimary }]}>{step.title}</Text>
+                  <Text style={[styles.stepDesc, { color: textMuted }]}>{step.desc}</Text>
                 </View>
               </View>
               {idx < steps.length - 1 && (
-                <View style={[styles.stepSep, { backgroundColor: sep, marginLeft: 54 }]} />
+                <View style={[styles.stepDivider, { backgroundColor: divider, marginLeft: 54 }]} />
               )}
             </View>
           ))}
         </View>
+
+        {/* Referidos */}
+        {/* {referralInfo?.referredUsers?.length > 0 && (
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <Text style={[styles.cardTitle, { color: textPrimary }]}>
+              Amigos referidos ({referralInfo.referredUsers.length})
+            </Text>
+
+            {referralInfo.referredUsers.map((ref, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.refRow,
+                  idx < referralInfo.referredUsers.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: divider,
+                  },
+                ]}
+              >
+                <View style={[styles.refAvatar, { backgroundColor: divider }]}>
+                  <Text style={[styles.refInitial, { color: textPrimary }]}>
+                    {ref.firstName?.[0] || '?'}
+                  </Text>
+                </View>
+                <View style={styles.refInfo}>
+                  <Text style={[styles.refName, { color: textPrimary }]}>
+                    {ref.firstName} {ref.lastName}
+                  </Text>
+                  <Text style={[styles.refDate, { color: textMuted }]}>
+                    {formatDate(ref.createdAt)}
+                  </Text>
+                </View>
+                <View style={[styles.refBadge, { backgroundColor: greenBg }]}>
+                  <Text style={[styles.refBadgeText, { color: green }]}>+20%</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )} */}
 
       </ScrollView>
     </View>
@@ -189,9 +219,9 @@ const ReferralScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  screen:   { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll:   { padding: 16, paddingBottom: 40 },
+  screen:  { flex: 1 },
+  center:  { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll:  { padding: 16, paddingBottom: 40 },
 
   // Header
   header: {
@@ -199,15 +229,16 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     paddingHorizontal: 16,
+    gap: 8,
   },
   discountCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   discountNum: {
     fontSize: 26,
@@ -221,7 +252,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 6,
     textAlign: 'center',
   },
   headerDesc: {
@@ -232,20 +262,20 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: 16,
+    borderRadius: 14,
+    borderWidth: 1,
     padding: 18,
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     marginBottom: 14,
   },
 
-  // Codigo
+  // Código
   codeBox: {
     borderRadius: 10,
-    borderWidth: 1,
     paddingVertical: 18,
     alignItems: 'center',
     marginBottom: 14,
@@ -261,7 +291,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  btnMain: {
+  btnPrimary: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -269,11 +300,12 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 10,
   },
-  btnMainTxt: {
+  btnPrimaryText: {
     fontSize: 14,
     fontWeight: '700',
   },
-  btnOutline: {
+  btnSecondary: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -282,7 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  btnOutlineTxt: {
+  btnSecondaryText: {
     fontSize: 14,
     fontWeight: '600',
   },
@@ -301,21 +333,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepText: {
-    flex: 1,
+  stepText:  { flex: 1, justifyContent: 'center' },
+  stepTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
+  stepDesc:  { fontSize: 13, lineHeight: 18 },
+  stepDivider: { height: 1 },
+
+  // Referidos
+  refRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  refAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  stepTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 3,
+  refInitial: {
+    fontSize: 15,
+    fontWeight: '700',
   },
-  stepDesc: {
+  refInfo:   { flex: 1 },
+  refName:   { fontSize: 14, fontWeight: '600' },
+  refDate:   { fontSize: 12, marginTop: 2 },
+  refBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  refBadgeText: {
     fontSize: 13,
-    lineHeight: 18,
-  },
-  stepSep: {
-    height: 1,
+    fontWeight: '700',
   },
 });
 
