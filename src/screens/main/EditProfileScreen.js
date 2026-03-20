@@ -24,7 +24,17 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import Toast from '../../components/Toast';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { colors, getCurrentThemeMode } = useColors();
+  const { getCurrentThemeMode } = useColors();
+  const isDarkMode = getCurrentThemeMode() === 'dark';
+
+  const bg          = isDarkMode ? '#161616' : '#FFFFFF';
+  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
+  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -34,13 +44,13 @@ const EditProfileScreen = ({ navigation }) => {
   const [showProvincePicker, setShowProvincePicker] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    age: user?.age?.toString() || '',
-    city: user?.city || '',
-    province: user?.province || '',
-    bio: user?.bio || '',
+    lastName:  user?.lastName  || '',
+    email:     user?.email     || '',
+    phone:     user?.phone     || '',
+    age:       user?.age?.toString() || '',
+    city:      user?.city     || '',
+    province:  user?.province || '',
+    bio:       user?.bio      || '',
   });
   const [avatarUri, setAvatarUri] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,20 +60,18 @@ const EditProfileScreen = ({ navigation }) => {
     if (user) {
       setFormData({
         firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        age: user.age?.toString() || '',
-        city: user.city || '',
-        province: user.province || '',
-        bio: user.bio || '',
+        lastName:  user.lastName  || '',
+        email:     user.email     || '',
+        phone:     user.phone     || '',
+        age:       user.age?.toString() || '',
+        city:      user.city     || '',
+        province:  user.province || '',
+        bio:       user.bio      || '',
       });
     }
   }, [user]);
 
-  const handleChange = (name, value) => {
-    setFormData({ ...formData, [name]: value });
-  };
+  const handleChange = (name, value) => setFormData({ ...formData, [name]: value });
 
   const {
     pickImage: pickImageFromGallery,
@@ -80,29 +88,22 @@ const EditProfileScreen = ({ navigation }) => {
       const filename = imageUri.split('/').pop();
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-      formDataToSend.append('avatar', {
-        uri: imageUri,
-        name: filename,
-        type: type,
-      });
-
+      formDataToSend.append('avatar', { uri: imageUri, name: filename, type });
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
-
       if (response.success) {
         await refreshUser();
         setToastMessage('Foto de perfil actualizada');
         setShowSuccessToast(true);
-        setAvatarUri(null); // Clear the temporary URI since it's now saved
+        setAvatarUri(null);
       } else {
         setModalMessage(response.message || 'Error al actualizar la foto');
         setShowErrorModal(true);
-        setAvatarUri(null); // Reset on error
+        setAvatarUri(null);
       }
     } catch (error) {
       setModalMessage(error.message || 'Error al actualizar la foto');
       setShowErrorModal(true);
-      setAvatarUri(null); // Reset on error
+      setAvatarUri(null);
     } finally {
       setAvatarLoading(false);
     }
@@ -116,21 +117,11 @@ const EditProfileScreen = ({ navigation }) => {
         aspect: [1, 1],
         quality: 0.8,
       });
-
       if (imageAsset) {
-        let uri = null;
-        if (imageAsset.uri) {
-          uri = imageAsset.uri;
-        } else if (imageAsset.assets && imageAsset.assets[0] && imageAsset.assets[0].uri) {
-          uri = imageAsset.assets[0].uri;
-        }
-        if (uri) {
-          setAvatarUri(uri);
-          // Automatically update the avatar
-          await updateAvatarOnly(uri);
-        }
+        const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
+        if (uri) { setAvatarUri(uri); await updateAvatarOnly(uri); }
       }
-    } catch (error) {
+    } catch {
       setModalMessage('No se pudo seleccionar la imagen');
       setShowErrorModal(true);
     }
@@ -138,65 +129,37 @@ const EditProfileScreen = ({ navigation }) => {
 
   const handleSave = async () => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setModalMessage('Nombre y apellido son obligatorios');
-      setShowErrorModal(true);
-      return;
+      setModalMessage('Nombre y apellido son obligatorios'); setShowErrorModal(true); return;
     }
-
     if (!formData.email.trim()) {
-      setModalMessage('El email es obligatorio');
-      setShowErrorModal(true);
-      return;
+      setModalMessage('El email es obligatorio'); setShowErrorModal(true); return;
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      setModalMessage('Por favor ingresa un email valido');
-      setShowErrorModal(true);
-      return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      setModalMessage('Por favor ingresa un email válido'); setShowErrorModal(true); return;
     }
-
     if (!formData.phone.trim()) {
-      setModalMessage('El telefono es obligatorio');
-      setShowErrorModal(true);
-      return;
+      setModalMessage('El teléfono es obligatorio'); setShowErrorModal(true); return;
     }
-
     if (formData.age && (parseInt(formData.age) < 18 || parseInt(formData.age) > 100)) {
-      setModalMessage('La edad debe estar entre 18 y 100 anos');
-      setShowErrorModal(true);
-      return;
+      setModalMessage('La edad debe estar entre 18 y 100 años'); setShowErrorModal(true); return;
     }
-
     if (!formData.city.trim() || !formData.province) {
-      setModalMessage('Ciudad y provincia son obligatorios');
-      setShowErrorModal(true);
-      return;
+      setModalMessage('Ciudad y provincia son obligatorios'); setShowErrorModal(true); return;
     }
 
     setLoading(true);
-
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('firstName', formData.firstName.trim());
-      formDataToSend.append('lastName', formData.lastName.trim());
-      formDataToSend.append('email', formData.email.trim());
-      formDataToSend.append('phone', formData.phone.trim());
+      const fd = new FormData();
+      fd.append('firstName', formData.firstName.trim());
+      fd.append('lastName',  formData.lastName.trim());
+      fd.append('email',     formData.email.trim());
+      fd.append('phone',     formData.phone.trim());
+      if (formData.age) fd.append('age', parseInt(formData.age));
+      fd.append('city',     formData.city.trim());
+      fd.append('province', formData.province);
+      if (formData.bio.trim()) fd.append('bio', formData.bio.trim());
 
-      if (formData.age) {
-        formDataToSend.append('age', parseInt(formData.age));
-      }
-
-      formDataToSend.append('city', formData.city.trim());
-      formDataToSend.append('province', formData.province);
-
-      if (formData.bio.trim()) {
-        formDataToSend.append('bio', formData.bio.trim());
-      }
-
-      // Don't include avatar in main save since it's handled separately
-      const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
-
+      const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
         await refreshUser();
         setToastMessage('Perfil actualizado');
@@ -214,27 +177,29 @@ const EditProfileScreen = ({ navigation }) => {
   };
 
   const renderAvatar = () => {
-    if (avatarUri) {
-      return <Image source={{ uri: avatarUri }} style={styles.avatarImage} />;
-    }
-    if (user?.avatar) {
-      return <Image source={{ uri: buildImageUri(user.avatar) }} style={styles.avatarImage} />;
-    }
+    const uri = avatarUri || (user?.avatar ? buildImageUri(user.avatar) : null);
+    if (uri) return <Image source={{ uri }} style={styles.avatarImage} />;
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground }]}>
-        <Text style={styles.avatarInitials}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
+        <Text style={[styles.avatarInitials, { color: textPrimary }]}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
       </View>
     );
   };
 
+  const fields = [
+    { key: 'firstName', label: 'Nombre',    placeholder: 'Tu nombre',          keyboard: 'default' },
+    { key: 'lastName',  label: 'Apellido',   placeholder: 'Tu apellido',         keyboard: 'default' },
+    { key: 'email',     label: 'Email',      placeholder: 'tu@email.com',        keyboard: 'email-address', autoCapitalize: 'none' },
+    { key: 'phone',     label: 'Teléfono',   placeholder: '+54 9 11 1234-5678',  keyboard: 'phone-pad' },
+    { key: 'age',       label: 'Edad',       placeholder: '25',                  keyboard: 'numeric', maxLength: 3 },
+    { key: 'city',      label: 'Ciudad',     placeholder: 'Tu ciudad',           keyboard: 'default' },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}
-      >
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
@@ -242,25 +207,17 @@ const EditProfileScreen = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Avatar */}
-          <View style={[styles.avatarSection, { borderBottomColor: colors.border }]}>
+          <View style={[styles.avatarSection, { borderBottomColor: divider }]}>
             <View style={styles.avatarWrapper}>
               {avatarLoading && (
-                <View style={styles.avatarLoadingOverlay}>
+                <View style={styles.avatarOverlay}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 </View>
               )}
               {renderAvatar()}
             </View>
-            <TouchableOpacity 
-              onPress={pickImage} 
-              activeOpacity={0.7}
-              disabled={avatarLoading}
-            >
-              <Text style={[
-                styles.changePhotoText, 
-                { color: colors.textPrimary },
-                avatarLoading && { color: colors.textMuted }
-              ]}>
+            <TouchableOpacity onPress={pickImage} activeOpacity={0.7} disabled={avatarLoading}>
+              <Text style={[styles.changePhotoText, { color: avatarLoading ? textMuted : accent }]}>
                 {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
               </Text>
             </TouchableOpacity>
@@ -268,120 +225,46 @@ const EditProfileScreen = ({ navigation }) => {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Nombre */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nombre</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.firstName}
-                onChangeText={(value) => handleChange('firstName', value)}
-                placeholder="Tu nombre"
-                placeholderTextColor={colors.placeholder}
-              />
-            </View>
-
-            {/* Apellido */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Apellido</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.lastName}
-                onChangeText={(value) => handleChange('lastName', value)}
-                placeholder="Tu apellido"
-                placeholderTextColor={colors.placeholder}
-              />
-            </View>
-
-
-            {/* Email */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.email}
-                onChangeText={(value) => handleChange('email', value)}
-                placeholder="tu@email.com"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Telefono */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Telefono</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.phone}
-                onChangeText={(value) => handleChange('phone', value)}
-                placeholder="+54 9 11 1234-5678"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            {/* Edad */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Edad</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.age}
-                onChangeText={(value) => handleChange('age', value)}
-                placeholder="25"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="numeric"
-                maxLength={3}
-              />
-            </View>
-
-            {/* Ciudad */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Ciudad</Text>
-              <TextInput
-                style={[styles.input, { color: colors.textPrimary, borderBottomColor: colors.border }]}
-                value={formData.city}
-                onChangeText={(value) => handleChange('city', value)}
-                placeholder="Tu ciudad"
-                placeholderTextColor={colors.placeholder}
-              />
-            </View>
+            {fields.map((field) => (
+              <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
+                <Text style={[styles.label, { color: textMuted }]}>{field.label}</Text>
+                <TextInput
+                  style={[styles.input, { color: textPrimary }]}
+                  value={formData[field.key]}
+                  onChangeText={(v) => handleChange(field.key, v)}
+                  placeholder={field.placeholder}
+                  placeholderTextColor={textMuted}
+                  keyboardType={field.keyboard}
+                  autoCapitalize={field.autoCapitalize || 'words'}
+                  maxLength={field.maxLength}
+                />
+              </View>
+            ))}
 
             {/* Provincia */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Provincia</Text>
+            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
+              <Text style={[styles.label, { color: textMuted }]}>Provincia</Text>
               <TouchableOpacity
-                style={[styles.selector, { borderBottomColor: colors.border }]}
+                style={styles.selector}
                 onPress={() => setShowProvincePicker(true)}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.selectorText, 
-                  { color: formData.province ? colors.textPrimary : colors.placeholder }
-                ]}>
+                <Text style={[styles.input, { color: formData.province ? textPrimary : textMuted, flex: 1 }]}>
                   {formData.province || 'Seleccionar'}
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={18} color={textMuted} />
               </TouchableOpacity>
             </View>
 
-
             {/* Bio */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Sobre ti</Text>
+            <View style={[styles.inputGroup, { borderBottomColor: 'transparent' }]}>
+              <Text style={[styles.label, { color: textMuted }]}>Sobre ti</Text>
               <TextInput
-                style={[
-                  styles.input, 
-                  styles.textArea,
-                  {
-                    color: colors.textPrimary,
-                    borderWidth: 1,
-                    borderColor: colors.border
-                  }
-                ]}
+                style={[styles.textArea, { color: textPrimary, borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
                 value={formData.bio}
-                onChangeText={(value) => handleChange('bio', value)}
-                placeholder="Cuentanos sobre ti..."
-                placeholderTextColor={colors.placeholder}
+                onChangeText={(v) => handleChange('bio', v)}
+                placeholder="Cuéntanos sobre ti..."
+                placeholderTextColor={textMuted}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -389,64 +272,49 @@ const EditProfileScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Save Button */}
+          {/* Save */}
           <TouchableOpacity
-            style={[
-              styles.saveButton, 
-              { 
-                backgroundColor: loading
-                  ? colors.textMuted
-                  : getCurrentThemeMode() === 'dark' ? '#FFFFFF' : '#000000'
-              }
-            ]}
+            style={[styles.saveBtn, { backgroundColor: loading ? textMuted : accent }]}
             onPress={handleSave}
             disabled={loading}
             activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color={getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF'} size="small" />
+              <ActivityIndicator color={accentInv} size="small" />
             ) : (
-              <Text style={[styles.saveButtonText, { color: getCurrentThemeMode() === 'dark' ? '#000000' : '#FFFFFF' }]}>Guardar cambios</Text>
+              <Text style={[styles.saveBtnText, { color: accentInv }]}>Guardar cambios</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Province Picker Modal */}
-      <Modal
-        visible={showProvincePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowProvincePicker(false)}
-      >
+      {/* Province Picker */}
+      <Modal visible={showProvincePicker} transparent animationType="fade" onRequestClose={() => setShowProvincePicker(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Provincia</Text>
+          <View style={[styles.modalBox, { backgroundColor: isDarkMode ? '#222222' : '#FFFFFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: divider }]}>
+              <Text style={[styles.modalTitle, { color: textPrimary }]}>Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvincePicker(false)}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                <Ionicons name="close" size={22} color={textMuted} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {ARGENTINA_PROVINCES.map((province) => (
                 <TouchableOpacity
                   key={province}
-                  style={[styles.provinceItem, { borderBottomColor: colors.border }]}
-                  onPress={() => {
-                    handleChange('province', province);
-                    setShowProvincePicker(false);
-                  }}
+                  style={[styles.provinceItem, { borderBottomColor: divider }]}
+                  onPress={() => { handleChange('province', province); setShowProvincePicker(false); }}
                   activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.provinceText,
-                    { color: formData.province === province ? colors.textPrimary : colors.textSecondary },
-                    formData.province === province && { fontWeight: '600' }
+                    { color: formData.province === province ? textPrimary : textMuted },
+                    formData.province === province && { fontWeight: '600' },
                   ]}>
                     {province}
                   </Text>
                   {formData.province === province && (
-                    <Ionicons name="checkmark" size={20} color={colors.textPrimary} />
+                    <Ionicons name="checkmark" size={18} color={textPrimary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -458,8 +326,8 @@ const EditProfileScreen = ({ navigation }) => {
       <PermissionModal
         visible={showPermissionModal}
         onClose={() => setShowPermissionModal(false)}
-        title="Acceso a galeria"
-        message="Necesitamos acceso a tu galeria para cambiar tu foto de perfil."
+        title="Acceso a galería"
+        message="Necesitamos acceso a tu galería para cambiar tu foto de perfil."
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
@@ -487,129 +355,80 @@ const EditProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
+  container:     { flex: 1 },
+  flex:          { flex: 1 },
+  scrollContent: { paddingBottom: 48 },
+
   // Avatar
   avatarSection: {
     alignItems: 'center',
-    paddingVertical: 32,
-    borderBottomWidth: 1
+    paddingVertical: 28,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatarWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 14,
     position: 'relative',
   },
-  avatarLoadingOverlay: {
+  avatarImage:       { width: '100%', height: '100%' },
+  avatarPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  avatarInitials:    { fontSize: 32, fontWeight: '700' },
+  avatarOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
+  changePhotoText: { fontSize: 15, fontWeight: '500' },
 
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitials: {
-    fontSize: 36,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  changePhotoText: {
-    fontSize: 16,
-    fontWeight: '500'
-  },
-  changePhotoTextDisabled: {
-    // Color aplicado dinámicamente
-  },
   // Form
-  form: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
+  form: { paddingHorizontal: 20, paddingTop: 8 },
   inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 12,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  selector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1
-  },
-  selectorText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  placeholder: {
-    color: '#9CA3AF',
-  },
-  // Save Button
-  saveButton: {
-    marginHorizontal: 20,
-    marginTop: 32,
     paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center'
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  saveButtonDisabled: {
-    // Color aplicado dinámicamente
+  label:  { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  input:  { fontSize: 15, paddingVertical: 0 },
+  selector: { flexDirection: 'row', alignItems: 'center' },
+  textArea: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 90,
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+
+  // Save
+  saveBtn: {
+    marginHorizontal: 20,
+    marginTop: 28,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  saveBtnText: { fontSize: 15, fontWeight: '700' },
+
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
-  modalContent: {
-    borderRadius: 16,
+  modalBox: {
+    borderRadius: 14,
     maxHeight: '70%',
-    width: '85%',
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -617,26 +436,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600'
-  },
+  modalTitle:   { fontSize: 17, fontWeight: '700' },
   provinceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  provinceText: {
-    fontSize: 16
-  },
-  provinceTextSelected: {
-    // Estilos aplicados dinámicamente
-  },
+  provinceText: { fontSize: 15 },
 });
 
 export default EditProfileScreen;
