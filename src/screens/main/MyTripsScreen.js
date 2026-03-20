@@ -16,7 +16,6 @@ import { ENDPOINTS } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
-import socketService from '../../services/socketService';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
@@ -71,40 +70,7 @@ const MyTripsScreen = ({ navigation }) => {
     return [raw, city, province].filter(Boolean).join(', ');
   };
 
-  const handleCancelTrip = (tripId) => {
-    showAlert(
-      'Cancelar Viaje',
-      'Esto cancelara todas las reservas asociadas.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Si, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-              if (response.success) {
-                if (socketService.socket && socketService.isConnected) {
-                  socketService.socket.emit('trip:cancelled', {
-                    tripId: tripId,
-                    cancelledBy: 'driver',
-                    timestamp: new Date().toISOString()
-                  });
-                }
-                showAlert('Viaje Cancelado', 'El viaje ha sido cancelado.', [
-                  { text: 'OK', onPress: () => { loadMyTrips(); refreshUser(); } }
-                ]);
-              } else {
-                showAlert('Error', response.message || 'No se pudo cancelar el viaje');
-              }
-            } catch (error) {
-              showAlert('Error', error.message || 'Error al cancelar el viaje');
-            }
-          },
-        },
-      ]
-    );
-  };
+  // handleCancelTrip movido a TripDetailScreen
 
   const handleStartTrip = (tripId) => {
     showAlert(
@@ -289,14 +255,6 @@ const MyTripsScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <View style={styles.secondaryActions}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('EditTrip', { tripId: item._id })}
-              >
-                <Ionicons name="create-outline" size={20} color={colors.textSecondary} />
-                <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>Editar</Text>
-              </TouchableOpacity>
-
               {item.occupiedSeats > 0 && (
                 <TouchableOpacity
                   style={styles.actionButton}
@@ -310,13 +268,7 @@ const MyTripsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleCancelTrip(item._id)}
-              >
-                <Ionicons name="close" size={20} color={colors.error} />
-                <Text style={[styles.actionButtonText, { color: colors.error }]}>Cancelar</Text>
-              </TouchableOpacity>
+              {/* Cancelar movido a TripDetailScreen */}
             </View>
           </View>
         )}

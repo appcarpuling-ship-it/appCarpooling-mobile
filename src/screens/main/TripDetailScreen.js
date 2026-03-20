@@ -86,6 +86,7 @@ const bannerStyles = StyleSheet.create({
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../services/apiService';
+import socketService from '../../services/socketService';
 import { ENDPOINTS } from '../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback } from '../../services/seatReservationService';
 import CheckoutWebView from '../../components/CheckoutWebView';
@@ -412,6 +413,37 @@ const TripDetailScreen = ({ route, navigation }) => {
             showAlert('Error', error.message || 'Error al iniciar el viaje');
           } finally {
             setStartingTrip(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleCancelTrip = () => {
+    showAlert('Cancelar viaje', '¿Cancelar el viaje? Esto cancelará todas las reservas asociadas.', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí, cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
+            if (response.success) {
+              if (socketService.socket && socketService.isConnected) {
+                socketService.socket.emit('trip:cancelled', {
+                  tripId,
+                  cancelledBy: 'driver',
+                  timestamp: new Date().toISOString(),
+                });
+              }
+              showAlert('Cancelado', 'El viaje ha sido cancelado.', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+              ]);
+            } else {
+              showAlert('Error', response.message || 'No se pudo cancelar el viaje');
+            }
+          } catch (error) {
+            showAlert('Error', error.message || 'Error al cancelar el viaje');
           }
         },
       },
@@ -798,6 +830,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 onPress={handleCompleteTrip}
               >
                 <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
+              </TouchableOpacity>
+            )}
+            {trip.status === 'active' && (
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: dark ? '#3D1A1A' : '#FEE2E2', marginTop: 8 }]}
+                onPress={handleCancelTrip}
+              >
+                <Text style={[styles.footerBtnText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
               </TouchableOpacity>
             )}
           </View>

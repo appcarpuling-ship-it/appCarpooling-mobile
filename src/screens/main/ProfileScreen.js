@@ -1,504 +1,255 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react'; // eslint-disable-line
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Animated,
+  Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { buildImageUri } from '../../services/apiService';
-import { Image } from 'react-native';
 import useColors from '../../hooks/useColors';
-
-// Usar valores directos para evitar problemas de carga en estilos estáticos
-const SORA_FONTS = {
-  thin: 'Sora_100Thin',
-  extraLight: 'Sora_200ExtraLight',
-  light: 'Sora_300Light',
-  regular: 'Sora_400Regular',
-  medium: 'Sora_500Medium',
-  semiBold: 'Sora_600SemiBold',
-  bold: 'Sora_700Bold',
-  extraBold: 'Sora_800ExtraBold',
-};
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
-  const { user, logout, isAuthenticated } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { colors, fontFamily, createColorArray, getCurrentThemeMode, setThemeMode } = useColors();
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const { user, logout } = useAuth();
+  const { getCurrentThemeMode, setThemeMode } = useColors();
 
-  // Dynamic styles that depend on fontFamily from hook
-  const dynamicStyles = StyleSheet.create({
-    statValue: {
-      fontSize: 24,
-      fontFamily: fontFamily.bold,
-      fontWeight: 'bold',
-      // color: '#000000', // Ahora dinámico
-    },
-    statLabel: {
-      fontSize: 13,
-      // color: '#6B7280', // Ahora dinámico
-      fontFamily: fontFamily.medium,
-      fontWeight: '500',
-      letterSpacing: 0.3,
-    },
-    sectionTitle: {
-      fontSize: 11,
-      fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
-      // color: '#9CA3AF', // Ahora dinámico
-      textTransform: 'uppercase',
-      letterSpacing: 1.2,
-      marginBottom: 14,
-      marginLeft: 4,
-    },
-    menuItemText: {
-      flex: 1,
-      marginLeft: 14,
-      fontSize: 16,
-      // color: '#000000', // Ahora dinámico
-      fontFamily: fontFamily.medium,
-      fontWeight: '500',
-    },
-  });
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  // Efecto para detectar cuando el usuario se desautentica
-  useEffect(() => {
-    console.log('ProfileScreen - isAuthenticated:', isAuthenticated, 'user:', user);
-    if (!isAuthenticated && !user) {
-      console.log('Usuario desautenticado detectado en ProfileScreen');
-      // El AppNavigator debería redirigir automáticamente
-    }
-  }, [isAuthenticated, user]);
+  const isDarkMode = getCurrentThemeMode() === 'dark';
+  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
+  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   const handleLogout = () => {
-    console.log('handleLogout - Botón presionado');
-    console.log('Estado actual - isAuthenticated:', isAuthenticated, 'user:', user);
-
-    showAlert(
-      'Cerrar Sesión',
-      '¿Estás seguro que deseas cerrar sesión?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-          onPress: () => {
-            console.log('Logout cancelado por el usuario');
+    showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await logout();
+          } catch (error) {
+            showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
           }
         },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: () => {
-            console.log('✅ Usuario confirmó logout - iniciando proceso...');
-            performLogout();
-          },
-        },
-      ]
-    );
-  };
-
-  const performLogout = async () => {
-    try {
-      await logout();
-      // El AppNavigator redirige automáticamente cuando isAuthenticated cambia a false
-    } catch (error) {
-      console.error('❌ Error al cerrar sesión:', error);
-      showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
-    }
+      },
+    ]);
   };
 
   const handleThemeToggle = () => {
-    const currentMode = getCurrentThemeMode();
-
-    // Ciclo: light -> dark -> light
-    if (currentMode === 'light') {
-      setThemeMode('dark');
-      showAlert('Tema Cambiado', '🌙 Modo oscuro activado');
-    } else {
-      setThemeMode('light');
-      showAlert('Tema Cambiado', '🌞 Modo claro activado');
-    }
-  };
-
-  const getThemeButtonText = () => {
-    const currentMode = getCurrentThemeMode();
-    if (currentMode === 'light') return 'Cambiar a Oscuro';
-    return 'Cambiar a Claro';
-  };
-
-  const getThemeIcon = () => {
-    const currentMode = getCurrentThemeMode();
-    if (currentMode === 'light') return 'moon-outline';
-    return 'sunny-outline';
+    const current = getCurrentThemeMode();
+    setThemeMode(current === 'light' ? 'dark' : 'light');
   };
 
   const menuSections = [
     {
       title: 'Perfil',
       items: [
-        {
-          id: 1,
-          title: 'Editar Perfil',
-          icon: 'person-outline',
-          onPress: () => navigation.navigate('EditProfile'),
-        },
-        {
-          id: 2,
-          title: 'Mis Vehículos',
-          icon: 'car-outline',
-          onPress: () => navigation.navigate('Vehicles'),
-        },
-        // {
-        //   id: 3,
-        //   title: 'Mis Reseñas',
-        //   icon: 'star-outline',
-        //   onPress: () => navigation.navigate('UserReviews', {
-        //     userId: user?._id,
-        //     userName: `${user?.firstName} ${user?.lastName}`,
-        //   }),
-        // },
+        { id: 1, title: 'Editar Perfil',  icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
+        { id: 2, title: 'Mis Vehículos',  icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
       ],
     },
     {
       title: 'Información',
       items: [
-        // {
-        //   id: 3,
-        //   title: 'Notificaciones',
-        //   icon: 'notifications-outline',
-        //   onPress: () => navigation.navigate('Notifications'),
-        // },
-        {
-          id: 4,
-          title: 'Términos y Condiciones',
-          icon: 'document-text-outline',
-          onPress: () => navigation.navigate('Terms'),
-        },
-        {
-          id: 5,
-          title: 'Ayuda',
-          icon: 'help-circle-outline',
-          onPress: () => navigation.navigate('Help'),
-        },
+        { id: 4, title: 'Términos y Condiciones', icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
+        { id: 5, title: 'Ayuda',                  icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
         {
           id: 6,
-          title: getThemeButtonText(),
-          icon: getThemeIcon(),
+          title: isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
+          icon:  isDarkMode ? 'sunny-outline'   : 'moon-outline',
           onPress: handleThemeToggle,
         },
       ],
     },
     {
-      title: 'Referidos y Descuentos',
+      title: 'Referidos',
       items: [
-        {
-          id: 8,
-          title: 'Mi Código Promocional',
-          icon: 'gift-outline',
-          onPress: () => navigation.navigate('ReferralScreen'),
-        },
+        { id: 8, title: 'Mi Código Promocional', icon: 'gift-outline', onPress: () => navigation.navigate('ReferralScreen') },
       ],
     },
-    // {
-    //   title: 'Reservas',
-    //   items: [
-    //     {
-    //       id: 6,
-    //       title: 'Mis Reservas de Asiento',
-    //       icon: 'calendar-outline',
-    //       onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' }),
-    //     },
-    //   ],
-    // },
     {
       title: 'Sesión',
       items: [
-        {
-          id: 7,
-          title: 'Cerrar Sesión',
-          icon: 'log-out-outline',
-          onPress: handleLogout,
-          danger: true,
-        },
+        { id: 7, title: 'Cerrar Sesión', icon: 'log-out-outline', onPress: handleLogout, danger: true },
       ],
     },
   ];
 
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
+
   return (
-    <View style={[styles.gradient, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Animated.View
-          style={[
-            styles.header,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Image
-                source={{ uri: buildImageUri(user.avatar) || undefined }}
-                style={styles.avatarImage}
-                onError={() => console.log('Error loading avatar from:', user.avatar)}
-              />
-            ) : (
-              <View
-                style={[styles.avatar, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-              >
-                <Text style={[styles.avatarText, { color: colors.textPrimary }]}>
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          {user?.avatar ? (
+            <Image
+              source={{ uri: buildImageUri(user.avatar) }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
+              <Text style={[styles.avatarInitials, { color: textPrimary }]}>{initials}</Text>
+            </View>
+          )}
+          <Text style={[styles.name, { color: textPrimary }]}>
             {user?.firstName} {user?.lastName}
           </Text>
-          <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
+          <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
 
-          {/* Indicador de Descuento */}
           {(user?.discountPercentage ?? 0) > 0 && (
-            <View style={[styles.discountBadge, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
-              <Ionicons name="pricetag" size={14} color={colors.success} />
-              <Text style={[styles.discountText, { color: colors.success }]}>
+            <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
+              <Ionicons name="pricetag" size={13} color="#10B981" />
+              <Text style={[styles.discountText, { color: '#10B981' }]}>
                 {user.discountPercentage}% de descuento activo
               </Text>
             </View>
           )}
-        </Animated.View>
+        </View>
 
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+        {/* Menu */}
+        <View style={styles.menuContent}>
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={[dynamicStyles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
-              {section.items.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.menuItem, {
-                    backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-                    borderColor: colors.border
-                  }]}
-                  onPress={item.onPress}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.menuItemContent}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>{section.title}</Text>
+              <View style={[styles.sectionCard, { backgroundColor: cardBg, borderColor: border }]}>
+                {section.items.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.menuItem,
+                      index < section.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
+                    ]}
+                    onPress={item.onPress}
+                    activeOpacity={0.7}
+                  >
                     <View style={[
-                      styles.iconContainer,
-                      item.danger && styles.iconContainerDanger,
-                      {
-                        backgroundColor: item.danger
-                          ? 'rgba(239, 68, 68, 0.1)'
-                          : getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
-                        borderColor: item.danger ? 'rgba(239, 68, 68, 0.2)' : colors.border
-                      }
+                      styles.iconBox,
+                      { backgroundColor: item.danger ? (isDarkMode ? '#3D1A1A' : '#FEE2E2') : divider },
                     ]}>
                       <Ionicons
                         name={item.icon}
-                        size={22}
-                        color={item.danger ? colors.error : colors.textPrimary}
+                        size={19}
+                        color={item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary}
                       />
                     </View>
-                    <Text
-                      style={[
-                        dynamicStyles.menuItemText,
-                        { color: item.danger ? colors.error : colors.textPrimary },
-                        item.danger && styles.menuItemDanger,
-                      ]}
-                    >
+                    <Text style={[
+                      styles.menuItemText,
+                      { color: item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary },
+                    ]}>
                       {item.title}
                     </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={item.danger ? colors.error : colors.textSecondary}
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons name="chevron-forward" size={17} color={textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           ))}
-        </Animated.View>
+        </View>
+
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
+  container:     { flex: 1 },
+  scrollContent: { paddingBottom: 40 },
+
+  // Header
   header: {
-    padding: 24,
+    alignItems: 'center',
     paddingTop: 48,
-    paddingBottom: 32,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingBottom: 28,
+    paddingHorizontal: 24,
   },
   avatarImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    marginBottom: 16,
   },
-  avatarText: {
-    fontSize: 44,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
-    letterSpacing: 2,
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarInitials: {
+    fontSize: 36,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   name: {
-    fontSize: 28,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
-    // color: '#000000', // Ahora dinámico
-    marginBottom: 6,
-    letterSpacing: 0.5,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   email: {
-    fontSize: 15,
-    fontFamily: SORA_FONTS.regular,
-    // color: '#6B7280', // Ahora dinámico
-    marginBottom: 12,
+    fontSize: 14,
   },
   discountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 6,
-    marginTop: 8,
-    marginBottom: 16,
+    borderRadius: 20,
+    marginTop: 12,
   },
   discountText: {
     fontSize: 13,
-    fontFamily: SORA_FONTS.medium,
     fontWeight: '600',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#1F2937',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+
+  // Menu
+  menuContent: { paddingHorizontal: 16 },
+  section:     { marginBottom: 24 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statBadge: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 16,
-    marginBottom: 10,
-    minWidth: 70,
-    alignItems: 'center',
-    shadowColor: '#1F2937',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 12,
-  },
-  content: {
-    padding: 24,
-    paddingTop: 8,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  menuItem: {
-    // backgroundColor: '#FFFFFF', // Ahora dinámico
+  sectionCard: {
     borderRadius: 14,
-    marginBottom: 10,
     borderWidth: 1,
-    // borderColor: '#F3F4F6', // Ahora dinámico
     overflow: 'hidden',
   },
-  menuItemContent: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    // backgroundColor: '#F8F9FA', // Ahora dinámico
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    // borderColor: '#F3F4F6', // Ahora dinámico
   },
-  iconContainerDanger: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  menuItemDanger: {
-    color: '#EF4444',
+  menuItemText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
 
