@@ -480,7 +480,7 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
-              <Ionicons name="calendar-outline" size={16} color={selectedDate ? textPrimary : textMuted} />
+              <Ionicons name="calendar-outline" size={16} color="#000" />
             </View>
             <View style={styles.searchRowContent}>
               <Text style={[styles.searchRowLabel, { color: textMuted }]}>Fecha</Text>
@@ -495,7 +495,7 @@ const HomeScreen = ({ navigation }) => {
           {/* Seats row */}
           <View style={styles.searchRow}>
             <View style={styles.routeIndicator}>
-              <Ionicons name="person-outline" size={16} color={selectedSeats ? textPrimary : textMuted} />
+              <Ionicons name="person-outline" size={16} color="#000" />
             </View>
             <View style={styles.searchRowContent}>
               <Text style={[styles.searchRowLabel, { color: textMuted }]}>Asientos</Text>
