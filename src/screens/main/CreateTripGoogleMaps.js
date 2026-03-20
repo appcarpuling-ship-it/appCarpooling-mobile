@@ -3,16 +3,15 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
   Platform,
   Dimensions,
   Keyboard,
   StatusBar,
-  Animated,
-  KeyboardAvoidingView,
   ScrollView,
+  KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,11 +28,10 @@ const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
-
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-const CreateTripGoogleMaps = ({ navigation, route }) => {
-  const { colors, isDarkMode } = useColors();
+const CreateTripGoogleMaps = ({ navigation }) => {
+  const { getCurrentThemeMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const mapRef = useRef(null);
@@ -41,29 +39,32 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const destinationInputRef = useRef(null);
   const waypointInputRefs = useRef([]);
   const isMounted = useRef(true);
-  const originDebounceTimer = useRef(null);
-  const destinationDebounceTimer = useRef(null);
   const waypointDebounceTimers = useRef([]);
 
-  // Bottom sheet: 'mini' = compacto, 'full' = expandido (input activo o resultados)
-  const sheetMode = activeAutocomplete !== null ? 'full' : 'mini';
-  const sheetHeight = useRef(new Animated.Value(0)).current; // 0 = mini, 1 = full
+  const isDarkMode  = getCurrentThemeMode() === 'dark';
+  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
+  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const [vehicles, setVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [loadingMapSelection, setLoadingMapSelection] = useState(false);
+
+  // 'origin' | 'destination' | 'waypoint-N' | null
   const [activeAutocomplete, setActiveAutocomplete] = useState(null);
   const [autocompleteResults, setAutocompleteResults] = useState([]);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const originResultsRef = useRef([]);
   const destinationResultsRef = useRef([]);
   const waypointResultsRef = useRef([]);
 
   const [region, setRegion] = useState({
-    latitude: -34.6037,
-    longitude: -58.3816,
-    latitudeDelta: LATITUDE_DELTA,
-    longitudeDelta: LONGITUDE_DELTA,
+    latitude: -34.6037, longitude: -58.3816,
+    latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA,
   });
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
@@ -72,75 +73,29 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [distance, setDistance] = useState(null);
   const [duration, setDuration] = useState(null);
-  const [mapSelectionMode, setMapSelectionMode] = useState(null); // 'origin' | 'destination' | 'waypoint-N' | null
+  const [mapSelectionMode, setMapSelectionMode] = useState(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const overlayTranslateY = useRef(new Animated.Value(16)).current;
 
   const [formData, setFormData] = useState({
-    origin: {
-      address: '',
-      city: '',
-      province: '',
-      coordinates: null,
-    },
-    destination: {
-      address: '',
-      city: '',
-      province: '',
-      coordinates: null,
-    },
-    waypoints: [],
+    origin:      { address: '', city: '', province: '', coordinates: null },
+    destination: { address: '', city: '', province: '', coordinates: null },
+    waypoints:   [],
   });
 
-  const MIN_SHEET_HEIGHT = 250;
-  const MAX_SHEET_HEIGHT = height * 0.4;
-  // Con teclado abierto: limitar altura para que origen/destino queden visibles
-  const effectiveMaxHeight = keyboardHeight > 0
-    ? Math.min(MAX_SHEET_HEIGHT, height - keyboardHeight - 80)
-    : MAX_SHEET_HEIGHT;
+  // ─── Effects ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     isMounted.current = true;
     loadVehicles();
     getCurrentLocation();
-
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error('❌ GOOGLE_MAPS_API_KEY no está configurada');
-      showAlert('Error', 'La API Key de Google Maps no está configurada');
-    }
-
-    // Animación de entrada inicial (mini)
-    Animated.spring(sheetHeight, {
-      toValue: 0,
-      tension: 50,
-      friction: 9,
-      useNativeDriver: false,
-    }).start();
-
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
-
-    return () => {
-      isMounted.current = false;
-      showSub.remove();
-      hideSub.remove();
-    };
+    if (!GOOGLE_MAPS_API_KEY) showAlert('Error', 'La API Key de Google Maps no está configurada');
+    return () => { isMounted.current = false; };
   }, []);
 
-  // Animación del sheet según activeAutocomplete
   useEffect(() => {
-    const target = activeAutocomplete !== null ? 1 : 0;
-    Animated.timing(sheetHeight, {
-      toValue: target,
-      duration: 280,
-      useNativeDriver: false,
-    }).start();
-  }, [activeAutocomplete]);
-
-  useEffect(() => {
-    if (originMarker && destinationMarker && isMounted.current) {
-      getDirections();
-    }
+    if (originMarker && destinationMarker && isMounted.current) getDirections();
   }, [originMarker, destinationMarker, waypointMarkers]);
 
   const screenWasBlurred = useRef(false);
@@ -155,1091 +110,577 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
     }, [])
   );
 
+  // ─── Location / Vehicles / Directions ────────────────────────────────────
+
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       if (!isMounted.current) return;
-
-      const newRegion = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      };
-
+      const newRegion = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
       setRegion(newRegion);
-      setUserLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
-
+      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       if (mapRef.current && isMounted.current) {
-        setTimeout(() => {
-          if (mapRef.current && isMounted.current) {
-            mapRef.current.animateToRegion(newRegion, 1000);
-          }
-        }, 500);
+        setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion(newRegion, 1000); }, 500);
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
-    }
+    } catch {}
   };
 
   const loadVehicles = async () => {
     try {
       if (!isMounted.current) return;
-
       setLoadingVehicles(true);
       const response = await get_withauth(ENDPOINTS.MY_VEHICLES);
-
       if (!isMounted.current) return;
-
-      if (response && response.success && Array.isArray(response.data)) {
-        setVehicles(response.data);
-      } else {
-        setVehicles([]);
-      }
-    } catch (error) {
-      console.error('❌ Error loading vehicles:', error);
-      if (isMounted.current) {
-        setVehicles([]);
-      }
+      setVehicles(response?.success && Array.isArray(response.data) ? response.data : []);
+    } catch {
+      if (isMounted.current) setVehicles([]);
     } finally {
-      if (isMounted.current) {
-        setLoadingVehicles(false);
-      }
+      if (isMounted.current) setLoadingVehicles(false);
     }
   };
 
   const getDirections = async () => {
     if (!originMarker || !destinationMarker || !isMounted.current) return;
-
     setLoadingRoute(true);
-
     try {
-      const origin = `${originMarker.latitude},${originMarker.longitude}`;
-      const destination = `${destinationMarker.latitude},${destinationMarker.longitude}`;
-      
-      // Construir waypoints si existen
+      const orig = `${originMarker.latitude},${originMarker.longitude}`;
+      const dest = `${destinationMarker.latitude},${destinationMarker.longitude}`;
       let waypointsParam = '';
       if (waypointMarkers.length > 0) {
-        const waypointCoords = waypointMarkers
-          .filter(waypoint => waypoint && waypoint.latitude && waypoint.longitude)
-          .map(waypoint => `${waypoint.latitude},${waypoint.longitude}`);
-        
-        if (waypointCoords.length > 0) {
-          waypointsParam = `&waypoints=${encodeURIComponent(waypointCoords.join('|'))}`;
-        }
+        const coords = waypointMarkers.filter(w => w?.latitude && w?.longitude).map(w => `${w.latitude},${w.longitude}`);
+        if (coords.length > 0) waypointsParam = `&waypoints=${encodeURIComponent(coords.join('|'))}`;
       }
-
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
-
-      const response = await fetch(url);
-
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(orig)}&destination=${encodeURIComponent(dest)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
+      const data = await fetch(url).then(r => r.json());
       if (!isMounted.current) return;
-
-      const data = await response.json();
-
-      if (!isMounted.current) return;
-
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        console.warn('⚠️ Directions API:', data.status, data.error_message || '');
-      }
-
-      if (data.routes && Array.isArray(data.routes) && data.routes.length > 0) {
+      if (data.routes?.length > 0) {
         const route = data.routes[0];
         let points = [];
-
-        // Usar polylines detallados de cada step (siguen las calles con precisión)
-        if (route.legs && route.legs.length > 0) {
-          const allPoints = [];
-          route.legs.forEach(leg => {
-            if (leg.steps && Array.isArray(leg.steps)) {
-              leg.steps.forEach(step => {
-                if (step.polyline && step.polyline.points) {
-                  const stepPoints = decodePolyline(step.polyline.points);
-                  allPoints.push(...stepPoints);
-                }
-              });
-            }
-          });
-          if (allPoints.length > 0) {
-            points = allPoints;
-          }
-        }
-
-        // Fallback al overview simplificado si no hay steps
-        if (points.length === 0 && route.overview_polyline && route.overview_polyline.points) {
-          points = decodePolyline(route.overview_polyline.points);
-        }
-
+        route.legs?.forEach(leg => leg.steps?.forEach(step => { if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points)); }));
+        if (points.length === 0 && route.overview_polyline?.points) points = decodePolyline(route.overview_polyline.points);
         if (points.length > 0) {
           setRouteCoordinates(points);
-
-          if (route.legs && route.legs.length > 0) {
-            let totalDistanceValue = 0;
-            let totalDurationValue = 0;
-            let distanceText = '';
-            let durationText = '';
-            
-            route.legs.forEach(leg => {
-              if (leg.distance && leg.distance.value) {
-                totalDistanceValue += leg.distance.value;
-              }
-              if (leg.duration && leg.duration.value) {
-                totalDurationValue += leg.duration.value;
-              }
-            });
-            
-            if (totalDistanceValue >= 1000) {
-              distanceText = `${(totalDistanceValue / 1000).toFixed(1)} km`;
-            } else {
-              distanceText = `${totalDistanceValue} m`;
-            }
-            
-            if (totalDurationValue >= 3600) {
-              const hours = Math.floor(totalDurationValue / 3600);
-              const minutes = Math.floor((totalDurationValue % 3600) / 60);
-              durationText = `${hours}h ${minutes}min`;
-            } else {
-              const minutes = Math.floor(totalDurationValue / 60);
-              durationText = `${minutes} min`;
-            }
-            
-            setDistance(distanceText);
-            setDuration(durationText);
-          }
-
+          let totalDist = 0, totalDur = 0;
+          route.legs?.forEach(leg => { totalDist += leg.distance?.value || 0; totalDur += leg.duration?.value || 0; });
+          setDistance(totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)} km` : `${totalDist} m`);
+          setDuration(totalDur >= 3600 ? `${Math.floor(totalDur / 3600)}h ${Math.floor((totalDur % 3600) / 60)}min` : `${Math.floor(totalDur / 60)} min`);
           if (mapRef.current && isMounted.current) {
-            setTimeout(() => {
-              if (mapRef.current && isMounted.current) {
-                mapRef.current.fitToCoordinates(points, {
-                  edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
-                  animated: true,
-                });
-              }
-            }, 300);
+            setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.fitToCoordinates(points, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true }); }, 300);
           }
         }
       }
-    } catch (error) {
-      console.error('❌ Error getting directions:', error);
-    } finally {
-      if (isMounted.current) {
-        setLoadingRoute(false);
-      }
-    }
+    } catch (e) { console.error('Error getting directions:', e); }
+    finally { if (isMounted.current) setLoadingRoute(false); }
   };
 
   const decodePolyline = (encoded) => {
     if (!encoded) return [];
-
-    const points = [];
-    let index = 0;
-    const len = encoded.length;
-    let lat = 0;
-    let lng = 0;
-
-    while (index < len) {
-      let b;
-      let shift = 0;
-      let result = 0;
-      do {
-        b = encoded.charAt(index++).charCodeAt(0) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.charAt(index++).charCodeAt(0) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-      lng += dlng;
-
-      points.push({
-        latitude: lat / 1e5,
-        longitude: lng / 1e5,
-      });
+    const pts = []; let i = 0, lat = 0, lng = 0;
+    while (i < encoded.length) {
+      let b, shift = 0, result = 0;
+      do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lat += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+      shift = 0; result = 0;
+      do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lng += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+      pts.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
     }
-
-    return points;
+    return pts;
   };
+
+  // ─── Geocoding ────────────────────────────────────────────────────────────
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.results && data.results.length > 0) {
+      const data = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`).then(r => r.json());
+      if (data.results?.length > 0) {
         const result = data.results[0];
-        
-        let city = '';
-        let province = '';
-        let street = '';
-        let streetNumber = '';
-        
-        if (Array.isArray(result.address_components)) {
-          result.address_components.forEach(component => {
-            if (Array.isArray(component?.types)) {
-              if (component.types.includes('street_number')) {
-                streetNumber = component.long_name || '';
-              }
-              if (component.types.includes('route')) {
-                street = component.long_name || '';
-              }
-              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
-                city = component.long_name || '';
-              }
-              if (component.types.includes('administrative_area_level_1')) {
-                province = component.long_name || '';
-              }
-            }
-          });
-        }
-        
-        // Construir la dirección completa con número para usar en formatted_address
-        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
-        // Si no hay componentes específicos de calle, usar la dirección completa formateada
-        const addressToShow = fullStreetAddress || result.formatted_address?.split(',')[0]?.trim() || '';
-        
-        return {
-          address: addressToShow,
-          city: city,
-          province: province,
-          country: 'Argentina',
-          coordinates: { latitude, longitude },
-        };
+        let city = '', province = '', street = '', streetNumber = '';
+        result.address_components?.forEach(c => {
+          if (c.types?.includes('street_number')) streetNumber = c.long_name;
+          if (c.types?.includes('route')) street = c.long_name;
+          if (c.types?.includes('locality') || c.types?.includes('administrative_area_level_2')) city = c.long_name;
+          if (c.types?.includes('administrative_area_level_1')) province = c.long_name;
+        });
+        const fullStreet = [street, streetNumber].filter(Boolean).join(' ');
+        return { address: fullStreet || result.formatted_address?.split(',')[0]?.trim() || '', city, province, country: 'Argentina', coordinates: { latitude, longitude } };
       }
-    } catch (error) {
-      console.error('Error in reverse geocoding:', error);
-    }
+    } catch {}
     return null;
   };
 
+  const extractComponents = (details) => {
+    let city = '', province = '', street = '', streetNumber = '';
+    details.address_components?.forEach(c => {
+      if (c.types?.includes('street_number')) streetNumber = c.long_name;
+      if (c.types?.includes('route')) street = c.long_name;
+      if (c.types?.includes('locality') || c.types?.includes('administrative_area_level_2')) city = c.long_name;
+      if (c.types?.includes('administrative_area_level_1')) province = c.long_name;
+    });
+    return { city, province, fullStreet: [street, streetNumber].filter(Boolean).join(' ') };
+  };
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
   const handleMapPress = async (event) => {
-    if (!mapSelectionMode) {
-      Keyboard.dismiss();
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-      return;
-    }
-    
+    if (!mapSelectionMode) { Keyboard.dismiss(); return; }
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    const locationData = await reverseGeocode(latitude, longitude);
-    
-    if (!locationData) {
-      showAlert('Error', 'No se pudo obtener la dirección de esta ubicación');
-      return;
-    }
-    
+    setLoadingMapSelection(true);
+    const loc = await reverseGeocode(latitude, longitude);
+    setLoadingMapSelection(false);
+    if (!loc) { showAlert('Error', 'No se pudo obtener la dirección'); return; }
     if (mapSelectionMode === 'origin') {
       setOriginMarker({ latitude, longitude });
-      setFormData(prev => ({ ...prev, origin: locationData }));
-      
-      if (originInputRef.current?.setAddressText) {
-        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
-        originInputRef.current.setAddressText(fullAddressText);
-      }
+      setFormData(prev => ({ ...prev, origin: loc }));
+      if (originInputRef.current?.setAddressText) originInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
     } else if (mapSelectionMode === 'destination') {
       setDestinationMarker({ latitude, longitude });
-      setFormData(prev => ({ ...prev, destination: locationData }));
-      
-      if (destinationInputRef.current?.setAddressText) {
-        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
-        destinationInputRef.current.setAddressText(fullAddressText);
-      }
+      setFormData(prev => ({ ...prev, destination: loc }));
+      if (destinationInputRef.current?.setAddressText) destinationInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
     } else if (mapSelectionMode.startsWith('waypoint-')) {
-      const waypointIndex = parseInt(mapSelectionMode.split('-')[1]);
-      
-      setWaypointMarkers(prev => {
-        const newMarkers = [...prev];
-        newMarkers[waypointIndex] = { latitude, longitude };
-        return newMarkers;
-      });
-      
-      setFormData(prev => {
-        const newWaypoints = [...prev.waypoints];
-        newWaypoints[waypointIndex] = locationData;
-        return { ...prev, waypoints: newWaypoints };
-      });
-      
-      if (waypointInputRefs.current[waypointIndex]?.current?.setAddressText) {
-        const fullAddressText = [locationData.address, locationData.city, locationData.province].filter(Boolean).join(', ');
-        waypointInputRefs.current[waypointIndex].current.setAddressText(fullAddressText);
-      }
+      const idx = parseInt(mapSelectionMode.split('-')[1]);
+      setWaypointMarkers(prev => { const n = [...prev]; n[idx] = { latitude, longitude }; return n; });
+      setFormData(prev => { const n = [...prev.waypoints]; n[idx] = loc; return { ...prev, waypoints: n }; });
+      if (waypointInputRefs.current[idx]?.current?.setAddressText) waypointInputRefs.current[idx].current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
     }
-    
     setMapSelectionMode(null);
-    
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude,
-        longitude,
-        latitudeDelta: LATITUDE_DELTA,
-        longitudeDelta: LONGITUDE_DELTA,
-      }, 1000);
-    }
-  };
-
-  const addWaypoint = () => {
-    if (formData.waypoints.length >= 3) {
-      showAlert('Límite alcanzado', 'Máximo 3 paradas intermedias permitidas');
-      return;
-    }
-    
-    const newWaypoint = {
-      address: '',
-      city: '',
-      province: '',
-      coordinates: null,
-    };
-    
-    setFormData(prev => ({
-      ...prev,
-      waypoints: [...prev.waypoints, newWaypoint]
-    }));
-    
-    // Agregar refs para el nuevo waypoint
-    const newRef = React.createRef();
-    waypointInputRefs.current.push(newRef);
-    waypointResultsRef.current.push([]);
-    waypointDebounceTimers.current.push(null);
-  };
-
-  const removeWaypoint = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      waypoints: prev.waypoints.filter((_, i) => i !== index)
-    }));
-    
-    setWaypointMarkers(prev => prev.filter((_, i) => i !== index));
-    
-    // Limpiar refs
-    waypointInputRefs.current.splice(index, 1);
-    waypointResultsRef.current.splice(index, 1);
-    waypointDebounceTimers.current.splice(index, 1);
-    
-    // Si estaba activo este waypoint, limpiar autocomplete
-    if (activeAutocomplete === `waypoint-${index}`) {
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-    }
-    
-    // Si estaba en modo de selección para este waypoint, cancelar
-    if (mapSelectionMode === `waypoint-${index}`) {
-      setMapSelectionMode(null);
-    }
-  };
-
-  const handleWaypointSelect = (data, details, waypointIndex) => {
-    try {
-      if (!isMounted.current) return;
-
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-      Keyboard.dismiss();
-
-      if (details?.geometry?.location) {
-        const coords = {
-          latitude: details.geometry.location.lat,
-          longitude: details.geometry.location.lng,
-        };
-
-        // Actualizar marker de waypoint
-        setWaypointMarkers(prev => {
-          const newMarkers = [...prev];
-          newMarkers[waypointIndex] = coords;
-          return newMarkers;
-        });
-
-        let city = '';
-        let province = '';
-        let street = '';
-        let streetNumber = '';
-
-        if (Array.isArray(details.address_components)) {
-          details.address_components.forEach(component => {
-            if (Array.isArray(component?.types)) {
-              if (component.types.includes('street_number')) {
-                streetNumber = component.long_name || '';
-              }
-              if (component.types.includes('route')) {
-                street = component.long_name || '';
-              }
-              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
-                city = component.long_name || '';
-              }
-              if (component.types.includes('administrative_area_level_1')) {
-                province = component.long_name || '';
-              }
-            }
-          });
-        }
-
-        // Construir la dirección completa con número
-        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
-        
-        const fullAddressText = [
-          fullStreetAddress || data?.description?.split(',')[0] || '',
-          city,
-          province
-        ].filter(Boolean).join(', ');
-
-        setFormData(prev => {
-          const newWaypoints = [...prev.waypoints];
-          newWaypoints[waypointIndex] = {
-            address: data?.description || '',
-            city: city,
-            province: province,
-            coordinates: coords,
-          };
-          return {
-            ...prev,
-            waypoints: newWaypoints
-          };
-        });
-
-        // Actualizar texto del input
-        if (waypointInputRefs.current[waypointIndex]?.current?.setAddressText) {
-          try {
-            waypointInputRefs.current[waypointIndex].current.setAddressText(fullAddressText);
-          } catch (e) {
-            console.log(`Error setting waypoint ${waypointIndex} address text:`, e);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error en handleWaypointSelect:', error);
-    }
+    if (mapRef.current) mapRef.current.animateToRegion({ latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000);
   };
 
   const handleOriginSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
-
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-      Keyboard.dismiss();
-
+      setActiveAutocomplete(null); setAutocompleteResults([]);
       if (details?.geometry?.location) {
-        const coords = {
-          latitude: details.geometry.location.lat,
-          longitude: details.geometry.location.lng,
-        };
-
+        const coords = { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng };
+        const { city, province, fullStreet } = extractComponents(details);
+        const text = [fullStreet || data?.description?.split(',')[0] || '', city, province].filter(Boolean).join(', ');
         setOriginMarker(coords);
-
-        let city = '';
-        let province = '';
-        let street = '';
-        let streetNumber = '';
-
-        if (Array.isArray(details.address_components)) {
-          details.address_components.forEach(component => {
-            if (Array.isArray(component?.types)) {
-              if (component.types.includes('street_number')) {
-                streetNumber = component.long_name || '';
-              }
-              if (component.types.includes('route')) {
-                street = component.long_name || '';
-              }
-              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
-                city = component.long_name || '';
-              }
-              if (component.types.includes('administrative_area_level_1')) {
-                province = component.long_name || '';
-              }
-            }
-          });
-        }
-
-        // Construir la dirección completa con número
-        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
-        
-        // Construir el texto completo para el input: dirección, ciudad, provincia
-        const fullAddressText = [
-          fullStreetAddress || data?.description?.split(',')[0] || '',
-          city,
-          province
-        ].filter(Boolean).join(', ');
-
-        setFormData(prev => ({
-          ...prev,
-          origin: {
-            address: data?.description || '',
-            city: city,
-            province: province,
-            country: 'Argentina',
-            coordinates: coords,
-          },
-        }));
-
-        // Actualizar el texto del input con la dirección completa
-        if (originInputRef.current && originInputRef.current.setAddressText) {
-          try {
-            originInputRef.current.setAddressText(fullAddressText);
-          } catch (e) {
-            console.log('Error setting origin address text:', e);
-          }
-        }
-
-        if (mapRef.current && isMounted.current) {
-          setTimeout(() => {
-            if (mapRef.current && isMounted.current) {
-              mapRef.current.animateToRegion({
-                ...coords,
-                latitudeDelta: LATITUDE_DELTA,
-                longitudeDelta: LONGITUDE_DELTA,
-              }, 1000);
-            }
-          }, 300);
-        }
+        setFormData(prev => ({ ...prev, origin: { address: data?.description || '', city, province, country: 'Argentina', coordinates: coords } }));
+        if (originInputRef.current?.setAddressText) { try { originInputRef.current.setAddressText(text); } catch {} }
+        if (mapRef.current && isMounted.current) setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion({ ...coords, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }, 300);
       }
-    } catch (error) {
-      console.error('❌ Error en handleOriginSelect:', error);
-    }
+    } catch (e) { console.error('handleOriginSelect:', e); }
   };
 
   const handleDestinationSelect = (data, details = null) => {
     try {
       if (!isMounted.current) return;
-
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-      Keyboard.dismiss();
-
+      setActiveAutocomplete(null); setAutocompleteResults([]);
       if (details?.geometry?.location) {
-        const coords = {
-          latitude: details.geometry.location.lat,
-          longitude: details.geometry.location.lng,
-        };
-
+        const coords = { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng };
+        const { city, province, fullStreet } = extractComponents(details);
+        const text = [fullStreet || data?.description?.split(',')[0] || '', city, province].filter(Boolean).join(', ');
         setDestinationMarker(coords);
-
-        let city = '';
-        let province = '';
-        let street = '';
-        let streetNumber = '';
-
-        if (Array.isArray(details.address_components)) {
-          details.address_components.forEach(component => {
-            if (Array.isArray(component?.types)) {
-              if (component.types.includes('street_number')) {
-                streetNumber = component.long_name || '';
-              }
-              if (component.types.includes('route')) {
-                street = component.long_name || '';
-              }
-              if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
-                city = component.long_name || '';
-              }
-              if (component.types.includes('administrative_area_level_1')) {
-                province = component.long_name || '';
-              }
-            }
-          });
-        }
-
-        // Construir la dirección completa con número
-        const fullStreetAddress = [street, streetNumber].filter(Boolean).join(' ');
-        
-        // Construir el texto completo para el input: dirección, ciudad, provincia
-        const fullAddressText = [
-          fullStreetAddress || data?.description?.split(',')[0] || '',
-          city,
-          province
-        ].filter(Boolean).join(', ');
-
-        setFormData(prev => ({
-          ...prev,
-          destination: {
-            address: data?.description || '',
-            city: city,
-            province: province,
-            country: 'Argentina',
-            coordinates: coords,
-          },
-        }));
-
-        // Actualizar el texto del input con la dirección completa
-        if (destinationInputRef.current && destinationInputRef.current.setAddressText) {
-          try {
-            destinationInputRef.current.setAddressText(fullAddressText);
-          } catch (e) {
-            console.log('Error setting destination address text:', e);
-          }
-        }
+        setFormData(prev => ({ ...prev, destination: { address: data?.description || '', city, province, country: 'Argentina', coordinates: coords } }));
+        if (destinationInputRef.current?.setAddressText) { try { destinationInputRef.current.setAddressText(text); } catch {} }
       }
-    } catch (error) {
-      console.error('❌ Error en handleDestinationSelect:', error);
-    }
+    } catch (e) { console.error('handleDestinationSelect:', e); }
   };
 
-  const handleContinueToDetails = () => {
-    if (!originMarker || !destinationMarker) {
-      showAlert('Datos incompletos', 'Por favor selecciona origen y destino');
-      return;
-    }
+  const handleWaypointSelect = (data, details, idx) => {
+    try {
+      if (!isMounted.current) return;
+      setActiveAutocomplete(null); setAutocompleteResults([]);
+      if (details?.geometry?.location) {
+        const coords = { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng };
+        const { city, province, fullStreet } = extractComponents(details);
+        const text = [fullStreet || data?.description?.split(',')[0] || '', city, province].filter(Boolean).join(', ');
+        setWaypointMarkers(prev => { const n = [...prev]; n[idx] = coords; return n; });
+        setFormData(prev => { const n = [...prev.waypoints]; n[idx] = { address: data?.description || '', city, province, coordinates: coords }; return { ...prev, waypoints: n }; });
+        if (waypointInputRefs.current[idx]?.current?.setAddressText) { try { waypointInputRefs.current[idx].current.setAddressText(text); } catch {} }
+      }
+    } catch (e) { console.error('handleWaypointSelect:', e); }
+  };
 
-    // Si aún está cargando vehículos, mostrar mensaje
-    if (loadingVehicles) {
-      showAlert('Un momento', 'Estamos verificando tus vehículos...');
-      return;
-    }
-
-    // Si no hay vehículos, mostrar el mensaje de error
-    if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
-      showAlert(
-        'Vehículo requerido', 
-        'Necesitas registrar un vehículo antes de crear un viaje',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          // { text: 'Agregar Vehículo', onPress: () => navigation.navigate('Vehicles') }
-        ]
-      );
-      return;
-    }
-
-    navigation.navigate('TripDetails', {
-      origin: formData.origin,
-      destination: formData.destination,
-      waypoints: formData.waypoints.filter(wp => wp.coordinates !== null),
-      distance: distance,
-      duration: duration,
-      vehicles: vehicles,
+  const handleResultPress = (item) => {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
+    fetch(url).then(r => r.json()).then(data => {
+      if (!data?.result) return;
+      if (activeAutocomplete === 'origin') handleOriginSelect({ description: item.description }, data.result);
+      else if (activeAutocomplete === 'destination') handleDestinationSelect({ description: item.description }, data.result);
+      else if (activeAutocomplete?.startsWith('waypoint-')) handleWaypointSelect({ description: item.description }, data.result, parseInt(activeAutocomplete.split('-')[1]));
     });
+    setActiveAutocomplete(null); setAutocompleteResults([]);
+  };
+
+  const addWaypoint = () => {
+    if (formData.waypoints.length >= 3) { showAlert('Límite alcanzado', 'Máximo 3 paradas intermedias'); return; }
+    setFormData(prev => ({ ...prev, waypoints: [...prev.waypoints, { address: '', city: '', province: '', coordinates: null }] }));
+    waypointInputRefs.current.push(React.createRef());
+    waypointResultsRef.current.push([]);
+    waypointDebounceTimers.current.push(null);
+  };
+
+  const removeWaypoint = (index) => {
+    setFormData(prev => ({ ...prev, waypoints: prev.waypoints.filter((_, i) => i !== index) }));
+    setWaypointMarkers(prev => prev.filter((_, i) => i !== index));
+    waypointInputRefs.current.splice(index, 1);
+    waypointResultsRef.current.splice(index, 1);
+    waypointDebounceTimers.current.splice(index, 1);
+    if (activeAutocomplete === `waypoint-${index}`) { setActiveAutocomplete(null); setAutocompleteResults([]); }
+    if (mapSelectionMode === `waypoint-${index}`) setMapSelectionMode(null);
   };
 
   const clearOrigin = () => {
-    if (!isMounted.current) return;
-
-    setOriginMarker(null);
-    setRouteCoordinates([]);
-    setDistance(null);
-    setDuration(null);
-    setMapSelectionMode(null);
-    setFormData(prev => ({
-      ...prev,
-      origin: {
-        address: '',
-        city: '',
-        province: '',
-        coordinates: null,
-      },
-    }));
-    if (originInputRef.current && originInputRef.current.setAddressText) {
-      try {
-        originInputRef.current.setAddressText('');
-      } catch (e) {
-        console.log('Error clearing origin input:', e);
-      }
-    }
+    setOriginMarker(null); setRouteCoordinates([]); setDistance(null); setDuration(null); setMapSelectionMode(null);
+    setFormData(prev => ({ ...prev, origin: { address: '', city: '', province: '', coordinates: null } }));
+    if (originInputRef.current?.setAddressText) { try { originInputRef.current.setAddressText(''); } catch {} }
   };
 
   const clearDestination = () => {
-    if (!isMounted.current) return;
+    setDestinationMarker(null); setRouteCoordinates([]); setDistance(null); setDuration(null); setMapSelectionMode(null);
+    setFormData(prev => ({ ...prev, destination: { address: '', city: '', province: '', coordinates: null } }));
+    if (destinationInputRef.current?.setAddressText) { try { destinationInputRef.current.setAddressText(''); } catch {} }
+  };
 
-    setDestinationMarker(null);
-    setRouteCoordinates([]);
-    setDistance(null);
-    setDuration(null);
+  const openSearch = (field) => {
     setMapSelectionMode(null);
-    setFormData(prev => ({
-      ...prev,
-      destination: {
-        address: '',
-        city: '',
-        province: '',
-        coordinates: null,
-      },
-    }));
-    if (destinationInputRef.current && destinationInputRef.current.setAddressText) {
-      try {
-        destinationInputRef.current.setAddressText('');
-      } catch (e) {
-        console.log('Error clearing destination input:', e);
+    setActiveAutocomplete(field);
+    setSearchVisible(true);
+    overlayOpacity.setValue(0);
+    overlayTranslateY.setValue(16);
+    Animated.parallel([
+      Animated.timing(overlayOpacity,     { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(overlayTranslateY,  { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+    // Populate already-selected addresses after overlay mounts
+    setTimeout(() => {
+      if (formData.origin.address && originInputRef.current?.setAddressText) {
+        try { originInputRef.current.setAddressText([formData.origin.address, formData.origin.city, formData.origin.province].filter(Boolean).join(', ')); } catch {}
       }
-    }
+      if (formData.destination.address && destinationInputRef.current?.setAddressText) {
+        try { destinationInputRef.current.setAddressText([formData.destination.address, formData.destination.city, formData.destination.province].filter(Boolean).join(', ')); } catch {}
+      }
+      formData.waypoints.forEach((wp, i) => {
+        if (wp.address && waypointInputRefs.current[i]?.current?.setAddressText) {
+          try { waypointInputRefs.current[i].current.setAddressText([wp.address, wp.city, wp.province].filter(Boolean).join(', ')); } catch {}
+        }
+      });
+    }, 80);
+  };
+
+  const closeSearch = () => {
+    Keyboard.dismiss();
+    originResultsRef.current = [];
+    destinationResultsRef.current = [];
+    waypointResultsRef.current = [];
+    Animated.parallel([
+      Animated.timing(overlayOpacity,    { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(overlayTranslateY, { toValue: 12, duration: 150, useNativeDriver: true }),
+    ]).start(() => {
+      setSearchVisible(false);
+      setActiveAutocomplete(null);
+      setAutocompleteResults([]);
+    });
+  };
+
+  const handleContinueToDetails = () => {
+    if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
+    if (loadingVehicles) { showAlert('Un momento', 'Estamos verificando tus vehículos...'); return; }
+    if (!vehicles?.length) { showAlert('Vehículo requerido', 'Necesitás registrar un vehículo antes de crear un viaje', [{ text: 'Cancelar', style: 'cancel' }]); return; }
+    navigation.navigate('TripDetails', { origin: formData.origin, destination: formData.destination, waypoints: formData.waypoints.filter(wp => wp.coordinates !== null), distance, duration, vehicles });
   };
 
   const hasRoute = originMarker && destinationMarker;
 
-  // Mostrar verificación de vehículos de inmediato (sin cargar mapa)
+  // ─── Early returns ────────────────────────────────────────────────────────
+
   if (loadingVehicles) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 16 }]}>Verificando vehículos...</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={textPrimary} />
+        <Text style={[styles.emptyText, { color: textMuted }]}>Verificando vehículos...</Text>
       </View>
     );
   }
 
-  // Sin vehículos: mostrar error de inmediato (sin cargar mapa)
-  if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
+  if (!vehicles?.length) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No tienes vehículos registrados</Text>
-        <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
-          Necesitas registrar un vehículo antes de crear un viaje
-        </Text>
+      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
+        <Ionicons name="car-outline" size={64} color={textMuted} />
+        <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos registrados</Text>
+        <Text style={[styles.emptyText, { color: textMuted }]}>Necesitás registrar un vehículo antes de crear un viaje</Text>
       </View>
     );
   }
 
-  const dismissSheet = () => {
-    if (activeAutocomplete) {
-      Keyboard.dismiss();
-      setActiveAutocomplete(null);
-      setAutocompleteResults([]);
-    }
-  };
+  const isSearching = activeAutocomplete !== null;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <TouchableWithoutFeedback onPress={dismissSheet}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={colors.statusBarStyle} />
+    <View style={styles.container}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-      {/* Top bar - botón volver */}
-      <View style={[styles.topBar, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Mapa full screen */}
+      {/* Map */}
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
-        onRegionChangeComplete={(newRegion, details = {}) => {
-          // Solo actualizar estado en gestos del usuario para evitar bucle de feedback
-          // que causa desplazamiento continuo del mapa (Issue #4876 react-native-maps)
-          if (details.isGesture) setRegion(newRegion);
-        }}
+        onRegionChangeComplete={(r, d = {}) => { if (d.isGesture) setRegion(r); }}
         paddingAdjustmentBehavior="never"
         showsUserLocation={false}
         showsMyLocationButton={false}
         onPress={handleMapPress}
       >
-        {/* Marcador de ubicación del usuario */}
         {userLocation && (
-          <Marker coordinate={userLocation} title="Tu ubicación">
-            <View style={[styles.userLocationMarkerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#FFFFFF' : '#292929' }]}>
-              <View style={[styles.userLocationDot, { backgroundColor: isDarkMode ? '#FFFFFF' : '#292929' }]} />
+          <Marker coordinate={userLocation}>
+            <View style={[styles.userMarker, { backgroundColor: cardBg }]}>
+              <View style={[styles.userMarkerDot, { backgroundColor: textPrimary }]} />
             </View>
           </Marker>
         )}
         {originMarker && (
-          <Marker coordinate={originMarker} title="Origen">
-            <View style={styles.originMarkerContainer}>
-              <View style={[styles.originMarkerDot, { backgroundColor: '#000' }]} />
-            </View>
+          <Marker coordinate={originMarker}>
+            <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
           </Marker>
         )}
         {destinationMarker && (
-          <Marker coordinate={destinationMarker} title="Destino">
-            <View style={styles.destinationMarkerContainer}>
-              <View style={[styles.destinationMarkerSquare, { backgroundColor: '#000' }]} />
-            </View>
+          <Marker coordinate={destinationMarker}>
+            <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
           </Marker>
         )}
-        {waypointMarkers.map((waypointMarker, index) => (
-          <Marker
-            key={`waypoint-${index}`}
-            coordinate={waypointMarker}
-            title={`Parada ${index + 1}`}
-          >
-            <View style={styles.waypointMarkerContainer}>
-              <Text style={styles.waypointMarkerText}>{index + 1}</Text>
-            </View>
+        {waypointMarkers.map((m, i) => (
+          <Marker key={`wp-${i}`} coordinate={m}>
+            <View style={styles.waypointMarker}><Text style={styles.waypointMarkerText}>{i + 1}</Text></View>
           </Marker>
         ))}
-        {routeCoordinates && routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeWidth={3}
-            strokeColor="#000000"
-            strokeColors={routeCoordinates.map(() => '#000000')}
-          />
-        )}
+        {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={3} strokeColor="#000000" />}
       </MapView>
 
+      {/* Back button (mini mode) */}
+      {!isSearching && (
+        <View style={[styles.topBar, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={[styles.circleBtn, { backgroundColor: cardBg }]} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Ionicons name="arrow-back" size={22} color={textPrimary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Botón mi ubicación - oculto cuando el sheet está expandido (editando) */}
-      {sheetMode === 'mini' && (
-        <TouchableOpacity style={[styles.myLocationButton, { backgroundColor: colors.cardBackground, shadowColor: colors.shadow }]} onPress={() => {
-          getCurrentLocation();
-          if (userLocation && mapRef.current) {
-            mapRef.current.animateToRegion({
-              ...userLocation,
-              latitudeDelta: LATITUDE_DELTA,
-              longitudeDelta: LONGITUDE_DELTA,
-            }, 1000);
-          }
-        }}>
-          <Ionicons name="navigate" size={20} color={colors.textPrimary} />
+      {/* My location (mini mode) */}
+      {!isSearching && (
+        <TouchableOpacity
+          style={[styles.myLocationBtn, { backgroundColor: cardBg }]}
+          onPress={() => { getCurrentLocation(); if (userLocation && mapRef.current) mapRef.current.animateToRegion({ ...userLocation, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }}
+        >
+          <Ionicons name="navigate" size={20} color={textPrimary} />
         </TouchableOpacity>
       )}
 
-      {/* Panel inferior estilo Uber - Animated */}
-      {mapSelectionMode && (
+      {/* Map selection banner */}
+      {mapSelectionMode && !isSearching && (
         <>
-          <View style={[styles.mapSelectionIndicator, { backgroundColor: '#6B7280', shadowColor: colors.shadow, top: insets.top + 80 }]}>
-            <Text style={[styles.mapSelectionText, { color: '#FFFFFF' }]}>
-              {mapSelectionMode === 'origin' ? 'Toca el mapa para seleccionar el origen' :
-               mapSelectionMode === 'destination' ? 'Toca el mapa para seleccionar el destino' :
-               `Toca el mapa para seleccionar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
+          <View style={[styles.selectionBanner, { top: insets.top + 72 }]}>
+            <Text style={styles.selectionText}>
+              {mapSelectionMode === 'origin' ? 'Tocá el mapa para marcar el origen' :
+               mapSelectionMode === 'destination' ? 'Tocá el mapa para marcar el destino' :
+               `Tocá el mapa para marcar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
             </Text>
-            <TouchableOpacity
-              onPress={() => setMapSelectionMode(null)}
-              style={styles.cancelSelectionBtn}
-            >
-              <Text style={[styles.cancelSelectionText, { color: '#FFFFFF' }]}>Cancelar</Text>
+            <TouchableOpacity onPress={() => setMapSelectionMode(null)} style={{ marginLeft: 12 }}>
+              <Text style={styles.selectionCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.centerMapIndicator} pointerEvents="none">
-            <View style={styles.centerPinSoft}>
-              <Ionicons name="location" size={18} color="#1F2937" />
-            </View>
+          <View style={styles.centerPin} pointerEvents="none">
+            <Ionicons name="location" size={20} color="#1F2937" />
           </View>
         </>
       )}
-      <KeyboardAvoidingView
-        style={[
-          styles.bottomSheetWrapper,
-          { backgroundColor: colors.cardBackground },
-          Platform.OS === 'android' && keyboardHeight > 0 && { bottom: keyboardHeight },
-        ]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-        <Animated.View
-          style={[
-            styles.bottomSheet,
-            {
-              backgroundColor: colors.cardBackground,
-              shadowColor: colors.shadow,
-              minHeight: sheetHeight.interpolate({
-                inputRange: [0, 1],
-                outputRange: [MIN_SHEET_HEIGHT, effectiveMaxHeight],
-              }),
-              // Evitar que crezca hacia arriba con muchas predicciones: usar altura máxima cuando hay teclado
-              maxHeight: keyboardHeight > 0 ? effectiveMaxHeight : undefined,
-            },
-          ]}
-        >
-          <View style={{
-            flex: activeAutocomplete && autocompleteResults.length > 0 ? 0 : 1,
-            flexGrow: activeAutocomplete && autocompleteResults.length > 0 ? 0 : 1,
-          }}>
-            {sheetMode === 'mini' && (
-              <View style={styles.handleBarContainer}>
-                <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
-              </View>
-            )}
 
-                {/* Contenedor de inputs con timeline - posición fija arriba (sin flex) */}
-                <View style={[styles.inputsWrapper, { backgroundColor: isDarkMode ? 'transparent' : colors.surface }]}>
-            {/* Timeline dots */}
-            <View style={[
-              styles.timelineContainer,
-              { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
-              activeAutocomplete && autocompleteResults.length > 0 && {
-                borderBottomLeftRadius: 0, // Quitar el radio cuando hay predicciones para evitar espacio blanco
-              },
-            ]}>
-              <View style={[styles.originDot, { backgroundColor: colors.success }]} />
-              <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
-              
-              {/* Waypoints dots */}
-              {formData.waypoints.map((_, index) => (
-                <React.Fragment key={`waypoint-${index}`}>
-                  <View style={[styles.waypointDot, { backgroundColor: '#666', borderColor: isDarkMode ? 'transparent' : colors.surface }]} />
-                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+      {/* ── MINI BOTTOM SHEET ── */}
+      {!isSearching && (
+        <View style={[styles.miniSheet, { backgroundColor: cardBg }]}>
+          <View style={styles.handleContainer}>
+            <View style={[styles.handle, { backgroundColor: border }]} />
+          </View>
+
+          <View style={styles.miniInputs}>
+            {/* Timeline */}
+            <View style={styles.miniTimeline}>
+              <View style={[styles.tlDotOrigin, { backgroundColor: textPrimary }]} />
+              <View style={[styles.tlLine, { backgroundColor: border }]} />
+              {formData.waypoints.map((_, i) => (
+                <React.Fragment key={`tl-${i}`}>
+                  <View style={[styles.tlDotWp, { backgroundColor: textMuted }]} />
+                  <View style={[styles.tlLine, { backgroundColor: border }]} />
                 </React.Fragment>
               ))}
-              
-              <View style={[styles.destinationSquare, { backgroundColor: colors.error }]} />
+              <View style={[styles.tlDotDest, { backgroundColor: textPrimary }]} />
             </View>
 
-            {/* Inputs */}
-            <View style={[
-              styles.inputsContainer,
-              { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
-              activeAutocomplete && autocompleteResults.length > 0 && {
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-              },
-            ]}>
-              {/* Origen */}
-              <View style={[styles.inputRow, { zIndex: 3000 }]}>
+            {/* Rows */}
+            <View style={{ flex: 1 }}>
+              {/* Origin */}
+              <TouchableOpacity style={[styles.miniRow, { borderBottomColor: divider }]} onPress={() => openSearch('origin')} activeOpacity={0.7}>
+                <Text style={[styles.miniRowText, { color: formData.origin.address ? textPrimary : textMuted }]} numberOfLines={1}>
+                  {formData.origin.address
+                    ? [formData.origin.address, formData.origin.city].filter(Boolean).join(', ')
+                    : '¿Desde dónde salís?'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {formData.origin.address
+                    ? <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
+                    : <TouchableOpacity onPress={() => { setActiveAutocomplete(null); setMapSelectionMode('origin'); }} style={[styles.rowBtn, styles.mapIconBtn, { backgroundColor: mapSelectionMode === 'origin' ? textPrimary : iconBg }]}>
+                        <Ionicons name="map-outline" size={14} color={mapSelectionMode === 'origin' ? cardBg : textMuted} />
+                      </TouchableOpacity>
+                  }
+                </View>
+              </TouchableOpacity>
+
+              {/* Waypoints */}
+              {formData.waypoints.map((wp, i) => (
+                <TouchableOpacity key={`wp-row-${i}`} style={[styles.miniRow, { borderBottomColor: divider }]} onPress={() => openSearch(`waypoint-${i}`)} activeOpacity={0.7}>
+                  <Text style={[styles.miniRowText, { color: wp.address ? textPrimary : textMuted }]} numberOfLines={1}>
+                    {wp.address ? [wp.address, wp.city].filter(Boolean).join(', ') : `Parada ${i + 1}`}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeWaypoint(i)} style={styles.rowBtn}>
+                    <Ionicons name="close-circle" size={17} color={wp.address ? '#DC2626' : textMuted} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+
+              {/* Add waypoint */}
+              {formData.waypoints.length < 3 && (
+                <TouchableOpacity style={[styles.miniRow, { borderBottomColor: divider }]} onPress={addWaypoint} activeOpacity={0.7}>
+                  <Ionicons name="add-circle-outline" size={16} color={textMuted} />
+                  <Text style={[styles.miniAddText, { color: textMuted }]}>Agregar parada</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Destination */}
+              <TouchableOpacity style={styles.miniRow} onPress={() => openSearch('destination')} activeOpacity={0.7}>
+                <Text style={[styles.miniRowText, { color: formData.destination.address ? textPrimary : textMuted }]} numberOfLines={1}>
+                  {formData.destination.address
+                    ? [formData.destination.address, formData.destination.city].filter(Boolean).join(', ')
+                    : '¿A dónde vas?'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {formData.destination.address
+                    ? <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
+                    : <TouchableOpacity onPress={() => { setActiveAutocomplete(null); setMapSelectionMode('destination'); }} style={[styles.rowBtn, styles.mapIconBtn, { backgroundColor: mapSelectionMode === 'destination' ? textPrimary : iconBg }]}>
+                        <Ionicons name="map-outline" size={14} color={mapSelectionMode === 'destination' ? cardBg : textMuted} />
+                      </TouchableOpacity>
+                  }
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Route section */}
+          {hasRoute && (
+            <View style={[styles.routeSection, { borderTopColor: divider }]}>
+              {distance && duration && (
+                <Text style={[styles.routeMeta, { color: textMuted }]}>{distance} · {duration}</Text>
+              )}
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loadingRoute && { opacity: 0.7 }]}
+                onPress={handleContinueToDetails}
+                disabled={loadingVehicles || loadingRoute}
+                activeOpacity={0.85}
+              >
+                {loadingRoute
+                  ? <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                  : <Text style={[styles.confirmText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Confirmar ruta</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ── SEARCH OVERLAY (Uber style) ── */}
+      {searchVisible && (
+        <Animated.View style={[styles.searchOverlay, { opacity: overlayOpacity, transform: [{ translateY: overlayTranslateY }] }]}>
+        <KeyboardAvoidingView
+          style={[{ flex: 1, backgroundColor: cardBg }]}
+          behavior="padding"
+        >
+          {/* Header */}
+          <View style={[styles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: divider }]}>
+            <TouchableOpacity onPress={closeSearch} style={styles.searchBackBtn} activeOpacity={0.7}>
+              <Ionicons name="arrow-back" size={22} color={textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* All inputs with timeline */}
+          <View style={styles.searchInputsWrapper}>
+            {/* Timeline */}
+            <View style={styles.searchTimeline}>
+              <View style={[styles.tlDotOrigin, { backgroundColor: textPrimary }]} />
+              <View style={[styles.tlLine, { backgroundColor: border }]} />
+              {formData.waypoints.map((_, i) => (
+                <React.Fragment key={`stl-${i}`}>
+                  <View style={[styles.tlDotWp, { backgroundColor: textMuted }]} />
+                  <View style={[styles.tlLine, { backgroundColor: border }]} />
+                </React.Fragment>
+              ))}
+              <View style={[styles.tlDotDest, { backgroundColor: textPrimary }]} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              {/* Origin input */}
+              <View style={[styles.searchInputRow, { borderBottomColor: divider, zIndex: 3000, borderBottomWidth: StyleSheet.hairlineWidth }]}>
                 <SafePlacesAutocomplete
                   inputRef={originInputRef}
-                  placeholder="¿Desde dónde sales?"
+                  placeholder="¿Desde dónde salís?"
                   onPress={handleOriginSelect}
                   apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={1500}
                   inputType="origin"
                   onFocusChange={(type) => {
-                    if (type === 'origin') {
-                      setActiveAutocomplete('origin');
-                      setAutocompleteResults(originResultsRef.current);
-                    } else if (type !== null) {
-                      setActiveAutocomplete(null);
-                      setAutocompleteResults([]);
-                    }
+                    if (type === 'origin') { setActiveAutocomplete('origin'); setAutocompleteResults(originResultsRef.current); }
+                    else if (type !== null) { setActiveAutocomplete(null); setAutocompleteResults([]); }
                   }}
-                  onResultsChange={(results) => {
-                    originResultsRef.current = results;
-                    if (activeAutocomplete === 'origin') setAutocompleteResults(results);
-                  }}
-                  externalResults={[]}
-                  externalLoading={false}
-                  styles={{
-                    container: { flex: 1, zIndex: 3000 },
-                    textInput: {
-                      height: 44,
-                      color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: '500',
-                      backgroundColor: 'transparent',
-                      paddingHorizontal: 12,
-                      paddingVertical: 0,
-                    },
-                  }}
+                  onResultsChange={(results) => { originResultsRef.current = results; if (activeAutocomplete === 'origin') setAutocompleteResults(results); }}
+                  externalResults={[]} externalLoading={false}
+                  styles={{ container: { flex: 1, zIndex: 3000 }, textInput: { height: 44, color: textPrimary, fontSize: 15, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 0 } }}
                 />
-                {formData.origin.address ? (
-                  <TouchableOpacity onPress={clearOrigin} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setActiveAutocomplete(null);
-                      setAutocompleteResults([]);
-                      setMapSelectionMode('origin');
-                    }}
-                    style={[
-                      styles.mapSelectBtn,
-                      { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
-                      mapSelectionMode === 'origin' && { backgroundColor: '#6B7280' },
-                    ]}
-                  >
-                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'origin' ? '#FFFFFF' : colors.primary} />
-                  </TouchableOpacity>
-                )}
+                {formData.origin.address
+                  ? <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
+                  : <TouchableOpacity onPress={() => { closeSearch(); setMapSelectionMode('origin'); }} style={[styles.mapIconBtn, { backgroundColor: iconBg }]}><Ionicons name="map-outline" size={15} color={textMuted} /></TouchableOpacity>
+                }
               </View>
 
-              <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
-
-              {/* Waypoints */}
-              {formData.waypoints.map((waypoint, index) => {
-                // Asegurar que el ref existe para este índice
-                if (!waypointInputRefs.current[index]) {
-                  waypointInputRefs.current[index] = React.createRef();
-                }
-                
+              {/* Waypoint inputs */}
+              {formData.waypoints.map((_, i) => {
+                if (!waypointInputRefs.current[i]) waypointInputRefs.current[i] = React.createRef();
                 return (
-                  <React.Fragment key={`waypoint-input-${index}`}>
-                    <View style={[styles.inputRow, { zIndex: 2500 - index * 100 }]}>
-                      <SafePlacesAutocomplete
-                        inputRef={waypointInputRefs.current[index]}
-                        placeholder={`Parada ${index + 1} (opcional)`}
-                        onPress={(data, details) => handleWaypointSelect(data, details, index)}
-                        apiKey={GOOGLE_MAPS_API_KEY}
-                        debounce={1500}
-                        inputType={`waypoint-${index}`}
+                  <View key={`sinput-wp-${i}`} style={[styles.searchInputRow, { borderBottomColor: divider, zIndex: 2500 - i * 100, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                    <SafePlacesAutocomplete
+                      inputRef={waypointInputRefs.current[i]}
+                      placeholder={`Parada ${i + 1}`}
+                      onPress={(d, det) => handleWaypointSelect(d, det, i)}
+                      apiKey={GOOGLE_MAPS_API_KEY}
+                      debounce={1500}
+                      inputType={`waypoint-${i}`}
                       onFocusChange={(type) => {
-                        if (type === `waypoint-${index}`) {
-                          setActiveAutocomplete(`waypoint-${index}`);
-                          setAutocompleteResults(waypointResultsRef.current[index] || []);
-                        } else if (type !== null) {
-                          setActiveAutocomplete(null);
-                          setAutocompleteResults([]);
-                        }
+                        if (type === `waypoint-${i}`) { setActiveAutocomplete(`waypoint-${i}`); setAutocompleteResults(waypointResultsRef.current[i] || []); }
+                        else if (type !== null) { setActiveAutocomplete(null); setAutocompleteResults([]); }
                       }}
-                      onResultsChange={(results) => {
-                        waypointResultsRef.current[index] = results;
-                        if (activeAutocomplete === `waypoint-${index}`) setAutocompleteResults(results);
-                      }}
-                      externalResults={[]}
-                      externalLoading={false}
-                      styles={{
-                        container: { flex: 1, zIndex: 2500 - index * 100 },
-                        textInput: {
-                          height: 44,
-                          color: colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: '500',
-                          backgroundColor: 'transparent',
-                          paddingHorizontal: 12,
-                          paddingVertical: 0,
-                        },
-                      }}
+                      onResultsChange={(results) => { waypointResultsRef.current[i] = results; if (activeAutocomplete === `waypoint-${i}`) setAutocompleteResults(results); }}
+                      externalResults={[]} externalLoading={false}
+                      styles={{ container: { flex: 1, zIndex: 2500 - i * 100 }, textInput: { height: 44, color: textPrimary, fontSize: 15, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 0 } }}
                     />
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      {!waypoint.address && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            Keyboard.dismiss();
-                            setActiveAutocomplete(null);
-                            setAutocompleteResults([]);
-                            setMapSelectionMode(`waypoint-${index}`);
-                          }}
-                          style={[
-                            styles.mapSelectBtn,
-                            { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
-                            mapSelectionMode === `waypoint-${index}` && { backgroundColor: '#6B7280' },
-                          ]}
-                        >
-                          <Ionicons name="map-outline" size={16} color={mapSelectionMode === `waypoint-${index}` ? '#FFFFFF' : colors.primary} />
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        onPress={() => removeWaypoint(index)}
-                        style={styles.clearBtn}
-                      >
-                        <Ionicons name="close-circle" size={18} color={waypoint.address ? colors.error : colors.textMuted} />
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity onPress={() => removeWaypoint(i)} style={styles.rowBtn}>
+                      <Ionicons name="close-circle" size={18} color={textMuted} />
+                    </TouchableOpacity>
                   </View>
-                  <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
-                </React.Fragment>
                 );
               })}
 
-              {/* Botón agregar waypoint */}
+              {/* Add waypoint */}
               {formData.waypoints.length < 3 && (
-                <>
-                  <TouchableOpacity onPress={addWaypoint} style={styles.addWaypointButton}>
-                    <Ionicons name="add-circle" size={20} color={colors.primary} />
-                    <Text style={[styles.addWaypointText, { color: colors.primary }]}>Agregar parada</Text>
-                  </TouchableOpacity>
-                  <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
-                </>
+                <TouchableOpacity style={[styles.searchInputRow, { borderBottomColor: divider, borderBottomWidth: StyleSheet.hairlineWidth }]} onPress={addWaypoint} activeOpacity={0.7}>
+                  <Ionicons name="add-circle-outline" size={16} color={textMuted} style={{ marginLeft: 12 }} />
+                  <Text style={[styles.miniAddText, { color: textMuted, paddingVertical: 14 }]}>Agregar parada</Text>
+                </TouchableOpacity>
               )}
 
-              {/* Destino */}
-              <View style={[styles.inputRow, { zIndex: 2000 }]}>
+              {/* Destination input */}
+              <View style={[styles.searchInputRow, { zIndex: 2000 }]}>
                 <SafePlacesAutocomplete
                   inputRef={destinationInputRef}
                   placeholder="¿A dónde vas?"
@@ -1248,614 +689,182 @@ const CreateTripGoogleMaps = ({ navigation, route }) => {
                   debounce={1500}
                   inputType="destination"
                   onFocusChange={(type) => {
-                    if (type === 'destination') {
-                      setActiveAutocomplete('destination');
-                      setAutocompleteResults(destinationResultsRef.current);
-                    } else if (type !== null) {
-                      setActiveAutocomplete(null);
-                      setAutocompleteResults([]);
-                    }
+                    if (type === 'destination') { setActiveAutocomplete('destination'); setAutocompleteResults(destinationResultsRef.current); }
+                    else if (type !== null) { setActiveAutocomplete(null); setAutocompleteResults([]); }
                   }}
-                  onResultsChange={(results) => {
-                    destinationResultsRef.current = results;
-                    if (activeAutocomplete === 'destination') setAutocompleteResults(results);
-                  }}
-                  externalResults={[]}
-                  externalLoading={false}
-                  styles={{
-                    container: { flex: 1, zIndex: 2000 },
-                    textInput: {
-                      height: 44,
-                      color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: '500',
-                      backgroundColor: 'transparent',
-                      paddingHorizontal: 12,
-                      paddingVertical: 0,
-                    },
-                  }}
+                  onResultsChange={(results) => { destinationResultsRef.current = results; if (activeAutocomplete === 'destination') setAutocompleteResults(results); }}
+                  externalResults={[]} externalLoading={false}
+                  styles={{ container: { flex: 1, zIndex: 2000 }, textInput: { height: 44, color: textPrimary, fontSize: 15, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 0 } }}
                 />
-                {formData.destination.address ? (
-                  <TouchableOpacity onPress={clearDestination} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setActiveAutocomplete(null);
-                      setAutocompleteResults([]);
-                      setMapSelectionMode('destination');
-                    }}
-                    style={[
-                      styles.mapSelectBtn,
-                      { backgroundColor: isDarkMode ? 'transparent' : colors.surface },
-                      mapSelectionMode === 'destination' && { backgroundColor: '#6B7280' },
-                    ]}
-                  >
-                    <Ionicons name="map-outline" size={16} color={mapSelectionMode === 'destination' ? '#FFFFFF' : colors.primary} />
-                  </TouchableOpacity>
-                )}
+                {formData.destination.address
+                  ? <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
+                  : <TouchableOpacity onPress={() => { closeSearch(); setMapSelectionMode('destination'); }} style={[styles.mapIconBtn, { backgroundColor: iconBg }]}><Ionicons name="map-outline" size={15} color={textMuted} /></TouchableOpacity>
+                }
               </View>
             </View>
           </View>
 
-           {/* Contenedor de resultados de autocompletado - debajo de los inputs */}
-           {activeAutocomplete && autocompleteResults.length > 0 && (
-             <View style={[styles.resultsContainer, { backgroundColor: isDarkMode ? 'transparent' : colors.surface }]}>
-               <ScrollView
-                 keyboardShouldPersistTaps="handled"
-                 nestedScrollEnabled={true}
-                 showsVerticalScrollIndicator={true}
-                 onScrollBeginDrag={() => Keyboard.dismiss()}
-                 contentContainerStyle={{ paddingBottom: 10 }}
-               >
-                {autocompleteResults.map((item) => (
-                  <TouchableOpacity
-                    key={item.place_id}
-                    style={styles.resultRow}
-                    onPress={() => {
-                      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
-                      fetch(detailsUrl)
-                        .then(res => res.json())
-                        .then(data => {
-                          if (data && data.result) {
-                            if (activeAutocomplete === 'origin') {
-                              handleOriginSelect({ description: item.description }, data.result);
-                            } else if (activeAutocomplete === 'destination') {
-                              handleDestinationSelect({ description: item.description }, data.result);
-                            } else if (activeAutocomplete && activeAutocomplete.startsWith('waypoint-')) {
-                              const waypointIndex = parseInt(activeAutocomplete.split('-')[1]);
-                              handleWaypointSelect({ description: item.description }, data.result, waypointIndex);
-                            }
-                          }
-                        });
-                      setActiveAutocomplete(null);
-                      setAutocompleteResults([]);
-                    }}
-                    activeOpacity={0.6}
-                  >
-                    <View style={[styles.resultIconContainer, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6' }]}>
-                      <Ionicons name="location-sharp" size={18} color={isDarkMode ? '#FFFFFF' : '#292929'} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.resultMainText, { color: colors.textPrimary }]} numberOfLines={1}>
-                        {item.structured_formatting?.main_text || item.description}
-                      </Text>
-                      <Text style={[styles.resultSecondaryText, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {item.structured_formatting?.secondary_text || ''}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Info de ruta + botones cuando hay ruta */}
-          {hasRoute && (
-              <View style={[
-                styles.routeSection,
-                { backgroundColor: colors.cardBackground }
-              ]}>
-              <View style={[styles.routeDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.routeButtons}>
-                <TouchableOpacity
-                  style={[styles.continueBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
-                  onPress={handleContinueToDetails}
-                  activeOpacity={0.8}
-                  disabled={loadingVehicles}
-                >
-                  {loadingVehicles ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                      <Text style={[styles.continueBtnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Verificando...</Text>
-                    </View>
-                  ) : (
-                    <Text style={[styles.continueBtnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Confirmar ruta</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-              </View>
-            )}
-          </View>
+          {/* Results list — fills remaining space above keyboard */}
+          <ScrollView
+            style={[styles.results, { borderTopColor: divider }]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
+            {autocompleteResults.map((item) => (
+              <TouchableOpacity
+                key={item.place_id}
+                style={[styles.resultRow, { borderBottomColor: divider }]}
+                onPress={() => handleResultPress(item)}
+                activeOpacity={0.6}
+              >
+                <View style={[styles.resultIcon, { backgroundColor: iconBg }]}>
+                  <Ionicons name="location-sharp" size={16} color={textPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.resultMain, { color: textPrimary }]} numberOfLines={1}>
+                    {item.structured_formatting?.main_text || item.description}
+                  </Text>
+                  <Text style={[styles.resultSub, { color: textMuted }]} numberOfLines={1}>
+                    {item.structured_formatting?.secondary_text || ''}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </KeyboardAvoidingView>
         </Animated.View>
-      </KeyboardAvoidingView>
+      )}
 
       {/* Loading overlay */}
-      {loadingRoute && (
+      {(loadingMapSelection || loadingRoute) && (
         <View style={styles.loadingOverlay}>
-          <View style={[styles.loadingBox, { backgroundColor: colors.cardBackground }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Calculando ruta...</Text>
+          <View style={[styles.loadingBox, { backgroundColor: cardBg }]}>
+            <ActivityIndicator size="large" color={textPrimary} />
+            <Text style={[styles.loadingText, { color: textMuted }]}>
+              {loadingMapSelection ? 'Obteniendo dirección...' : 'Calculando ruta...'}
+            </Text>
           </View>
         </View>
       )}
     </View>
-    </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
+  container: { flex: 1 },
+  map: { ...StyleSheet.absoluteFillObject, width, height },
+
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  circleBtn: {
+    marginLeft: 16, marginTop: 8,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-    width,
-    height,
+  myLocationBtn: {
+    position: 'absolute', right: 16, bottom: 300,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
   },
 
-  // Top bar
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+  // Map selection
+  selectionBanner: {
+    position: 'absolute', left: 16, right: 16,
+    backgroundColor: '#1F2937', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    zIndex: 50,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
-  backButton: {
-    marginLeft: 16,
-    marginTop: 8,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
+  selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
 
-  // My location
-  myLocationButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 280,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+  // Mini sheet
+  miniSheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10,
   },
-
-  // Bottom sheet
-  bottomSheetWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    width: '100%',
+  handleContainer: { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
+  handle: { width: 36, height: 4, borderRadius: 2 },
+  miniInputs: { flexDirection: 'row', paddingHorizontal: 20 },
+  miniTimeline: { width: 20, alignItems: 'center', paddingTop: 16, paddingBottom: 16, marginRight: 8 },
+  miniRow: {
+    flexDirection: 'row', alignItems: 'center',
+    minHeight: 48, borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
-  bottomSheet: {
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 50 : 36,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 10,
-    overflow: 'visible',
-    justifyContent: 'flex-start',
-  },
-  handleBarContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  handleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  sheetTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginBottom: 20,
-  },
-
-  // Inputs with timeline
-  inputsWrapper: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    overflow: 'visible',
-    zIndex: 1000,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  timelineContainer: {
-    width: 24,
-    alignItems: 'center',
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingLeft: 8,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12, // Se quitará dinámicamente cuando hay predicciones
-  },
-  originDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
-  timelineLine: {
-    flex: 1,
-    width: 2,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginVertical: 4,
-  },
-  destinationSquare: {
-    width: 10,
-    height: 10,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
-  waypointDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#666',
-    borderWidth: 2,
-    borderColor: 'transparent', // Cambiar a transparente para evitar bordes blancos
-  },
-  inputsContainer: {
-    flex: 1,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderRadius: 12,
-    overflow: 'visible',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 48,
-    paddingRight: 8,
-    overflow: 'visible',
-  },
-  inputDivider: {
-    height: 1,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginLeft: 12,
-    marginRight: 12,
-  },
-  clearBtn: {
-    padding: 6,
-  },
-  mapSelectBtn: {
-    padding: 8,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderRadius: 8,
-  },
-  addWaypointButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingVertical: 14,
-    paddingLeft: 12,
-    paddingRight: 16,
-    marginHorizontal: 0,
-    backgroundColor: 'transparent',
-  },
-  addWaypointText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'transparent', // Añadir para usar color dinámico
-  },
-
-  // Autocomplete results - altura libre, se ajusta al contenido
-  resultsContainer: {
-    flexGrow: 0,
-    flexShrink: 0,
-    marginTop: -2,
-    marginLeft: 0,
-    marginRight: 0,
-    overflow: 'hidden',
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    minHeight: 52,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(235, 235, 235, 0.3)', // Color más sutil para el borde
-  },
-  resultIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  resultMainText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
-  resultSecondaryText: {
-    fontSize: 13,
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginTop: 2,
-  },
+  miniRowText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  miniAddText: { flex: 1, fontSize: 14, marginLeft: 4 },
+  rowBtn: { padding: 4 },
+  mapIconBtn: { padding: 8, borderRadius: 8 },
 
   // Route section
   routeSection: {
-    marginTop: 16,
+    marginTop: 8, paddingTop: 14, paddingHorizontal: 20,
+    paddingBottom: 4, borderTopWidth: StyleSheet.hairlineWidth, gap: 10,
   },
-  routeDivider: {
-    height: 1,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginBottom: 16,
-  },
-  routeInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  routeInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  routeInfoDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    marginHorizontal: 12,
-  },
-  routeInfoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
-  routeButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  editRouteBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editRouteBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
-  continueBtn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-  },
+  routeMeta: { fontSize: 13, textAlign: 'center' },
+  confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  confirmText: { fontSize: 16, fontWeight: '700' },
 
-  // Custom markers
-  originMarkerContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  originMarkerDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  destinationMarkerContainer: {
-    width: 24,
-    height: 24,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  destinationMarkerSquare: {
-    width: 12,
-    height: 12,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  waypointMarkerContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#666',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  waypointMarkerText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  userLocationMarkerContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#292929',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  userLocationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-  },
+  // Timeline dots (shared)
+  tlDotOrigin: { width: 8, height: 8, borderRadius: 4 },
+  tlDotDest:   { width: 8, height: 8 },
+  tlDotWp:     { width: 6, height: 6, borderRadius: 3 },
+  tlLine:      { flex: 1, width: 2, marginVertical: 3, minHeight: 16 },
 
-  // Loading
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Search overlay
+  searchOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 200,
   },
-  loadingBox: {
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    gap: 12,
+  searchHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  loadingText: {
-    fontSize: 14,
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-    fontWeight: '500',
-  },
-
-  // Empty states
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 24,
-    textAlign: 'center',
-    color: 'transparent', // Añadir para usar color dinámico
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-    color: 'transparent', // Añadir para usar color dinámico
-  },
-  addVehicleButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    marginTop: 32,
-    backgroundColor: 'transparent', // Añadir para usar color dinámico
-  },
-  addVehicleButtonText: {
-    color: 'transparent', // Cambiar para usar color dinámico
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Map selection indicator
-  mapSelectionIndicator: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    backgroundColor: 'transparent', // Cambiar a transparente para usar color dinámico
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  searchBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  searchInputsWrapper: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  mapSelectionText: {
-    flex: 1,
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  cancelSelectionBtn: {
-    marginLeft: 12,
+    paddingHorizontal: 16,
     paddingVertical: 4,
-    paddingHorizontal: 8,
   },
-  cancelSelectionText: {
-    color: 'transparent', // Cambiar a transparente para usar color dinámico
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.8,
+  searchTimeline: { width: 20, alignItems: 'center', paddingTop: 14, paddingBottom: 14, marginRight: 8 },
+  searchInputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    minHeight: 48, overflow: 'visible',
   },
-  centerMapIndicator: {
-    position: 'absolute',
-    top: height / 2 - 31,
-    left: width / 2 - 22,
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 40,
-  },
-  centerPinSoft: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
+  // Results
+  results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
+  resultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultSub:  { fontSize: 12, marginTop: 2 },
+
+  // Markers
+  userMarker: { width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 4 },
+  userMarkerDot: { width: 6, height: 6, borderRadius: 3 },
+  originMarkerOuter: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  destMarkerOuter: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },
+  waypointMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  waypointMarkerText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+
+  // Loading
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 300 },
+  loadingBox: { borderRadius: 16, padding: 24, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  loadingText: { fontSize: 14, fontWeight: '500' },
+
+  // Empty
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
+  emptyText: { fontSize: 14, textAlign: 'center' },
 });
 
 export default CreateTripGoogleMaps;
