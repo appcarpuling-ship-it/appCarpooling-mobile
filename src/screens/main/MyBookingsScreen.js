@@ -12,17 +12,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
-import useColors from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
 import socketService from '../../services/socketService';
 
 const MyBookingsScreen = ({ navigation }) => {
-  const { colors, isDarkMode, getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const bg = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
+  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   useEffect(() => {
     loadMyBookings();
@@ -32,50 +39,34 @@ const MyBookingsScreen = ({ navigation }) => {
 
   const setupTripCancellationListener = () => {
     const handleTripCancelled = (data) => {
-      setBookings(prevBookings => {
+      setBookings((prev) => {
         let hasUpdates = false;
-        const updatedBookings = prevBookings.map(booking => {
-          const bookingTripId = booking.trip?._id || booking.trip;
-          if (bookingTripId === data.tripId) {
+        const updated = prev.map((booking) => {
+          const tripId = booking.trip?._id || booking.trip;
+          if (tripId === data.tripId) {
             hasUpdates = true;
-            return {
-              ...booking,
-              status: 'cancelled',
-              cancelReason: data.reason || 'Viaje cancelado por el conductor',
-            };
+            return { ...booking, status: 'cancelled', cancelReason: data.reason || 'Viaje cancelado por el conductor' };
           }
           return booking;
         });
-
-        if (hasUpdates) {
-          setTimeout(() => loadMyBookings(), 1000);
-        }
-        return updatedBookings;
+        if (hasUpdates) setTimeout(() => loadMyBookings(), 1000);
+        return updated;
       });
     };
 
-    if (!socketService.isConnected) {
-      socketService.connect();
-    }
-
-    if (socketService.socket) {
-      socketService.socket.on('trip:cancelled', handleTripCancelled);
-    }
+    if (!socketService.isConnected) socketService.connect();
+    if (socketService.socket) socketService.socket.on('trip:cancelled', handleTripCancelled);
   };
 
   const cleanupListeners = () => {
-    if (socketService.socket) {
-      socketService.socket.off('trip:cancelled');
-    }
+    if (socketService.socket) socketService.socket.off('trip:cancelled');
   };
 
   const loadMyBookings = async () => {
     try {
       const response = await get_withauth(ENDPOINTS.MY_BOOKINGS);
-      if (response.success) {
-        setBookings(response.data);
-      }
-    } catch (error) {
+      if (response.success) setBookings(response.data);
+    } catch {
       showAlert('Error', 'No se pudieron cargar las reservas');
     } finally {
       setLoading(false);
@@ -83,184 +74,152 @@ const MyBookingsScreen = ({ navigation }) => {
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadMyBookings();
+    loadMyBookings();
   };
 
   const handleCancelBooking = (bookingId) => {
-    showAlert(
-      'Cancelar reserva',
-      'Estas seguro?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Si, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
-              if (response.success) {
-                loadMyBookings();
-              }
-            } catch (error) {
-              showAlert('Error', error.message);
-            }
-          },
+    showAlert('Cancelar reserva', '¿Estás seguro?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí, cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
+            if (response.success) loadMyBookings();
+          } catch (error) {
+            showAlert('Error', error.message);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getStatusConfig = (item) => {
-    const reservationStatus = item.seatReservation?.reservationStatus;
-    const status = item.status;
-
-    // Para reservas de asiento: diferenciar pendiente de aprobación vs pendiente de pago
-    if (reservationStatus === 'pending_approval') {
-      return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
-    }
-    if (reservationStatus === 'pending_payment') {
-      return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente de pago' };
-    }
-    if (reservationStatus === 'reserved' || reservationStatus === 'cancelled') {
-      return reservationStatus === 'reserved'
-        ? { color: colors.success, bg: colors.success + '20', text: 'Reserva paga' }
-        : { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
-    }
-
-    switch (status) {
-      case 'pending':
-        return { color: colors.warning, bg: colors.warning + '20', text: 'Pendiente' };
-      case 'confirmed':
-        return { color: colors.success, bg: colors.success + '20', text: 'Reserva paga' };
-      case 'cancelled':
-        return { color: colors.error, bg: colors.error + '20', text: 'Cancelado' };
-      case 'completed':
-        return { color: colors.info, bg: colors.info + '20', text: 'Completado' };
-      default:
-        return { color: colors.textMuted, bg: colors.border, text: status };
+    const rs = item.seatReservation?.reservationStatus;
+    if (rs === 'pending_approval') return { color: '#F59E0B', label: 'Pendiente' };
+    if (rs === 'pending_payment')  return { color: '#F59E0B', label: 'Pendiente de pago' };
+    if (rs === 'reserved')         return { color: '#10B981', label: 'Reserva paga' };
+    if (rs === 'cancelled')        return { color: '#EF4444', label: 'Cancelado' };
+    switch (item.status) {
+      case 'pending':   return { color: '#F59E0B', label: 'Pendiente' };
+      case 'confirmed': return { color: '#10B981', label: 'Reserva paga' };
+      case 'cancelled': return { color: '#EF4444', label: 'Cancelado' };
+      case 'completed': return { color: '#3B82F6', label: 'Completado' };
+      default:          return { color: textSecondary, label: item.status };
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { weekday: 'short', day: 'numeric', month: 'short' };
-    return date.toLocaleDateString('es-ES', options);
-  };
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
     raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
-    return raw;
+    return raw || location.city || location.name || '';
   };
 
-  const renderBookingItem = ({ item }) => {
-    if (!item.trip?.driver?.firstName) return null;
+  const canCancel = (item) =>
+    item.seatReservation?.reservationStatus === 'pending_approval' ||
+    item.seatReservation?.reservationStatus === 'pending_payment' ||
+    (item.status === 'pending' && !item.seatReservation);
 
-    const statusConfig = getStatusConfig(item);
+  const canPay = (item) =>
+    item.seatReservation?.reservationStatus === 'pending_payment' ||
+    (item.status === 'pending' && !item.seatReservation);
+
+  const renderItem = ({ item }) => {
+    if (!item.trip?.driver?.firstName) return null;
+    const { color, label } = getStatusConfig(item);
     const driver = item.trip.driver;
+    const seats = item.seats || item.seatsBooked || 1;
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: colors.border }]}
+        style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
         activeOpacity={0.7}
       >
-        {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-          <Text style={[styles.statusText, { color: statusConfig.color }]}>
-            {statusConfig.text}
-          </Text>
+        {/* Status */}
+        <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
+          <View style={[styles.statusDot, { backgroundColor: color }]} />
+          <Text style={[styles.statusText, { color }]}>{label}</Text>
         </View>
 
         {/* Route */}
-        <View style={styles.routeSection}>
+        <View style={styles.route}>
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, { backgroundColor: colors.success }]} />
-            <View style={styles.addressContainer}>
-              <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
-                {formatAddress(item.trip?.origin)}
-              </Text>
-            </View>
+            <View style={[styles.routeDotOutline, { borderColor: textPrimary }]} />
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+              {formatAddress(item.trip?.origin)}
+            </Text>
           </View>
-          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
+          <View style={[styles.routeConnector, { backgroundColor: isDarkMode ? '#444' : '#D0D0D0' }]} />
           <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.error, borderColor: colors.error }]} />
-            <View style={styles.addressContainer}>
-              <Text style={[styles.addressText, { color: colors.textPrimary }]} numberOfLines={1}>
-                {formatAddress(item.trip?.destination)}
-              </Text>
-            </View>
+            <View style={[styles.routeDotFilled, { backgroundColor: textPrimary }]} />
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+              {formatAddress(item.trip?.destination)}
+            </Text>
           </View>
         </View>
 
-        {/* Trip Info */}
-        <View style={[styles.infoSection, { borderBottomColor: colors.border }]}>
-          <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{formatDate(item.trip?.departureDate)}</Text>
+        {/* Meta */}
+        <View style={[styles.meta, { borderTopColor: divider, borderBottomColor: divider }]}>
+          <View style={styles.metaItem}>
+            <Ionicons name="calendar-outline" size={14} color={textSecondary} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(item.trip?.departureDate)}</Text>
           </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{item.trip?.departureTime}</Text>
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={14} color={textSecondary} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>{item.trip?.departureTime}</Text>
           </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="person-outline" size={16} color={colors.textMuted} />
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              {item.seats || item.seatsBooked || 1} asiento{(item.seats || item.seatsBooked || 1) > 1 ? 's' : ''}
+          <View style={styles.metaItem}>
+            <Ionicons name="person-outline" size={14} color={textSecondary} />
+            <Text style={[styles.metaText, { color: textSecondary }]}>
+              {seats} asiento{seats !== 1 ? 's' : ''}
             </Text>
           </View>
         </View>
 
         {/* Driver */}
-        <View style={styles.driverSection}>
+        <View style={styles.driver}>
           {driver.avatar ? (
-            <Image
-              source={{ uri: buildImageUri(driver.avatar) }}
-              style={styles.driverAvatar}
-            />
+            <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: isDarkMode ? '#292929' : colors.surface }]}>
-              <Text style={[styles.driverInitials, { color: colors.textPrimary }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#333' : '#EFEFEF' }]}>
+              <Text style={[styles.avatarInitials, { color: textPrimary }]}>
                 {driver.firstName[0]}{driver.lastName[0]}
               </Text>
             </View>
           )}
           <View style={styles.driverInfo}>
-            <Text style={[styles.driverName, { color: colors.textPrimary }]}>
-              {driver.firstName} {driver.lastName}
-            </Text>
-            <Text style={[styles.driverLabel, { color: colors.textMuted }]}>Conductor</Text>
+            <Text style={[styles.driverName, { color: textPrimary }]}>{driver.firstName} {driver.lastName}</Text>
+            <Text style={[styles.driverLabel, { color: textSecondary }]}>Conductor</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#555' : '#CCC'} />
         </View>
 
-        {/* Action Buttons */}
-        {(item.seatReservation?.reservationStatus === 'pending_approval' ||
-          item.seatReservation?.reservationStatus === 'pending_payment' ||
-          (item.status === 'pending' && !item.seatReservation)) && (
-          <View style={styles.actionButtons}>
-            {(item.seatReservation?.reservationStatus === 'pending_payment' || (item.status === 'pending' && !item.seatReservation)) && (
+        {/* Actions */}
+        {canCancel(item) && (
+          <View style={styles.actions}>
+            {canPay(item) && (
               <TouchableOpacity
-                style={[styles.payButton, { backgroundColor: '#000000' }]}
-                onPress={() => navigation.navigate('TripDetailFromCarpoolings', {
-                  tripId: item.trip?._id,
-                  openPayment: true
-                })}
+                style={[styles.btnPrimary, { backgroundColor: textPrimary }]}
+                onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id, openPayment: true })}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>Ir a pagar</Text>
+                <Text style={[styles.btnPrimaryText, { color: isDarkMode ? '#000' : '#FFF' }]}>Ir a pagar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.cancelButton, {
-                backgroundColor: isDarkMode ? '#FFFFFF' : 'transparent',
-                borderColor: isDarkMode ? '#FFFFFF' : colors.textSecondary
-              }]}
+              style={[styles.btnSecondary, { borderColor: isDarkMode ? '#666666' : '#888888' }]}
               onPress={() => handleCancelBooking(item._id)}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.cancelButtonText, { color: isDarkMode ? '#000000' : colors.textSecondary }]}>Cancelar reserva</Text>
+              <Text style={[styles.btnSecondaryText, { color: textPrimary }]}>Cancelar reserva</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -270,37 +229,33 @@ const MyBookingsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
+      <View style={[styles.centered, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={textPrimary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       {bookings.length > 0 ? (
         <FlatList
           data={bookings}
-          renderItem={renderBookingItem}
+          renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.textPrimary}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textSecondary} />
           }
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface }]}>
-            <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
+        <View style={styles.empty}>
+          <View style={[styles.emptyIconBox, { backgroundColor: isDarkMode ? '#222' : '#EFEFEF' }]}>
+            <Ionicons name="calendar-outline" size={36} color={textSecondary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Sin reservas</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Cuando reserves un viaje aparecera aqui
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin reservas</Text>
+          <Text style={[styles.emptySubtitle, { color: textSecondary }]}>
+            Cuando reserves un viaje aparecerá aquí
           </Text>
         </View>
       )}
@@ -309,163 +264,94 @@ const MyBookingsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    padding: 16,
-  },
-  // Card
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: 16 },
+
   card: {
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
-  // Status
+
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  // Route
-  routeSection: {
-    marginBottom: 16,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routeDotDestination: {
-    borderWidth: 2,
-  },
-  routeLine: {
-    width: 2,
-    height: 20,
-    marginLeft: 4,
-    marginVertical: 4,
-  },
-  cityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  // Info
-  infoSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: 5,
+    borderRadius: 20,
+    margin: 16,
+    marginBottom: 0,
     gap: 6,
   },
-  infoText: {
-    fontSize: 14,
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 12, fontWeight: '600' },
+
+  route: { padding: 16, paddingBottom: 12 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  routeDotOutline: {
+    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
   },
-  // Driver
-  driverSection: {
+  routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
+  routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
+  routeText: { flex: 1, fontSize: 14, fontWeight: '500' },
+
+  meta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontSize: 13 },
+
+  driver: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  driverAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  driverAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  driverInitials: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  driverInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  driverName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  driverLabel: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  // Action Buttons
-  actionButtons: {
-    flexDirection: 'column',
+    padding: 16,
     gap: 12,
-    marginTop: 16,
   },
-  payButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
+  avatar: { width: 40, height: 40, borderRadius: 20 },
+  avatarPlaceholder: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  avatarInitials: { fontSize: 14, fontWeight: '600' },
+  driverInfo: { flex: 1 },
+  driverName: { fontSize: 14, fontWeight: '600' },
+  driverLabel: { fontSize: 12, marginTop: 2 },
+
+  actions: {
+    padding: 16,
+    paddingTop: 0,
+    gap: 10,
+  },
+  btnPrimary: {
+    paddingVertical: 13,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  payButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Cancel Button
-  cancelButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
+  btnPrimaryText: { fontSize: 14, fontWeight: '600' },
+  btnSecondary: {
+    paddingVertical: 13,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
   },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  btnSecondaryText: { fontSize: 14, fontWeight: '500' },
+
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyIconBox: {
+    width: 72, height: 72, borderRadius: 36,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
-  // Empty State
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyTitle: { fontSize: 17, fontWeight: '600', marginBottom: 6 },
+  emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });
 
 export default MyBookingsScreen;
