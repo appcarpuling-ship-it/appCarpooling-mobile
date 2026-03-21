@@ -118,11 +118,23 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       if (status !== 'granted') return;
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       if (!isMounted.current) return;
-      const newRegion = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
+      const { latitude, longitude } = loc.coords;
+      const newRegion = { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
       setRegion(newRegion);
-      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      setUserLocation({ latitude, longitude });
       if (mapRef.current && isMounted.current) {
         setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion(newRegion, 1000); }, 500);
+      }
+      // Auto-set origin with user's current location
+      if (!formData.origin.address && isMounted.current) {
+        const locData = await reverseGeocode(latitude, longitude);
+        if (locData && isMounted.current) {
+          setOriginMarker({ latitude, longitude });
+          setFormData(prev => ({ ...prev, origin: locData }));
+          if (originInputRef.current?.setAddressText) {
+            try { originInputRef.current.setAddressText([locData.address, locData.city, locData.province].filter(Boolean).join(', ')); } catch {}
+          }
+        }
       }
     } catch {}
   };
@@ -296,19 +308,26 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   };
 
   const handleResultPress = (item) => {
+    const field = activeAutocomplete;
+    closeSearch();
+    setLoadingMapSelection(true);
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
-    fetch(url).then(r => r.json()).then(data => {
+    Promise.all([
+      fetch(url).then(r => r.json()),
+      new Promise(resolve => setTimeout(resolve, 1500)),
+    ]).then(([data]) => {
+      if (!isMounted.current) return;
+      setLoadingMapSelection(false);
       if (!data?.result) return;
-      if (activeAutocomplete === 'origin') handleOriginSelect({ description: item.description }, data.result);
-      else if (activeAutocomplete === 'destination') handleDestinationSelect({ description: item.description }, data.result);
-      else if (activeAutocomplete?.startsWith('waypoint-')) handleWaypointSelect({ description: item.description }, data.result, parseInt(activeAutocomplete.split('-')[1]));
+      if (field === 'origin') handleOriginSelect({ description: item.description }, data.result);
+      else if (field === 'destination') handleDestinationSelect({ description: item.description }, data.result);
+      else if (field?.startsWith('waypoint-')) handleWaypointSelect({ description: item.description }, data.result, parseInt(field.split('-')[1]));
     });
-    setActiveAutocomplete(null); setAutocompleteResults([]);
   };
 
   const addWaypoint = () => {
     if (formData.waypoints.length >= 3) { showAlert('Límite alcanzado', 'Máximo 3 paradas intermedias'); return; }
-    setFormData(prev => ({ ...prev, waypoints: [...prev.waypoints, { address: '', city: '', province: '', coordinates: null }] }));
+    setFormData(prev => ({ ...prev, waypoints: [...prev.waypoints, { id: Date.now().toString(), address: '', city: '', province: '', coordinates: null }] }));
     waypointInputRefs.current.push(React.createRef());
     waypointResultsRef.current.push([]);
     waypointDebounceTimers.current.push(null);
@@ -346,7 +365,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       Animated.timing(overlayOpacity,     { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.timing(overlayTranslateY,  { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start();
-    // Populate already-selected addresses after overlay mounts
+    // Populate already-selected addresses and focus active input after overlay mounts
     setTimeout(() => {
       if (formData.origin.address && originInputRef.current?.setAddressText) {
         try { originInputRef.current.setAddressText([formData.origin.address, formData.origin.city, formData.origin.province].filter(Boolean).join(', ')); } catch {}
@@ -359,6 +378,17 @@ const CreateTripGoogleMaps = ({ navigation }) => {
           try { waypointInputRefs.current[i].current.setAddressText([wp.address, wp.city, wp.province].filter(Boolean).join(', ')); } catch {}
         }
       });
+      // Auto-focus the tapped input
+      try {
+        if (field === 'origin' && originInputRef.current?.focus) {
+          originInputRef.current.focus();
+        } else if (field === 'destination' && destinationInputRef.current?.focus) {
+          destinationInputRef.current.focus();
+        } else if (field?.startsWith('waypoint-')) {
+          const idx = parseInt(field.split('-')[1]);
+          if (waypointInputRefs.current[idx]?.current?.focus) waypointInputRefs.current[idx].current.focus();
+        }
+      } catch {}
     }, 80);
   };
 
@@ -427,29 +457,35 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         showsMyLocationButton={false}
         onPress={handleMapPress}
       >
-        {userLocation && (
-          <Marker coordinate={userLocation}>
-            <View style={[styles.userMarker, { backgroundColor: cardBg }]}>
-              <View style={[styles.userMarkerDot, { backgroundColor: textPrimary }]} />
-            </View>
-          </Marker>
-        )}
         {originMarker && (
-          <Marker coordinate={originMarker}>
-            <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
-          </Marker>
+          Platform.OS === 'android'
+            ? <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-origin.png')} />
+            : <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
+              </Marker>
         )}
         {destinationMarker && (
-          <Marker coordinate={destinationMarker}>
-            <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
-          </Marker>
+          Platform.OS === 'android'
+            ? <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-dest.png')} />
+            : <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
+              </Marker>
         )}
         {waypointMarkers.map((m, i) => (
-          <Marker key={`wp-${i}`} coordinate={m}>
+          <Marker key={`wp-${i}`} coordinate={m} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.waypointMarker}><Text style={styles.waypointMarkerText}>{i + 1}</Text></View>
           </Marker>
         ))}
-        {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={3} strokeColor="#000000" />}
+        {routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeWidth={5}
+            strokeColor="#010101"
+            strokeColors={['#010101']}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
       </MapView>
 
       {/* Back button (mini mode) */}
@@ -502,8 +538,8 @@ const CreateTripGoogleMaps = ({ navigation }) => {
             <View style={styles.miniTimeline}>
               <View style={[styles.tlDotOrigin, { backgroundColor: textPrimary }]} />
               <View style={[styles.tlLine, { backgroundColor: border }]} />
-              {formData.waypoints.map((_, i) => (
-                <React.Fragment key={`tl-${i}`}>
+              {formData.waypoints.map((wp) => (
+                <React.Fragment key={`tl-${wp.id}`}>
                   <View style={[styles.tlDotWp, { backgroundColor: textMuted }]} />
                   <View style={[styles.tlLine, { backgroundColor: border }]} />
                 </React.Fragment>
@@ -520,19 +556,14 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                     ? [formData.origin.address, formData.origin.city].filter(Boolean).join(', ')
                     : '¿Desde dónde salís?'}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
-                  {formData.origin.address
-                    ? <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
-                    : <TouchableOpacity onPress={() => { setActiveAutocomplete(null); setMapSelectionMode('origin'); }} style={[styles.rowBtn, styles.mapIconBtn, { backgroundColor: mapSelectionMode === 'origin' ? textPrimary : iconBg }]}>
-                        <Ionicons name="map-outline" size={14} color={mapSelectionMode === 'origin' ? cardBg : textMuted} />
-                      </TouchableOpacity>
-                  }
-                </View>
+                {formData.origin.address && (
+                  <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
+                )}
               </TouchableOpacity>
 
               {/* Waypoints */}
               {formData.waypoints.map((wp, i) => (
-                <TouchableOpacity key={`wp-row-${i}`} style={[styles.miniRow, { borderBottomColor: divider }]} onPress={() => openSearch(`waypoint-${i}`)} activeOpacity={0.7}>
+                <TouchableOpacity key={`wp-row-${wp.id}`} style={[styles.miniRow, { borderBottomColor: divider }]} onPress={() => openSearch(`waypoint-${i}`)} activeOpacity={0.7}>
                   <Text style={[styles.miniRowText, { color: wp.address ? textPrimary : textMuted }]} numberOfLines={1}>
                     {wp.address ? [wp.address, wp.city].filter(Boolean).join(', ') : `Parada ${i + 1}`}
                   </Text>
@@ -557,14 +588,9 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                     ? [formData.destination.address, formData.destination.city].filter(Boolean).join(', ')
                     : '¿A dónde vas?'}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
-                  {formData.destination.address
-                    ? <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
-                    : <TouchableOpacity onPress={() => { setActiveAutocomplete(null); setMapSelectionMode('destination'); }} style={[styles.rowBtn, styles.mapIconBtn, { backgroundColor: mapSelectionMode === 'destination' ? textPrimary : iconBg }]}>
-                        <Ionicons name="map-outline" size={14} color={mapSelectionMode === 'destination' ? cardBg : textMuted} />
-                      </TouchableOpacity>
-                  }
-                </View>
+                {formData.destination.address && (
+                  <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={17} color={textMuted} /></TouchableOpacity>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -572,9 +598,9 @@ const CreateTripGoogleMaps = ({ navigation }) => {
           {/* Route section */}
           {hasRoute && (
             <View style={[styles.routeSection, { borderTopColor: divider }]}>
-              {distance && duration && (
+              {/* {distance && duration && (
                 <Text style={[styles.routeMeta, { color: textMuted }]}>{distance} · {duration}</Text>
-              )}
+              )} */}
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loadingRoute && { opacity: 0.7 }]}
                 onPress={handleContinueToDetails}
@@ -611,8 +637,8 @@ const CreateTripGoogleMaps = ({ navigation }) => {
             <View style={styles.searchTimeline}>
               <View style={[styles.tlDotOrigin, { backgroundColor: textPrimary }]} />
               <View style={[styles.tlLine, { backgroundColor: border }]} />
-              {formData.waypoints.map((_, i) => (
-                <React.Fragment key={`stl-${i}`}>
+              {formData.waypoints.map((wp) => (
+                <React.Fragment key={`stl-${wp.id}`}>
                   <View style={[styles.tlDotWp, { backgroundColor: textMuted }]} />
                   <View style={[styles.tlLine, { backgroundColor: border }]} />
                 </React.Fragment>
@@ -638,17 +664,16 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   externalResults={[]} externalLoading={false}
                   styles={{ container: { flex: 1, zIndex: 3000 }, textInput: { height: 44, color: textPrimary, fontSize: 15, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 0 } }}
                 />
-                {formData.origin.address
-                  ? <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
-                  : <TouchableOpacity onPress={() => { closeSearch(); setMapSelectionMode('origin'); }} style={[styles.mapIconBtn, { backgroundColor: iconBg }]}><Ionicons name="map-outline" size={15} color={textMuted} /></TouchableOpacity>
-                }
+                {formData.origin.address && (
+                  <TouchableOpacity onPress={clearOrigin} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
+                )}
               </View>
 
               {/* Waypoint inputs */}
-              {formData.waypoints.map((_, i) => {
+              {formData.waypoints.map((wp, i) => {
                 if (!waypointInputRefs.current[i]) waypointInputRefs.current[i] = React.createRef();
                 return (
-                  <View key={`sinput-wp-${i}`} style={[styles.searchInputRow, { borderBottomColor: divider, zIndex: 2500 - i * 100, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                  <View key={`sinput-wp-${wp.id}`} style={[styles.searchInputRow, { borderBottomColor: divider, zIndex: 2500 - i * 100, borderBottomWidth: StyleSheet.hairlineWidth }]}>
                     <SafePlacesAutocomplete
                       inputRef={waypointInputRefs.current[i]}
                       placeholder={`Parada ${i + 1}`}
@@ -696,10 +721,9 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   externalResults={[]} externalLoading={false}
                   styles={{ container: { flex: 1, zIndex: 2000 }, textInput: { height: 44, color: textPrimary, fontSize: 15, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 0 } }}
                 />
-                {formData.destination.address
-                  ? <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
-                  : <TouchableOpacity onPress={() => { closeSearch(); setMapSelectionMode('destination'); }} style={[styles.mapIconBtn, { backgroundColor: iconBg }]}><Ionicons name="map-outline" size={15} color={textMuted} /></TouchableOpacity>
-                }
+                {formData.destination.address && (
+                  <TouchableOpacity onPress={clearDestination} style={styles.rowBtn}><Ionicons name="close-circle" size={18} color={textMuted} /></TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
@@ -711,6 +735,18 @@ const CreateTripGoogleMaps = ({ navigation }) => {
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
+            {/* Marcar en mapa — siempre visible */}
+            <TouchableOpacity
+              style={[styles.resultRow, { borderBottomColor: divider }]}
+              onPress={() => { const mode = activeAutocomplete; closeSearch(); setMapSelectionMode(mode); }}
+              activeOpacity={0.6}
+            >
+              <View style={[styles.resultIcon, { backgroundColor: iconBg }]}>
+                <Ionicons name="map-outline" size={16} color={textPrimary} />
+              </View>
+              <Text style={[styles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
+            </TouchableOpacity>
+
             {autocompleteResults.map((item) => (
               <TouchableOpacity
                 key={item.place_id}
@@ -803,6 +839,20 @@ const styles = StyleSheet.create({
   rowBtn: { padding: 4 },
   mapIconBtn: { padding: 8, borderRadius: 8 },
 
+  // Map pills
+  mapPillsScroll: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  mapPillsRow: {
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6,
+  },
+  mapPill: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 9, borderRadius: 10,
+  },
+  mapPillText: { fontSize: 12, fontWeight: '600' },
+
   // Route section
   routeSection: {
     marginTop: 8, paddingTop: 14, paddingHorizontal: 20,
@@ -848,8 +898,6 @@ const styles = StyleSheet.create({
   resultSub:  { fontSize: 12, marginTop: 2 },
 
   // Markers
-  userMarker: { width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 4 },
-  userMarkerDot: { width: 6, height: 6, borderRadius: 3 },
   originMarkerOuter: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   destMarkerOuter: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },

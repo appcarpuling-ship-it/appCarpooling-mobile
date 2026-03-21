@@ -19,6 +19,7 @@ const SafePlacesAutocomplete = ({
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef(null);
+  const textInputRef = useRef(null);
   
   // Usar resultados externos si están disponibles (array), sino usar los internos
   const displayResults = Array.isArray(externalResults) ? externalResults : results;
@@ -134,10 +135,13 @@ const SafePlacesAutocomplete = ({
     setShowResults(false);
   };
 
-  // Exponer método para el ref
+  // Exponer métodos para el ref
   useEffect(() => {
     if (inputRef) {
-      inputRef.current = { setAddressText };
+      inputRef.current = {
+        setAddressText,
+        focus: () => textInputRef.current?.focus(),
+      };
     }
   }, [inputRef]);
 
@@ -167,6 +171,7 @@ const SafePlacesAutocomplete = ({
   return (
     <View style={[styles.container, customStyles.container]}>
       <TextInput
+        ref={textInputRef}
         value={query}
         onChangeText={handleChangeText}
         onBlur={handleBlur}
@@ -178,10 +183,7 @@ const SafePlacesAutocomplete = ({
         autoCorrect={false}
         returnKeyType="search"
         blurOnSubmit={false}
-        onSubmitEditing={() => {
-          // Evitar que el teclado se cierre al presionar intro
-          // Las predicciones permanecen visibles
-        }}
+        onSubmitEditing={() => {}}
       />
       
       {displayLoading && (
