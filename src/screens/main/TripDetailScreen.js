@@ -602,7 +602,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Estimated cost card */}
-        {Number(trip.estimatedCost) > 0 && trip.status === 'active' && (
+        {/* {Number(trip.estimatedCost) > 0 && trip.status === 'active' && (
           <View style={[styles.priceCard, { backgroundColor: cardBg }]}>
             <View style={styles.priceCardLeft}>
               <Text style={[styles.priceCardLabel, { color: textMuted }]}>Costo estimado</Text>
@@ -614,7 +614,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Ionicons name="cash-outline" size={22} color={textSecondary} />
             </View>
           </View>
-        )}
+        )} */}
 
         {/* Cost banner */}
         {(trip.status === 'started' || trip.status === 'completed') &&
