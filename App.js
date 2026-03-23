@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
@@ -9,8 +9,9 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { soraFonts } from './src/theme/typography';
-import { ActivityIndicator, View, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import NativeCheckout from './src/components/NativeCheckout';
+import AnimatedSplash from './src/components/AnimatedSplash';
 
 // Componente interno para manejar el StatusBar que responde al tema
 const AppWithTheme = () => {
@@ -35,6 +36,7 @@ const AppWithTheme = () => {
 
 export default function App() {
   const [fontsLoaded] = useFonts(soraFonts);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Configurar listener para deep links de MercadoPago
   useEffect(() => {
@@ -59,21 +61,19 @@ export default function App() {
     };
   }, []);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#6366F1" />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <AlertProvider>
           <AuthProvider>
             <NotificationProvider>
-              <AppWithTheme />
+              {fontsLoaded && <AppWithTheme />}
+              {showSplash && (
+                <AnimatedSplash
+                  fontsLoaded={fontsLoaded}
+                  onComplete={() => setShowSplash(false)}
+                />
+              )}
             </NotificationProvider>
           </AuthProvider>
         </AlertProvider>

@@ -11,14 +11,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
-import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { colors, getCurrentThemeMode } = useColors();
-  const { showAlert } = useAlert();
+
   useTheme();
   const {
     notifications = [],
@@ -138,21 +137,9 @@ const NotificationsScreen = ({ navigation }) => {
   };
 
   const handleMarkAllAsRead = () => {
-    showAlert(
-      'Marcar todas como leidas',
-      'Marcar todas las notificaciones como leidas?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: () => {
-            const allIds = notifications.map(n => n._id);
-            setOptimisticRead(new Set(allIds));
-            markAllAsRead();
-          },
-        },
-      ]
-    );
+    const allIds = notifications.map(n => n._id);
+    setOptimisticRead(new Set(allIds));
+    markAllAsRead();
   };
 
   const getNotificationIcon = (type) => {
@@ -258,7 +245,7 @@ const NotificationsScreen = ({ navigation }) => {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={22} color={textPrimary} />
+          <Ionicons name="close" size={22} color={textPrimary} />
         </TouchableOpacity>
 
         <Text style={[styles.headerTitle, { color: textPrimary }]}>Notificaciones</Text>
