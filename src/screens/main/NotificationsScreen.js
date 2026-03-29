@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
+import { navigateFromNotification } from '../../utils/notificationNavigation';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -53,87 +54,7 @@ const NotificationsScreen = ({ navigation }) => {
       markAsRead(notification._id);
     }
 
-    const getTripId = () => {
-      if (notification.relatedTrip) return notification.relatedTrip._id || notification.relatedTrip;
-      if (notification.data?.tripId) return notification.data.tripId;
-      return null;
-    };
-    const getBookingId = () => {
-      if (notification.relatedBooking) return notification.relatedBooking._id || notification.relatedBooking;
-      if (notification.data?.bookingId) return notification.data.bookingId;
-      return null;
-    };
-    const getConversationId = () => {
-      if (notification.data?.conversationId) return notification.data.conversationId;
-      if (notification.actionUrl?.startsWith('/chat/')) {
-        const match = notification.actionUrl.match(/\/chat\/([^/]+)/);
-        return match ? match[1] : null;
-      }
-      return null;
-    };
-
-    const tripId = getTripId();
-    const bookingId = getBookingId();
-    const conversationId = getConversationId();
-
-    if (notification.actionUrl) {
-      const path = notification.actionUrl.replace(/^\//, '');
-      const parts = path.split('/');
-      if (path.startsWith('trips/')) {
-        const id = parts[1];
-        if (parts[2] === 'requests' && id) {
-          navigation.navigate('CarpoolingsTab', { screen: 'TripRequests', params: { tripId: id } });
-        } else if (parts[2] === 'review' && id) {
-          navigation.navigate('CarpoolingsTab', { screen: 'CreateReviewFromTrip', params: { tripId: id } });
-        } else if (id) {
-          navigation.navigate('HomeTab', { screen: 'TripDetail', params: { tripId: id } });
-        }
-      } else if (path.startsWith('bookings/')) {
-        navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' });
-      } else if (path.startsWith('chat/')) {
-        const id = parts[1];
-        if (id) {
-          navigation.navigate('ChatsTab', {
-            screen: 'ChatDetail',
-            params: { conversation: { _id: id }, otherUser: notification.relatedUser || {} },
-          });
-        }
-      } else if (path === 'seat-reservations' || path.startsWith('seat-reservations/')) {
-        navigation.navigate('CarpoolingsTab', { screen: 'MySeatReservations' });
-      } else if (path === 'profile') {
-        navigation.navigate('ProfileTab', { screen: 'Profile' });
-      }
-      return;
-    }
-
-    if (tripId) {
-      const type = notification.type || '';
-      if (type.includes('booking_created') || type.includes('seat_reservation_request')) {
-        navigation.navigate('CarpoolingsTab', { screen: 'TripRequests', params: { tripId } });
-      } else if (type.includes('review')) {
-        navigation.navigate('CarpoolingsTab', { screen: 'CreateReviewFromTrip', params: { tripId } });
-      } else {
-        navigation.navigate('HomeTab', { screen: 'TripDetail', params: { tripId } });
-      }
-      return;
-    }
-    if (conversationId) {
-      navigation.navigate('ChatsTab', {
-        screen: 'ChatDetail',
-        params: {
-          conversation: { _id: conversationId },
-          otherUser: notification.relatedUser || notification.data?.sender || {},
-        },
-      });
-      return;
-    }
-    if (bookingId) {
-      navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' });
-      return;
-    }
-    if (notification.type === 'review_received') {
-      navigation.navigate('ProfileTab', { screen: 'Profile' });
-    }
+    navigateFromNotification(navigation, notification, { useMainStack: false });
   };
 
   const handleMarkAllAsRead = () => {

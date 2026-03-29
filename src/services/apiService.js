@@ -1,7 +1,25 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api';
 import { notifySessionInvalid } from './authSession';
+
+const NATIVE_APP_VERSION =
+  Constants.expoConfig?.version ??
+  Constants.manifest?.version ??
+  '1.0.0';
+
+const getNativeClientHeaders = (includeJsonContentType = false) => {
+  const h = {
+    'X-Client-OS': Platform.OS === 'ios' ? 'ios' : 'android',
+    'X-App-Version': NATIVE_APP_VERSION,
+  };
+  if (includeJsonContentType) {
+    h['Content-Type'] = 'application/json';
+  }
+  return h;
+};
 
 // Crear instancia de axios
 const api = axios.create({
@@ -9,8 +27,8 @@ const api = axios.create({
   timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
-    'X-Platform': 'mobile', // Identificar que las peticiones vienen de la app m?vil
-    'X-Client-Platform': 'mobile', // Header alternativo
+    'X-Platform': 'mobile',
+    'X-Client-Platform': 'mobile',
   },
 });
 
@@ -21,6 +39,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['X-Client-OS'] = Platform.OS === 'ios' ? 'ios' : 'android';
+    config.headers['X-App-Version'] = NATIVE_APP_VERSION;
     return config;
   },
   (error) => {
@@ -116,7 +136,10 @@ export const delete_withauth = async (endpoint) => {
  */
 export const get_public = async (endpoint, params = {}) => {
   try {
-    const response = await axios.get(`${API_CONFIG.BASE_URL}${endpoint}`, { params });
+    const response = await axios.get(`${API_CONFIG.BASE_URL}${endpoint}`, {
+      params,
+      headers: getNativeClientHeaders(false),
+    });
     return response.data;
   } catch (error) {
     throw handleError(error);
@@ -131,7 +154,15 @@ export const get_public = async (endpoint, params = {}) => {
  */
 export const post_public = async (endpoint, formData = {}) => {
   try {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}${endpoint}`, formData);
+    const isFormData =
+      typeof FormData !== 'undefined' && formData instanceof FormData;
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}${endpoint}`,
+      formData,
+      {
+        headers: getNativeClientHeaders(!isFormData),
+      }
+    );
     return response.data;
   } catch (error) {
     throw handleError(error);

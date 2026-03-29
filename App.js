@@ -6,6 +6,8 @@ import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AlertProvider } from './src/context/AlertContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import { navigationRef } from './src/navigation/rootNavigation';
+import PushNotificationRouter from './src/components/PushNotificationRouter';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { soraFonts } from './src/theme/typography';
@@ -27,9 +29,10 @@ const AppWithTheme = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <AppNavigator />
+      <PushNotificationRouter />
     </NavigationContainer>
   );
 };
