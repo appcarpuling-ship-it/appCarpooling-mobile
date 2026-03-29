@@ -7,9 +7,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
-  Easing,
   Dimensions,
   Image,
+  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,12 +19,11 @@ import { ENDPOINTS } from '../../config/api';
 import useColors from '../../hooks/useColors';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationModal from '../../components/ConfirmationModal';
-import { handleBannerPress } from '../../utils/bannerNavigation';
+import BannerDetailModal from '../../components/BannerDetailModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
-const BANNER_GAP = 12;
 
 const BookingScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
@@ -87,6 +86,7 @@ const BookingScreen = ({ route, navigation }) => {
   const [calculatingPrice, setCalculatingPrice] = useState(true);
   const [error, setError] = useState('');
   const [banners, setBanners] = useState([]);
+  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   
   const { trip, existingReservation } = route.params;
   
@@ -105,10 +105,6 @@ const BookingScreen = ({ route, navigation }) => {
   // Entry animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
-  
-  // Banner scroll animation
-  const bannerScrollX = useRef(new Animated.Value(0)).current;
-  const bannerAnimRef = useRef(null);
   
   useEffect(() => {
     if (!existingReservation) {
@@ -131,25 +127,6 @@ const BookingScreen = ({ route, navigation }) => {
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, []);
-  // (hooks, lógica, useEffect, etc.)
-  // El return va al final del componente, después de toda la lógica.
-
-  useEffect(() => {
-    if (banners.length > 1) {
-      const totalWidth = banners.length * (BANNER_WIDTH + BANNER_GAP);
-      bannerScrollX.setValue(0);
-      bannerAnimRef.current = Animated.loop(
-        Animated.timing(bannerScrollX, {
-          toValue: -totalWidth,
-          duration: banners.length * 5000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      );
-      bannerAnimRef.current.start();
-    }
-    return () => bannerAnimRef.current?.stop();
-  }, [banners]);
 
   useEffect(() => {
     if (seats > 0 && !existingReservation) {
@@ -296,6 +273,37 @@ const BookingScreen = ({ route, navigation }) => {
               </View>
             </View>
           </View>
+
+          {/* Banners promocionales */}
+          {banners.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 10 }]}>Destacados</Text>
+              <FlatList
+                data={banners}
+                keyExtractor={(item) => item._id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 8 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.bannerThumb, { borderColor: divider }]}
+                    activeOpacity={0.92}
+                    onPress={() => setBannerModal({ visible: true, banner: item })}
+                  >
+                    {item.imageUrl ? (
+                      <Image source={{ uri: item.imageUrl }} style={styles.bannerThumbImage} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.bannerThumbFallback, { backgroundColor: cardBg }]}>
+                        <Text style={[styles.bannerTitle, { color: textPrimary }]} numberOfLines={2}>
+                          {item.title || 'Banner'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
 
           {/* Seat Selector */}
           {calculatingPrice ? (
@@ -536,6 +544,14 @@ const BookingScreen = ({ route, navigation }) => {
         </ScrollView>
       </Animated.View>
 
+      <BannerDetailModal
+        visible={bannerModal.visible}
+        banner={bannerModal.banner}
+        onClose={() => setBannerModal({ visible: false, banner: null })}
+        navigation={navigation}
+        colors={colors}
+      />
+
       <ConfirmationModal
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
@@ -594,6 +610,24 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  bannerThumb: {
+    width: BANNER_WIDTH * 0.85,
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  bannerThumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerThumbFallback: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+  },
+
   sectionLabel: {
     fontSize: 12,
     fontWeight: '500',

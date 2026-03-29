@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSocketURL, SOCKET_CONFIG } from '../config/socket.config';
+import { notifySessionInvalid, isSocketAuthFailure } from './authSession';
 
 class SocketService {
   constructor() {
@@ -44,9 +45,13 @@ class SocketService {
         this.isConnected = false;
       });
 
-      this.socket.on('connect_error', (error) => {
+      this.socket.on('connect_error', async (error) => {
         console.error('Error de conexión WebSocket:', error.message, '(URL:', url, ')');
         this.isConnected = false;
+        if (isSocketAuthFailure(error?.message)) {
+          this.disconnect();
+          await notifySessionInvalid();
+        }
       });
 
       this.socket.on('error', (error) => {

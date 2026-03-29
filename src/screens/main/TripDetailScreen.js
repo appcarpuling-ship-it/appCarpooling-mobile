@@ -18,6 +18,20 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 150;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../services/apiService';
+import socketService from '../../services/socketService';
+import { ENDPOINTS } from '../../config/api';
+import { getPendingPaymentReservations, confirmFromCallback } from '../../services/seatReservationService';
+import CheckoutWebView from '../../components/CheckoutWebView';
+import RebillPaymentOptions from '../../components/RebillPaymentOptions';
+import Toast from '../../components/Toast';
+import { useColors } from '../../hooks/useColors';
+import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
+import BannerDetailModal from '../../components/BannerDetailModal';
+
 const BANNER_SCROLL_SPEED = 30;
 
 const BannerCarousel = ({ banners, onPress }) => {
@@ -83,18 +97,6 @@ const bannerStyles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', color: '#FFF', marginBottom: 6 },
   desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
 });
-import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../services/apiService';
-import socketService from '../../services/socketService';
-import { ENDPOINTS } from '../../config/api';
-import { getPendingPaymentReservations, confirmFromCallback } from '../../services/seatReservationService';
-import CheckoutWebView from '../../components/CheckoutWebView';
-import RebillPaymentOptions from '../../components/RebillPaymentOptions';
-import Toast from '../../components/Toast';
-import { useColors } from '../../hooks/useColors';
-import { useAuth } from '../../context/AuthContext';
-import { useAlert } from '../../context/AlertContext';
 
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
@@ -129,6 +131,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [startingTrip, setStartingTrip] = useState(false);
   const [passengers, setPassengers] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
   useEffect(() => {
     loadTripDetail();
@@ -806,7 +809,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Text style={[styles.sectionLabel, { color: textMuted, paddingHorizontal: 20, marginBottom: 14 }]}>
               Destacados
             </Text>
-            <BannerCarousel banners={banners} onPress={() => {}} />
+            <BannerCarousel banners={banners} onPress={(item) => setBannerModal({ visible: true, banner: item })} />
           </View>
         )}
 
@@ -908,6 +911,14 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      <BannerDetailModal
+        visible={bannerModal.visible}
+        banner={bannerModal.banner}
+        onClose={() => setBannerModal({ visible: false, banner: null })}
+        navigation={navigation}
+        colors={colors}
+      />
 
       {/* Payment Options Modal */}
       <Modal

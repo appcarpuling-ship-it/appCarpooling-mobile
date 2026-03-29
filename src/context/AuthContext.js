@@ -1,8 +1,9 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { post_public, get_withauth, put_withauth, post_withauth_formdata, put_withauth_formdata } from '../services/apiService';
 import { ENDPOINTS, API_CONFIG } from '../config/api';
 import socketService from '../services/socketService';
+import { registerSessionInvalidHandler } from '../services/authSession';
 import {
   registerForPushNotificationsAsync,
   savePushTokenToServer,
@@ -228,10 +229,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       console.log('🔐 AuthContext.logout - INICIANDO');
-      console.log('🔐 AuthContext.logout - Estado antes: isAuthenticated:', isAuthenticated, 'user:', user);
 
       // Eliminar push token del servidor
       try {
@@ -253,13 +253,18 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
 
-      console.log('✅ AuthContext.logout - COMPLETADO - isAuthenticated debería ser false ahora');
-      console.log('✅ AuthContext.logout - El AppNavigator debería detectar el cambio y re-renderizar');
+      console.log('✅ AuthContext.logout - COMPLETADO');
     } catch (error) {
       console.error('❌ AuthContext.logout - Error al cerrar sesión:', error);
       throw error;
     }
-  };
+  }, []);
+
+  // 401 / token inválido / socket auth: mismo flujo que logout (estado + push + socket)
+  useEffect(() => {
+    registerSessionInvalidHandler(logout);
+    return () => registerSessionInvalidHandler(null);
+  }, [logout]);
 
   const updateProfile = async (profileData) => {
     try {

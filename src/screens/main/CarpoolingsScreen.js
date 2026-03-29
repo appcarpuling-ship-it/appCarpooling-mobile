@@ -13,10 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { get_public } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
+import BannerDetailModal from '../../components/BannerDetailModal';
+import useColors from '../../hooks/useColors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 180;
+const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 
 const menuItems = [
   {
@@ -51,7 +54,9 @@ const menuItems = [
 
 const CarpoolingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
+  const { colors } = useColors();
   const [banners, setBanners] = useState([]);
+  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
@@ -99,13 +104,17 @@ const CarpoolingsScreen = ({ navigation }) => {
   };
 
   const renderBannerItem = ({ item }) => (
-    <View style={[styles.bannerSlide, { backgroundColor: cardBg }]}>
+    <TouchableOpacity
+      style={[styles.bannerSlide, { backgroundColor: cardBg }]}
+      activeOpacity={0.92}
+      onPress={() => setBannerModal({ visible: true, banner: item })}
+    >
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
       ) : (
         <View style={styles.bannerContent} />
       )}
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -184,6 +193,14 @@ const CarpoolingsScreen = ({ navigation }) => {
         )}
 
       </ScrollView>
+
+      <BannerDetailModal
+        visible={bannerModal.visible}
+        banner={bannerModal.banner}
+        onClose={() => setBannerModal({ visible: false, banner: null })}
+        navigation={navigation}
+        colors={colors}
+      />
     </View>
   );
 };

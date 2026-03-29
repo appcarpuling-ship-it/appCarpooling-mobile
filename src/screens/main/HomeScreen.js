@@ -27,12 +27,14 @@ import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useColors } from '../../hooks/useColors';
 import NotificationsScreen from './NotificationsScreen';
+import BannerDetailModal from '../../components/BannerDetailModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
-const BannerCarousel = ({ banners, dotColor, dotInactiveColor }) => {
+
+const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef(null);
   const autoScrollTimer = useRef(null);
@@ -64,13 +66,17 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor }) => {
         data={banners}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <View style={styles.bannerSlide}>
+          <TouchableOpacity
+            style={styles.bannerSlide}
+            activeOpacity={0.92}
+            onPress={() => onBannerPress?.(item)}
+          >
             {item.imageUrl ? (
               <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
             ) : (
               <View style={styles.bannerContent} />
             )}
-          </View>
+          </TouchableOpacity>
         )}
         horizontal
         pagingEnabled={false}
@@ -128,6 +134,7 @@ const HomeScreen = ({ navigation }) => {
   const [showOriginPicker, setShowOriginPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
   useEffect(() => {
     loadRecentTrips();
@@ -535,7 +542,12 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner Enterprise */}
         {bannersEnterprise.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersEnterprise} dotColor={accent} dotInactiveColor={borderColor} />
+            <BannerCarousel
+              banners={bannersEnterprise}
+              dotColor={accent}
+              dotInactiveColor={borderColor}
+              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+            />
           </View>
         )}
 
@@ -566,14 +578,24 @@ const HomeScreen = ({ navigation }) => {
         {/* Banner VIP */}
         {bannersVip.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersVip} dotColor={accent} dotInactiveColor={borderColor} />
+            <BannerCarousel
+              banners={bannersVip}
+              dotColor={accent}
+              dotInactiveColor={borderColor}
+              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+            />
           </View>
         )}
 
         {/* Banner Premium */}
         {bannersPremium.length > 0 && (
           <View style={styles.bannerSection}>
-            <BannerCarousel banners={bannersPremium} dotColor={accent} dotInactiveColor={borderColor} />
+            <BannerCarousel
+              banners={bannersPremium}
+              dotColor={accent}
+              dotInactiveColor={borderColor}
+              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+            />
           </View>
         )}
       </ScrollView>
@@ -633,6 +655,14 @@ const HomeScreen = ({ navigation }) => {
           )}
         </>
       )}
+
+      <BannerDetailModal
+        visible={bannerModal.visible}
+        banner={bannerModal.banner}
+        onClose={() => setBannerModal({ visible: false, banner: null })}
+        navigation={navigation}
+        colors={colors}
+      />
 
       {/* Notifications Modal */}
       <Modal
