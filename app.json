@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Carpooling",
-    "slug": "carpooling-mobile",
+    "slug": "carpuling",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -14,6 +14,14 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/4f43e00d-f804-4c94-aa0a-beae6f6be58a",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "notification": {
       "icon": "./assets/logo/192x192.jpg",
       "color": "#000000",
@@ -74,6 +82,7 @@
       }
     },
     "plugins": [
+      "expo-updates",
       [
         "expo-location",
         {
@@ -85,7 +94,7 @@
     "scheme": "carpooling",
     "extra": {
       "eas": {
-        "projectId": "ddcb99f7-c978-4627-bc9c-505a90fe674f"
+        "projectId": "4f43e00d-f804-4c94-aa0a-beae6f6be58a"
       }
     },
     "owner": "carpuling"
