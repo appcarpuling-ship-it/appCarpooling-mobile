@@ -59,8 +59,8 @@ const MainTabNavigator = () => {
               <View style={styles.iconContainer}>
                 <Ionicons name={iconName} size={size} color={color} />
                 <View style={[
-                  styles.badge, 
-                  { 
+                  styles.badge,
+                  {
                     backgroundColor: isDarkMode ? '#F87171' : '#EF4444',
                     borderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
                     shadowColor: '#000000',
