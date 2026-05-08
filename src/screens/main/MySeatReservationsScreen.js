@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation, confirmFromCallback } from '../../services/seatReservationService';
@@ -21,26 +20,25 @@ import Toast from '../../components/Toast';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
-  const { colors } = useColors();
-  const { isDarkMode } = useTheme();
+  const { colors, isDarkMode } = useColors();
+  const { getCurrentThemeMode } = useTheme();
 
-  const bg          = isDarkMode ? '#111111' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1A1A1A' : '#FFFFFF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
-  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+  const dark = getCurrentThemeMode() === 'dark';
+  const bg = colors.background;
+  const cardBg = colors.cardBackground;
+  const divider = dark ? '#2A2A2A' : '#ECECEC';
+  const textPrimary = colors.textPrimary;
+  const textMuted = colors.textMuted;
 
-  const [reservations, setReservations]   = useState([]);
-  const [page, setPage]                   = useState(1);
-  const [hasMore, setHasMore]             = useState(true);
+  const [reservations, setReservations] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [pendingPayments, setPendingPayments] = useState([]);
-  const [chatLoading, setChatLoading]     = useState({});
-  const [loading, setLoading]             = useState(true);
-  const [loadingMore, setLoadingMore]     = useState(false);
-  const [refreshing, setRefreshing]       = useState(false);
-  const [toast, setToast]                 = useState({ visible: false, message: '', type: 'success' });
+  const [chatLoading, setChatLoading] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
   const fetchingRef = useRef(false);
 
@@ -89,12 +87,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   const handleOpenCheckout = (paymentUrl) => {
-    if (!paymentUrl) { showAlert('Error', 'No hay URL de pago disponible'); return; }
-    setCheckoutModal({ visible: true, paymentUrl });
+    if (!paymentUrl) { showAlert('Error', 'No hay link de pago'); return; }
+    setCheckoutModal({ visible: tru e, paymentUrl });
   };
 
   const handlePaymentSuccess = async (paymentData) => {
-    showToast('Pago completado exitosamente', 'success');
+    showToast('Pago completado', 'success');
     try {
       if (paymentData?.externalReference && paymentData?.status === 'approved') {
         await confirmFromCallback(paymentData.externalReference, 'approved');
@@ -111,60 +109,61 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   const handleCancelReservation = (reservation) => {
     const seatReservationId = reservation.seatReservation?._id || reservation.seatReservation?.id;
-    if (!seatReservationId) { showAlert('Error', 'No se puede cancelar esta reserva'); return; }
-    showAlert(
-      'Cancelar Reserva',
-      '¿Estás seguro que deseas cancelar esta reserva?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-              showToast('Reserva cancelada', 'success');
-              setTimeout(() => { loadReservations(1, true); loadPendingPayments(); }, 500);
-            } catch (error) {
-              showToast(error?.response?.data?.message || error.message || 'Error al cancelar', 'error');
-            }
-          },
+    if (!seatReservationId) { showAlert('Error', 'No se puede cancelar'); return; }
+    showAlert('Cancelar', '¿Cancelar esta reserva?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
+            showToast('Cancelada', 'success');
+            setTimeout(() => { loadReservations(1, true); loadPendingPayments(); }, 400);
+          } catch (error) {
+            showToast(error?.response?.data?.message || error.message || 'Error', 'error');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case 'pending_approval': return { color: '#F59E0B', text: 'Pendiente de aprobación' };
-      case 'pending_payment':  return { color: '#F97316', text: 'Pendiente de pago' };
-      case 'reserved':         return { color: '#10B981', text: 'Confirmada' };
-      case 'rejected':         return { color: '#EF4444', text: 'Rechazada' };
-      case 'cancelled':        return { color: '#6B7280', text: 'Cancelada' };
-      default:                 return { color: '#6B7280', text: status || 'Desconocido' };
-    }
-  };
+  const showToast = (message, type = 'success') => setToast({ visible: true, message, type });
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
   const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    new Date(dateString).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
   const getTimeRemaining = (expiresAt) => {
     if (!expiresAt) return null;
     const diff = new Date(expiresAt) - new Date();
-    if (diff <= 0) return 'Expirado';
-    const hours   = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    if (diff <= 0) return 'Venció';
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  const showToast = (message, type = 'success') => setToast({ visible: true, message, type });
+  const getPill = (item) => {
+    const ts = item.trip?.status;
+    const rs = item.seatReservation?.reservationStatus;
+    if (ts === 'cancelled') return { c: textMuted, t: 'Viaje cancelado' };
+    if (ts === 'completed') return { c: textMuted, t: 'Finalizado' };
+    if (ts === 'started') return { c: '#CA8A04', t: 'En curso' };
+    switch (rs) {
+      case 'pending_approval': return { c: '#CA8A04', t: 'Pendiente' };
+      case 'pending_payment': return { c: '#EA580C', t: 'Pagar' };
+      case 'reserved': return { c: '#16A34A', t: 'Confirmada' };
+      case 'rejected': return { c: '#DC2626', t: 'Rechazada' };
+      case 'cancelled': return { c: textMuted, t: 'Cancelada' };
+      default: return { c: textMuted, t: '—' };
+    }
+  };
 
   const handleOpenChat = async (item) => {
     const driverId = item.trip?.driver?._id || item.trip?.driver?.id;
-    if (!driverId) { showAlert('Error', 'No se encontraron datos del conductor'); return; }
+    if (!driverId) { showAlert('Error', 'Sin datos del conductor'); return; }
     const reservationId = item.seatReservation?._id;
     setChatLoading(prev => ({ ...prev, [reservationId]: true }));
     try {
@@ -176,10 +175,10 @@ const MySeatReservationsScreen = ({ navigation }) => {
           params: {
             conversation: response.data.conversation,
             otherUser: {
-              _id:       driverId,
+              _id: driverId,
               firstName: driver.firstName || driver.name?.split(' ')[0] || 'Conductor',
-              lastName:  driver.lastName  || driver.name?.split(' ').slice(1).join(' ') || '',
-              avatar:    driver.avatar || null,
+              lastName: driver.lastName || driver.name?.split(' ').slice(1).join(' ') || '',
+              avatar: driver.avatar || null,
             },
           },
         });
@@ -193,202 +192,113 @@ const MySeatReservationsScreen = ({ navigation }) => {
     }
   };
 
-  const renderReservationItem = ({ item }) => {
-    const status       = item.seatReservation?.reservationStatus;
-    const statusConfig = getStatusConfig(status);
-    const timeLeft     = item.seatReservation?.expiresAt ? getTimeRemaining(item.seatReservation.expiresAt) : null;
-    const tripStatus   = item.trip?.status;
-    const tripStarted  = tripStatus === 'started';
-    const tripCompleted = tripStatus === 'completed';
-    const tripCancelledByDriver = tripStatus === 'cancelled';
+  const sortedData = [...reservations].sort((a, b) => {
+    const phase = (item) => {
+      const s = item.trip?.status;
+      if (s === 'started') return 0;
+      if (s === 'completed') return 2;
+      if (s === 'cancelled') return 3;
+      return 1;
+    };
+    const phA = phase(a);
+    const phB = phase(b);
+    if (phA !== phB) return phA - phB;
+    const ORDER = { pending_payment: 0, pending_approval: 1, reserved: 2, rejected: 3, cancelled: 4 };
+    const pa = ORDER[a.seatReservation?.reservationStatus] ?? 5;
+    const pb = ORDER[b.seatReservation?.reservationStatus] ?? 5;
+    if (pa !== pb) return pa - pb;
+    const da = new Date(a.trip?.date || a.trip?.departureDate || 0).getTime();
+    const db = new Date(b.trip?.date || b.trip?.departureDate || 0).getTime();
+    if (phA === 2) return db - da;
+    return da - db;
+  });
+
+  const renderItem = ({ item }) => {
+    const pill = getPill(item);
+    const rs = item.seatReservation?.reservationStatus;
+    const timeLeft = item.seatReservation?.expiresAt ? getTimeRemaining(item.seatReservation.expiresAt) : null;
 
     return (
-      <View style={[
-        styles.card,
-        { backgroundColor: cardBg },
-        tripCompleted && styles.cardCompleted,
-        tripStarted && styles.cardInProgress,
-      ]}>
-
-        {tripStarted ? (
-          <View style={[styles.tripStateBanner, { backgroundColor: isDarkMode ? '#1C1200' : '#FFFBEB', borderBottomColor: isDarkMode ? '#2A2000' : '#FDE68A' }]}>
-            <Ionicons name="car" size={13} color="#F59E0B" />
-            <Text style={[styles.tripStateBannerText, { color: '#D97706' }]}>Viaje en curso</Text>
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
+        activeOpacity={0.85}
+        onPress={() => item.trip?.id && navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip.id })}
+      >
+        <View style={styles.rowTop}>
+          <View style={styles.routeBlock}>
+            <Text style={[styles.addr, { color: textPrimary }]} numberOfLines={2}>
+              {item.trip?.from || 'Origen'}
+            </Text>
+            <Text style={[styles.addr, { color: textPrimary, marginTop: 6 }]} numberOfLines={2}>
+              {item.trip?.to || 'Destino'}
+            </Text>
           </View>
-        ) : tripCompleted ? (
-          <View style={[styles.tripStateBanner, { backgroundColor: isDarkMode ? '#0F172A' : '#EFF6FF', borderBottomColor: isDarkMode ? '#1E3A5F' : '#BFDBFE' }]}>
-            <Ionicons name="checkmark-circle" size={13} color="#3B82F6" />
-            <Text style={[styles.tripStateBannerText, { color: '#2563EB' }]}>Viaje completado</Text>
-          </View>
-        ) : tripCancelledByDriver ? (
-          <View style={[styles.tripStateBanner, { backgroundColor: isDarkMode ? '#1C1917' : '#F5F5F4', borderBottomColor: isDarkMode ? '#44403C' : '#E7E5E4' }]}>
-            <Ionicons name="close-circle-outline" size={13} color="#78716C" />
-            <Text style={[styles.tripStateBannerText, { color: '#78716C' }]}>Viaje cancelado</Text>
-          </View>
-        ) : null}
-
-        {/* Ruta */}
-        <View style={styles.routeRow}>
-          <View style={styles.routeLeft}>
-            <View style={styles.routeDots}>
-              <View style={[styles.dotOrigin, { borderColor: accent }]} />
-              <View style={[styles.routeLine, { backgroundColor: divider }]} />
-              <View style={[styles.dotDest, { backgroundColor: accent }]} />
-            </View>
-            <View style={styles.routeLabels}>
-              <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>
-                {item.trip?.from || 'Origen'}
-              </Text>
-              <Text style={[styles.routeCity, { color: textPrimary, marginTop: 10 }]} numberOfLines={1}>
-                {item.trip?.to || 'Destino'}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.statusPill, { backgroundColor: statusConfig.color + '18' }]}>
-            <Text style={[styles.statusPillText, { color: statusConfig.color }]}>{statusConfig.text}</Text>
+          <View style={[styles.pill, { backgroundColor: pill.c + '14' }]}>
+            <Text style={[styles.pillText, { color: pill.c }]}>{pill.t}</Text>
           </View>
         </View>
 
-        {/* Meta */}
-        <View style={[styles.metaRow, { borderTopColor: divider, borderBottomColor: divider }]}>
-          <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              {formatDate(item.trip?.date || item.trip?.departureDate)}
-            </Text>
-          </View>
-          {item.trip?.time && (
-            <>
-              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={13} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{item.trip.time}</Text>
-              </View>
-            </>
-          )}
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              {item.booking?.seatsBooked || 1} asiento{item.booking?.seatsBooked > 1 ? 's' : ''}
-            </Text>
-          </View>
-        </View>
+        <Text style={[styles.meta, { color: textMuted }]}>
+          {formatDate(item.trip?.date || item.trip?.departureDate)}
+          {item.trip?.time ? ` · ${item.trip.time}` : ''}
+          {` · ${item.booking?.seatsBooked || 1} asiento${(item.booking?.seatsBooked || 1) > 1 ? 's' : ''}`}
+        </Text>
 
-        {/* Precios */}
-        {item.seatReservation && (
-          <View style={[styles.pricesSection, { borderBottomColor: divider }]}>
-            <View style={styles.priceRow}>
-              <Text style={[styles.priceLabel, { color: textMuted }]}>Reserva</Text>
-              <Text style={[styles.priceValue, { color: textPrimary }]}>
-                {formatCurrency(item.seatReservation.reservationAmount)}
-              </Text>
-            </View>
-            {item.seatReservation.remainingPayment?.amountToPay ? (
-              <View style={styles.priceRow}>
-                <Text style={[styles.priceLabel, { color: textMuted }]}>Resto al conductor</Text>
-                <Text style={[styles.priceValue, { color: textPrimary }]}>
-                  {formatCurrency(item.seatReservation.remainingPayment.amountToPay)}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.priceRow}>
-                <Text style={[styles.priceLabel, { color: textMuted }]}>Costo del viaje</Text>
-                <Text style={[styles.priceValue, { color: textPrimary }]}>
-                  {formatCurrency(item.booking?.totalPrice || 0)}
-                </Text>
-              </View>
-            )}
+        {rs === 'pending_payment' && (
+          <View style={[styles.actions, { borderTopColor: divider }]}>
+            <Text style={[styles.payLine, { color: textPrimary }]}>
+              {formatCurrency(item.seatReservation?.reservationAmount || 0)}
+              {timeLeft ? <Text style={{ color: textMuted }}> · {timeLeft}</Text> : null}
+            </Text>
+            <RebillPaymentOptions
+              paymentUrl={item.seatReservation?.reservationPayment?.paymentUrl || item.seatReservation?.paymentUrl}
+              qrDataUrl={item.seatReservation?.reservationPayment?.qrDataUrl}
+              amount={item.seatReservation?.reservationAmount}
+              formatCurrency={formatCurrency}
+              onCheckoutPress={handleOpenCheckout}
+            />
+            <TouchableOpacity onPress={() => handleCancelReservation(item)} hitSlop={{ top: 8, bottom: 8 }}>
+              <Text style={[styles.linkMuted, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Acciones */}
-        <View style={styles.footer}>
+        {rs === 'pending_approval' && (
+          <View style={[styles.actions, styles.rowBetween, { borderTopColor: divider }]}>
+            <Text style={[styles.hint, { color: textMuted }]}>Esperando al conductor</Text>
+            <TouchableOpacity onPress={() => handleCancelReservation(item)}>
+              <Text style={[styles.linkMuted, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-          {status === 'pending_approval' && (
-            <View style={styles.footerRow}>
-              <View style={styles.footerLeft}>
-                <Ionicons name="time-outline" size={14} color={textMuted} />
-                <Text style={[styles.footerNote, { color: textMuted }]}>Esperando al conductor</Text>
-              </View>
-              <TouchableOpacity onPress={() => handleCancelReservation(item)}>
-                <Text style={[styles.cancelLink, { color: colors.error || '#EF4444' }]}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {status === 'pending_payment' && (
-            <View style={styles.pendingPaymentSection}>
-              <View style={styles.footerRow}>
-                <Text style={[styles.footerNote, { color: textPrimary, fontWeight: '600' }]}>
-                  Solicitud aprobada — completá el pago
-                </Text>
-                {timeLeft && (
-                  <Text style={[styles.expiryText, { color: textMuted }]}>
-                    {timeLeft}
-                  </Text>
+        {rs === 'reserved' && (
+          <View style={[styles.actions, { borderTopColor: divider }]}>
+            <TouchableOpacity
+              style={[styles.btnGhost, { borderColor: divider }]}
+              onPress={(e) => { e?.stopPropagation?.(); handleOpenChat(item); }}
+              disabled={!!chatLoading[item.seatReservation?._id]}
+            >
+              {chatLoading[item.seatReservation?._id]
+                ? <ActivityIndicator size="small" color={textPrimary} />
+                : (
+                  <>
+                    <Ionicons name="chatbubble-outline" size={16} color={textPrimary} />
+                    <Text style={[styles.btnGhostText, { color: textPrimary }]}>Mensaje</Text>
+                  </>
                 )}
-              </View>
-              <View style={styles.paymentBtnWrap}>
-                <RebillPaymentOptions
-                  paymentUrl={item.seatReservation?.reservationPayment?.paymentUrl || item.seatReservation?.paymentUrl}
-                  qrDataUrl={item.seatReservation?.reservationPayment?.qrDataUrl}
-                  amount={item.seatReservation?.reservationAmount}
-                  formatCurrency={formatCurrency}
-                  onCheckoutPress={handleOpenCheckout}
-                />
-              </View>
-              <View style={styles.footerRow}>
-                <TouchableOpacity onPress={() => handleCancelReservation(item)}>
-                  <Text style={[styles.cancelLink, { color: colors.error || '#EF4444' }]}>Cancelar reserva</Text>
-                </TouchableOpacity>
-                {item.seatReservation?.reservationPayment?.fallbackUrl && (
-                  <TouchableOpacity onPress={() => Linking.openURL(item.seatReservation.reservationPayment.fallbackUrl)}>
-                    <Text style={[styles.cancelLink, { color: textMuted }]}>¿No te redirigió?</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
+            </TouchableOpacity>
+          </View>
+        )}
 
-          {status === 'reserved' && (
-            <View style={styles.reservedSection}>
-              <Text style={[styles.footerNote, { color: textMuted }]}>
-                El día del viaje pagás el resto directamente al conductor.
-              </Text>
-              <TouchableOpacity
-                style={[styles.chatBtn, { borderColor: divider }]}
-                onPress={() => handleOpenChat(item)}
-                disabled={!!chatLoading[item.seatReservation?._id]}
-                activeOpacity={0.8}
-              >
-                {chatLoading[item.seatReservation?._id]
-                  ? <ActivityIndicator size="small" color={textPrimary} />
-                  : <>
-                      <Ionicons name="chatbubble-ellipses-outline" size={15} color={textPrimary} />
-                      <Text style={[styles.chatBtnText, { color: textPrimary }]}>Mensaje al conductor</Text>
-                    </>
-                }
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {status === 'rejected' && (
-            <View style={styles.footerRow}>
-              <Ionicons name="close-circle-outline" size={14} color={colors.error || '#EF4444'} />
-              <Text style={[styles.footerNote, { color: textMuted }]}>El conductor rechazó tu solicitud.</Text>
-            </View>
-          )}
-
-          {status === 'cancelled' && (
-            <View style={styles.footerRow}>
-              <Ionicons name="close-circle-outline" size={14} color={textMuted} />
-              <Text style={[styles.footerNote, { color: textMuted }]}>Esta reserva fue cancelada.</Text>
-            </View>
-          )}
-
-        </View>
-      </View>
+        {(rs === 'rejected' || rs === 'cancelled') && (
+          <View style={[styles.actions, { borderTopColor: divider }]}>
+            <Text style={[styles.hint, { color: textMuted }]}>
+              {rs === 'rejected' ? 'Rechazada por el conductor' : 'Reserva cancelada'}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -400,6 +310,8 @@ const MySeatReservationsScreen = ({ navigation }) => {
     );
   }
 
+  void pendingPayments;
+
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <Toast
@@ -409,68 +321,26 @@ const MySeatReservationsScreen = ({ navigation }) => {
         onHide={() => setToast({ ...toast, visible: false })}
       />
 
-      {/* Aviso sutil de pago pendiente */}
-      {pendingPayments.length > 0 && (
-        <View style={[styles.pendingBanner, { backgroundColor: cardBg, borderBottomColor: divider }]}>
-          <Ionicons name="alert-circle-outline" size={14} color='#F97316' />
-          <Text style={styles.pendingBannerText}>
-            {pendingPayments.length === 1
-              ? 'Tenés 1 reserva pendiente de pago'
-              : `Tenés ${pendingPayments.length} reservas pendientes de pago`}
-          </Text>
-        </View>
-      )}
-
       {reservations.length > 0 ? (
         <FlatList
+          data={sortedData}
+          renderItem={renderItem}
+          keyExtractor={(item) => String(item.id || item._id)}
+          contentContainerStyle={styles.list}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} />
-            ) : null
+            loadingMore ? <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} /> : null
           }
-          data={[...reservations].sort((a, b) => {
-            // Fase del viaje: en curso → próximo (activo) → completado → viaje cancelado
-            const tripPhase = (item) => {
-              const s = item.trip?.status;
-              if (s === 'started') return 0;
-              if (s === 'completed') return 2;
-              if (s === 'cancelled') return 3;
-              return 1;
-            };
-            const phA = tripPhase(a);
-            const phB = tripPhase(b);
-            if (phA !== phB) return phA - phB;
-
-            const ORDER = { pending_payment: 0, pending_approval: 1, reserved: 2, rejected: 3, cancelled: 4 };
-            const pa = ORDER[a.seatReservation?.reservationStatus] ?? 5;
-            const pb = ORDER[b.seatReservation?.reservationStatus] ?? 5;
-            if (pa !== pb) return pa - pb;
-
-            const da = new Date(a.trip?.date || a.trip?.departureDate || 0).getTime();
-            const db = new Date(b.trip?.date || b.trip?.departureDate || 0).getTime();
-            // Completados: el más reciente primero
-            if (phA === 2) return db - da;
-            return da - db;
-          })}
-          renderItem={renderReservationItem}
-          keyExtractor={(item) => item.id || item._id}
-          contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={textMuted}
-              colors={[textMuted]}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textMuted]} />
           }
         />
       ) : (
         <View style={styles.centered}>
-          <Ionicons name="calendar-outline" size={40} color={textMuted} />
-          <Text style={[styles.emptyText, { color: textPrimary }]}>No tenés reservas</Text>
-          <Text style={[styles.emptySubtext, { color: textMuted }]}>Buscá y reservá viajes para comenzar</Text>
+          <Ionicons name="calendar-outline" size={36} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin reservas</Text>
+          <Text style={[styles.emptySub, { color: textMuted }]}>Buscá un viaje y reservá</Text>
         </View>
       )}
 
@@ -487,139 +357,36 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, padding: 32 },
-
-  // Banner de alerta sutil
-  pendingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  pendingBannerText: {
-    fontSize: 13,
-    color: '#F97316',
-    fontWeight: '500',
-  },
-
-  listContent: { padding: 16, gap: 12 },
-
-  // Card
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, padding: 28 },
+  list: { padding: 16, paddingBottom: 28, gap: 10 },
   card: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardInProgress: {
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#F59E0B55',
+    padding: 14,
   },
-  cardCompleted: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#3B82F655',
-    opacity: 0.96,
-  },
-
-  // Ruta
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  routeLeft: { flex: 1, flexDirection: 'row', gap: 10, alignItems: 'center' },
-  routeDots: { width: 14, alignItems: 'center', paddingVertical: 2 },
-  dotOrigin: {
-    width: 9, height: 9, borderRadius: 5, borderWidth: 2,
-  },
-  routeLine: { width: 1.5, height: 16, marginVertical: 2 },
-  dotDest:   { width: 9, height: 9, borderRadius: 2 },
-  routeLabels: { flex: 1 },
-  routeCity: { fontSize: 14, fontWeight: '600' },
-
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    alignSelf: 'center',
-    flexShrink: 0,
-  },
-  statusPillText: { fontSize: 11, fontWeight: '600' },
-
-  // Meta row
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  metaItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaDivider: { width: StyleSheet.hairlineWidth, height: 14, marginHorizontal: 4 },
-  metaText: { fontSize: 12 },
-
-  // Precios
-  pricesSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  priceLabel: { fontSize: 13 },
-  priceValue: { fontSize: 14, fontWeight: '600' },
-
-  // Footer / acciones
-  footer: { paddingHorizontal: 16, paddingVertical: 12 },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  footerNote: { fontSize: 13, flex: 1 },
-  expiryText: { fontSize: 12 },
-  cancelLink: { fontSize: 13, fontWeight: '500' },
-
-  // Pago pendiente
-  pendingPaymentSection: { gap: 10 },
-  paymentBtnWrap: {},
-
-  // Confirmada
-  reservedSection: { gap: 10 },
-  chatBtn: {
+  rowTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  routeBlock: { flex: 1, minWidth: 0 },
+  addr: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  pill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, maxWidth: '38%' },
+  pillText: { fontSize: 11, fontWeight: '600' },
+  meta: { fontSize: 12, marginTop: 10 },
+  actions: { marginTop: 12, paddingTop: 12, gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  payLine: { fontSize: 15, fontWeight: '600' },
+  hint: { fontSize: 12 },
+  linkMuted: { fontSize: 13, fontWeight: '500' },
+  btnGhost: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  chatBtnText: { fontSize: 13, fontWeight: '500' },
-
-  // Vacío
-  emptyText:    { fontSize: 16, fontWeight: '600', marginTop: 4 },
-  emptySubtext: { fontSize: 13, textAlign: 'center' },
-
-  tripStateBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tripStateBannerText: { fontSize: 12, fontWeight: '600' },
+  btnGhostText: { fontSize: 14, fontWeight: '500' },
+  emptyTitle: { fontSize: 16, fontWeight: '600' },
+  emptySub: { fontSize: 13, textAlign: 'center' },
 });
 
 export default MySeatReservationsScreen;
