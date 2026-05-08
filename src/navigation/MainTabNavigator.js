@@ -14,6 +14,8 @@ import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
 import ChatStackNavigator from './stacks/ChatStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
 import UnreadNewsModalLayer from '../components/modals/UnreadNewsModalLayer';
+import AppTutorialOverlay from '../components/tutorial/AppTutorialOverlay';
+import { useTutorial } from '../context/TutorialContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -23,6 +25,7 @@ const MainTabNavigator = () => {
   const { isDarkMode } = useTheme();
   const { unreadCount } = useUnreadMessages();
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
+  const { tutorialReady, tutorialCompleted, completeTutorial } = useTutorial();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -211,6 +214,9 @@ const MainTabNavigator = () => {
       />
     </Tab.Navigator>
       <UnreadNewsModalLayer />
+      {tutorialReady && !tutorialCompleted ? (
+        <AppTutorialOverlay onComplete={completeTutorial} />
+      ) : null}
     </>
   );
 };

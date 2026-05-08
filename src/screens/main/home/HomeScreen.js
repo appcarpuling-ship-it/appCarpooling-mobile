@@ -285,11 +285,22 @@ const HomeScreen = ({ navigation }) => {
   const accent = dark ? '#FFFFFF' : '#000000';
   const accentInverse = dark ? '#000000' : '#FFFFFF';
   const divider = dark ? '#2A2A2A' : '#F0F0F0';
+  /** Contraste fuerte en claro: labels, paradas, flechas */
+  const tripRouteMuted = dark ? textMuted : '#111827';
+  const tripCardChevron = dark ? '#444444' : '#111827';
+  const tripRouteLine = dark ? '#333333' : '#374151';
+  /** Búsqueda inicio: en claro texto negro para leer bien (4 campos) */
+  const searchFieldLabel = dark ? textMuted : '#000000';
+  const searchFieldEmpty = dark ? textMuted : '#000000';
 
   const renderTripCard = (trip) => (
     <TouchableOpacity
       key={trip._id}
-      style={[styles.tripCard, { backgroundColor: cardBg }]}
+      style={[
+        styles.tripCard,
+        { backgroundColor: cardBg },
+        !dark && styles.tripCardShadowLight,
+      ]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
     >
@@ -317,7 +328,7 @@ const HomeScreen = ({ navigation }) => {
             })}{'  '}{trip.departureTime}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color={dark ? '#444' : '#CCC'} />
+        <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
       </View>
 
       {/* Divider */}
@@ -327,16 +338,16 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.tripRouteRow}>
         <View style={styles.routeColumn}>
           <View style={[styles.routeDot, { borderColor: accent }]} />
-          <View style={[styles.routeLineVertical, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+          <View style={[styles.routeLineVertical, { backgroundColor: tripRouteLine }]} />
           <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
         </View>
         <View style={styles.tripInfoColumn}>
-          <Text style={[styles.routeLabel, { color: textMuted }]}>Origen</Text>
+          <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
           <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
             {formatAddress(trip.origin) || trip.origin?.city}
           </Text>
           <View style={{ height: 14 }} />
-          <Text style={[styles.routeLabel, { color: textMuted }]}>Destino</Text>
+          <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
           <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
             {formatAddress(trip.destination) || trip.destination?.city}
           </Text>
@@ -346,15 +357,15 @@ const HomeScreen = ({ navigation }) => {
       {/* Footer */}
       <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
         <View style={styles.tripFooterItem}>
-          <Ionicons name="person-outline" size={13} color={textMuted} />
-          <Text style={[styles.tripFooterText, { color: textMuted }]}>
+          <Ionicons name="person-outline" size={13} color={tripRouteMuted} />
+          <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
             {trip.availableSeats} lugar{trip.availableSeats !== 1 ? 'es' : ''}
           </Text>
         </View>
         {trip.intermediateStops?.length > 0 && (
           <View style={styles.tripFooterItem}>
-            <Ionicons name="git-branch-outline" size={13} color={textMuted} />
-            <Text style={[styles.tripFooterText, { color: textMuted }]}>
+            <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
+            <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
               {trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
             </Text>
           </View>
@@ -451,7 +462,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={[
               styles.searchRowText,
-              { color: origin ? textPrimary : textMuted },
+              { color: origin ? textPrimary : searchFieldEmpty },
             ]}>
               {origin || 'Origen'}
             </Text>
@@ -472,7 +483,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={[
               styles.searchRowText,
-              { color: destination ? textPrimary : textMuted },
+              { color: destination ? textPrimary : searchFieldEmpty },
             ]}>
               {destination || 'Destino'}
             </Text>
@@ -490,8 +501,8 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="calendar-outline" size={16} color={textPrimary} />
             </View>
             <View style={styles.searchRowContent}>
-              <Text style={[styles.searchRowLabel, { color: textMuted }]}>Fecha</Text>
-              <Text style={[styles.searchRowValue, { color: selectedDate ? textPrimary : textMuted }]}>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Fecha</Text>
+              <Text style={[styles.searchRowValue, { color: selectedDate ? textPrimary : searchFieldEmpty }]}>
                 {selectedDate ? formatDate(selectedDate) : 'Cualquier dia'}
               </Text>
             </View>
@@ -505,11 +516,11 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="person-outline" size={16} color={textPrimary} />
             </View>
             <View style={styles.searchRowContent}>
-              <Text style={[styles.searchRowLabel, { color: textMuted }]}>Asientos</Text>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Asientos</Text>
               <TextInput
-                style={[styles.searchRowInput, { color: selectedSeats ? textPrimary : textMuted }]}
+                style={[styles.searchRowInput, { color: selectedSeats ? textPrimary : searchFieldEmpty }]}
                 placeholder="Cuantos viajan"
-                placeholderTextColor={textMuted}
+                placeholderTextColor={searchFieldEmpty}
                 value={selectedSeats}
                 onChangeText={setSelectedSeats}
                 keyboardType="numeric"
@@ -931,7 +942,13 @@ const styles = StyleSheet.create({
   tripCard: {
     borderRadius: 14,
     marginBottom: 12,
-    overflow: 'hidden',
+  },
+  tripCardShadowLight: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   tripDriverRow: {
     flexDirection: 'row',

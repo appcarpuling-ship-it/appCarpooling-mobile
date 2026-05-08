@@ -537,6 +537,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const driverId = trip.driver?._id || trip.driver?.id;
   const isOwnTrip = userId && driverId && userId === driverId;
   const driver = trip.driver;
+  const showDriverChatCta = Boolean(
+    !isOwnTrip && user && driverId && String(driverId) !== String(userId)
+  );
 
   const statusMap = {
     started: { color: colors.info, label: 'En curso' },
@@ -900,7 +903,35 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Footer — passenger */}
         {!isOwnTrip && (
-          <View style={[styles.footer, { borderTopColor: divider }]}>
+          <View style={[styles.footer, { borderTopColor: divider, gap: 10 }]}>
+            {showDriverChatCta && (
+              <TouchableOpacity
+                style={[
+                  styles.footerBtn,
+                  {
+                    backgroundColor: cardBg,
+                    borderWidth: 1.5,
+                    borderColor: dark ? '#3F3F46' : '#D4D4D8',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  },
+                ]}
+                onPress={handleStartChat}
+                disabled={chatLoading}
+                activeOpacity={0.8}
+              >
+                {chatLoading ? (
+                  <ActivityIndicator size="small" color={accent} />
+                ) : (
+                  <>
+                    <Ionicons name="chatbubble-ellipses-outline" size={18} color={textPrimary} />
+                    <Text style={[styles.footerBtnText, { color: textPrimary }]}>Chatear con el conductor</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             {userBooking ? (
               (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
                 <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
@@ -938,24 +969,9 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={{ gap: 10 }}>
-                  <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                    <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.footerBtn, { backgroundColor: cardBg, borderWidth: 1.5, borderColor: colors.success, flexDirection: 'row', gap: 8 }]}
-                    onPress={handleStartChat}
-                    disabled={chatLoading}
-                    activeOpacity={0.8}
-                  >
-                    {chatLoading
-                      ? <ActivityIndicator size="small" color={colors.success} />
-                      : <>
-                          <Text style={[styles.footerBtnText, { color: colors.success }]}>Enviar mensaje al conductor</Text>
-                        </>
-                    }
-                  </TouchableOpacity>
+                <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                  <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
                 </View>
               )
             ) : (

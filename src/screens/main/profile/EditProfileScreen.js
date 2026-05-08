@@ -32,6 +32,7 @@ const EditProfileScreen = ({ navigation }) => {
   const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
   const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
   const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const labelTitleColor = isDarkMode ? textMuted : '#000000';
   const accent      = isDarkMode ? '#FFFFFF' : '#000000';
   const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
 
@@ -219,16 +220,16 @@ const EditProfileScreen = ({ navigation }) => {
           {/* Form */}
           <View style={styles.form}>
             <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: textMuted }]}>Email</Text>
+              <Text style={[styles.label, { color: labelTitleColor }]}>Email</Text>
               <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{user?.email || '—'}</Text>
             </View>
             <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: textMuted }]}>Sexo</Text>
+              <Text style={[styles.label, { color: labelTitleColor }]}>Sexo</Text>
               <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{genderLabel}</Text>
             </View>
             {fields.map((field) => (
               <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
-                <Text style={[styles.label, { color: textMuted }]}>{field.label}</Text>
+                <Text style={[styles.label, { color: labelTitleColor }]}>{field.label}</Text>
                 <TextInput
                   style={[styles.input, { color: textPrimary }]}
                   value={formData[field.key]}
@@ -244,7 +245,7 @@ const EditProfileScreen = ({ navigation }) => {
 
             {/* Provincia */}
             <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: textMuted }]}>Provincia</Text>
+              <Text style={[styles.label, { color: labelTitleColor }]}>Provincia</Text>
               <TouchableOpacity
                 style={styles.selector}
                 onPress={() => setShowProvincePicker(true)}
@@ -259,7 +260,7 @@ const EditProfileScreen = ({ navigation }) => {
 
             {/* Bio */}
             <View style={[styles.inputGroup, { borderBottomColor: 'transparent' }]}>
-              <Text style={[styles.label, { color: textMuted }]}>Sobre ti</Text>
+              <Text style={[styles.label, { color: labelTitleColor }]}>Sobre ti</Text>
               <TextInput
                 style={[styles.textArea, { color: textPrimary, borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
                 value={formData.bio}
@@ -367,16 +368,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatarWrapper: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     overflow: 'hidden',
     marginBottom: 14,
     position: 'relative',
   },
   avatarImage:       { width: '100%', height: '100%' },
   avatarPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  avatarInitials:    { fontSize: 32, fontWeight: '700' },
+  avatarInitials:    { fontSize: 46, fontWeight: '700' },
   avatarOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,

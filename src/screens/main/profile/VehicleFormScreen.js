@@ -28,9 +28,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const textPrimary     = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted       = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const textLabel       = isDarkMode ? '#E5E7EB' : '#374151';
+  const textHint        = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const placeholderColor = isDarkMode ? '#787F8C' : '#A8B0BC';
+  const divider         = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   const isEdit = !!route.params?.vehicle;
   const vehicleData = route.params?.vehicle;
@@ -251,8 +254,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Photos */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>FOTOS</Text>
-            <Text style={[styles.sectionHint, { color: textMuted }]}>
+            <Text style={[styles.sectionLabel, { color: textLabel }]}>Fotos</Text>
+            <Text style={[styles.sectionHint, { color: textHint }]}>
               {isEdit ? 'Agrega o elimina fotos' : 'Mínimo 3, máximo 10'}
             </Text>
 
@@ -285,8 +288,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   style={[styles.photoAdd, { backgroundColor: divider, borderColor: border }]}
                   onPress={pickImages}
                 >
-                  <Ionicons name="add" size={28} color={textMuted} />
-                  <Text style={[styles.photoAddText, { color: textMuted }]}>{totalPhotos}/10</Text>
+                  <Ionicons name="add" size={28} color={textHint} />
+                  <Text style={[styles.photoAddText, { color: textHint }]}>{totalPhotos}/10</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
@@ -294,8 +297,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Tarjeta verde / cédula */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>DOCUMENTACIÓN</Text>
-            <Text style={[styles.sectionHint, { color: textMuted }]}>
+            <Text style={[styles.sectionLabel, { color: textLabel }]}>Documentación</Text>
+            <Text style={[styles.sectionHint, { color: textHint }]}>
               Tarjeta verde o cédula del vehículo. La patente debe coincidir con lo que cargás abajo (se verifica automáticamente).
             </Text>
             <View style={styles.regCardRow}>
@@ -312,7 +315,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
               ) : hasRegistrationOnServer ? (
                 <View style={styles.regCardPreview}>
                   <Image source={{ uri: buildImageUri(vehicleData.registrationCardUrl) }} style={styles.regCardImg} />
-                  <Text style={[styles.regCardHint, { color: textMuted }]}>Guardada · tocá para reemplazar</Text>
+                  <Text style={[styles.regCardHint, { color: textHint }]}>Guardada · tocá para reemplazar</Text>
                   <TouchableOpacity style={[styles.regCardReplace, { borderColor: border }]} onPress={pickRegistrationCard}>
                     <Text style={[styles.regCardReplaceText, { color: textPrimary }]}>Cambiar imagen</Text>
                   </TouchableOpacity>
@@ -322,8 +325,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   style={[styles.regCardAdd, { backgroundColor: divider, borderColor: border }]}
                   onPress={pickRegistrationCard}
                 >
-                  <Ionicons name="document-text-outline" size={28} color={textMuted} />
-                  <Text style={[styles.photoAddText, { color: textMuted }]}>Subir documento</Text>
+                  <Ionicons name="document-text-outline" size={28} color={textHint} />
+                  <Text style={[styles.photoAddText, { color: textHint }]}>Subir documento</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -331,18 +334,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Info */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>INFORMACIÓN</Text>
+            <Text style={[styles.sectionLabel, { color: textLabel }]}>Información</Text>
 
             <View style={styles.row}>
               {fields.filter(f => f.half).map(f => (
                 <View key={f.key} style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={[styles.label, { color: textMuted }]}>{f.label}</Text>
+                  <Text style={[styles.label, { color: textLabel }]}>{f.label}</Text>
                   <TextInput
                     style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
                     value={formData[f.key]}
                     onChangeText={v => handleChange(f.key, f.caps ? v.toUpperCase() : v)}
                     placeholder={f.placeholder}
-                    placeholderTextColor={textMuted}
+                    placeholderTextColor={placeholderColor}
                     keyboardType={f.keyboard || 'default'}
                     maxLength={f.max}
                     autoCapitalize={f.caps || 'sentences'}
@@ -353,13 +356,13 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
             {fields.filter(f => !f.half).map(f => (
               <View key={f.key} style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textMuted }]}>{f.label}</Text>
+                <Text style={[styles.label, { color: textLabel }]}>{f.label}</Text>
                 <TextInput
                   style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
                   value={formData[f.key]}
                   onChangeText={v => handleChange(f.key, f.caps ? v.toUpperCase() : v)}
                   placeholder={f.placeholder}
-                  placeholderTextColor={textMuted}
+                  placeholderTextColor={placeholderColor}
                   keyboardType={f.keyboard || 'default'}
                   maxLength={f.max}
                   autoCapitalize={f.caps || 'sentences'}
@@ -370,7 +373,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
           {/* Features */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>CARACTERÍSTICAS</Text>
+            <Text style={[styles.sectionLabel, { color: textLabel }]}>Características</Text>
 
             {featuresList.map((f, index) => (
               <TouchableOpacity
@@ -445,14 +448,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    marginBottom: 6,
   },
   sectionHint: {
-    fontSize: 13,
+    fontSize: 15,
+    lineHeight: 22,
     marginBottom: 16,
   },
 
@@ -491,7 +494,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   photoAddText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   regCardRow: {
@@ -508,7 +512,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   regCardHint: {
-    fontSize: 12,
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: 8,
   },
   regCardReplace: {
@@ -540,15 +545,16 @@ const styles = StyleSheet.create({
   halfWidth: { flex: 1 },
   inputGroup: { marginBottom: 20 },
   label: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    letterSpacing: 0,
     marginBottom: 8,
   },
   input: {
-    fontSize: 16,
-    paddingVertical: 8,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '500',
+    paddingVertical: 10,
     borderBottomWidth: 1,
   },
 
@@ -568,8 +574,8 @@ const styles = StyleSheet.create({
   },
   featureLabel: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
   },
   toggle: {
     width: 46,

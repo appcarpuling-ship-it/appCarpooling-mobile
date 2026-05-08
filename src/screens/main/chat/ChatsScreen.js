@@ -502,7 +502,7 @@ const ChatsScreen = ({ navigation }) => {
               </Text>
             <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                 {conversations.length === 0
-                  ? 'Comienza a chatear con otros usuarios desde los detalles de un viaje'
+                  ? 'En el detalle de un viaje, usá «Chatear con el conductor» (arriba del botón Reservar o de tu estado de reserva)'
                   : searchTerm
                     ? 'Intenta con otro término de búsqueda'
                     : 'Intenta cambiar el filtro para ver más conversaciones'}

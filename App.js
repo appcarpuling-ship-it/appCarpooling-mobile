@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
+import { TutorialProvider } from './src/context/TutorialContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AlertProvider } from './src/context/AlertContext';
@@ -68,20 +69,22 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AlertProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              {fontsLoaded && <AppWithTheme />}
-              <OtaUpdateListener />
-              {showSplash && (
-                <AnimatedSplash
-                  fontsLoaded={fontsLoaded}
-                  onComplete={() => setShowSplash(false)}
-                />
-              )}
-            </NotificationProvider>
-          </AuthProvider>
-        </AlertProvider>
+        <TutorialProvider>
+          <AlertProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                {fontsLoaded && <AppWithTheme />}
+                <OtaUpdateListener />
+                {showSplash && (
+                  <AnimatedSplash
+                    fontsLoaded={fontsLoaded}
+                    onComplete={() => setShowSplash(false)}
+                  />
+                )}
+              </NotificationProvider>
+            </AuthProvider>
+          </AlertProvider>
+        </TutorialProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

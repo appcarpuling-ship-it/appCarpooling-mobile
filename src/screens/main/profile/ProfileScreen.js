@@ -1,4 +1,4 @@
-import React from 'react'; // eslint-disable-line
+import React, { useState, useEffect, useCallback } from 'react'; // eslint-disable-line
 import {
   View,
   Text,
@@ -6,19 +6,24 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  Modal,
+  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { buildImageUri } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
+import { useTutorial } from '../../../context/TutorialContext';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading, refreshUser } = useAuth();
   const { getCurrentThemeMode, setThemeMode } = useColors();
+  const { resetTutorial } = useTutorial();
 
   const isDarkMode = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
@@ -27,6 +32,7 @@ const ProfileScreen = () => {
   const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
   const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
   const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const sectionMenuTitleColor = isDarkMode ? textMuted : '#000000';
 
   const handleLogout = () => {
     showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
@@ -50,6 +56,22 @@ const ProfileScreen = () => {
     setThemeMode(current === 'light' ? 'dark' : 'light');
   };
 
+  const [avatarImageLoading, setAvatarImageLoading] = useState(false);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+
+  const avatarUri = user?.avatar ? buildImageUri(user.avatar) : null;
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+    }, [refreshUser])
+  );
+
+  useEffect(() => {
+    if (avatarUri) setAvatarImageLoading(true);
+    else setAvatarImageLoading(false);
+  }, [avatarUri]);
+
   const menuSections = [
     {
       title: 'Perfil',
@@ -63,6 +85,7 @@ const ProfileScreen = () => {
       items: [
         { id: 4, title: 'Términos y Condiciones', icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
         { id: 5, title: 'Ayuda',                  icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
+        { id: 9, title: 'Mostrar introducción',   icon: 'book-outline',            onPress: () => resetTutorial() },
         {
           id: 6,
           title: isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
@@ -89,15 +112,54 @@ const ProfileScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      <Modal
+        visible={avatarPreviewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarPreviewVisible(false)}
+      >
+        <Pressable
+          style={[styles.avatarModalBackdrop, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.88)' }]}
+          onPress={() => setAvatarPreviewVisible(false)}
+        >
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarModalImage} resizeMode="contain" />
+          ) : null}
+          {/* <Text style={styles.avatarModalHint}>Tocá fuera para cerrar</Text> */}
+        </Pressable>
+      </Modal>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* Header */}
         <View style={styles.header}>
-          {user?.avatar ? (
-            <Image
-              source={{ uri: buildImageUri(user.avatar) }}
-              style={styles.avatarImage}
-            />
+          {authLoading && !user ? (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
+              <ActivityIndicator size="large" color={textMuted} />
+            </View>
+          ) : avatarUri ? (
+            <TouchableOpacity
+              onPress={() => setAvatarPreviewVisible(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Ver foto de perfil en grande"
+            >
+              <View style={styles.avatarImageWrap}>
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                  onLoadStart={() => setAvatarImageLoading(true)}
+                  onLoad={() => setAvatarImageLoading(false)}
+                  onLoadEnd={() => setAvatarImageLoading(false)}
+                  onError={() => setAvatarImageLoading(false)}
+                />
+                {avatarImageLoading ? (
+                  <View style={[styles.avatarImageLoader, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.65)' }]}>
+                    <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#111827'} />
+                  </View>
+                ) : null}
+              </View>
+            </TouchableOpacity>
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
               <Text style={[styles.avatarInitials, { color: textPrimary }]}>{initials}</Text>
@@ -107,11 +169,11 @@ const ProfileScreen = () => {
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
-          {user?.gender ? (
+          {/* {user?.gender ? (
             <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
               Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
             </Text>
-          ) : null}
+          ) : null} */}
 
           {(user?.discountPercentage ?? 0) > 0 && (
             <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
@@ -127,7 +189,7 @@ const ProfileScreen = () => {
         <View style={styles.menuContent}>
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>{section.title}</Text>
+              <Text style={[styles.sectionLabel, { color: sectionMenuTitleColor }]}>{section.title}</Text>
               <View style={[styles.sectionCard, { backgroundColor: cardBg, borderColor: border }]}>
                 {section.items.map((item, index) => (
                   <TouchableOpacity
@@ -179,23 +241,51 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 24,
   },
-  avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  avatarImageWrap: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+  },
+  avatarImageLoader: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 64,
+  },
+  avatarModalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  avatarModalImage: {
+    width: '100%',
+    height: '80%',
+    maxHeight: 520,
+  },
+  avatarModalHint: {
+    marginTop: 20,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
   },
   avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   avatarInitials: {
-    fontSize: 36,
+    fontSize: 46,
     fontWeight: '700',
     letterSpacing: 1,
   },

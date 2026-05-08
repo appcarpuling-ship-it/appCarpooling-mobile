@@ -25,6 +25,7 @@ export const useAuth = () => {
       register: () => Promise.resolve({ success: false }),
       logout: () => {},
       updateProfile: () => Promise.resolve({ success: false }),
+      refreshUser: async () => {},
     };
   }
   return context;
@@ -300,7 +301,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await get_withauth(ENDPOINTS.GET_ME);
 
@@ -312,7 +313,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error refrescando usuario:', error);
     }
-  };
+  }, []);
 
   const value = {
     user,

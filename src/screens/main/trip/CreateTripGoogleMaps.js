@@ -457,10 +457,37 @@ const CreateTripGoogleMaps = ({ navigation }) => {
     });
   };
 
+  const handleGoToVehicles = () => {
+    navigation.navigate('Main', {
+      screen: 'ProfileTab',
+      params: { screen: 'Vehicles' },
+    });
+  };
+
+  const renderEarlyExitHeader = () => (
+    <View style={[styles.earlyExitHeader, { paddingTop: insets.top }]}>
+      <TouchableOpacity
+        style={[styles.circleBtn, { backgroundColor: cardBg }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Volver atrás"
+      >
+        <Ionicons name="arrow-back" size={22} color={textPrimary} />
+      </TouchableOpacity>
+    </View>
+  );
+
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
     if (loadingVehicles) { showAlert('Un momento', 'Estamos verificando tus vehículos...'); return; }
-    if (!vehicles?.length) { showAlert('Vehículo requerido', 'Necesitás registrar un vehículo antes de crear un viaje', [{ text: 'Cancelar', style: 'cancel' }]); return; }
+    if (!vehicles?.length) {
+      showAlert('Vehículo requerido', 'Necesitás registrar un vehículo antes de crear un viaje', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Ir a mis vehículos', onPress: handleGoToVehicles },
+      ]);
+      return;
+    }
     navigation.navigate('TripDetails', { origin: formData.origin, destination: formData.destination, waypoints: formData.waypoints.filter(wp => wp.coordinates !== null), distance, duration, vehicles });
   };
 
@@ -470,19 +497,35 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
   if (loadingVehicles) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={textPrimary} />
-        <Text style={[styles.emptyText, { color: textMuted }]}>Verificando vehículos...</Text>
+      <View style={{ flex: 1, backgroundColor: bg }}>
+        {renderEarlyExitHeader()}
+        <View style={[styles.emptyContainer, { flex: 1 }]}>
+          <ActivityIndicator size="large" color={textPrimary} />
+          <Text style={[styles.emptyText, { color: textMuted }]}>Verificando vehículos...</Text>
+        </View>
       </View>
     );
   }
 
   if (!vehicles?.length) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
-        <Ionicons name="car-outline" size={64} color={textMuted} />
-        <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos registrados</Text>
-        <Text style={[styles.emptyText, { color: textMuted }]}>Necesitás registrar un vehículo antes de crear un viaje</Text>
+      <View style={{ flex: 1, backgroundColor: bg }}>
+        {renderEarlyExitHeader()}
+        <View style={[styles.emptyContainer, { flex: 1 }]}>
+          <Ionicons name="car-outline" size={64} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos registrados</Text>
+          <Text style={[styles.emptyText, { color: textMuted, textAlign: 'center' }]}>
+            Necesitás registrar un vehículo antes de crear un viaje
+          </Text>
+          <TouchableOpacity
+            style={[styles.emptyCtaBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+            onPress={handleGoToVehicles}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.emptyCtaText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Ir a mis vehículos</Text>
+            <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -845,6 +888,10 @@ const styles = StyleSheet.create({
   map: { ...StyleSheet.absoluteFillObject, width, height },
 
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  earlyExitHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
   circleBtn: {
     marginLeft: 16, marginTop: 8,
     width: 42, height: 42, borderRadius: 21,
@@ -963,6 +1010,20 @@ const styles = StyleSheet.create({
 
   // Empty
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
+  emptyCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+  },
+  emptyCtaText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
   emptyTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center' },
 });
