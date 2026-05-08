@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getMyReservations, getPendingPaymentReservations, cancelSeatReservation, confirmFromCallback } from '../../services/seatReservationService';
+import { getMyReservations, cancelSeatReservation, confirmFromCallback } from '../../services/seatReservationService';
 import { post_withauth } from '../../services/apiService';
 import useColors from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,7 +20,7 @@ import Toast from '../../components/Toast';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
-  const { colors, isDarkMode } = useColors();
+  const { colors } = useColors();
   const { getCurrentThemeMode } = useTheme();
 
   const dark = getCurrentThemeMode() === 'dark';
@@ -33,7 +33,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [pendingPayments, setPendingPayments] = useState([]);
   const [chatLoading, setChatLoading] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -44,7 +43,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadReservations(1, true);
-    loadPendingPayments();
   }, []);
 
   const loadReservations = async (pageNum = 1, reset = false) => {
@@ -68,16 +66,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
     }
   };
 
-  const loadPendingPayments = async () => {
-    try {
-      const response = await getPendingPaymentReservations();
-      if (response.success) setPendingPayments(response.data.pendingReservations || []);
-    } catch {}
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadReservations(1, true), loadPendingPayments()]);
+    await loadReservations(1, true);
   };
 
   const onEndReached = () => {
@@ -88,7 +79,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   const handleOpenCheckout = (paymentUrl) => {
     if (!paymentUrl) { showAlert('Error', 'No hay link de pago'); return; }
-    setCheckoutModal({ visible: tru e, paymentUrl });
+    setCheckoutModal({ visible: true, paymentUrl });
   };
 
   const handlePaymentSuccess = async (paymentData) => {
@@ -100,7 +91,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
     } catch (e) {
       console.warn('Confirmación de pago:', e?.message);
     }
-    await Promise.all([loadReservations(1, true), loadPendingPayments()]);
+    await loadReservations(1, true);
   };
 
   const handlePaymentError = (error) => {
@@ -119,7 +110,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
           try {
             await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
             showToast('Cancelada', 'success');
-            setTimeout(() => { loadReservations(1, true); loadPendingPayments(); }, 400);
+            setTimeout(() => { loadReservations(1, true); }, 400);
           } catch (error) {
             showToast(error?.response?.data?.message || error.message || 'Error', 'error');
           }
@@ -219,30 +210,31 @@ const MySeatReservationsScreen = ({ navigation }) => {
     const timeLeft = item.seatReservation?.expiresAt ? getTimeRemaining(item.seatReservation.expiresAt) : null;
 
     return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
-        activeOpacity={0.85}
-        onPress={() => item.trip?.id && navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip.id })}
-      >
-        <View style={styles.rowTop}>
-          <View style={styles.routeBlock}>
-            <Text style={[styles.addr, { color: textPrimary }]} numberOfLines={2}>
-              {item.trip?.from || 'Origen'}
-            </Text>
-            <Text style={[styles.addr, { color: textPrimary, marginTop: 6 }]} numberOfLines={2}>
-              {item.trip?.to || 'Destino'}
-            </Text>
+      <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => item.trip?.id && navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip.id })}
+        >
+          <View style={styles.rowTop}>
+            <View style={styles.routeBlock}>
+              <Text style={[styles.addr, { color: textPrimary }]} numberOfLines={2}>
+                {item.trip?.from || 'Origen'}
+              </Text>
+              <Text style={[styles.addr, { color: textPrimary, marginTop: 6 }]} numberOfLines={2}>
+                {item.trip?.to || 'Destino'}
+              </Text>
+            </View>
+            <View style={[styles.pill, { backgroundColor: pill.c + '14' }]}>
+              <Text style={[styles.pillText, { color: pill.c }]}>{pill.t}</Text>
+            </View>
           </View>
-          <View style={[styles.pill, { backgroundColor: pill.c + '14' }]}>
-            <Text style={[styles.pillText, { color: pill.c }]}>{pill.t}</Text>
-          </View>
-        </View>
 
-        <Text style={[styles.meta, { color: textMuted }]}>
-          {formatDate(item.trip?.date || item.trip?.departureDate)}
-          {item.trip?.time ? ` · ${item.trip.time}` : ''}
-          {` · ${item.booking?.seatsBooked || 1} asiento${(item.booking?.seatsBooked || 1) > 1 ? 's' : ''}`}
-        </Text>
+          <Text style={[styles.meta, { color: textMuted }]}>
+            {formatDate(item.trip?.date || item.trip?.departureDate)}
+            {item.trip?.time ? ` · ${item.trip.time}` : ''}
+            {` · ${item.booking?.seatsBooked || 1} asiento${(item.booking?.seatsBooked || 1) > 1 ? 's' : ''}`}
+          </Text>
+        </TouchableOpacity>
 
         {rs === 'pending_payment' && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
@@ -276,7 +268,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
           <View style={[styles.actions, { borderTopColor: divider }]}>
             <TouchableOpacity
               style={[styles.btnGhost, { borderColor: divider }]}
-              onPress={(e) => { e?.stopPropagation?.(); handleOpenChat(item); }}
+              onPress={() => handleOpenChat(item)}
               disabled={!!chatLoading[item.seatReservation?._id]}
             >
               {chatLoading[item.seatReservation?._id]
@@ -298,7 +290,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -309,8 +301,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
       </View>
     );
   }
-
-  void pendingPayments;
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
