@@ -129,6 +129,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [actualCost, setActualCost] = useState('');
   const [driverPay, setDriverPay] = useState('');
   const [startingTrip, setStartingTrip] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
@@ -353,22 +354,28 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleStartChat = async () => {
+    const driverId = trip?.driver?._id || trip?.driver?.id;
+    if (!driverId) { showAlert('Error', 'No se encontraron datos del conductor'); return; }
+    setChatLoading(true);
     try {
-      const response = await post_withauth('/chat/conversation', {
-        participantId: trip.driver._id,
-        tripId: trip._id
-      });
-      if (response.success) {
+      const response = await post_withauth('/chat/conversation', { participantId: driverId });
+      if (response?.success) {
+        const conversation = response.data?.conversation || response.data;
+        const otherUser =
+          response.data?.conversation?.participants?.find(p => p._id !== (user?._id || user?.id)) ||
+          response.data?.participants?.find(p => p._id !== (user?._id || user?.id)) ||
+          { _id: driverId, firstName: trip.driver?.firstName || 'Conductor', lastName: trip.driver?.lastName || '', avatar: trip.driver?.avatar || null };
         navigation.navigate('ChatsTab', {
           screen: 'ChatDetail',
-          params: {
-            conversation: response.data,
-            otherUser: response.data.participants?.find(p => p._id !== user._id)
-          }
+          params: { conversation, otherUser },
         });
+      } else {
+        showAlert('Error', 'No se pudo abrir el chat');
       }
-    } catch (error) {
-      showAlert('Error', 'No se pudo iniciar el chat');
+    } catch {
+      showAlert('Error', 'No se pudo abrir el chat');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -619,9 +626,9 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )} */}
 
-        {/* Cost banner */}
+        {/* Cost banner — solo costo real (actualCost + driverPay); no mezclar con estimatedCost */}
         {(trip.status === 'started' || trip.status === 'completed') &&
-          (Number(trip.actualCost) > 0 || (trip.status === 'completed' && Number(trip.estimatedCost) > 0)) && (
+          (Number(trip.actualCost) > 0 || Number(trip.driverPay) > 0) && (
           <View style={[styles.costBanner, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
             <View style={styles.costBannerLeft}>
               <Text style={[styles.costBannerLabel, { color: colors.success }]}>Costo del viaje</Text>
@@ -632,11 +639,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               )}
             </View>
             <Text style={[styles.costBannerValue, { color: colors.success }]}>
-              ${formatNumber(
-                Number(trip.actualCost) > 0
-                  ? (Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0)
-                  : Number(trip.estimatedCost) || 0
-              )}
+              ${formatNumber((Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0))}
             </Text>
           </View>
         )}
@@ -886,9 +889,24 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
+                <View style={{ gap: 10 }}>
+                  <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                    <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.footerBtn, { backgroundColor: cardBg, borderWidth: 1.5, borderColor: colors.success, flexDirection: 'row', gap: 8 }]}
+                    onPress={handleStartChat}
+                    disabled={chatLoading}
+                    activeOpacity={0.8}
+                  >
+                    {chatLoading
+                      ? <ActivityIndicator size="small" color={colors.success} />
+                      : <>
+                          <Text style={[styles.footerBtnText, { color: colors.success }]}>Enviar mensaje al conductor</Text>
+                        </>
+                    }
+                  </TouchableOpacity>
                 </View>
               )
             ) : (

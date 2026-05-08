@@ -3,6 +3,7 @@ import { get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS } from '../config/api';
 import socketService from '../services/socketService';
 import { useAuth } from './AuthContext';
+import * as Notifications from 'expo-notifications';
 
 const NotificationContext = createContext();
 
@@ -109,6 +110,25 @@ export const NotificationProvider = ({ children }) => {
       cleanupSocketListeners();
     };
   }, [isAuthenticated, loadNotifications, setupSocketListeners, cleanupSocketListeners]);
+
+  // Escuchar push notifications recibidas en primer plano (foreground) como respaldo al socket
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification?.request?.content?.data;
+      // Solo incrementar el badge si es una notificación de tipo viaje o reserva
+      // (no mensajes de chat, que ya los maneja useUnreadMessages)
+      const tripTypes = ['trip_started', 'trip_completed', 'booking_accepted', 'booking_rejected', 'trip_cancelled'];
+      if (data?.type && tripTypes.includes(data.type)) {
+        setUnreadCountRef.current(prev => prev + 1);
+        // Recargar lista completa para tener los datos actualizados
+        loadNotifications();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated, loadNotifications]);
 
 
 

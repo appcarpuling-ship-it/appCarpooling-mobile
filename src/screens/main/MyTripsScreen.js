@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,10 +21,14 @@ const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [trips, setTrips]           = useState([]);
+  const [page, setPage]             = useState(1);
+  const [hasMore, setHasMore]       = useState(true);
+  const [loading, setLoading]       = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [activeTab, setActiveTab]   = useState('upcoming');
+  const fetchingRef = useRef(false);
   const [startingTripId, setStartingTripId] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
   const [completingTripId, setCompletingTripId] = useState(null);
@@ -32,26 +36,38 @@ const MyTripsScreen = ({ navigation }) => {
   const [driverPay, setDriverPay] = useState('');
 
   useEffect(() => {
-    loadMyTrips();
+    loadMyTrips(1, true);
   }, []);
 
-  const loadMyTrips = async () => {
+  const loadMyTrips = async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER);
+      const response = await get_withauth(`${ENDPOINTS.MY_TRIPS_DRIVER}?page=${pageNum}&limit=15`);
       if (response.success) {
-        setTrips(response.data);
+        setTrips(prev => reset ? response.data : [...prev, ...response.data]);
+        setPage(pageNum);
+        setHasMore(response.hasMore ?? false);
       }
     } catch (error) {
       showAlert('Error', 'No se pudieron cargar los viajes');
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadMyTrips();
+    loadMyTrips(1, true);
+  };
+
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    loadMyTrips(page + 1, false);
   };
 
   const formatAddress = (location) => {
@@ -86,7 +102,7 @@ const MyTripsScreen = ({ navigation }) => {
               const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
               if (response.success) {
                 showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
-                loadMyTrips();
+                loadMyTrips(1, true);
               } else {
                 showAlert('Error', response.message || 'No se pudo iniciar el viaje');
               }
@@ -128,7 +144,7 @@ const MyTripsScreen = ({ navigation }) => {
         setShowCostModal(false);
         const total = cost + pay;
         showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
-        loadMyTrips();
+        loadMyTrips(1, true);
         await refreshUser();
       } else {
         showAlert('Error', response.message || 'No se pudo completar el viaje');
@@ -159,6 +175,18 @@ const MyTripsScreen = ({ navigation }) => {
     return date.toLocaleDateString('es-ES', options);
   };
 
+  // Devuelve true si la fecha del viaje es hoy (comparando solo año/mes/día)
+  const isTripToday = (departureDate) => {
+    if (!departureDate) return false;
+    const today = new Date();
+    const trip  = new Date(departureDate);
+    return (
+      trip.getFullYear() === today.getFullYear() &&
+      trip.getMonth()    === today.getMonth()    &&
+      trip.getDate()     === today.getDate()
+    );
+  };
+
   const getFilteredTrips = () => {
     const tripsArray = Array.isArray(trips) ? trips : [];
     if (activeTab === 'upcoming') {
@@ -166,127 +194,136 @@ const MyTripsScreen = ({ navigation }) => {
         trip.status === 'active' || trip.status === 'started'
       );
       return filtered.sort((a, b) => {
-        if (a.status === 'started' && b.status === 'active') return -1;
-        if (a.status === 'active' && b.status === 'started') return 1;
+        // 1° viajes en curso
+        if (a.status === 'started' && b.status !== 'started') return -1;
+        if (b.status === 'started' && a.status !== 'started') return  1;
+        // 2° viajes de hoy que se pueden iniciar
+        const aToday = isTripToday(a.departureDate);
+        const bToday = isTripToday(b.departureDate);
+        if (aToday && !bToday) return -1;
+        if (bToday && !aToday) return  1;
+        // 3° resto por fecha ascendente
         return new Date(a.departureDate) - new Date(b.departureDate);
       });
     } else {
       const filtered = tripsArray.filter(trip =>
         trip.status === 'completed' || trip.status === 'cancelled'
       );
-      return filtered.sort((a, b) => new Date(b.departureDate) - new Date(a.departureDate));
+      return filtered.sort((a, b) => {
+        // completados antes que cancelados
+        if (a.status === 'completed' && b.status === 'cancelled') return -1;
+        if (a.status === 'cancelled' && b.status === 'completed') return 1;
+        // mismo estado → más reciente primero
+        return new Date(b.departureDate) - new Date(a.departureDate);
+      });
     }
   };
 
   const renderTripItem = ({ item }) => {
-    const statusConfig = getStatusConfig(item.status);
+    const { color, text: statusText } = getStatusConfig(item.status);
+    const textPrimary   = isDarkMode ? '#FFFFFF' : '#000000';
+    const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
+    const cardBg        = colors.cardBackground;
+    const divider       = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+    const accent        = textPrimary;
+    const accentInv     = isDarkMode ? '#000000' : '#FFFFFF';
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: colors.border }]}
+        style={[styles.card, { backgroundColor: cardBg }]}
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
         activeOpacity={0.7}
       >
-        {/* Status Badge */}
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.text}
-            </Text>
+        {/* Cabecera: ruta + status pill */}
+        <View style={styles.cardHeader}>
+          {/* Ruta con puntos */}
+          <View style={styles.routeBlock}>
+            <View style={styles.routeDots}>
+              <View style={[styles.dotOrigin, { borderColor: accent }]} />
+              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
+              <View style={[styles.dotDest, { backgroundColor: accent }]} />
+            </View>
+            <View style={styles.routeLabels}>
+              <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
+                {formatAddress(item.origin)}
+              </Text>
+              <Text style={[styles.cityText, { color: textPrimary, marginTop: 10 }]} numberOfLines={1}>
+                {formatAddress(item.destination)}
+              </Text>
+            </View>
           </View>
 
-          {/* Reservas pendientes badge - solo para trips próximos con reservas */}
-          {activeTab === 'upcoming' && item.passengers && item.passengers.length > 0 && (
-            <View style={[styles.pendingBadge, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF' }]}>
-              <Ionicons name="person" size={10} color={isDarkMode ? '#A5B4FC' : '#6366F1'} />
-              <Text style={[styles.pendingBadgeText, { color: isDarkMode ? '#A5B4FC' : '#6366F1' }]}>{item.passengers.length}</Text>
-            </View>
+          {/* Status pill */}
+          <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+            <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
+          </View>
+        </View>
+
+        {/* Meta row */}
+        <View style={[styles.metaRow, { borderTopColor: divider, borderBottomColor: divider }]}>
+          <View style={styles.metaItem}>
+            <Ionicons name="calendar-outline" size={13} color={textMuted} />
+            <Text style={[styles.metaText, { color: textMuted }]}>{formatDate(item.departureDate)}</Text>
+          </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={13} color={textMuted} />
+            <Text style={[styles.metaText, { color: textMuted }]}>{item.departureTime}</Text>
+          </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+          <View style={styles.metaItem}>
+            <Ionicons name="people-outline" size={13} color={textMuted} />
+            <Text style={[styles.metaText, { color: textMuted }]}>{item.availableSeats} disponibles</Text>
+          </View>
+          {activeTab === 'upcoming' && item.bookingsCount > 0 && (
+            <>
+              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={13} color={textMuted} />
+                <Text style={[styles.metaText, { color: textMuted }]}>{item.bookingsCount} pendiente{item.bookingsCount !== 1 ? 's' : ''}</Text>
+              </View>
+            </>
           )}
         </View>
 
-        {/* Route */}
-        <View style={styles.routeSection}>
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDot, { backgroundColor: colors.textPrimary }]} />
-            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {formatAddress(item.origin)}
-            </Text>
-          </View>
-          <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDot, styles.routeDotDestination, { backgroundColor: colors.background, borderColor: colors.textPrimary }]} />
-            <Text style={[styles.cityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {formatAddress(item.destination)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Trip Info */}
-        <View style={[styles.infoSection, { borderBottomColor: colors.borderLight }]}>
-          <View style={styles.infoItem}>
-            <Ionicons name="calendar-outline" size={16} color={colors.textTertiary} />
-            <Text style={[styles.infoText, { color: colors.textTertiary }]}>{formatDate(item.departureDate)}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={16} color={colors.textTertiary} />
-            <Text style={[styles.infoText, { color: colors.textTertiary }]}>{item.departureTime}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="people-outline" size={16} color={colors.textTertiary} />
-            <Text style={[styles.infoText, { color: colors.textTertiary }]}>{item.availableSeats} disponibles</Text>
-          </View>
-        </View>
-
-        {/* Actions for Active Trips */}
+        {/* Botones — solo viajes activos o en curso */}
         {item.status === 'active' && (
-          <View style={styles.actionsSection}>
+          <View style={styles.footerRow}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.textPrimary }]}
+              style={[styles.footerBtn, { backgroundColor: accent }]}
               onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
             >
-              <Ionicons name="people" size={18} color={colors.background} />
-              <Text style={[styles.primaryButtonText, { color: colors.background }]}>Ver Reservas</Text>
-              {item.passengers && item.passengers.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.badgeText, { color: colors.textPrimary }]}>{item.passengers.length}</Text>
+              <Text style={[styles.footerBtnText, { color: accentInv }]}>Ver reservas</Text>
+              {item.bookingsCount > 0 && (
+                <View style={[styles.footerBadge, { backgroundColor: accentInv }]}>
+                  <Text style={[styles.footerBadgeText, { color: accent }]}>{item.bookingsCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <View style={styles.secondaryActions}>
-              {item.occupiedSeats > 0 && (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleStartTrip(item._id)}
-                  disabled={startingTripId === item._id}
-                >
-                  <Ionicons name="play" size={20} color={colors.warning} />
-                  <Text style={[styles.actionButtonText, { color: colors.warning }]}>
-                    {startingTripId === item._id ? 'Iniciando...' : 'Iniciar'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Cancelar movido a TripDetailScreen */}
-            </View>
+            {item.occupiedSeats > 0 && isTripToday(item.departureDate) && (
+              <TouchableOpacity
+                style={[styles.footerBtnOutline, { borderColor: divider }]}
+                onPress={() => handleStartTrip(item._id)}
+                disabled={startingTripId === item._id}
+              >
+                <Ionicons name="play-circle-outline" size={15} color={textPrimary} />
+                <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>
+                  {startingTripId === item._id ? 'Iniciando…' : 'Iniciar'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
-        {/* Actions for Started Trips */}
         {item.status === 'started' && (
-          <View style={styles.actionsSection}>
-            <View style={[styles.inProgressBanner, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}>
-              <Ionicons name="car" size={18} color={colors.warning} />
-              <Text style={[styles.inProgressText, { color: isDarkMode ? '#FBBF24' : '#92400E' }]}>Viaje en progreso</Text>
-            </View>
-
+          <View style={styles.footerRow}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.textPrimary }]}
+              style={[styles.footerBtn, { backgroundColor: accent, flex: 1 }]}
               onPress={() => handleCompleteTrip(item._id)}
             >
-              <Ionicons name="checkmark-circle" size={18} color={colors.background} />
-              <Text style={[styles.primaryButtonText, { color: colors.background }]}>Completar Viaje</Text>
+              <Ionicons name="checkmark-circle-outline" size={15} color={accentInv} />
+              <Text style={[styles.footerBtnText, { color: accentInv }]}>Completar viaje</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -304,26 +341,25 @@ const MyTripsScreen = ({ navigation }) => {
 
   const filteredTrips = getFilteredTrips();
 
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
-        <TouchableOpacity
-          style={[styles.tab, { backgroundColor: isDarkMode ? '#292929' : colors.borderLight }, activeTab === 'upcoming' && { backgroundColor: colors.textPrimary }]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Text style={[styles.tabText, { color: colors.textTertiary }, activeTab === 'upcoming' && { color: colors.background }]}>
-            Proximos
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { backgroundColor: isDarkMode ? '#292929' : colors.borderLight }, activeTab === 'past' && { backgroundColor: colors.textPrimary }]}
-          onPress={() => setActiveTab('past')}
-        >
-          <Text style={[styles.tabText, { color: colors.textTertiary }, activeTab === 'past' && { color: colors.background }]}>
-            Pasados
-          </Text>
-        </TouchableOpacity>
+      {/* Tabs — estilo subrayado */}
+      <View style={[styles.tabsContainer, { borderBottomColor: divider }]}>
+        {['upcoming', 'past'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && { borderBottomColor: textPrimary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, { color: activeTab === tab ? textPrimary : textMuted }]}>
+              {tab === 'upcoming' ? 'Próximos' : 'Pasados'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Trips List */}
@@ -333,28 +369,28 @@ const MyTripsScreen = ({ navigation }) => {
           renderItem={renderTripItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.textPrimary}
-            />
-          }
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textPrimary} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} />
+            ) : null
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.borderLight }]}>
-            <Ionicons name="car-outline" size={48} color={colors.textMuted} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-            {activeTab === 'upcoming' ? 'Sin viajes proximos' : 'Sin viajes pasados'}
+          <Ionicons name="car-outline" size={40} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>
+            {activeTab === 'upcoming' ? 'Sin viajes próximos' : 'Sin viajes pasados'}
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
+          <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             {activeTab === 'upcoming'
-              ? 'Crea tu primer viaje y comparte gastos'
-              : 'Tus viajes completados apareceran aqui'
-            }
+              ? 'Creá tu primer viaje y compartí gastos'
+              : 'Tus viajes completados aparecerán aquí'}
           </Text>
         </View>
       )}
@@ -418,203 +454,124 @@ const MyTripsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Tabs
+  container:      { flex: 1 },
+  centerContainer:{ flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // Tabs — estilo subrayado
   tabsContainer: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  tabText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  // List
-  listContent: {
-    padding: 16,
-  },
+  tabText: { fontSize: 14, fontWeight: '600' },
+
+  listContent: { padding: 16, gap: 12 },
+
   // Card
   card: {
-    borderRadius: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
+  // Cabecera: ruta + pill
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
+    paddingBottom: 12,
+    gap: 12,
   },
-  // Status
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-    gap: 8,
+  routeBlock: { flex: 1, flexDirection: 'row', gap: 10, alignItems: 'center' },
+  routeDots:  { width: 14, alignItems: 'center', paddingVertical: 2 },
+  dotOrigin: {
+    width: 9, height: 9, borderRadius: 5, borderWidth: 2,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
+  dotDest:   { width: 9, height: 9, borderRadius: 2 },
+  routeLabels: { flex: 1 },
+  cityText:  { fontSize: 14, fontWeight: '600' },
+
+  // Status pill
+  statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: 20,
+    alignSelf: 'center',
+    flexShrink: 0,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 3,
-  },
-  pendingBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  // Route
-  routeSection: {
-    marginBottom: 16,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routeDotDestination: {
-    borderWidth: 2,
-  },
-  routeLine: {
-    width: 2,
-    height: 20,
-    marginLeft: 4,
-    marginVertical: 4,
-  },
-  cityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  // Info
-  infoSection: {
+  statusPillText: { fontSize: 11, fontWeight: '600' },
+
+  // Meta row
+  metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
-  infoItem: {
+  metaItem:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText:    { fontSize: 12 },
+  metaDivider: { width: 1, height: 12 },
+
+  // Footer botones
+  footerRow: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 8,
+  },
+  footerBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 10,
     gap: 6,
   },
-  infoText: {
-    fontSize: 14,
-  },
-  // Actions
-  actionsSection: {
-    paddingTop: 16,
-    gap: 12,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
-    gap: 8,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  badge: {
+  footerBtnText: { fontSize: 13, fontWeight: '600' },
+  footerBadge: {
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  secondaryActions: {
+  footerBadgeText: { fontSize: 10, fontWeight: '700' },
+  footerBtnOutline: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  actionButton: {
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 11,
     paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 5,
   },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  // In Progress
-  inProgressBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-  },
-  inProgressText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Empty State
+  footerBtnOutlineText: { fontSize: 13, fontWeight: '500' },
+
+  // Empty
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    gap: 10, padding: 32,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyTitle:    { fontSize: 16, fontWeight: '600', marginTop: 4 },
+  emptySubtitle: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+
   // Modal
   modalOverlay: {
     flex: 1,
@@ -623,21 +580,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
-  modalContent: {
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
-  },
+  modalContent:   { borderRadius: 16, padding: 24, width: '100%', maxWidth: 400 },
+  modalTitle:     { fontSize: 20, fontWeight: '700', marginBottom: 8 },
+  modalSubtitle:  { fontSize: 14, marginBottom: 20 },
   costInput: {
     borderWidth: 1,
     borderRadius: 8,
@@ -646,31 +591,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalCancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  modalConfirmButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalConfirmText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  modalActions:       { flexDirection: 'row', gap: 12 },
+  modalCancelButton:  { flex: 1, paddingVertical: 14, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  modalCancelText:    { fontSize: 15, fontWeight: '600' },
+  modalConfirmButton: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  modalConfirmText:   { fontSize: 15, fontWeight: '600' },
 });
 
 export default MyTripsScreen;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,13 @@ const MyBookingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [bookings, setBookings]       = useState([]);
+  const [page, setPage]               = useState(1);
+  const [hasMore, setHasMore]         = useState(true);
+  const [loading, setLoading]         = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+  const fetchingRef = useRef(false);
 
   const bg = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
@@ -32,7 +36,7 @@ const MyBookingsScreen = ({ navigation }) => {
   const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   useEffect(() => {
-    loadMyBookings();
+    loadMyBookings(1, true);
     setupTripCancellationListener();
     return () => cleanupListeners();
   }, []);
@@ -49,7 +53,7 @@ const MyBookingsScreen = ({ navigation }) => {
           }
           return booking;
         });
-        if (hasUpdates) setTimeout(() => loadMyBookings(), 1000);
+        if (hasUpdates) setTimeout(() => loadMyBookings(1, true), 1000);
         return updated;
       });
     };
@@ -62,21 +66,35 @@ const MyBookingsScreen = ({ navigation }) => {
     if (socketService.socket) socketService.socket.off('trip:cancelled');
   };
 
-  const loadMyBookings = async () => {
+  const loadMyBookings = async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      const response = await get_withauth(ENDPOINTS.MY_BOOKINGS);
-      if (response.success) setBookings(response.data);
+      const response = await get_withauth(`${ENDPOINTS.MY_BOOKINGS}?page=${pageNum}&limit=15`);
+      if (response.success) {
+        setBookings(prev => reset ? response.data : [...prev, ...response.data]);
+        setPage(pageNum);
+        setHasMore(response.hasMore ?? false);
+      }
     } catch {
       showAlert('Error', 'No se pudieron cargar las reservas');
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadMyBookings();
+    loadMyBookings(1, true);
+  };
+
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    loadMyBookings(page + 1, false);
   };
 
   const handleCancelBooking = (bookingId) => {
@@ -88,7 +106,7 @@ const MyBookingsScreen = ({ navigation }) => {
         onPress: async () => {
           try {
             const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
-            if (response.success) loadMyBookings();
+            if (response.success) loadMyBookings(1, true);
           } catch (error) {
             showAlert('Error', error.message);
           }
@@ -120,6 +138,23 @@ const MyBookingsScreen = ({ navigation }) => {
     let raw = location.address || location.street || '';
     raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
     return raw || location.city || location.name || '';
+  };
+
+  const getStatusPriority = (item) => {
+    const rs = item.seatReservation?.reservationStatus;
+    if (rs === 'pending_payment')  return 0;
+    if (rs === 'pending_approval') return 1;
+    if (rs === 'reserved')         return 2;
+    if (rs === 'rejected')         return 3;
+    if (rs === 'cancelled')        return 4;
+    // sin seatReservation, usar booking.status
+    switch (item.status) {
+      case 'pending':   return 1;
+      case 'confirmed': return 2;
+      case 'completed': return 3;
+      case 'cancelled': return 4;
+      default:          return 5;
+    }
   };
 
   const canCancel = (item) =>
@@ -239,7 +274,22 @@ const MyBookingsScreen = ({ navigation }) => {
     <View style={[styles.container, { backgroundColor: bg }]}>
       {bookings.length > 0 ? (
         <FlatList
-          data={bookings}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={textSecondary} style={{ paddingVertical: 16 }} />
+            ) : null
+          }
+          data={[...bookings].sort((a, b) => {
+            const pa = getStatusPriority(a);
+            const pb = getStatusPriority(b);
+            if (pa !== pb) return pa - pb;
+            // mismo estado → viaje más próximo primero
+            const da = new Date(a.trip?.departureDate || 0).getTime();
+            const db = new Date(b.trip?.departureDate || 0).getTime();
+            return da - db;
+          })}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}

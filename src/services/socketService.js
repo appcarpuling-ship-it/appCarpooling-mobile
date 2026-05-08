@@ -34,6 +34,14 @@ class SocketService {
         ...SOCKET_CONFIG.OPTIONS
       });
 
+      // Aplicar listeners pendientes garantizando que no se registren dos veces.
+      // socket.io reutiliza la misma instancia si la URL es la misma, por lo que
+      // es necesario quitar el listener previo antes de volver a añadirlo.
+      this.listeners.forEach((callback, event) => {
+        this.socket.off(event, callback);
+        this.socket.on(event, callback);
+      });
+
       // Eventos de conexión
       this.socket.on('connect', () => {
         console.log('✅ Conectado al servidor WebSocket');
@@ -203,22 +211,28 @@ class SocketService {
   }
 
   /**
-   * Escuchar notificaciones recibidas
+   * Escuchar notificaciones recibidas.
+   * El callback se guarda en this.listeners siempre, y si el socket ya existe
+   * se registra de inmediato; si no, connect() lo aplicará cuando cree el socket.
    */
   onNotificationReceived(callback) {
+    // Quitar listener previo si existe para no registrar el mismo evento dos veces
+    if (this.socket && this.listeners.has('notification:new')) {
+      this.socket.off('notification:new', this.listeners.get('notification:new'));
+    }
+    this.listeners.set('notification:new', callback);
     if (this.socket) {
       this.socket.on('notification:new', callback);
-      this.listeners.set('notification:new', callback);
     }
   }
 
-  /**
-   * Escuchar actualizaciones de estado de reservas
-   */
   onBookingStatusUpdate(callback) {
+    if (this.socket && this.listeners.has('booking:statusUpdate')) {
+      this.socket.off('booking:statusUpdate', this.listeners.get('booking:statusUpdate'));
+    }
+    this.listeners.set('booking:statusUpdate', callback);
     if (this.socket) {
       this.socket.on('booking:statusUpdate', callback);
-      this.listeners.set('booking:statusUpdate', callback);
     }
   }
 

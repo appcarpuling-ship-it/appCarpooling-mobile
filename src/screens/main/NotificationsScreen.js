@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,22 +14,25 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import { navigateFromNotification } from '../../utils/notificationNavigation';
+import { get_withauth } from '../../services/apiService';
+
+const PAGE_SIZE = 20;
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { colors, getCurrentThemeMode } = useColors();
 
   useTheme();
-  const {
-    notifications = [],
-    loading,
-    markAsRead,
-    markAllAsRead,
-    loadNotifications,
-  } = useNotifications();
+  const { markAsRead, markAllAsRead } = useNotifications();
 
+  const [items, setItems]           = useState([]);
+  const [page, setPage]             = useState(1);
+  const [hasMore, setHasMore]       = useState(true);
+  const [loading, setLoading]       = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [optimisticRead, setOptimisticRead] = useState(new Set());
+  const fetchingRef = useRef(false);
 
   const dark = getCurrentThemeMode() === 'dark';
   const bg = colors.background;
@@ -41,11 +44,40 @@ const NotificationsScreen = ({ navigation }) => {
   const unreadBg = dark ? '#1A1F2E' : '#F5F7FF';
   const unreadDot = dark ? '#6B7280' : '#111111';
 
-  const onRefresh = async () => {
+  // Carga inicial / refresh
+  const loadPage = useCallback(async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const response = await get_withauth(`/notifications?page=${pageNum}&limit=${PAGE_SIZE}`);
+      if (response?.success) {
+        const newItems = response.data || [];
+        setItems(prev => reset ? newItems : [...prev, ...newItems]);
+        setPage(pageNum);
+        setHasMore(response.hasMore ?? false);
+      }
+    } catch (_) {}
+    finally {
+      fetchingRef.current = false;
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Ejecutar al montar
+  useState(() => { loadPage(1, true); }, []);
+
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadNotifications();
     setOptimisticRead(new Set());
-    setRefreshing(false);
+    loadPage(1, true);
+  };
+
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    loadPage(page + 1, false);
   };
 
   const handleNotificationPress = (notification) => {
@@ -53,12 +85,11 @@ const NotificationsScreen = ({ navigation }) => {
       setOptimisticRead(prev => new Set([...prev, notification._id]));
       markAsRead(notification._id);
     }
-
     navigateFromNotification(navigation, notification, { useMainStack: false });
   };
 
   const handleMarkAllAsRead = () => {
-    const allIds = notifications.map(n => n._id);
+    const allIds = items.map(n => n._id);
     setOptimisticRead(new Set(allIds));
     markAllAsRead();
   };
@@ -92,7 +123,7 @@ const NotificationsScreen = ({ navigation }) => {
 
   const renderItem = ({ item, index }) => {
     const isRead = item.isRead || optimisticRead.has(item._id);
-    const isLast = index === notifications.length - 1;
+    const isLast = index === items.length - 1;
 
     return (
       <TouchableOpacity
@@ -155,7 +186,7 @@ const NotificationsScreen = ({ navigation }) => {
     );
   }
 
-  const hasUnread = notifications.some(n => !n.isRead && !optimisticRead.has(n._id));
+  const hasUnread = items.some(n => !n.isRead && !optimisticRead.has(n._id));
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: bg }]}>
@@ -184,26 +215,33 @@ const NotificationsScreen = ({ navigation }) => {
       </View>
 
       {/* List */}
-      {notifications.length > 0 ? (
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="small" color={textMuted} />
+        </View>
+      ) : items.length > 0 ? (
         <FlatList
-          data={notifications}
+          data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={textMuted}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} />
+            ) : null
           }
         />
       ) : (
         <View style={styles.emptyWrap}>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin notificaciones</Text>
           <Text style={[styles.emptyText, { color: textMuted }]}>
-            Cuando recibas notificaciones apareceran aqui
+            Cuando recibas notificaciones aparecerán aquí
           </Text>
         </View>
       )}
