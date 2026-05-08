@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Carpooling",
+    "name": "Carpuling",
     "slug": "carpuling",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -81,6 +81,16 @@
     },
     "plugins": [
       "expo-updates",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo/192x192.jpg",
+          "color": "#000000",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "Carpuling"
+        }
+      ],
       [
         "expo-location",
         {

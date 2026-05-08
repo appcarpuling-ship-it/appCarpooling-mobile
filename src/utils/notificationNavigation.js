@@ -52,6 +52,15 @@ function navigateToChat(navigation, conversationId, otherUser, useMainStack) {
   }
 }
 
+function navigateToChats(navigation, useMainStack) {
+  const params = { screen: 'Chats' };
+  if (useMainStack) {
+    navigation.navigate('Main', { screen: 'ChatsTab', params });
+  } else {
+    navigation.navigate('ChatsTab', params);
+  }
+}
+
 function navigateToMyBookings(navigation, useMainStack) {
   const params = { screen: 'MyBookings' };
   if (useMainStack) {
@@ -205,5 +214,9 @@ export function navigateFromNotification(navigation, notification, options = {})
   }
   if (notification.type === 'review_received') {
     navigateToProfile(navigation, useMainStack);
+    return;
+  }
+  if (notification.type === 'new_message') {
+    navigateToChats(navigation, useMainStack);
   }
 }
