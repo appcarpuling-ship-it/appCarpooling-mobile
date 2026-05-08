@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Keyboard, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '../hooks/useColors';
@@ -135,8 +136,13 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ChatsTab"
         component={ChatStackNavigator}
-        options={{
-          tabBarLabel: 'Mensajes',
+        options={({ route }) => {
+          const nested = getFocusedRouteNameFromRoute(route) ?? 'Chats';
+          const hideTabBar = nested === 'ChatDetail';
+          return {
+            tabBarLabel: 'Mensajes',
+            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
+          };
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {

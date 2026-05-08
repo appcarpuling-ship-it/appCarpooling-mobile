@@ -28,7 +28,7 @@ const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
   { title: 'Tu cuenta',       subtitle: 'Creá tus credenciales de acceso',                  fields: ['email', 'password', 'confirmPassword'] },
   { title: 'Tus datos',       subtitle: 'Información de contacto y ubicación',              fields: ['phone', 'gender', 'age', 'province', 'city'] },
-  { title: 'Últimos detalles',subtitle: 'Todo es opcional, podés completarlo después',      fields: [] },
+  { title: 'Últimos detalles', subtitle: 'Bio y código opcionales. DNI: necesario para publicar viajes (podés subirlo después en perfil).', fields: [] },
 ];
 
 const RegisterScreen = ({ navigation }) => {
@@ -51,6 +51,8 @@ const RegisterScreen = ({ navigation }) => {
   );
 
   const [avatarUri, setAvatarUri] = useState(null);
+  const [dniFrontUri, setDniFrontUri] = useState(null);
+  const [dniBackUri, setDniBackUri] = useState(null);
   const [loading, setLoading] = useState(false);
   const [validatingReferral, setValidatingReferral] = useState(false);
   const [referralMessage, setReferralMessage] = useState('');
@@ -60,7 +62,33 @@ const RegisterScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const imageAsset = await pickImageFromGallery({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (imageAsset) setAvatarUri(imageAsset.uri);
+    if (imageAsset) {
+      const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
+      if (uri) setAvatarUri(uri);
+    }
+  };
+
+  const appendRegisterImage = (formData, fieldName, uri) => {
+    if (!uri) return;
+    const filename = uri.split('/').pop() || `${fieldName}.jpg`;
+    const match = /\.(\w+)$/.exec(filename);
+    let ext = match ? match[1].toLowerCase() : 'jpeg';
+    if (ext === 'jpg') ext = 'jpeg';
+    const name = filename.includes('.') ? filename : `${filename}.jpg`;
+    formData.append(fieldName, { uri, name, type: `image/${ext}` });
+  };
+
+  const pickDniSide = async (side) => {
+    const imageAsset = await pickImageFromGallery({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.85,
+    });
+    if (!imageAsset) return;
+    const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
+    if (!uri) return;
+    if (side === 'front') setDniFrontUri(uri);
+    else setDniBackUri(uri);
   };
 
   const validateReferralCode = async (code) => {
@@ -134,11 +162,9 @@ const RegisterScreen = ({ navigation }) => {
       formDataToSend.append('province', values.province);
       if (values.bio) formDataToSend.append('bio', values.bio);
       if (values.referralCode?.trim()) formDataToSend.append('referralCode', values.referralCode.toUpperCase());
-      if (avatarUri) {
-        const filename = avatarUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        formDataToSend.append('avatar', { uri: avatarUri, name: filename, type: match ? `image/${match[1]}` : 'image/jpeg' });
-      }
+      appendRegisterImage(formDataToSend, 'avatar', avatarUri);
+      appendRegisterImage(formDataToSend, 'dniFront', dniFrontUri);
+      appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
       const result = await register(formDataToSend);
       if (result.success) {
         showAlert('Registro exitoso', 'Te enviamos un código de verificación a tu email', [
@@ -214,6 +240,40 @@ const RegisterScreen = ({ navigation }) => {
                 }
               </View>
             )}
+            <Text style={[styles.dniSectionTitle, { color: textPrimary }]}>DNI (conductor)</Text>
+            <Text style={[styles.dniHint, { color: textMuted }]}>
+              Para publicar viajes necesitás frente y dorso. Podés cargarlos ahora o después en Editar perfil.
+            </Text>
+            <View style={styles.dniRow}>
+              <TouchableOpacity
+                style={[styles.dniCard, { borderColor: border, backgroundColor: cardBg }]}
+                onPress={() => pickDniSide('front')}
+                activeOpacity={0.85}
+              >
+                {dniFrontUri ? (
+                  <Image source={{ uri: dniFrontUri }} style={styles.dniThumb} />
+                ) : (
+                  <View style={styles.dniPlaceholder}>
+                    <Ionicons name="id-card-outline" size={28} color={textMuted} />
+                    <Text style={[styles.dniCardLabel, { color: textMuted }]}>Frente</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dniCard, { borderColor: border, backgroundColor: cardBg }]}
+                onPress={() => pickDniSide('back')}
+                activeOpacity={0.85}
+              >
+                {dniBackUri ? (
+                  <Image source={{ uri: dniBackUri }} style={styles.dniThumb} />
+                ) : (
+                  <View style={styles.dniPlaceholder}>
+                    <Ionicons name="id-card-outline" size={28} color={textMuted} />
+                    <Text style={[styles.dniCardLabel, { color: textMuted }]}>Dorso</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </>
         );
     }
@@ -312,7 +372,7 @@ const RegisterScreen = ({ navigation }) => {
         visible={showPermissionModal}
         onClose={() => setShowPermissionModal(false)}
         title="Permisos de Galería"
-        message="Para seleccionar una foto de perfil necesitamos acceso a tu galería. Ve a configuración y habilitá los permisos para esta aplicación."
+        message="Para elegir foto de perfil o DNI necesitamos acceso a tu galería. Ve a configuración y habilitá los permisos para esta aplicación."
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
@@ -363,6 +423,20 @@ const styles = StyleSheet.create({
   loginText:    { fontSize: 14 },
   loginLink:    { fontSize: 14, fontWeight: '600' },
   referralMsg:  { fontSize: 12, fontWeight: '500' },
+  dniSectionTitle: { fontSize: 15, fontWeight: '700', marginTop: 8, marginBottom: 6 },
+  dniHint: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
+  dniRow: { flexDirection: 'row', gap: 12 },
+  dniCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    aspectRatio: 1.55,
+    maxHeight: 118,
+  },
+  dniThumb: { width: '100%', height: '100%' },
+  dniPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
+  dniCardLabel: { fontSize: 12, fontWeight: '600', marginTop: 6 },
 });
 
 export default RegisterScreen;

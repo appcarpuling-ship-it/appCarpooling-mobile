@@ -588,7 +588,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
             <View style={styles.routeLabelsCol}>
               <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Origen</Text>
+                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Origen</Text>
                 <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.origin)}</Text>
                 {trip.origin?.city && (
                   <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.origin.city}, {trip.origin.province}</Text>
@@ -599,14 +599,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 .sort((a, b) => a.order - b.order)
                 .map((stop, i) => (
                   <View key={i} style={styles.routeStop}>
-                    <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {stop.order}</Text>
+                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Parada {stop.order}</Text>
                     <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
                     <Text style={[styles.routeStopCity, { color: textMuted }]}>{stop.city}, {stop.province}</Text>
                   </View>
                 ))}
 
               <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
+                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Destino</Text>
                 <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.destination)}</Text>
                 {trip.destination?.city && (
                   <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.destination.city}, {trip.destination.province}</Text>

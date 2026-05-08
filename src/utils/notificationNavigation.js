@@ -109,7 +109,8 @@ export function buildNotificationLikeFromPushData(raw) {
     actionUrl = `/chat/${conversationId}`;
   }
 
-  const senderId = str('senderId');
+  const senderFirstName = str('senderFirstName');
+  const senderLastName = str('senderLastName');
   return {
     actionUrl,
     type: str('type') || '',
@@ -121,7 +122,11 @@ export function buildNotificationLikeFromPushData(raw) {
       conversationId,
       sender: senderId ? { _id: senderId } : {},
     },
-    relatedUser: senderId ? { _id: senderId } : {},
+    relatedUser: {
+      ...(senderId && { _id: senderId }),
+      ...(senderFirstName && { firstName: senderFirstName }),
+      ...(senderLastName && { lastName: senderLastName }),
+    },
   };
 }
 

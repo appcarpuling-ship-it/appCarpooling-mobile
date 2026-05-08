@@ -29,6 +29,7 @@ export const ENDPOINTS = {
   RESEND_VERIFICATION: '/auth/resend-code',
   GET_ME: '/auth/me',
   UPDATE_PROFILE: '/auth/profile',
+  UPLOAD_DNI: '/auth/documents/dni',
   FORGOT_PASSWORD: '/auth/forgot-password',
   RESET_PASSWORD: '/auth/reset-password',
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ActivityIndicator,
   Image,
   Animated
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
@@ -20,10 +23,33 @@ import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import { useColors } from '../../../hooks/useColors';
 import apiService, { buildImageUri } from '../../../services/apiService';
 import socketService from '../../../services/socketService';
+
+/** Misma distancia borde superior del compositor ↔ cabecera del input, e input ↔ teclado (teclado abierto). */
+const COMPOSER_VERTICAL_INSET = 12;
+
 const ChatDetailScreen = ({ route, navigation }) => {
-  const { conversation, otherUser } = route.params;
+  const params = route.params ?? {};
+  const rawConversation = params.conversation;
+  const otherUser = useMemo(() => {
+    const o = params.otherUser;
+    return o && typeof o === 'object' ? o : {};
+  }, [params.otherUser]);
+  const conversationId = useMemo(() => {
+    if (rawConversation && typeof rawConversation === 'object' && rawConversation._id) {
+      return String(rawConversation._id);
+    }
+    if (typeof rawConversation === 'string' && rawConversation) return rawConversation;
+    return null;
+  }, [rawConversation]);
+
+  const displayName = [otherUser?.firstName, otherUser?.lastName].filter(Boolean).join(' ') || 'Usuario';
+  const displayInitials =
+    `${otherUser?.firstName?.[0] ?? '?'}` + `${otherUser?.lastName?.[0] ?? ''}`;
+
   const { user } = useAuth();
   const { colors } = useColors();
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const isFocused = useIsFocused();
   const isFocusedRef = useRef(isFocused);
   
@@ -33,6 +59,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -41,9 +68,37 @@ const ChatDetailScreen = ({ route, navigation }) => {
     isFocusedRef.current = isFocused;
   }, [isFocused]);
 
+  /** Android usa adjustResize + softwareKeyboardLayoutMode: no sumar altura del teclado a mano (duplica y sube el input). Solo scroll. */
   useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    const onShow = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
+    });
+    return () => onShow.remove();
+  }, []);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener(hideEvt, () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!conversationId) {
+      navigation.goBack();
+    }
+  }, [conversationId, navigation]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+
     // Marcar esta conversación como activa para evitar incrementar el contador
-    setActiveConversation(conversation._id);
+    setActiveConversation(conversationId);
 
     // Animacion fadeIn
     Animated.timing(fadeAnim, {
@@ -104,14 +159,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
                 end={{ x: 1, y: 1 }}
               >
                 <Text style={[styles.headerAvatarText, { color: '#FFFFFF' }]}>
-                  {otherUser.firstName[0]}{otherUser.lastName[0]}
+                  {displayInitials}
                 </Text>
               </LinearGradient>
             )}
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-              {otherUser.firstName} {otherUser.lastName}
+              {displayName}
             </Text>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               {typing ? 'Escribiendo...' : 'En linea'}
@@ -124,14 +179,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
     loadMessages();
 
     // Unirse a la conversación
-    socketService.joinConversation(conversation._id);
+    socketService.joinConversation(conversationId);
 
     return () => {
       // Limpiar conversación activa al salir
       clearActiveConversation();
 
       // Salir de la conversación y limpiar listeners
-      socketService.leaveConversation(conversation._id);
+      socketService.leaveConversation(conversationId);
       socketService.removeListener('message:received');
       socketService.removeListener('typing:user');
       if (typingTimeoutRef.current) {
@@ -143,13 +198,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
         loadUnreadCount();
       }, 300);
     };
-  }, [conversation._id, conversation, navigation, otherUser, typing]);
+  }, [conversationId, navigation, otherUser, typing, colors.background, colors.textPrimary, colors.textSecondary, colors?.messagePrimary, colors?.messageSecondary]);
 
   // Separar en un useEffect para los listeners del socket
   useEffect(() => {
+    if (!conversationId) return;
     // Escuchar mensajes en tiempo real
     const handleMessageReceived = async (message) => {
-      if (message.conversation !== conversation._id) return;
+      if (String(message.conversation) !== String(conversationId)) return;
 
       setMessages(prev => {
         // Evitar duplicados: remover mensaje temporal si existe
@@ -165,11 +221,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
       if (!isFocusedRef.current) return;
 
       try {
-        await apiService.put(`/chat/conversation/${conversation._id}/read`);
+        await apiService.put(`/chat/conversation/${conversationId}/read`);
         console.log('✅ [ChatDetailScreen] Mensaje marcado como leído al recibir');
       } catch (error) {
         console.error('❌ [ChatDetailScreen] Error al marcar mensaje como leído:', error);
-        socketService.markMessagesAsRead(conversation._id);
+        socketService.markMessagesAsRead(conversationId);
       }
       setTimeout(() => loadUnreadCount(), 500);
     };
@@ -184,7 +240,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
     // Escuchar cuando se cierra la conversación
     const handleConversationClosed = (data) => {
-      if (data.conversationId === conversation._id) {
+      if (String(data.conversationId) === String(conversationId)) {
         // Mostrar alerta y redirigir
         alert(`Conversación cerrada: ${data.message}`);
         
@@ -202,12 +258,13 @@ const ChatDetailScreen = ({ route, navigation }) => {
       socketService.removeListener('typing:user');
       socketService.removeListener('conversation:closed');
     };
-  }, [conversation._id]);
+  }, [conversationId, user?._id, user?.id, navigation]);
 
   const loadMessages = async () => {
+    if (!conversationId) return;
     try {
       const response = await apiService.get(
-        `/chat/conversation/${conversation._id}/messages`
+        `/chat/conversation/${conversationId}/messages`
       );
 
       if (response.data.success) {
@@ -215,7 +272,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
         // Marcar todos los mensajes como leídos cuando se carga el chat
         try {
-          await apiService.put(`/chat/conversation/${conversation._id}/read`);
+          await apiService.put(`/chat/conversation/${conversationId}/read`);
           console.log('✅ [ChatDetailScreen] Mensajes marcados como leídos al cargar');
         } catch (error) {
           console.error('❌ [ChatDetailScreen] Error al marcar mensajes como leídos:', error);
@@ -242,7 +299,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
     try {
       // Enviar a través de WebSocket
-      socketService.sendMessage(conversation._id, messageText);
+      socketService.sendMessage(conversationId, messageText);
 
       // Agregar mensaje optimísticamente
       const tempMessage = {
@@ -257,7 +314,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
       scrollToBottom();
 
       // Detener indicador de escritura
-      socketService.stopTyping(conversation._id);
+      socketService.stopTyping(conversationId);
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
     } finally {
@@ -270,7 +327,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
     // Notificar que está escribiendo
     if (text.length > 0) {
-      socketService.startTyping(conversation._id);
+      socketService.startTyping(conversationId);
 
       // Detener después de 2 segundos sin escribir
       if (typingTimeoutRef.current) {
@@ -278,10 +335,10 @@ const ChatDetailScreen = ({ route, navigation }) => {
       }
 
       typingTimeoutRef.current = setTimeout(() => {
-        socketService.stopTyping(conversation._id);
+        socketService.stopTyping(conversationId);
       }, 2000);
     } else {
-      socketService.stopTyping(conversation._id);
+      socketService.stopTyping(conversationId);
     }
   };
 
@@ -343,6 +400,18 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   };
 
+  if (!conversationId) {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const inputBottomPadding = keyboardOpen
+    ? COMPOSER_VERTICAL_INSET
+    : COMPOSER_VERTICAL_INSET + insets.bottom;
+
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
@@ -354,12 +423,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+      <View style={{ flex: 1 }}>
+        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <FlatList
           ref={flatListRef}
+          style={{ flex: 1 }}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item, index) => item._id || index.toString()}
@@ -375,17 +446,19 @@ const ChatDetailScreen = ({ route, navigation }) => {
               style={[styles.typingDot, { backgroundColor: colors?.messagePrimary }]}
             />
             <Text style={[styles.typingText, { color: colors.textSecondary }]}>
-              {otherUser.firstName} esta escribiendo...
+              {displayName} esta escribiendo...
             </Text>
           </View>
         )}
 
         <View style={[
           styles.inputContainer,
-          { 
+          {
             backgroundColor: colors.background,
-            borderTopColor: colors.border
-          }
+            borderTopColor: colors.border,
+            paddingTop: COMPOSER_VERTICAL_INSET,
+            paddingBottom: inputBottomPadding,
+          },
         ]}>
           <TextInput
             style={[
@@ -422,7 +495,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+        </Animated.View>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -554,11 +628,9 @@ const styles = StyleSheet.create({
   // Input area
   inputContainer: {
     flexDirection: 'row',
-    padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 12,
-    marginBottom: 12,
+    paddingHorizontal: 12,
     borderTopWidth: 1,
-    alignItems: 'flex-end'
+    alignItems: 'flex-end',
   },
   // Back button
   backButton: {
