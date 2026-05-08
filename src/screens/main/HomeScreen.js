@@ -276,8 +276,8 @@ const HomeScreen = ({ navigation }) => {
 
   // Dynamic colors
   const bg = colors.background;
-  const cardBg = dark ? '#1A1A1A' : '#F7F7F7';
-  const inputBg = dark ? '#1A1A1A' : '#F7F7F7';
+  const cardBg = dark ? '#222222' : '#F7F7F7';
+  const inputBg = dark ? '#222222' : '#F7F7F7';
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
   const textMuted = colors.textMuted;

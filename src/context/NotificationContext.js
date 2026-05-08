@@ -90,27 +90,6 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCountRef.current(prev => prev + 1);
     });
 
-    // Escuchar actualizaciones de solicitudes de viaje
-    socketService.onBookingStatusUpdate((data) => {
-      console.log('🚗 [NotificationContext] Actualización de booking recibida:', data);
-      // Crear notificación local - usar isRead (backend usa isRead)
-      const notification = {
-        _id: Date.now().toString(),
-        type: 'booking_update',
-        title: 'Actualización de Solicitud',
-        message: data.message || `Tu solicitud ha sido ${data.status}`,
-        data: data,
-        isRead: false,
-        createdAt: new Date(),
-      };
-      // ✅ Usar refs para evitar problemas con hooks en callbacks
-      setNotificationsRef.current(prev => {
-        const prevArray = Array.isArray(prev) ? prev : [];
-        return [notification, ...prevArray];
-      });
-      setUnreadCountRef.current(prev => prev + 1);
-    });
-
     // NOTA: No escuchar mensajes aquí para evitar conflictos con useUnreadMessages
     // El hook useUnreadMessages maneja específicamente los mensajes no leídos para el tab badge
   }, []);
@@ -118,8 +97,6 @@ export const NotificationProvider = ({ children }) => {
   const cleanupSocketListeners = useCallback(() => {
     console.log('🧹 [NotificationContext] Limpiando listeners de socket...');
     socketService.removeListener('notification:new');
-    socketService.removeListener('booking:statusUpdate');
-    // Ya no limpiamos message:received aquí
   }, []);
 
   useEffect(() => {

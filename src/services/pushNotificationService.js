@@ -1,6 +1,7 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { put_withauth, delete_withauth } from './apiService';
 
 // Configurar cómo se manejan las notificaciones cuando la app está en primer plano
@@ -41,10 +42,12 @@ export const registerForPushNotificationsAsync = async () => {
       return null;
     }
 
-    // Obtener el push token
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: 'ddcb99f7-c978-4627-bc9c-505a90fe674f',
-    });
+    // Obtener el push token - projectId se lee de app.json via expo-constants
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId ??
+      '4f43e00d-f804-4c94-aa0a-beae6f6be58a';
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
 
     token = tokenData.data;
     console.log('📱 Push token obtenido:', token);

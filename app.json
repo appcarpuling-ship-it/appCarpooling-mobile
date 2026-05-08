@@ -19,9 +19,7 @@
       "fallbackToCacheTimeout": 0,
       "checkAutomatically": "ON_LOAD"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "notification": {
       "icon": "./assets/logo/192x192.jpg",
       "color": "#000000",

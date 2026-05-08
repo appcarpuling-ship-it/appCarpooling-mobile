@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '../hooks/useColors';
 import { useTheme } from '../context/ThemeContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import { useNotifications } from '../context/NotificationContext';
 
 // Stack Navigators
 import HomeStackNavigator from './stacks/HomeStackNavigator';
@@ -20,6 +21,7 @@ const MainTabNavigator = () => {
   const colors = useColors();
   const { isDarkMode } = useTheme();
   const { unreadCount } = useUnreadMessages();
+  const { unreadCount: unreadNotifications = 0 } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,31 @@ const MainTabNavigator = () => {
                 ]}>
                   <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
                     {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+
+          // Mostrar badge en el tab de perfil cuando hay notificaciones sin leer
+          if (route.name === 'ProfileTab' && unreadNotifications > 0) {
+            return (
+              <View style={styles.iconContainer}>
+                <Ionicons name={iconName} size={size} color={color} />
+                <View style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isDarkMode ? '#60A5FA' : '#2563EB',
+                    borderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                    shadowColor: '#000000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 2,
+                    elevation: 3,
+                  }
+                ]}>
+                  <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
                   </Text>
                 </View>
               </View>

@@ -225,7 +225,7 @@ const handleError = (error) => {
     return enhancedError;
   } else if (error.request) {
     // La petici?n fue hecha pero no se recibi? respuesta
-    return new Error('No se pudo conectar con el servidor. Verifica tu conexi?n a internet.');
+    return new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
   } else {
     // Algo pas? al configurar la petici?n
     return new Error(error.message || 'Error desconocido');
