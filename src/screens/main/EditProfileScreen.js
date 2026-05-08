@@ -45,7 +45,6 @@ const EditProfileScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName:  user?.lastName  || '',
-    email:     user?.email     || '',
     phone:     user?.phone     || '',
     age:       user?.age?.toString() || '',
     city:      user?.city     || '',
@@ -61,7 +60,6 @@ const EditProfileScreen = ({ navigation }) => {
       setFormData({
         firstName: user.firstName || '',
         lastName:  user.lastName  || '',
-        email:     user.email     || '',
         phone:     user.phone     || '',
         age:       user.age?.toString() || '',
         city:      user.city     || '',
@@ -131,12 +129,6 @@ const EditProfileScreen = ({ navigation }) => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       setModalMessage('Nombre y apellido son obligatorios'); setShowErrorModal(true); return;
     }
-    if (!formData.email.trim()) {
-      setModalMessage('El email es obligatorio'); setShowErrorModal(true); return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      setModalMessage('Por favor ingresa un email válido'); setShowErrorModal(true); return;
-    }
     if (!formData.phone.trim()) {
       setModalMessage('El teléfono es obligatorio'); setShowErrorModal(true); return;
     }
@@ -152,7 +144,6 @@ const EditProfileScreen = ({ navigation }) => {
       const fd = new FormData();
       fd.append('firstName', formData.firstName.trim());
       fd.append('lastName',  formData.lastName.trim());
-      fd.append('email',     formData.email.trim());
       fd.append('phone',     formData.phone.trim());
       if (formData.age) fd.append('age', parseInt(formData.age));
       fd.append('city',     formData.city.trim());
@@ -188,10 +179,12 @@ const EditProfileScreen = ({ navigation }) => {
     );
   };
 
+  const genderLabel =
+    user?.gender === 'female' ? 'Femenino' : user?.gender === 'male' ? 'Masculino' : '—';
+
   const fields = [
     { key: 'firstName', label: 'Nombre',    placeholder: 'Tu nombre',          keyboard: 'default' },
     { key: 'lastName',  label: 'Apellido',   placeholder: 'Tu apellido',         keyboard: 'default' },
-    { key: 'email',     label: 'Email',      placeholder: 'tu@email.com',        keyboard: 'email-address', autoCapitalize: 'none' },
     { key: 'phone',     label: 'Teléfono',   placeholder: '+54 9 11 1234-5678',  keyboard: 'phone-pad' },
     { key: 'age',       label: 'Edad',       placeholder: '25',                  keyboard: 'numeric', maxLength: 3 },
     { key: 'city',      label: 'Ciudad',     placeholder: 'Tu ciudad',           keyboard: 'default' },
@@ -225,6 +218,14 @@ const EditProfileScreen = ({ navigation }) => {
 
           {/* Form */}
           <View style={styles.form}>
+            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
+              <Text style={[styles.label, { color: textMuted }]}>Email</Text>
+              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{user?.email || '—'}</Text>
+            </View>
+            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
+              <Text style={[styles.label, { color: textMuted }]}>Sexo</Text>
+              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{genderLabel}</Text>
+            </View>
             {fields.map((field) => (
               <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
                 <Text style={[styles.label, { color: textMuted }]}>{field.label}</Text>

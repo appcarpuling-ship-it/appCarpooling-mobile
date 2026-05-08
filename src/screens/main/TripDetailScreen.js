@@ -98,6 +98,24 @@ const bannerStyles = StyleSheet.create({
   desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
 });
 
+/** Rutas únicas: `photo` principal + array `photos` (sin duplicar). */
+function collectVehiclePhotoPaths(vehicle) {
+  if (!vehicle) return [];
+  const raw = [];
+  if (vehicle.photo) raw.push(vehicle.photo);
+  if (Array.isArray(vehicle.photos)) raw.push(...vehicle.photos);
+  const seen = new Set();
+  const out = [];
+  for (const p of raw) {
+    if (p == null || typeof p !== 'string') continue;
+    const norm = p.trim();
+    if (!norm || seen.has(norm)) continue;
+    seen.add(norm);
+    out.push(norm);
+  }
+  return out;
+}
+
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
@@ -133,6 +151,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [passengers, setPassengers] = useState([]);
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
+
+  const canReserveWomenOnlyTrip = trip ? (!trip.womenOnly || user?.gender === 'female') : false;
 
   useEffect(() => {
     loadTripDetail();
@@ -648,45 +668,74 @@ const TripDetailScreen = ({ route, navigation }) => {
         <View style={[styles.section, { borderBottomColor: divider }]}>
           <Text style={[styles.sectionLabel, { color: textMuted }]}>Conductor</Text>
           <View style={styles.driverRow}>
-            {driver?.avatar ? (
-              <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.driverAvatar} />
-            ) : (
-              <View style={[styles.driverAvatarPlaceholder, { backgroundColor: cardBg }]}>
-                <Text style={[styles.driverInitials, { color: textSecondary }]}>
-                  {driver?.firstName?.[0]}{driver?.lastName?.[0]}
-                </Text>
-              </View>
-            )}
+            {(() => {
+              const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
+              if (driverPhotoUri) {
+                return (
+                  <TouchableOpacity onPress={() => handleImagePress(driverPhotoUri)} activeOpacity={0.85}>
+                    <Image source={{ uri: driverPhotoUri }} style={styles.driverAvatar} />
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <View style={[styles.driverAvatarPlaceholder, { backgroundColor: cardBg }]}>
+                  <Text style={[styles.driverInitials, { color: textSecondary }]}>
+                    {driver?.firstName?.[0]}{driver?.lastName?.[0]}
+                  </Text>
+                </View>
+              );
+            })()}
             <View style={styles.driverInfo}>
               <Text style={[styles.driverName, { color: textPrimary }]}>
                 {driver?.firstName} {driver?.lastName}
+              </Text>
+              <Text style={[styles.driverPhotoHint, { color: textMuted }]}>
+                {driver?.avatar ? 'Toca para ampliar' : ''}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Vehicle */}
+        {/* Vehicle — galería con todas las fotos */}
         {trip.vehicle && (() => {
-          const vehicleImage = trip.vehicle.photo || (trip.vehicle.photos && trip.vehicle.photos[0]);
+          const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section, { borderBottomColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehiculo</Text>
-              <View style={styles.vehicleRow}>
-                {vehicleImage ? (
-                  <TouchableOpacity onPress={() => handleImagePress(buildImageUri(vehicleImage))} activeOpacity={0.85}>
-                    <Image source={{ uri: buildImageUri(vehicleImage) }} style={styles.vehicleImage} />
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg }]}>
-                    <Ionicons name="car-outline" size={32} color={textMuted} />
-                  </View>
-                )}
-                <View style={styles.vehicleInfo}>
-                  <Text style={[styles.vehicleName, { color: textPrimary }]}>
-                    {trip.vehicle.brand} {trip.vehicle.model}
-                  </Text>
-                  <Text style={[styles.vehicleColor, { color: textMuted }]}>{trip.vehicle.color}</Text>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
+              {vehiclePaths.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.vehiclePhotosScroll}
+                >
+                  {vehiclePaths.map((path, idx) => {
+                    const uri = buildImageUri(path);
+                    if (!uri) return null;
+                    return (
+                      <TouchableOpacity
+                        key={`vph-${idx}-${path.slice(-24)}`}
+                        onPress={() => handleImagePress(uri)}
+                        activeOpacity={0.85}
+                        style={styles.vehicleThumbTouchable}
+                      >
+                        <Image source={{ uri }} style={styles.vehicleThumb} resizeMode="cover" />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg, marginBottom: 12 }]}>
+                  <Ionicons name="car-outline" size={32} color={textMuted} />
                 </View>
+              )}
+              <View style={styles.vehicleInfoBlock}>
+                <Text style={[styles.vehicleName, { color: textPrimary }]}>
+                  {trip.vehicle.brand} {trip.vehicle.model}
+                  {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
+                </Text>
+                <Text style={[styles.vehicleColor, { color: textMuted }]}>
+                  {[trip.vehicle.color, trip.vehicle.licensePlate].filter(Boolean).join(' · ')}
+                </Text>
               </View>
             </View>
           );
@@ -910,6 +959,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               )
             ) : (
+              trip.womenOnly && !canReserveWomenOnlyTrip ? (
+                <View style={[styles.statusFooter, { backgroundColor: (colors.warning || '#F59E0B') + '12' }]}>
+                  <Ionicons name="woman-outline" size={18} color={colors.warning || '#F59E0B'} />
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>
+                    Este viaje es solo mujeres. Solo pueden reservar usuarias con perfil femenino.
+                  </Text>
+                </View>
+              ) : (
               <TouchableOpacity
                 style={[styles.footerBtn, {
                   backgroundColor: trip.availableSeats === 0 ? (dark ? '#2A2A2A' : '#E0E0E0') : accent
@@ -923,6 +980,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                   {trip.availableSeats === 0 ? 'Sin asientos disponibles' : 'Reservar'}
                 </Text>
               </TouchableOpacity>
+              )
             )}
           </View>
         )}
@@ -1137,16 +1195,31 @@ const styles = StyleSheet.create({
 
   // Driver
   driverRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  driverAvatar: { width: 56, height: 56, borderRadius: 28 },
+  driverAvatar: { width: 72, height: 72, borderRadius: 36 },
   driverAvatarPlaceholder: {
-    width: 56, height: 56, borderRadius: 28,
+    width: 72, height: 72, borderRadius: 36,
     justifyContent: 'center', alignItems: 'center',
   },
   driverInitials: { fontSize: 18, fontWeight: '600' },
   driverInfo: { flex: 1 },
   driverName: { fontSize: 16, fontWeight: '600' },
+  driverPhotoHint: { fontSize: 12, marginTop: 4 },
 
   // Vehicle
+  vehiclePhotosScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 10,
+  },
+  vehicleThumbTouchable: { borderRadius: 10, overflow: 'hidden' },
+  vehicleThumb: {
+    width: 132,
+    height: 88,
+    borderRadius: 10,
+    backgroundColor: '#1a1a1a',
+  },
+  vehicleInfoBlock: { marginTop: 14 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   vehicleImage: { width: 88, height: 64, borderRadius: 10 },
   vehicleImagePlaceholder: {

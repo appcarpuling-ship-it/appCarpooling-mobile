@@ -14,6 +14,7 @@ import { soraFonts } from './src/theme/typography';
 import { Linking } from 'react-native';
 import NativeCheckout from './src/components/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
+import OtaUpdateListener from './src/components/OtaUpdateListener';
 
 // Componente interno para manejar el StatusBar que responde al tema
 const AppWithTheme = () => {
@@ -71,6 +72,7 @@ export default function App() {
           <AuthProvider>
             <NotificationProvider>
               {fontsLoaded && <AppWithTheme />}
+              <OtaUpdateListener />
               {showSplash && (
                 <AnimatedSplash
                   fontsLoaded={fontsLoaded}

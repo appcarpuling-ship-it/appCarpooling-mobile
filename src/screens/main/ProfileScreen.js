@@ -107,6 +107,11 @@ const ProfileScreen = () => {
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
+          {user?.gender ? (
+            <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
+              Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
+            </Text>
+          ) : null}
 
           {(user?.discountPercentage ?? 0) > 0 && (
             <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>

@@ -54,7 +54,10 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const [photos, setPhotos] = useState([]);
   const [existingPhotos, setExistingPhotos] = useState([]);
+  const [registrationCardUri, setRegistrationCardUri] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const hasRegistrationOnServer = !!(isEdit && vehicleData?.registrationCardUrl);
 
   useEffect(() => {
     if (isEdit && vehicleData?.photos?.length > 0) {
@@ -84,6 +87,23 @@ const VehicleFormScreen = ({ navigation, route }) => {
       return result.uri;
     } catch {
       return uri;
+    }
+  };
+
+  const pickRegistrationCard = async () => {
+    const hasPermission = await handlePermissionRequest();
+    if (!hasPermission) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: false,
+        quality: 0.85,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setRegistrationCardUri(await compressImage(result.assets[0].uri));
+      }
+    } catch {
+      showAlert('Error', 'No se pudo seleccionar la imagen');
     }
   };
 
@@ -129,6 +149,15 @@ const VehicleFormScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (!isEdit && !registrationCardUri) {
+      showAlert('Error', 'Subí la tarjeta verde o cédula del vehículo');
+      return;
+    }
+    if (isEdit && !hasRegistrationOnServer && !registrationCardUri) {
+      showAlert('Error', 'Subí la tarjeta verde o cédula del vehículo');
+      return;
+    }
+
     const yearNum = parseInt(year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
       showAlert('Error', 'Año no válido');
@@ -162,6 +191,14 @@ const VehicleFormScreen = ({ navigation, route }) => {
         const type = match ? `image/${match[1]}` : 'image/jpeg';
         fd.append('photos', { uri, name: filename || `photo-${index}.jpg`, type });
       });
+
+      if (registrationCardUri) {
+        const uri = registrationCardUri;
+        const filename = uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+        fd.append('registrationCard', { uri, name: filename || 'registration-card.jpg', type });
+      }
 
       const response = isEdit
         ? await put_withauth_formdata(`/vehicles/${vehicleData._id}`, fd)
@@ -253,6 +290,43 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               )}
             </ScrollView>
+          </View>
+
+          {/* Tarjeta verde / cédula */}
+          <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>DOCUMENTACIÓN</Text>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              Tarjeta verde o cédula del vehículo. La patente debe coincidir con lo que cargás abajo (se verifica automáticamente).
+            </Text>
+            <View style={styles.regCardRow}>
+              {registrationCardUri ? (
+                <View style={styles.regCardPreview}>
+                  <Image source={{ uri: registrationCardUri }} style={styles.regCardImg} />
+                  <TouchableOpacity
+                    style={styles.photoRemove}
+                    onPress={() => setRegistrationCardUri(null)}
+                  >
+                    <Ionicons name="close" size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ) : hasRegistrationOnServer ? (
+                <View style={styles.regCardPreview}>
+                  <Image source={{ uri: buildImageUri(vehicleData.registrationCardUrl) }} style={styles.regCardImg} />
+                  <Text style={[styles.regCardHint, { color: textMuted }]}>Guardada · tocá para reemplazar</Text>
+                  <TouchableOpacity style={[styles.regCardReplace, { borderColor: border }]} onPress={pickRegistrationCard}>
+                    <Text style={[styles.regCardReplaceText, { color: textPrimary }]}>Cambiar imagen</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.regCardAdd, { backgroundColor: divider, borderColor: border }]}
+                  onPress={pickRegistrationCard}
+                >
+                  <Ionicons name="document-text-outline" size={28} color={textMuted} />
+                  <Text style={[styles.photoAddText, { color: textMuted }]}>Subir documento</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Info */}
@@ -418,6 +492,47 @@ const styles = StyleSheet.create({
   },
   photoAddText: {
     fontSize: 12,
+  },
+
+  regCardRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  regCardPreview: {
+    maxWidth: '100%',
+  },
+  regCardImg: {
+    width: 200,
+    height: 120,
+    borderRadius: 10,
+  },
+  regCardHint: {
+    fontSize: 12,
+    marginTop: 8,
+  },
+  regCardReplace: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  regCardReplaceText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  regCardAdd: {
+    width: 200,
+    minHeight: 120,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    padding: 16,
   },
 
   // Form

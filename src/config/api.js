@@ -84,4 +84,7 @@ export const ENDPOINTS = {
   GET_BANNERS_BY_PACKAGE: (packageId) => `/banners/package/${packageId}`,
   REGISTER_BANNER_VIEW: (id) => `/banners/${id}/register-view`,
   REGISTER_BANNER_CLICK: (id) => `/banners/${id}/register-click`,
+
+  NEWS_UNREAD: '/news/unread',
+  NEWS_ACK_READ: (id) => `/news/${id}/ack-read`,
 };

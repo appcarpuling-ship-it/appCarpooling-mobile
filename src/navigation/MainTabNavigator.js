@@ -13,6 +13,7 @@ import HomeStackNavigator from './stacks/HomeStackNavigator';
 import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
 import ChatStackNavigator from './stacks/ChatStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
+import UnreadNewsModalLayer from '../components/UnreadNewsModalLayer';
 
 const Tab = createBottomTabNavigator();
 
@@ -37,6 +38,7 @@ const MainTabNavigator = () => {
   }, []);
 
   return (
+    <>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -208,6 +210,8 @@ const MainTabNavigator = () => {
         })}
       />
     </Tab.Navigator>
+      <UnreadNewsModalLayer />
+    </>
   );
 };
 

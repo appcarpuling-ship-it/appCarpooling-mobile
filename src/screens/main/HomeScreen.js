@@ -519,22 +519,27 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* Actions */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.searchBtn, { backgroundColor: accent }]}
-            onPress={handleSearch}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.searchBtnText, { color: accentInverse }]}>Buscar viajes</Text>
-          </TouchableOpacity>
-
+        <View style={styles.actionsWrap}>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.searchBtn, { backgroundColor: accent }]}
+              onPress={handleSearch}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.searchBtnText, { color: accentInverse }]}>Buscar viajes</Text>
+            </TouchableOpacity>
+          </View>
           {(origin || destination || selectedDate || selectedSeats) && (
             <TouchableOpacity
-              style={[styles.clearBtn, { borderColor: borderColor }]}
+              style={styles.clearFiltersLink}
               onPress={clearFilters}
-              activeOpacity={0.7}
+              activeOpacity={0.65}
+              accessibilityRole="button"
+              accessibilityLabel="Restablecer búsqueda y limpiar filtros"
             >
-              <Ionicons name="close-outline" size={16} color={textMuted} />
+              <Text style={[styles.clearFiltersLinkText, { color: textMuted }]}>
+                Restablecer búsqueda
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -828,13 +833,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 18,
   },
 
-  // Actions row
+  // Actions (buscar + enlace para limpiar)
+  actionsWrap: {
+    paddingHorizontal: 24,
+    marginTop: 12,
+  },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: 12,
-    gap: 10,
   },
   searchBtn: {
     flex: 1,
@@ -848,13 +854,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.1,
   },
-  clearBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  clearFiltersLink: {
+    alignSelf: 'center',
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  clearFiltersLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'solid',
   },
 
   // Banners

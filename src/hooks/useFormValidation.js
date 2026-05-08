@@ -28,6 +28,7 @@ const validationRules = {
         color: 'Color',
         licensePlate: 'Placa',
         seats: 'Asientos',
+        gender: 'Sexo',
       };
       const label = fieldLabels[fieldName] || fieldName;
       return `${label} es requerido`;
@@ -288,6 +289,7 @@ export const validationSchemas = {
     email: ['required', 'email'],
     password: ['required', 'strongPassword'],
     confirmPassword: ['required', { type: 'confirmPassword', compareField: 'password' }],
+    gender: ['required'],
     phone: ['required', 'phone'],
     age: ['required', 'age'],
     city: ['required', { type: 'maxLength', value: 100 }],

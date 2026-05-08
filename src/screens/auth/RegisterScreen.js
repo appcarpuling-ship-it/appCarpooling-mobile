@@ -26,7 +26,7 @@ import PermissionModal from '../../components/PermissionModal';
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
   { title: 'Tu cuenta',       subtitle: 'Creá tus credenciales de acceso',                  fields: ['email', 'password', 'confirmPassword'] },
-  { title: 'Tus datos',       subtitle: 'Información de contacto y ubicación',              fields: ['phone', 'age', 'province', 'city'] },
+  { title: 'Tus datos',       subtitle: 'Información de contacto y ubicación',              fields: ['phone', 'gender', 'age', 'province', 'city'] },
   { title: 'Últimos detalles',subtitle: 'Todo es opcional, podés completarlo después',      fields: [] },
 ];
 
@@ -45,7 +45,7 @@ const RegisterScreen = ({ navigation }) => {
   const stepAnim = useRef(new Animated.Value(1)).current;
 
   const { values, errors, touched, setValue, setFieldTouched, validateAllFields, getFieldProps } = useFormValidation(
-    { firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', age: '', city: '', province: '', bio: '', referralCode: '' },
+    { firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', gender: '', age: '', city: '', province: '', bio: '', referralCode: '' },
     validationSchemas.register
   );
 
@@ -127,6 +127,7 @@ const RegisterScreen = ({ navigation }) => {
       formDataToSend.append('email', values.email);
       formDataToSend.append('password', values.password);
       formDataToSend.append('phone', values.phone);
+      formDataToSend.append('gender', values.gender);
       formDataToSend.append('age', parseInt(values.age));
       formDataToSend.append('city', values.city);
       formDataToSend.append('province', values.province);
@@ -182,6 +183,22 @@ const RegisterScreen = ({ navigation }) => {
         return (
           <>
             <FormInput label="Teléfono" placeholder="+54 11 1234-5678" leftIcon="call-outline" keyboardType="phone-pad" helper="Formato: +54 código de área número" required {...getFieldProps('phone')} />
+            <FormPicker
+              label="Sexo"
+              placeholder="Seleccioná una opción"
+              leftIcon="person-outline"
+              required
+              value={values.gender}
+              onSelect={(value) => setValue('gender', value)}
+              error={touched.gender ? errors.gender : null}
+              options={[
+                { value: 'female', label: 'Femenino' },
+                { value: 'male', label: 'Masculino' },
+              ]}
+            />
+            <Text style={{ fontSize: 12, color: textMuted, marginTop: -10, marginBottom: 8 }}>
+              No podrás cambiar el sexo después del registro.
+            </Text>
             <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" maxLength={2} required {...getFieldProps('age')} />
             <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => setValue('province', value)} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
             <FormInput label="Ciudad" placeholder="Ingresá tu ciudad" leftIcon="location-outline" autoCapitalize="words" required {...getFieldProps('city')} />
