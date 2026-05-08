@@ -114,10 +114,7 @@ const MainTabNavigator = () => {
           paddingTop: 8,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
+        tabBarShowLabel: false,
       })}
     >
       <Tab.Screen
