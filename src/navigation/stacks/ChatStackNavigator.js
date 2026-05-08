@@ -2,8 +2,8 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
-import ChatsScreen from '../../screens/main/ChatsScreen';
-import ChatDetailScreen from '../../screens/main/ChatDetailScreen';
+import ChatsScreen from '../../screens/main/chat/ChatsScreen';
+import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
 
 const Stack = createStackNavigator();
 

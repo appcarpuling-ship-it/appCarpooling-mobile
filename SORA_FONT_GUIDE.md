@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
 ### Opción 2: Usar el componente SoraText
 
 ```javascript
-import SoraText from '../components/SoraText';
+import SoraText from '../../components/SoraText'; // ej. desde src/screens/auth/
 
 <SoraText style={styles.title}>Título</SoraText>
 <SoraText fontWeight="bold">Texto en negrita</SoraText>

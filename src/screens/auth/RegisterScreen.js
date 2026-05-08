@@ -17,11 +17,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
-import FormInput from '../../components/FormInput';
-import FormPicker from '../../components/FormPicker';
+import FormInput from '../../components/forms/FormInput';
+import FormPicker from '../../components/forms/FormPicker';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
-import PermissionModal from '../../components/PermissionModal';
+import PermissionModal from '../../components/modals/PermissionModal';
 
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },

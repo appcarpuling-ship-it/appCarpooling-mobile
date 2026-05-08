@@ -2,13 +2,13 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
-import HomeScreen from '../../screens/main/HomeScreen';
-import TripDetailScreen from '../../screens/main/TripDetailScreen';
-import SearchTripsScreen from '../../screens/main/SearchTripsScreen';
-import SearchResultsScreen from '../../screens/main/SearchResultsScreen';
-import BookingScreen from '../../screens/main/BookingScreen';
-import AllTripsScreen from '../../screens/main/AllTripsScreen';
-import UserProfileScreen from '../../screens/main/UserProfileScreen';
+import HomeScreen from '../../screens/main/home/HomeScreen';
+import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
+import SearchTripsScreen from '../../screens/main/home/SearchTripsScreen';
+import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
+import BookingScreen from '../../screens/main/home/BookingScreen';
+import AllTripsScreen from '../../screens/main/home/AllTripsScreen';
+import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
 
 const Stack = createStackNavigator();
 

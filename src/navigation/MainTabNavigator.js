@@ -13,7 +13,7 @@ import HomeStackNavigator from './stacks/HomeStackNavigator';
 import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
 import ChatStackNavigator from './stacks/ChatStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
-import UnreadNewsModalLayer from '../components/UnreadNewsModalLayer';
+import UnreadNewsModalLayer from '../components/modals/UnreadNewsModalLayer';
 
 const Tab = createBottomTabNavigator();
 

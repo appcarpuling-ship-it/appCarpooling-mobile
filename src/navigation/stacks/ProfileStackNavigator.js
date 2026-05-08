@@ -2,16 +2,16 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
 
-import ProfileScreen from '../../screens/main/ProfileScreen';
-import EditProfileScreen from '../../screens/main/EditProfileScreen';
-import TermsScreen from '../../screens/main/TermsScreen';
-import HelpScreen from '../../screens/main/HelpScreen';
-import NotificationsScreen from '../../screens/main/NotificationsScreen';
-import VehiclesScreen from '../../screens/main/VehiclesScreen';
-import VehicleFormScreen from '../../screens/main/VehicleFormScreen';
-import UserReviewsScreen from '../../screens/main/UserReviewsScreen';
-import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
-import ReferralScreen from '../../screens/main/ReferralScreen';
+import ProfileScreen from '../../screens/main/profile/ProfileScreen';
+import EditProfileScreen from '../../screens/main/profile/EditProfileScreen';
+import TermsScreen from '../../screens/main/profile/TermsScreen';
+import HelpScreen from '../../screens/main/profile/HelpScreen';
+import NotificationsScreen from '../../screens/main/profile/NotificationsScreen';
+import VehiclesScreen from '../../screens/main/profile/VehiclesScreen';
+import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
+import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
+import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
+import ReferralScreen from '../../screens/main/profile/ReferralScreen';
 
 const Stack = createStackNavigator();
 

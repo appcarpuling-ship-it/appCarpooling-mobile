@@ -14,8 +14,8 @@ import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
 // Main navigation
 import MainTabNavigator from './MainTabNavigator';
-import CreateTripGoogleMaps from '../screens/main/CreateTripGoogleMaps';
-import TripDetails from '../screens/main/TripDetails';
+import CreateTripGoogleMaps from '../screens/main/trip/CreateTripGoogleMaps';
+import TripDetails from '../screens/main/common/TripDetails';
 
 const Stack = createStackNavigator();
 

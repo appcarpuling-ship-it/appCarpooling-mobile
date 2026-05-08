@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import AlertModal from '../components/AlertModal';
+import AlertModal from '../components/modals/AlertModal';
 
 const AlertContext = createContext(null);
 

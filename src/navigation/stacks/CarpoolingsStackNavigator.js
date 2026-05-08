@@ -2,17 +2,17 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
-import CarpoolingsScreen from '../../screens/main/CarpoolingsScreen';
-import TripDetails from '../../screens/main/TripDetails';
-import EditTripScreen from '../../screens/main/EditTripScreen';
-import MyTripsScreen from '../../screens/main/MyTripsScreen';
-import MyBookingsScreen from '../../screens/main/MyBookingsScreen';
-import MySeatReservationsScreen from '../../screens/main/MySeatReservationsScreen';
-import TripDetailScreen from '../../screens/main/TripDetailScreen';
-import TripRequestsScreen from '../../screens/main/TripRequestsScreen';
-import CreateReviewScreen from '../../screens/main/CreateReviewScreen';
-import UserReviewsScreen from '../../screens/main/UserReviewsScreen';
-import UserProfileScreen from '../../screens/main/UserProfileScreen';
+import CarpoolingsScreen from '../../screens/main/carpool/CarpoolingsScreen';
+import TripDetails from '../../screens/main/common/TripDetails';
+import EditTripScreen from '../../screens/main/carpool/EditTripScreen';
+import MyTripsScreen from '../../screens/main/carpool/MyTripsScreen';
+import MyBookingsScreen from '../../screens/main/carpool/MyBookingsScreen';
+import MySeatReservationsScreen from '../../screens/main/carpool/MySeatReservationsScreen';
+import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
+import TripRequestsScreen from '../../screens/main/carpool/TripRequestsScreen';
+import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
+import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
+import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
 
 const Stack = createStackNavigator();
 

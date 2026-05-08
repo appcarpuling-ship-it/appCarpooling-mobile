@@ -12,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { soraFonts } from './src/theme/typography';
 import { Linking } from 'react-native';
-import NativeCheckout from './src/components/NativeCheckout';
+import NativeCheckout from './src/components/payment/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
 import OtaUpdateListener from './src/components/OtaUpdateListener';
 
