@@ -299,7 +299,6 @@ const HomeScreen = ({ navigation }) => {
       style={[
         styles.tripCard,
         { backgroundColor: cardBg },
-        !dark && styles.tripCardShadowLight,
       ]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
@@ -942,13 +941,6 @@ const styles = StyleSheet.create({
   tripCard: {
     borderRadius: 14,
     marginBottom: 12,
-  },
-  tripCardShadowLight: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   tripDriverRow: {
     flexDirection: 'row',

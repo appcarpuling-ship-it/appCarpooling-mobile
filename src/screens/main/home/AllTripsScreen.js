@@ -22,15 +22,21 @@ import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 const AllTripsScreen = ({ navigation }) => {
   const { colors, createColorArray } = useColors();
   const { isDarkMode } = useTheme();
 
   const [trips, setTrips] = useState([]);
-  const [filteredTrips, setFilteredTrips] = useState([]);
+  const [totalTrips, setTotalTrips] = useState(0);
+  const [listPage, setListPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const loadMoreLock = useRef(false);
 
   // Filters
   const [originProvince, setOriginProvince] = useState('');
@@ -51,7 +57,6 @@ const AllTripsScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadTrips();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -59,96 +64,100 @@ const AllTripsScreen = ({ navigation }) => {
     }).start();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [trips, originProvince, destinationProvince, selectedDate, selectedTime, minAvailableSeats]);
-
-  const loadTrips = async (isRefreshing = false) => {
-    if (isRefreshing) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      const response = await get_public(ENDPOINTS.GET_TRIPS);
-      if (response.success && Array.isArray(response.data)) {
-        const sorted = [...response.data].sort((a, b) => {
-          const aDate = new Date(a.departureDate).getTime();
-          const bDate = new Date(b.departureDate).getTime();
-          if (aDate !== bDate) return aDate - bDate;
-          const aTime = (a.departureTime || '00:00').replace(':', '');
-          const bTime = (b.departureTime || '00:00').replace(':', '');
-          return parseInt(aTime, 10) - parseInt(bTime, 10);
-        });
-        setTrips(sorted);
-        setFilteredTrips(sorted);
+  const loadPage = useCallback(
+    async (pageNum, { append = false, isRefresh = false } = {}) => {
+      if (append) {
+        if (loadMoreLock.current) return;
+        loadMoreLock.current = true;
+        setLoadingMore(true);
+      } else if (isRefresh) {
+        setRefreshing(true);
       } else {
-        setTrips([]);
-        setFilteredTrips([]);
+        setLoading(true);
       }
-    } catch (error) {
-      console.error('Error loading trips:', error);
-      setTrips([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
-  const applyFilters = () => {
-    let result = [...trips];
+      const useSearch = !!(
+        originProvince ||
+        destinationProvince ||
+        selectedDate ||
+        selectedTime ||
+        minAvailableSeats
+      );
 
-    if (originProvince) {
-      result = result.filter((t) => {
-        const city = t.origin?.city || t.origin?.name || '';
-        const province = t.origin?.province || '';
-        return (
-          province.toLowerCase().includes(originProvince.toLowerCase()) ||
-          city.toLowerCase().includes(originProvince.toLowerCase())
-        );
-      });
-    }
+      const params = { page: pageNum, limit: LIST_PAGE_SIZE };
+      if (useSearch) {
+        if (originProvince) params.originProvince = originProvince;
+        if (destinationProvince) params.destinationProvince = destinationProvince;
+        if (selectedDate) {
+          const y = selectedDate.getFullYear();
+          const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+          const d = String(selectedDate.getDate()).padStart(2, '0');
+          params.date = `${y}-${m}-${d}`;
+        }
+        if (selectedTime) {
+          const pad = (n) => String(n).padStart(2, '0');
+          params.departureTime = `${pad(selectedTime.getHours())}:${pad(selectedTime.getMinutes())}`;
+        }
+        if (minAvailableSeats) {
+          const n = parseInt(String(minAvailableSeats).replace(/\+$/, ''), 10);
+          if (!Number.isNaN(n) && n > 0) params.seats = n;
+        }
+      }
 
-    if (destinationProvince) {
-      result = result.filter((t) => {
-        const city = t.destination?.city || t.destination?.name || '';
-        const province = t.destination?.province || '';
-        return (
-          province.toLowerCase().includes(destinationProvince.toLowerCase()) ||
-          city.toLowerCase().includes(destinationProvince.toLowerCase())
-        );
-      });
-    }
+      const endpoint = useSearch ? ENDPOINTS.SEARCH_TRIPS : ENDPOINTS.GET_TRIPS;
 
-    if (selectedDate) {
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      result = result.filter((t) => {
-        if (!t.departureDate) return false;
-        const tripDate = new Date(t.departureDate).toISOString().split('T')[0];
-        return tripDate === dateStr;
-      });
-    }
+      try {
+        const response = await get_public(endpoint, params);
+        if (response.success && Array.isArray(response.data)) {
+          const rows = response.data;
+          const total = typeof response.total === 'number' ? response.total : rows.length;
+          const more = response.hasMore === true;
+          if (append) {
+            setTrips((prev) => [...prev, ...rows]);
+          } else {
+            setTrips(rows);
+          }
+          setTotalTrips(total);
+          setHasMore(more);
+          setListPage(pageNum);
+        } else if (!append) {
+          setTrips([]);
+          setTotalTrips(0);
+          setHasMore(false);
+          setListPage(1);
+        }
+      } catch (error) {
+        console.error('Error loading trips:', error);
+        if (!append) {
+          setTrips([]);
+          setTotalTrips(0);
+          setHasMore(false);
+          setListPage(1);
+        }
+      } finally {
+        loadMoreLock.current = false;
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
+    },
+    [originProvince, destinationProvince, selectedDate, selectedTime, minAvailableSeats],
+  );
 
-    if (selectedTime) {
-      result = result.filter((t) => {
-        if (!t.departureTime) return false;
-        const [tripHour, tripMinute] = t.departureTime.split(':').map(Number);
-        const [filterHour, filterMinute] = selectedTime.toTimeString().split(':').slice(0, 2).map(Number);
-        return tripHour === filterHour && tripMinute === filterMinute;
-      });
-    }
+  useEffect(() => {
+    loadPage(1, {});
+  }, [loadPage]);
 
-    if (minAvailableSeats) {
-      const minSeats = parseInt(minAvailableSeats, 10);
-      result = result.filter((t) => {
-        const available = t.availableSeats || 0;
-        return available >= minSeats;
-      });
-    }
+  const loadMoreTrips = useCallback(() => {
+    if (!hasMore || loadingMore || loading || refreshing) return;
+    loadPage(listPage + 1, { append: true });
+  }, [hasMore, loadingMore, loading, refreshing, listPage, loadPage]);
 
-    setFilteredTrips(result);
-  };
+  const onRefresh = useCallback(() => {
+    loadPage(1, { isRefresh: true });
+  }, [loadPage]);
+
+  const hasActiveFilters = originProvince || destinationProvince || selectedDate || selectedTime || minAvailableSeats;
 
   const clearFilters = () => {
     setOriginProvince('');
@@ -156,10 +165,7 @@ const AllTripsScreen = ({ navigation }) => {
     setSelectedDate(null);
     setSelectedTime(null);
     setMinAvailableSeats('');
-    setFilteredTrips(trips);
   };
-
-  const hasActiveFilters = originProvince || destinationProvince || selectedDate || selectedTime || minAvailableSeats;
 
   const seatOptions = ['1+', '2+', '3+', '4+'];
 
@@ -560,7 +566,7 @@ const AllTripsScreen = ({ navigation }) => {
             {/* Fila siempre visible: resultados + Limpiar filtros */}
             <View style={styles.resultsRow}>
               <Text style={[styles.resultsCount, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
-                {filteredTrips.length} viaje{filteredTrips.length !== 1 ? 's' : ''} encontrado{filteredTrips.length !== 1 ? 's' : ''}
+                {totalTrips} viaje{totalTrips !== 1 ? 's' : ''} encontrado{totalTrips !== 1 ? 's' : ''}
               </Text>
               {hasActiveFilters && (
                 <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters} activeOpacity={0.7}>
@@ -579,18 +585,29 @@ const AllTripsScreen = ({ navigation }) => {
             </View>
           ) : (
             <FlatList
-              data={filteredTrips}
+              data={trips}
               renderItem={renderTripItem}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item) => String(item._id)}
               contentContainerStyle={styles.listContent}
+              ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
-                  onRefresh={() => loadTrips(true)}
+                  onRefresh={onRefresh}
                   tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
                   colors={[isDarkMode ? '#FFFFFF' : '#000000']}
                 />
+              }
+              onEndReached={loadMoreTrips}
+              onEndReachedThreshold={0.35}
+              ListFooterComponent={
+                loadingMore ? (
+                  <View style={styles.listFooterLoader}>
+                    <ActivityIndicator size="small" color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                    <Text style={[styles.listFooterHint, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Cargando más…</Text>
+                  </View>
+                ) : null
               }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
@@ -778,13 +795,22 @@ const styles = StyleSheet.create({
   // List
   listContent: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl + 8,
     flexGrow: 1,
   },
+  cardSeparator: {
+    height: 14,
+  },
+  listFooterLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  listFooterHint: { fontSize: 13 },
 
   // Trip Card
   tripCard: {
-    marginBottom: spacing.md,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
     shadowColor: '#000',

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
@@ -70,7 +71,7 @@ const MyBookingsScreen = ({ navigation }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(`${ENDPOINTS.MY_BOOKINGS}?page=${pageNum}&limit=15`);
+      const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: pageNum, limit: LIST_PAGE_SIZE });
       if (response.success) {
         setBookings(prev => reset ? response.data : [...prev, ...response.data]);
         setPage(pageNum);
@@ -278,7 +279,10 @@ const MyBookingsScreen = ({ navigation }) => {
           onEndReachedThreshold={0.3}
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator size="small" color={textSecondary} style={{ paddingVertical: 16 }} />
+              <View style={styles.listFooterLoader}>
+                <ActivityIndicator size="small" color={textPrimary} />
+                <Text style={[styles.listFooterText, { color: textSecondary }]}>Cargando más…</Text>
+              </View>
             ) : null
           }
           data={[...bookings].sort((a, b) => {
@@ -317,6 +321,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
+  listFooterLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  listFooterText: { fontSize: 13 },
 
   card: {
     borderRadius: 12,

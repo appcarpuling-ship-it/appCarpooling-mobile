@@ -17,6 +17,7 @@ import { useAlert } from '../../../context/AlertContext';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
 import Toast from '../../../components/Toast';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
@@ -49,7 +50,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await getMyReservations({ page: pageNum, limit: 15 });
+      const response = await getMyReservations({ page: pageNum, limit: LIST_PAGE_SIZE });
       if (response.success) {
         const newItems = response.data.reservations || [];
         setReservations(prev => reset ? newItems : [...prev, ...newItems]);
@@ -320,7 +321,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} /> : null
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color={textMuted} />
+                <Text style={{ fontSize: 13, color: textMuted }}>Cargando más…</Text>
+              </View>
+            ) : null
           }
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textMuted]} />

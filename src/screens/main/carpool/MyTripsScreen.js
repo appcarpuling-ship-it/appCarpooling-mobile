@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
@@ -43,7 +44,7 @@ const MyTripsScreen = ({ navigation }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(`${ENDPOINTS.MY_TRIPS_DRIVER}?page=${pageNum}&limit=15`);
+      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, { page: pageNum, limit: LIST_PAGE_SIZE });
       if (response.success) {
         setTrips(prev => reset ? response.data : [...prev, ...response.data]);
         setPage(pageNum);
@@ -375,11 +376,14 @@ const MyTripsScreen = ({ navigation }) => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textPrimary} />
           }
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator size="small" color={textMuted} style={{ paddingVertical: 16 }} />
-            ) : null
-          }
+              ListFooterComponent={
+                loadingMore ? (
+                  <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
+                    <ActivityIndicator size="small" color={textMuted} />
+                    <Text style={{ fontSize: 13, color: textMuted }}>Cargando más…</Text>
+                  </View>
+                ) : null
+              }
         />
       ) : (
         <View style={styles.emptyContainer}>

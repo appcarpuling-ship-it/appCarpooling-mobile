@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +14,8 @@ import { get_withauth, delete_withauth, buildImageUri } from '../../../services/
 import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
@@ -30,32 +31,63 @@ const VehiclesScreen = () => {
   const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   const [vehicles, setVehicles] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const fetchLock = useRef(false);
+  const hasDataRef = useRef(false);
+
+  useEffect(() => {
+    hasDataRef.current = vehicles.length > 0;
+  }, [vehicles.length]);
 
   useFocusEffect(
     useCallback(() => {
-      loadVehicles();
+      loadVehicles(1, true, { skipMainLoading: hasDataRef.current });
     }, [])
   );
 
-  const loadVehicles = async () => {
+  const loadVehicles = async (pageNum = 1, reset = false, opts = {}) => {
+    const { skipMainLoading = false } = opts;
+    if (fetchLock.current) return;
+    fetchLock.current = true;
+    if (pageNum === 1) {
+      if (!refreshing && !skipMainLoading) setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     try {
-      const response = await get_withauth(ENDPOINTS.MY_VEHICLES);
-      if (response.success) {
-        setVehicles(response.data);
+      const response = await get_withauth(ENDPOINTS.MY_VEHICLES, { page: pageNum, limit: LIST_PAGE_SIZE });
+      if (response.success && Array.isArray(response.data)) {
+        const rows = response.data;
+        setVehicles((prev) => (reset || pageNum === 1 ? rows : [...prev, ...rows]));
+        setPage(pageNum);
+        setHasMore(response.hasMore === true);
+      } else if (reset || pageNum === 1) {
+        setVehicles([]);
+        setHasMore(false);
       }
     } catch (error) {
       showAlert('Error', 'No se pudieron cargar los vehículos');
+      if (reset || pageNum === 1) setVehicles([]);
     } finally {
+      fetchLock.current = false;
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
 
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || loading || fetchLock.current) return;
+    loadVehicles(page + 1, false);
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
-    loadVehicles();
+    loadVehicles(1, true, { skipMainLoading: true });
   };
 
   const handleDelete = (vehicleId) => {
@@ -71,7 +103,7 @@ const VehiclesScreen = () => {
             try {
               const response = await delete_withauth(ENDPOINTS.DELETE_VEHICLE(vehicleId));
               if (response.success) {
-                loadVehicles();
+                loadVehicles(1, true, { skipMainLoading: true });
               }
             } catch (error) {
               showAlert('Error', error.message);
@@ -92,7 +124,12 @@ const VehiclesScreen = () => {
         activeOpacity={0.7}
       >
         {photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
+          <RemoteImageWithLoader
+            uri={photoUrl}
+            style={styles.photo}
+            isDarkMode={isDarkMode}
+            spinnerColor={textPrimary}
+          />
         ) : (
           <View style={[styles.photoPlaceholder, { backgroundColor: divider }]}>
             <Ionicons name="car-sport-outline" size={28} color={textMuted} />
@@ -168,6 +205,16 @@ const VehiclesScreen = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.35}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.listFooter}>
+                <ActivityIndicator size="small" color={textPrimary} />
+                <Text style={[styles.listFooterText, { color: textMuted }]}>Cargando más…</Text>
+              </View>
+            ) : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -204,6 +251,12 @@ const styles = StyleSheet.create({
   container:   { flex: 1 },
   center:      { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { padding: 16, paddingBottom: 100 },
+  listFooter: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  listFooterText: { fontSize: 13 },
 
   card: {
     flexDirection: 'row',

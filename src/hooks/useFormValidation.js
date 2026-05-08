@@ -324,7 +324,7 @@ export const validationSchemas = {
       return null;
     }],
     color: ['required', { type: 'maxLength', value: 30 }],
-    licensePlate: ['required', { type: 'maxLength', value: 10 }],
+    licensePlate: ['required', { type: 'maxLength', value: 50 }],
     seats: ['required', 'seats'],
     description: [{ type: 'maxLength', value: 500 }],
   },

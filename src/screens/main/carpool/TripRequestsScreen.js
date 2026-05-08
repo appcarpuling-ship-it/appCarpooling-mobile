@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,12 @@ import {
   Modal,
   Image,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { approveOrRejectReservation } from '../../../services/seatReservationService';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -32,9 +35,20 @@ const TripRequestsScreen = ({ route }) => {
   const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
 
   const [trips, setTrips] = useState([]);
+  const [tripsPage, setTripsPage] = useState(1);
+  const [tripsHasMore, setTripsHasMore] = useState(true);
+  const [loadingTrips, setLoadingTrips] = useState(true);
+  const [loadingMoreTrips, setLoadingMoreTrips] = useState(false);
+  const tripsFetchLock = useRef(false);
+
   const [selectedTripId, setSelectedTripId] = useState(tripId);
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [reqPage, setReqPage] = useState(1);
+  const [reqHasMore, setReqHasMore] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [loadingMoreRequests, setLoadingMoreRequests] = useState(false);
+  const reqFetchLock = useRef(false);
+
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingRequestId, setAcceptingRequestId] = useState(null);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
@@ -42,62 +56,133 @@ const TripRequestsScreen = ({ route }) => {
   const [rejectReason, setRejectReason] = useState('');
   const [pendingCounts, setPendingCounts] = useState({});
 
-  useEffect(() => { loadUserTrips(); }, []);
-  useEffect(() => { if (selectedTripId) loadRequests(); }, [selectedTripId]);
-
-  const loadUserTrips = async () => {
-    try {
-      const response = await get_withauth('/trips/my-trips/driver');
-      if (response.success && response.data.length > 0) {
-        const activeTrips = response.data.filter(t => t.status === 'active' || t.status === 'started');
-        setTrips(response.data);
-        if (response.data.length === 1 && !selectedTripId) {
-          setSelectedTripId(response.data[0]._id);
+  const enrichPendingForTrips = async (tripList) => {
+    const active = tripList.filter(t => t.status === 'active' || t.status === 'started');
+    if (!active.length) return;
+    const entries = await Promise.all(
+      active.map(async (trip) => {
+        try {
+          const r = await get_withauth(`/bookings/trip/${trip._id}`);
+          if (!r.success) return [trip._id, 0];
+          const n = (r.data || []).filter((b) => {
+            const rs = b.seatReservation?.reservationStatus || b.status;
+            return rs === 'pending_approval' || rs === 'pending';
+          }).length;
+          return [trip._id, n];
+        } catch {
+          return [trip._id, 0];
         }
-        const counts = {};
-        await Promise.all(
-          activeTrips.map(async (trip) => {
-            try {
-              const r = await get_withauth(`/bookings/trip/${trip._id}`);
-              if (r.success) {
-                counts[trip._id] = (r.data || []).filter(b => {
-                  const rs = b.seatReservation?.reservationStatus || b.status;
-                  return rs === 'pending_approval' || rs === 'pending';
-                }).length;
-              }
-            } catch (_) {}
-          })
-        );
-        setPendingCounts(counts);
-      } else {
+      }),
+    );
+    setPendingCounts((prev) => {
+      const next = { ...prev };
+      entries.forEach(([id, n]) => { next[id] = n; });
+      return next;
+    });
+  };
+
+  const loadUserTrips = async (pageNum = 1, { append = false } = {}) => {
+    if (tripsFetchLock.current && append) return;
+    tripsFetchLock.current = true;
+    if (append) setLoadingMoreTrips(true);
+    else setLoadingTrips(true);
+    try {
+      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, {
+        page: pageNum,
+        limit: LIST_PAGE_SIZE,
+      });
+      if (response.success && Array.isArray(response.data)) {
+        const rows = response.data;
+        setTrips((prev) => (append ? [...prev, ...rows] : rows));
+        setTripsPage(pageNum);
+        setTripsHasMore(response.hasMore === true);
+        setSelectedTripId((cur) => {
+          if (cur) return cur;
+          if (rows.length === 1) return rows[0]._id;
+          return cur;
+        });
+        await enrichPendingForTrips(rows);
+      } else if (!append) {
         setTrips([]);
+        setTripsHasMore(false);
       }
     } catch {
       showAlert('Error', 'No se pudieron cargar tus viajes');
     } finally {
-      setLoading(false);
+      tripsFetchLock.current = false;
+      setLoadingTrips(false);
+      setLoadingMoreTrips(false);
       setRefreshing(false);
     }
   };
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async (pageNum = 1, { append = false, isRefresh = false } = {}) => {
     if (!selectedTripId) return;
-    setLoading(true);
+    if (reqFetchLock.current && append) return;
+    reqFetchLock.current = true;
+    const tid = selectedTripId;
+    if (append) setLoadingMoreRequests(true);
+    else if (!isRefresh) setLoadingRequests(true);
     try {
-      const response = await get_withauth(`/bookings/trip/${selectedTripId}`);
-      if (response.success) setRequests(response.data);
+      const response = await get_withauth(`/bookings/trip/${tid}`, {
+        page: pageNum,
+        limit: LIST_PAGE_SIZE,
+      });
+      if (!response.success || tid !== selectedTripId) return;
+      const rows = response.data || [];
+      setRequests((prev) => (append ? [...prev, ...rows] : rows));
+      setReqPage(pageNum);
+      setReqHasMore(response.hasMore === true);
     } catch {
-      showAlert('Error', 'No se pudieron cargar las solicitudes');
+      if (tid === selectedTripId) {
+        showAlert('Error', 'No se pudieron cargar las solicitudes');
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (tid === selectedTripId) {
+        reqFetchLock.current = false;
+        setLoadingRequests(false);
+        setLoadingMoreRequests(false);
+        setRefreshing(false);
+      }
     }
-  };
+  }, [selectedTripId]);
+
+  useEffect(() => {
+    loadUserTrips(1, { append: false });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTripId) return;
+    setRequests([]);
+    setReqPage(1);
+    setReqHasMore(true);
+    reqFetchLock.current = false;
+    loadRequests(1, { append: false, isRefresh: false });
+  }, [selectedTripId, loadRequests]);
+
+  useEffect(() => {
+    if (selectedTripId) return;
+    if (loadingTrips || loadingMoreTrips || !tripsHasMore || tripsFetchLock.current) return;
+    const hasActive = trips.some((t) => t.status === 'active' || t.status === 'started');
+    if (!hasActive && trips.length > 0) {
+      loadUserTrips(tripsPage + 1, { append: true });
+    }
+  }, [trips, tripsPage, tripsHasMore, loadingTrips, loadingMoreTrips, selectedTripId]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    if (selectedTripId) loadRequests();
-    else loadUserTrips();
+    if (selectedTripId) loadRequests(1, { append: false, isRefresh: true });
+    else loadUserTrips(1, { append: false });
+  };
+
+  const onTripsEndReached = () => {
+    if (selectedTripId || !tripsHasMore || loadingMoreTrips || tripsFetchLock.current || loadingTrips) return;
+    loadUserTrips(tripsPage + 1, { append: true });
+  };
+
+  const onRequestsEndReached = () => {
+    if (!selectedTripId || !reqHasMore || loadingMoreRequests || reqFetchLock.current || loadingRequests) return;
+    loadRequests(reqPage + 1, { append: true });
   };
 
   const handleAccept = (request) => {
@@ -117,14 +202,14 @@ const TripRequestsScreen = ({ route }) => {
             try {
               if (isSeatReservation && seatReservationId) {
                 const res = await approveOrRejectReservation(seatReservationId, 'approve');
-                if (res.success) {
+                  if (res.success) {
                   showAlert('Aprobado', 'El pasajero recibirá una notificación para completar el pago.', [
-                    { text: 'OK', onPress: () => loadRequests() },
+                    { text: 'OK', onPress: () => loadRequests(1, { append: false }) },
                   ]);
                 }
               } else {
                 const res = await put_withauth(`/bookings/${requestId}/confirm`);
-                if (res.success) { showAlert('Éxito', 'Solicitud aceptada'); loadRequests(); }
+                if (res.success) { showAlert('Éxito', 'Solicitud aceptada'); loadRequests(1, { append: false }); }
               }
             } catch (error) {
               showAlert('Error', error?.response?.data?.message || error.message);
@@ -143,7 +228,7 @@ const TripRequestsScreen = ({ route }) => {
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
       const isSeatReservation = request?.bookingType === 'seat_reservation';
       const seatReservationId = request?.seatReservation?._id || request?.seatReservation?.id;
-      const close = () => { setRejectModalVisible(false); setRejectReason(''); setSelectedRequest(null); loadRequests(); };
+      const close = () => { setRejectModalVisible(false); setRejectReason(''); setSelectedRequest(null); loadRequests(1, { append: false }); };
 
       if (isSeatReservation && seatReservationId) {
         const res = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
@@ -339,8 +424,24 @@ const TripRequestsScreen = ({ route }) => {
     );
   };
 
+  const listFooter = (loadingMore) =>
+    loadingMore ? (
+      <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
+        <ActivityIndicator size="small" color={textMuted} />
+        <Text style={{ fontSize: 13, color: textMuted }}>Cargando más…</Text>
+      </View>
+    ) : null;
+
   // ─── Loading ──────────────────────────────────────────────────────────────
-  if (loading && !refreshing) {
+  if (!selectedTripId && loadingTrips && !refreshing) {
+    return (
+      <View style={[styles.centered, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={textMuted} />
+      </View>
+    );
+  }
+
+  if (selectedTripId && loadingRequests && !refreshing && requests.length === 0) {
     return (
       <View style={[styles.centered, { backgroundColor: bg }]}>
         <ActivityIndicator size="large" color={textMuted} />
@@ -360,6 +461,9 @@ const TripRequestsScreen = ({ route }) => {
           renderItem={renderTripCard}
           contentContainerStyle={styles.listPad}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
+          onEndReached={onTripsEndReached}
+          onEndReachedThreshold={0.35}
+          ListFooterComponent={listFooter(loadingMoreTrips)}
           ListHeaderComponent={
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Selecciona un viaje</Text>
           }
@@ -371,9 +475,15 @@ const TripRequestsScreen = ({ route }) => {
           renderItem={renderRequestCard}
           contentContainerStyle={styles.listPad}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
+          onEndReached={onRequestsEndReached}
+          onEndReachedThreshold={0.35}
+          ListFooterComponent={listFooter(loadingMoreRequests)}
         />
       ) : (
-        <View style={styles.centered}>
+        <ScrollView
+          contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
+        >
           <Ionicons name={selectedTripId ? 'people-outline' : 'car-outline'} size={48} color={textMuted} />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>
             {selectedTripId ? 'Sin solicitudes' : 'Sin viajes activos'}
@@ -381,7 +491,7 @@ const TripRequestsScreen = ({ route }) => {
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             {selectedTripId ? 'Las solicitudes aparecerán aquí' : 'Crea un viaje para recibir reservas'}
           </Text>
-        </View>
+        </ScrollView>
       )}
 
       {/* Reject Modal */}

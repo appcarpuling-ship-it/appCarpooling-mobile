@@ -21,6 +21,7 @@ import socketService from '../../../services/socketService';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -41,11 +42,54 @@ const ChatsScreen = ({ navigation }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [convPage, setConvPage] = useState(1);
+  const [convHasMore, setConvHasMore] = useState(false);
+  const [loadingMoreConv, setLoadingMoreConv] = useState(false);
+  const convFetchLock = useRef(false);
+  const lastConvLoadRef = useRef(0);
   const [filter, setFilter] = useState('all'); // 'all', 'trips', 'direct'
   const [searchTerm, setSearchTerm] = useState('');
   const conversationsRef = useRef([]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const loadConversations = async (pageNum = 1, { append = false } = {}) => {
+    if (convFetchLock.current && append) return;
+    convFetchLock.current = true;
+    const limit = LIST_PAGE_SIZE;
+    if (append) setLoadingMoreConv(true);
+    try {
+      const response = await apiService.get('/chat/conversations', { params: { page: pageNum, limit } });
+      const body = response.data;
+      if (body.success && Array.isArray(body.data)) {
+        const rows = body.data;
+        if (append) {
+          setConversations((prev) => {
+            const byId = new Map(prev.map((c) => [String(c._id), c]));
+            rows.forEach((r) => {
+              const id = String(r._id);
+              if (!byId.has(id)) byId.set(id, r);
+            });
+            return Array.from(byId.values()).sort(
+              (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+            );
+          });
+        } else {
+          setConversations(rows);
+          conversationsRef.current = rows;
+        }
+        setConvPage(pageNum);
+        setConvHasMore(body.hasMore === true);
+      }
+    } catch (error) {
+      console.error('Error al cargar conversaciones:', error);
+    } finally {
+      convFetchLock.current = false;
+      setLoading(false);
+      setLoadingMoreConv(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Animación de entrada
@@ -55,7 +99,7 @@ const ChatsScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
 
-    loadConversations();
+    loadConversations(1);
 
     // Conectar socket
     socketService.connect();
@@ -76,7 +120,7 @@ const ChatsScreen = ({ navigation }) => {
       if (!conversationExists) {
         console.log('🆕 [ChatsScreen] Nueva conversación detectada, recargando lista...');
         // Recargar todas las conversaciones para incluir la nueva
-        loadConversations();
+        loadConversations(1);
       } else {
         // Si existe, actualizar con el último mensaje
         // Asegurarse de que si el mensaje es de otro usuario y no está en readBy, se mantenga como no leído
@@ -114,7 +158,7 @@ const ChatsScreen = ({ navigation }) => {
       if (!conversationExists) {
         console.log('🆕 [ChatsScreen] Nueva conversación en actualización, recargando lista...');
         // Recargar todas las conversaciones para incluir la nueva
-        loadConversations();
+        loadConversations(1);
       } else {
         // Si existe, actualizar con el último mensaje
         // Asegurarse de que si el mensaje es de otro usuario y no está en readBy, se mantenga como no leído
@@ -180,34 +224,23 @@ const ChatsScreen = ({ navigation }) => {
   // Recargar conversaciones cuando la pantalla se enfoca (solo si es necesario)
   useFocusEffect(
     useCallback(() => {
-      // Solo recargar si han pasado más de 30 segundos desde la última carga
-      const shouldReload = !conversations.length ||
-        (Date.now() - (window.lastConversationLoad || 0)) > 30000;
+      const shouldReload =
+        !conversations.length || Date.now() - lastConvLoadRef.current > 30000;
 
       if (shouldReload) {
         console.log('📱 [ChatsScreen] Recargando conversaciones por focus');
-        loadConversations();
-        window.lastConversationLoad = Date.now();
+        loadConversations(1);
+        lastConvLoadRef.current = Date.now();
       } else {
         console.log('📱 [ChatsScreen] No es necesario recargar conversaciones');
       }
     }, [conversations.length])
   );
 
-  const loadConversations = async () => {
-    try {
-      const response = await apiService.get('/chat/conversations');
-      if (response.data.success) {
-        setConversations(response.data.data);
-        conversationsRef.current = response.data.data;
-      }
-    } catch (error) {
-      console.error('Error al cargar conversaciones:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const onEndReachedConversations = useCallback(() => {
+    if (!convHasMore || loadingMoreConv || convFetchLock.current || loading) return;
+    loadConversations(convPage + 1, { append: true });
+  }, [convHasMore, loadingMoreConv, loading, convPage]);
 
   const updateConversation = (conversationId, lastMessage) => {
     setConversations(prevConversations => {
@@ -249,7 +282,7 @@ const ChatsScreen = ({ navigation }) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadConversations();
+    loadConversations(1);
   }, []);
 
   const getOtherParticipant = (conversation) => {
@@ -515,6 +548,16 @@ const ChatsScreen = ({ navigation }) => {
             renderItem={renderConversation}
             keyExtractor={item => item._id}
             contentContainerStyle={styles.listContent}
+            onEndReached={onEndReachedConversations}
+            onEndReachedThreshold={0.35}
+            ListFooterComponent={
+              loadingMoreConv ? (
+                <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator size="small" color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                  <Text style={{ fontSize: 13, color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>Cargando más…</Text>
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

@@ -390,11 +390,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
           <TextInput
             style={[
               styles.input,
-              { 
-                backgroundColor: '#292929',
+              {
+                backgroundColor: colors.inputBackground,
                 borderColor: colors.inputBorder,
-                color: colors.textPrimary
-              }
+                color: colors.textPrimary,
+              },
             ]}
             placeholder="Escribe un mensaje..."
             placeholderTextColor={colors.placeholder}

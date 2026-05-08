@@ -19,6 +19,7 @@ import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
+import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const { getCurrentThemeMode } = useColors();
@@ -59,6 +60,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const [existingPhotos, setExistingPhotos] = useState([]);
   const [registrationCardUri, setRegistrationCardUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [processingNewPhotos, setProcessingNewPhotos] = useState(false);
+  const [processingRegistration, setProcessingRegistration] = useState(false);
 
   const hasRegistrationOnServer = !!(isEdit && vehicleData?.registrationCardUrl);
 
@@ -103,7 +106,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
         quality: 0.85,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setRegistrationCardUri(await compressImage(result.assets[0].uri));
+        setProcessingRegistration(true);
+        try {
+          setRegistrationCardUri(await compressImage(result.assets[0].uri));
+        } finally {
+          setProcessingRegistration(false);
+        }
       }
     } catch {
       showAlert('Error', 'No se pudo seleccionar la imagen');
@@ -122,13 +130,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
-        const next = [...photos, ...compressed];
-        if (existingPhotos.length + next.length > 10) {
-          showAlert('Error', 'Máximo 10 fotos');
-          return;
+        setProcessingNewPhotos(true);
+        try {
+          const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
+          const next = [...photos, ...compressed];
+          if (existingPhotos.length + next.length > 10) {
+            showAlert('Error', 'Máximo 10 fotos');
+            return;
+          }
+          setPhotos(next);
+        } finally {
+          setProcessingNewPhotos(false);
         }
-        setPhotos(next);
       }
     } catch {
       showAlert('Error', 'No se pudieron seleccionar las imágenes');
@@ -236,7 +249,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
     { key: 'model',        label: 'Modelo',   placeholder: 'Corolla, Focus, Cruze...',   half: false },
     { key: 'year',         label: 'Año',      placeholder: '2020', half: true, keyboard: 'numeric', max: 4 },
     { key: 'color',        label: 'Color',    placeholder: 'Blanco',                    half: true },
-    { key: 'licensePlate', label: 'Patente',  placeholder: 'ABC123', caps: 'characters', half: false },
+    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en el vehículo o documento', half: false, noAutoUpper: true, autoCapitalize: 'none', max: 50 },
     { key: 'capacity',     label: 'Capacidad de pasajeros', placeholder: '4', half: false, keyboard: 'numeric', max: 1 },
   ];
 
@@ -267,7 +280,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
             >
               {existingPhotos.map((url, i) => (
                 <View key={`ex-${i}`} style={styles.photoWrapper}>
-                  <Image source={{ uri: buildImageUri(url) }} style={styles.photoImg} />
+                  <RemoteImageWithLoader
+                    uri={buildImageUri(url)}
+                    style={styles.photoImg}
+                    isDarkMode={isDarkMode}
+                    spinnerColor={textPrimary}
+                  />
                   <TouchableOpacity style={styles.photoRemove} onPress={() => setExistingPhotos(existingPhotos.filter((_, j) => j !== i))}>
                     <Ionicons name="close" size={14} color="#FFFFFF" />
                   </TouchableOpacity>
@@ -287,9 +305,22 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={[styles.photoAdd, { backgroundColor: divider, borderColor: border }]}
                   onPress={pickImages}
+                  disabled={processingNewPhotos}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={28} color={textHint} />
-                  <Text style={[styles.photoAddText, { color: textHint }]}>{totalPhotos}/10</Text>
+                  {processingNewPhotos ? (
+                    <>
+                      <ActivityIndicator size="small" color={textPrimary} />
+                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textHint }]}>
+                        Procesando…
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="add" size={28} color={textHint} />
+                      <Text style={[styles.photoAddText, { color: textHint }]}>{totalPhotos}/10</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
             </ScrollView>
@@ -314,19 +345,44 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 </View>
               ) : hasRegistrationOnServer ? (
                 <View style={styles.regCardPreview}>
-                  <Image source={{ uri: buildImageUri(vehicleData.registrationCardUrl) }} style={styles.regCardImg} />
+                  <RemoteImageWithLoader
+                    uri={buildImageUri(vehicleData.registrationCardUrl)}
+                    style={styles.regCardImg}
+                    isDarkMode={isDarkMode}
+                    spinnerColor={textPrimary}
+                  />
                   <Text style={[styles.regCardHint, { color: textHint }]}>Guardada · tocá para reemplazar</Text>
-                  <TouchableOpacity style={[styles.regCardReplace, { borderColor: border }]} onPress={pickRegistrationCard}>
-                    <Text style={[styles.regCardReplaceText, { color: textPrimary }]}>Cambiar imagen</Text>
+                  <TouchableOpacity
+                    style={[styles.regCardReplace, { borderColor: border }]}
+                    onPress={pickRegistrationCard}
+                    disabled={processingRegistration}
+                  >
+                    {processingRegistration ? (
+                      <ActivityIndicator size="small" color={textPrimary} />
+                    ) : (
+                      <Text style={[styles.regCardReplaceText, { color: textPrimary }]}>Cambiar imagen</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity
                   style={[styles.regCardAdd, { backgroundColor: divider, borderColor: border }]}
                   onPress={pickRegistrationCard}
+                  disabled={processingRegistration}
                 >
-                  <Ionicons name="document-text-outline" size={28} color={textHint} />
-                  <Text style={[styles.photoAddText, { color: textHint }]}>Subir documento</Text>
+                  {processingRegistration ? (
+                    <>
+                      <ActivityIndicator size="small" color={textPrimary} />
+                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textHint }]}>
+                        Procesando…
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="document-text-outline" size={28} color={textHint} />
+                      <Text style={[styles.photoAddText, { color: textHint }]}>Subir documento</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
             </View>
@@ -343,12 +399,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   <TextInput
                     style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
                     value={formData[f.key]}
-                    onChangeText={v => handleChange(f.key, f.caps ? v.toUpperCase() : v)}
+                    onChangeText={v => handleChange(f.key, f.noAutoUpper ? v : (f.caps ? v.toUpperCase() : v))}
                     placeholder={f.placeholder}
                     placeholderTextColor={placeholderColor}
                     keyboardType={f.keyboard || 'default'}
                     maxLength={f.max}
-                    autoCapitalize={f.caps || 'sentences'}
+                    autoCapitalize={f.autoCapitalize ?? (f.caps ? 'characters' : 'sentences')}
                   />
                 </View>
               ))}
@@ -360,12 +416,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 <TextInput
                   style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
                   value={formData[f.key]}
-                  onChangeText={v => handleChange(f.key, f.caps ? v.toUpperCase() : v)}
+                  onChangeText={v => handleChange(f.key, f.noAutoUpper ? v : (f.caps ? v.toUpperCase() : v))}
                   placeholder={f.placeholder}
                   placeholderTextColor={placeholderColor}
                   keyboardType={f.keyboard || 'default'}
                   maxLength={f.max}
-                  autoCapitalize={f.caps || 'sentences'}
+                  autoCapitalize={f.autoCapitalize ?? (f.caps ? 'characters' : 'sentences')}
                 />
               </View>
             ))}
@@ -408,10 +464,10 @@ const VehicleFormScreen = ({ navigation, route }) => {
             style={[
               styles.submitBtn,
               { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
-              loading && { opacity: 0.6 },
+              (loading || processingNewPhotos || processingRegistration) && { opacity: 0.6 },
             ]}
             onPress={handleSubmit}
-            disabled={loading}
+            disabled={loading || processingNewPhotos || processingRegistration}
             activeOpacity={0.85}
           >
             {loading
@@ -496,6 +552,11 @@ const styles = StyleSheet.create({
   photoAddText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  photoAddHint: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
   },
 
   regCardRow: {

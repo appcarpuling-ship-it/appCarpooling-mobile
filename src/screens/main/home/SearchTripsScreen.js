@@ -363,9 +363,23 @@ const SearchTripsScreen = ({ route, navigation }) => {
 
       console.log('🔍 Final search params:', searchParams);
 
-      const response = await get_public(ENDPOINTS.SEARCH_TRIPS, searchParams);
+      const pageSize = 10;
+      let aggregated = [];
+      let page = 1;
+      let hasMorePages = true;
+      let anySuccess = false;
+      while (hasMorePages && page <= 50) {
+        const response = await get_public(ENDPOINTS.SEARCH_TRIPS, { ...searchParams, page, limit: pageSize });
+        if (!response || !response.success || !Array.isArray(response.data)) {
+          break;
+        }
+        anySuccess = true;
+        aggregated = aggregated.concat(response.data);
+        hasMorePages = response.hasMore === true;
+        page += 1;
+      }
 
-      console.log('🔍 Search response:', response);
+      console.log('🔍 Search aggregated pages:', { trips: aggregated.length });
 
       // Verificar si el componente todavía está montado antes de actualizar el estado
       if (!isMountedRef.current) {
@@ -373,9 +387,8 @@ const SearchTripsScreen = ({ route, navigation }) => {
         return;
       }
 
-      // Verificar si la respuesta es exitosa
-      if (response && response.success && response.data && Array.isArray(response.data)) {
-        let filteredResults = response.data;
+      if (anySuccess) {
+        let filteredResults = aggregated;
 
         // Aplicar filtros avanzados en frontend
         filteredResults = applyAdvancedFilters(filteredResults, searchData);
@@ -385,18 +398,16 @@ const SearchTripsScreen = ({ route, navigation }) => {
 
         console.log(`✅ Setting trips state with ${filteredResults.length} trips`);
         setTrips(filteredResults);
-        console.log(`✅ Found ${filteredResults.length} trips (${response.data.length} before filters)`);
+        console.log(`✅ Found ${filteredResults.length} trips (${aggregated.length} before client filters)`);
 
-        // Si no hay resultados, NO es un error
         if (filteredResults.length === 0) {
-          setError(null); // Limpiar error anterior si existe
+          setError(null);
         }
       } else {
-        // Solo aquí setear trips vacío si hay error real
-        console.warn('⚠️ Search unsuccessful:', response?.message || 'Estructura de respuesta inesperada');
+        console.warn('⚠️ Search unsuccessful');
         if (isMountedRef.current) {
           setTrips([]);
-          setError(response?.message || 'No se encontraron resultados para tu búsqueda');
+          setError('No se encontraron resultados para tu búsqueda');
         }
       }
     } catch (error) {
