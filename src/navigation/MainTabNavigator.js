@@ -138,7 +138,7 @@ const MainTabNavigator = () => {
         component={ChatStackNavigator}
         options={({ route }) => {
           const nested = getFocusedRouteNameFromRoute(route) ?? 'Chats';
-          const hideTabBar = nested === 'ChatDetail';
+          const hideTabBar = nested === 'ChatDetail' || nested === 'UserProfile';
           return {
             tabBarLabel: 'Mensajes',
             ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),

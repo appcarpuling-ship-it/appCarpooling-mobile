@@ -35,6 +35,9 @@ export const ENDPOINTS = {
 
   // Users
   GET_USER: (id) => `/users/${id}`,
+  GET_USER_VEHICLES: (id) => `/users/${id}/vehicles`,
+  REPORT_USER: (id) => `/users/${id}/report`,
+  BLOCK_USER: (id) => `/users/${id}/block`,
   UPDATE_USER: (id) => `/users/${id}`,
 
   // Trips

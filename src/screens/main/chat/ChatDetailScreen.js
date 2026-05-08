@@ -143,37 +143,55 @@ const ChatDetailScreen = ({ route, navigation }) => {
           <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       ),
-      headerTitle: () => (
-        <View style={styles.headerContainer}>
-          <View style={styles.headerAvatarContainer}>
-            {otherUser?.avatar && buildImageUri(otherUser.avatar) ? (
-              <Image
-                source={{ uri: buildImageUri(otherUser.avatar) }}
-                style={styles.headerAvatar}
-              />
-            ) : (
-              <LinearGradient
-                colors={[colors?.messagePrimary, colors?.messageSecondary]}
-                style={styles.headerAvatar}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={[styles.headerAvatarText, { color: '#FFFFFF' }]}>
-                  {displayInitials}
+      headerTitle: () => {
+        const profileUserId = otherUser?._id || otherUser?.id;
+        const openPeerProfile = () => {
+          if (!profileUserId) return;
+          navigation.navigate('UserProfile', {
+            userId: String(profileUserId),
+            conversationId,
+            fromChat: true,
+          });
+        };
+        return (
+          <TouchableOpacity
+            style={styles.headerTitleTouchable}
+            onPress={openPeerProfile}
+            activeOpacity={0.75}
+            disabled={!profileUserId}
+          >
+            <View style={styles.headerContainer}>
+              <View style={styles.headerAvatarContainer}>
+                {otherUser?.avatar && buildImageUri(otherUser.avatar) ? (
+                  <Image
+                    source={{ uri: buildImageUri(otherUser.avatar) }}
+                    style={styles.headerAvatar}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={[colors?.messagePrimary, colors?.messageSecondary]}
+                    style={styles.headerAvatar}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={[styles.headerAvatarText, { color: '#FFFFFF' }]}>
+                      {displayInitials}
+                    </Text>
+                  </LinearGradient>
+                )}
+              </View>
+              <View style={styles.headerTextContainer}>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+                  {displayName}
                 </Text>
-              </LinearGradient>
-            )}
-          </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-              {displayName}
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-              {typing ? 'Escribiendo...' : 'En linea'}
-            </Text>
-          </View>
-        </View>
-      )
+                <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                  {typing ? 'Escribiendo...' : 'En linea'}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      }
     });
 
     loadMessages();
@@ -511,6 +529,10 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   // Header styles
+  headerTitleTouchable: {
+    flex: 1,
+    maxWidth: '100%',
+  },
   headerContainer: {
     flex: 1,
     flexDirection: 'row',

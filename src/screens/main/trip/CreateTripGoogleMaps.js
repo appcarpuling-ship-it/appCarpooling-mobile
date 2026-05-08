@@ -29,6 +29,8 @@ const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
+/** Tras arrastrar el mapa, si el pin central queda quieto este tiempo, se confirma el punto */
+const MAP_SELECTION_IDLE_MS = 1500;
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const CreateTripGoogleMaps = ({ navigation }) => {
@@ -41,6 +43,10 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   const waypointInputRefs = useRef([]);
   const isMounted = useRef(true);
   const waypointDebounceTimers = useRef([]);
+  const mapSelectionModeRef = useRef(null);
+  const mapSelectionIdleTimerRef = useRef(null);
+  const lastRegionRef = useRef(region);
+  const hasMapGestureForSelectionRef = useRef(false);
 
   const isDarkMode  = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
@@ -141,7 +147,13 @@ const CreateTripGoogleMaps = ({ navigation }) => {
     loadVehicles();
     getCurrentLocation();
     if (!GOOGLE_MAPS_API_KEY) showAlert('Error', 'La API Key de Google Maps no está configurada');
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+      if (mapSelectionIdleTimerRef.current) {
+        clearTimeout(mapSelectionIdleTimerRef.current);
+        mapSelectionIdleTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -159,6 +171,23 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       return () => { screenWasBlurred.current = true; };
     }, [])
   );
+
+  useEffect(() => {
+    mapSelectionModeRef.current = mapSelectionMode;
+    if (!mapSelectionMode) {
+      hasMapGestureForSelectionRef.current = false;
+      if (mapSelectionIdleTimerRef.current) {
+        clearTimeout(mapSelectionIdleTimerRef.current);
+        mapSelectionIdleTimerRef.current = null;
+      }
+    } else {
+      hasMapGestureForSelectionRef.current = false;
+    }
+  }, [mapSelectionMode]);
+
+  useEffect(() => {
+    lastRegionRef.current = region;
+  }, [region]);
 
   // ─── Location / Vehicles / Directions ────────────────────────────────────
 
@@ -273,6 +302,77 @@ const CreateTripGoogleMaps = ({ navigation }) => {
     return null;
   };
 
+  const clearMapSelectionIdleTimer = () => {
+    if (mapSelectionIdleTimerRef.current) {
+      clearTimeout(mapSelectionIdleTimerRef.current);
+      mapSelectionIdleTimerRef.current = null;
+    }
+  };
+
+  const applyMapSelectionAt = useCallback(
+    async (latitude, longitude) => {
+      const mode = mapSelectionModeRef.current;
+      if (!mode || !isMounted.current) return;
+      setLoadingMapSelection(true);
+      const loc = await reverseGeocode(latitude, longitude);
+      setLoadingMapSelection(false);
+      if (!isMounted.current) return;
+      if (!loc) {
+        showAlert('Error', 'No se pudo obtener la dirección');
+        return;
+      }
+      if (mode === 'origin') {
+        setOriginMarker({ latitude, longitude });
+        setFormData(prev => ({ ...prev, origin: loc }));
+        if (originInputRef.current?.setAddressText) {
+          originInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
+        }
+      } else if (mode === 'destination') {
+        setDestinationMarker({ latitude, longitude });
+        setFormData(prev => ({ ...prev, destination: loc }));
+        if (destinationInputRef.current?.setAddressText) {
+          destinationInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
+        }
+      } else if (mode.startsWith('waypoint-')) {
+        const idx = parseInt(mode.split('-')[1], 10);
+        setWaypointMarkers(prev => {
+          const n = [...prev];
+          n[idx] = { latitude, longitude };
+          return n;
+        });
+        setFormData(prev => {
+          const n = [...prev.waypoints];
+          n[idx] = loc;
+          return { ...prev, waypoints: n };
+        });
+        if (waypointInputRefs.current[idx]?.current?.setAddressText) {
+          waypointInputRefs.current[idx].current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
+        }
+      }
+      setMapSelectionMode(null);
+      mapSelectionModeRef.current = null;
+      clearMapSelectionIdleTimer();
+      if (mapRef.current && isMounted.current) {
+        mapRef.current.animateToRegion(
+          { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA },
+          1000
+        );
+      }
+    },
+    [showAlert]
+  );
+
+  const scheduleMapSelectionIdleCommit = useCallback(() => {
+    clearMapSelectionIdleTimer();
+    mapSelectionIdleTimerRef.current = setTimeout(() => {
+      mapSelectionIdleTimerRef.current = null;
+      if (!mapSelectionModeRef.current || !isMounted.current) return;
+      const c = lastRegionRef.current;
+      if (!c) return;
+      applyMapSelectionAt(c.latitude, c.longitude);
+    }, MAP_SELECTION_IDLE_MS);
+  }, [applyMapSelectionAt]);
+
   const extractComponents = (details) => {
     let city = '', province = '', street = '', streetNumber = '';
     details.address_components?.forEach(c => {
@@ -287,28 +387,13 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
   const handleMapPress = async (event) => {
-    if (!mapSelectionMode) { Keyboard.dismiss(); return; }
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setLoadingMapSelection(true);
-    const loc = await reverseGeocode(latitude, longitude);
-    setLoadingMapSelection(false);
-    if (!loc) { showAlert('Error', 'No se pudo obtener la dirección'); return; }
-    if (mapSelectionMode === 'origin') {
-      setOriginMarker({ latitude, longitude });
-      setFormData(prev => ({ ...prev, origin: loc }));
-      if (originInputRef.current?.setAddressText) originInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
-    } else if (mapSelectionMode === 'destination') {
-      setDestinationMarker({ latitude, longitude });
-      setFormData(prev => ({ ...prev, destination: loc }));
-      if (destinationInputRef.current?.setAddressText) destinationInputRef.current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
-    } else if (mapSelectionMode.startsWith('waypoint-')) {
-      const idx = parseInt(mapSelectionMode.split('-')[1]);
-      setWaypointMarkers(prev => { const n = [...prev]; n[idx] = { latitude, longitude }; return n; });
-      setFormData(prev => { const n = [...prev.waypoints]; n[idx] = loc; return { ...prev, waypoints: n }; });
-      if (waypointInputRefs.current[idx]?.current?.setAddressText) waypointInputRefs.current[idx].current.setAddressText([loc.address, loc.city, loc.province].filter(Boolean).join(', '));
+    if (!mapSelectionMode) {
+      Keyboard.dismiss();
+      return;
     }
-    setMapSelectionMode(null);
-    if (mapRef.current) mapRef.current.animateToRegion({ latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000);
+    clearMapSelectionIdleTimer();
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    await applyMapSelectionAt(latitude, longitude);
   };
 
   const handleOriginSelect = (data, details = null) => {
@@ -544,7 +629,21 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
-        onRegionChangeComplete={(r, d = {}) => { if (d.isGesture) setRegion(r); }}
+        onRegionChange={(r) => {
+          lastRegionRef.current = r;
+          if (!mapSelectionModeRef.current || !hasMapGestureForSelectionRef.current) return;
+          scheduleMapSelectionIdleCommit();
+        }}
+        onRegionChangeComplete={(r, d = {}) => {
+          lastRegionRef.current = r;
+          if (d.isGesture) {
+            setRegion(r);
+            if (mapSelectionModeRef.current) {
+              hasMapGestureForSelectionRef.current = true;
+              scheduleMapSelectionIdleCommit();
+            }
+          }
+        }}
         paddingAdjustmentBehavior="never"
         showsUserLocation={false}
         showsMyLocationButton={false}
@@ -605,9 +704,11 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         <>
           <View style={[styles.selectionBanner, { top: insets.top + 72 }]}>
             <Text style={styles.selectionText}>
-              {mapSelectionMode === 'origin' ? 'Tocá el mapa para marcar el origen' :
-               mapSelectionMode === 'destination' ? 'Tocá el mapa para marcar el destino' :
-               `Tocá el mapa para marcar la parada ${parseInt(mapSelectionMode.split('-')[1]) + 1}`}
+              {mapSelectionMode === 'origin'
+                ? 'Mové el mapa bajo el pin; si queda quieto ~1,5 s se elige solo. También podés tocar.'
+                : mapSelectionMode === 'destination'
+                  ? 'Mové el mapa bajo el pin; si queda quieto ~1,5 s se elige solo. También podés tocar.'
+                  : `Parada ${parseInt(mapSelectionMode.split('-')[1], 10) + 1}: mové el mapa o tocá; quieto ~1,5 s confirma.`}
             </Text>
             <TouchableOpacity onPress={() => setMapSelectionMode(null)} style={{ marginLeft: 12 }}>
               <Text style={styles.selectionCancelText}>Cancelar</Text>

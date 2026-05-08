@@ -11,12 +11,17 @@ import {
   Animated,
   TextInput,
   ScrollView,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
-import apiService, { buildImageUri } from '../../../services/apiService';
+import { useAlert } from '../../../context/AlertContext';
+import apiService, { buildImageUri, post_withauth } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import socketService from '../../../services/socketService';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
@@ -38,7 +43,9 @@ const SORA_FONTS = {
 const ChatsScreen = ({ navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
   const { isDarkMode } = useTheme();
-  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { user, refreshUser } = useAuth();
+  const { showAlert } = useAlert();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,6 +57,8 @@ const ChatsScreen = ({ navigation }) => {
   const [filter, setFilter] = useState('all'); // 'all', 'trips', 'direct'
   const [searchTerm, setSearchTerm] = useState('');
   const conversationsRef = useRef([]);
+  const [chatActionsTarget, setChatActionsTarget] = useState(null);
+  const [blockingFromList, setBlockingFromList] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -291,6 +300,67 @@ const ChatsScreen = ({ navigation }) => {
     return conversation.participants.find(p => p._id !== userId);
   };
 
+  const closeChatActions = useCallback(() => setChatActionsTarget(null), []);
+
+  const openChatActions = useCallback((conversation, otherUser) => {
+    if (!otherUser?._id) return;
+    setChatActionsTarget({ conversation, otherUser });
+  }, []);
+
+  const navigateToPeerProfile = useCallback(
+    (conversation, otherUser, openReportParam) => {
+      closeChatActions();
+      navigation.navigate('UserProfile', {
+        userId: otherUser._id,
+        conversationId: conversation._id,
+        fromChat: false,
+        ...(openReportParam ? { openReport: true } : {}),
+      });
+    },
+    [closeChatActions, navigation],
+  );
+
+  const runBlockFromList = useCallback(
+    async (conversationId, peerId) => {
+      setBlockingFromList(true);
+      try {
+        await post_withauth(ENDPOINTS.BLOCK_USER(peerId), {});
+        await refreshUser();
+        setConversations((prev) => {
+          const next = prev.filter((c) => c._id !== conversationId);
+          conversationsRef.current = next;
+          return next;
+        });
+        showAlert('Listo', 'Usuario bloqueado.');
+      } catch (e) {
+        const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
+        showAlert('Error', msg);
+      } finally {
+        setBlockingFromList(false);
+      }
+    },
+    [refreshUser, showAlert],
+  );
+
+  const confirmBlockFromList = useCallback(
+    (conversation, otherUser) => {
+      closeChatActions();
+      showAlert(
+        'Bloquear usuario',
+        'No podrán enviarse mensajes y el chat desaparecerá para ambos. ¿Continuar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Bloquear',
+            style: 'destructive',
+            onPress: () => runBlockFromList(conversation._id, otherUser._id),
+          },
+        ],
+      );
+    },
+    [closeChatActions, runBlockFromList, showAlert],
+  );
+
   const formatTime = (date) => {
     const now = new Date();
     const messageDate = new Date(date);
@@ -340,6 +410,8 @@ const ChatsScreen = ({ navigation }) => {
           conversation: item,
           otherUser
         })}
+        onLongPress={() => otherUser?._id && openChatActions(item, otherUser)}
+        delayLongPress={380}
         activeOpacity={0.7}
       >
         <LinearGradient
@@ -446,7 +518,7 @@ const ChatsScreen = ({ navigation }) => {
                 style={styles.clearSearchButton}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                <Ionicons name="close" size={22} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
               </TouchableOpacity>
             )}
           </View>
@@ -533,13 +605,13 @@ const ChatsScreen = ({ navigation }) => {
                         ? 'No tienes mensajes directos'
                         : 'No hay conversaciones'}
               </Text>
-            <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+            {/* <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                 {conversations.length === 0
                   ? 'En el detalle de un viaje, usá «Chatear con el conductor» (arriba del botón Reservar o de tu estado de reserva)'
                   : searchTerm
                     ? 'Intenta con otro término de búsqueda'
                     : 'Intenta cambiar el filtro para ver más conversaciones'}
-            </Text>
+            </Text> */}
           </View>
           </ScrollView>
         ) : (
@@ -568,6 +640,104 @@ const ChatsScreen = ({ navigation }) => {
           />
         )}
       </Animated.View>
+
+      <Modal
+        visible={!!chatActionsTarget}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeChatActions}
+      >
+        <Pressable style={styles.chatActionsOverlay} onPress={closeChatActions}>
+          <View
+            style={[
+              styles.chatActionsSheet,
+              {
+                backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
+                paddingBottom: Math.max(insets.bottom, spacing.md),
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.chatActionsHandle} />
+            <Text
+              style={[styles.chatActionsTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
+              numberOfLines={2}
+            >
+              {chatActionsTarget
+                ? `${chatActionsTarget.otherUser?.firstName || ''} ${chatActionsTarget.otherUser?.lastName || ''}`.trim() ||
+                  'Conversación'
+                : ''}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.chatActionRow}
+              onPress={() =>
+                chatActionsTarget &&
+                navigateToPeerProfile(chatActionsTarget.conversation, chatActionsTarget.otherUser, false)
+              }
+              activeOpacity={0.75}
+            >
+              <Ionicons name="person-outline" size={22} color={isDarkMode ? '#E5E7EB' : '#374151'} />
+              <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                Ver perfil
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[
+                styles.chatActionDivider,
+                { backgroundColor: isDarkMode ? '#404040' : '#E5E7EB' },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.chatActionRow}
+              onPress={() =>
+                chatActionsTarget &&
+                navigateToPeerProfile(chatActionsTarget.conversation, chatActionsTarget.otherUser, true)
+              }
+              activeOpacity={0.75}
+            >
+              <Ionicons name="flag-outline" size={22} color={isDarkMode ? '#E5E7EB' : '#374151'} />
+              <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                Reportar
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[
+                styles.chatActionDivider,
+                { backgroundColor: isDarkMode ? '#404040' : '#E5E7EB' },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.chatActionRow}
+              onPress={() =>
+                chatActionsTarget && confirmBlockFromList(chatActionsTarget.conversation, chatActionsTarget.otherUser)
+              }
+              activeOpacity={0.75}
+              disabled={blockingFromList}
+            >
+              <Ionicons name="ban-outline" size={22} color="#DC2626" />
+              <Text style={[styles.chatActionLabel, { color: '#DC2626' }]}>
+                {blockingFromList ? 'Bloqueando…' : 'Bloquear'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.chatActionCancel, { marginTop: spacing.sm }]}
+              onPress={closeChatActions}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.chatActionCancelText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -794,6 +964,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: '80%',
+  },
+  chatActionsOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  chatActionsSheet: {
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    maxHeight: '55%',
+  },
+  chatActionsHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(150,150,150,0.5)',
+    marginBottom: spacing.md,
+  },
+  chatActionsTitle: {
+    fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.semiBold,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  chatActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  chatActionLabel: {
+    fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.medium,
+    fontWeight: '500',
+  },
+  chatActionDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 30,
+  },
+  chatActionCancel: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  chatActionCancelText: {
+    fontSize: fontSize.md,
+    fontFamily: SORA_FONTS.medium,
+    fontWeight: '500',
   },
 });
 

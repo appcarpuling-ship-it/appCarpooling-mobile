@@ -4,6 +4,7 @@ import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import ChatsScreen from '../../screens/main/chat/ChatsScreen';
 import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
+import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -44,6 +45,11 @@ const ChatStackNavigator = () => {
         options={{
           headerBackTitleVisible: false
         }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ title: 'Perfil' }}
       />
     </Stack.Navigator>
   );

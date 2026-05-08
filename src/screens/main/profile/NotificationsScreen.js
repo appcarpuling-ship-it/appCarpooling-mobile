@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { navigateFromNotification } from '../../../utils/notificationNavigation'
 import { get_withauth } from '../../../services/apiService';
 
 const PAGE_SIZE = 20;
+
+/** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
+const isInAppNotification = (n) => n && n.type !== 'new_message';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -51,7 +54,7 @@ const NotificationsScreen = ({ navigation }) => {
     try {
       const response = await get_withauth(`/notifications?page=${pageNum}&limit=${PAGE_SIZE}`);
       if (response?.success) {
-        const newItems = response.data || [];
+        const newItems = (response.data || []).filter(isInAppNotification);
         setItems(prev => reset ? newItems : [...prev, ...newItems]);
         setPage(pageNum);
         setHasMore(response.hasMore ?? false);
@@ -65,8 +68,9 @@ const NotificationsScreen = ({ navigation }) => {
     }
   }, []);
 
-  // Ejecutar al montar
-  useState(() => { loadPage(1, true); }, []);
+  useEffect(() => {
+    loadPage(1, true);
+  }, [loadPage]);
 
   const onRefresh = () => {
     setRefreshing(true);

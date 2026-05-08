@@ -5,6 +5,9 @@ import socketService from '../services/socketService';
 import { useAuth } from './AuthContext';
 import * as Notifications from 'expo-notifications';
 
+/** Solo push (como WhatsApp); no lista en el centro de notificaciones */
+const isInAppNotificationType = (n) => n && n.type !== 'new_message';
+
 const NotificationContext = createContext();
 
 export const useNotifications = () => {
@@ -52,9 +55,9 @@ export const NotificationProvider = ({ children }) => {
       // ✅ VALIDACIÓN CRÍTICA - Aquí estaba el error
       if (response && response.success) {
         // Asegurar que response.data sea un array
-        const notificationsData = Array.isArray(response.data) 
-          ? response.data 
-          : [];
+        const notificationsData = (Array.isArray(response.data) ? response.data : []).filter(
+          isInAppNotificationType
+        );
         
         console.log('✅ [NotificationContext] Notificaciones cargadas:', notificationsData.length);
         setNotifications(notificationsData);
@@ -83,6 +86,7 @@ export const NotificationProvider = ({ children }) => {
     // Escuchar nuevas notificaciones
     socketService.onNotificationReceived((notification) => {
       console.log('🔔 [NotificationContext] Nueva notificación recibida:', notification);
+      if (!isInAppNotificationType(notification)) return;
       // ✅ Usar refs para evitar problemas con hooks en callbacks
       setNotificationsRef.current(prev => {
         const prevArray = Array.isArray(prev) ? prev : [];
