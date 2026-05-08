@@ -49,6 +49,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "adjustResize",
       "package": "com.carpuling.app.ar",
+      "googleServicesFile": "./android/app/google-services.json",
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",

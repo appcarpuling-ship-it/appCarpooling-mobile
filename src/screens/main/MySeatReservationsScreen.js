@@ -9,7 +9,6 @@ import {
   Animated,
   RefreshControl,
   Linking,
-  Image,
   Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,12 +45,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const confirmedText       = isDarkMode ? '#6EE7B7' : '#065F46';
   const rejectedBg          = isDarkMode ? '#2D0A0A' : '#FEE2E2';
   const rejectedText        = isDarkMode ? '#FCA5A5' : '#991B1B';
-
-  // Tarjeta del conductor
-  const driverCardColors    = isDarkMode ? ['#0C2340', '#0A1F3A'] : ['#E0F2FE', '#BAE6FD'];
-  const driverTitleColor    = isDarkMode ? '#38BDF8' : '#0369A1';
-  const driverIconColor     = isDarkMode ? '#38BDF8' : '#0EA5E9';
-  const driverBorderColor   = isDarkMode ? '#0EA5E9' : '#0EA5E9';
 
   const safeGradients = {
     card:    Array.isArray(gradients?.card) && gradients.card.length > 0 ? gradients.card : [cardBg, cardBg],
@@ -259,65 +252,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
                   <Text style={[styles.priceLabel, { color: textMuted }]}>Costo Total Viaje:</Text>
                   <Text style={[styles.priceValue, { color: '#3B82F6' }]}>
                     {formatCurrency(item.booking?.totalPrice || 0)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Info del conductor — solo en reservas confirmadas */}
-          {status === 'reserved' && (
-            <View>
-              {item.trip?.driver ? (
-                <LinearGradient colors={driverCardColors} style={[styles.driverInfoCard, { borderColor: driverBorderColor }]}>
-                  <View style={styles.driverInfoHeader}>
-                    <Ionicons name="person-circle" size={24} color={driverIconColor} />
-                    <Text style={[styles.driverInfoTitle, { color: driverTitleColor }]}>Información del Conductor</Text>
-                  </View>
-                  <View style={styles.driverDetails}>
-                    <View style={styles.driverNameRow}>
-                      <Ionicons name="person-outline" size={18} color={driverTitleColor} />
-                      <Text style={[styles.driverName, { color: driverTitleColor }]}>
-                        {item.trip.driver.name ||
-                          `${item.trip.driver.firstName || ''} ${item.trip.driver.lastName || ''}`.trim() ||
-                          'Conductor'}
-                      </Text>
-                    </View>
-                    {item.trip.driver.phone && (
-                      <TouchableOpacity
-                        onPress={() => Linking.openURL(`tel:${item.trip.driver.phone}`)}
-                        style={styles.contactButtonLarge}
-                      >
-                        <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.contactButtonGradient}>
-                          <Ionicons name="call" size={18} color="#FFFFFF" />
-                          <Text style={styles.contactTextLarge}>Llamar: {item.trip.driver.phone}</Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    )}
-                    {item.trip.driver.email && (
-                      <TouchableOpacity
-                        onPress={() => Linking.openURL(`mailto:${item.trip.driver.email}`)}
-                        style={styles.emailButton}
-                      >
-                        <Ionicons name="mail-outline" size={16} color={driverTitleColor} />
-                        <Text style={[styles.emailText, { color: driverTitleColor }]}>{item.trip.driver.email}</Text>
-                      </TouchableOpacity>
-                    )}
-                    {item.trip.driver.avatar && (
-                      <View style={styles.avatarContainer}>
-                        <Image source={{ uri: item.trip.driver.avatar }} style={[styles.driverAvatar, { borderColor: driverBorderColor }]} />
-                      </View>
-                    )}
-                  </View>
-                </LinearGradient>
-              ) : (
-                <View style={[styles.driverInfoCard, { backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB', borderColor: cardBorder }]}>
-                  <View style={styles.driverInfoHeader}>
-                    <Ionicons name="person-circle-outline" size={24} color={textMuted} />
-                    <Text style={[styles.driverInfoTitle, { color: textMuted }]}>Información del Conductor</Text>
-                  </View>
-                  <Text style={[styles.driverInfoPlaceholder, { color: textMuted }]}>
-                    Los datos del conductor se cargarán en breve...
                   </Text>
                 </View>
               )}
@@ -606,75 +540,6 @@ const styles = StyleSheet.create({
   priceValue: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
-  },
-  driverInfoCard: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-  },
-  driverInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  driverInfoTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-  },
-  driverDetails: {
-    gap: spacing.sm,
-  },
-  driverNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  driverName: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-  },
-  contactButtonLarge: {
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    marginTop: spacing.xs,
-  },
-  contactButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  contactTextLarge: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
-    color: '#FFFFFF',
-  },
-  emailButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  emailText: {
-    fontSize: fontSize.sm,
-  },
-  avatarContainer: {
-    marginTop: spacing.sm,
-    alignItems: 'center',
-  },
-  driverAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-  },
-  driverInfoPlaceholder: {
-    fontSize: fontSize.sm,
-    fontStyle: 'italic',
-    marginTop: spacing.xs,
   },
   pendingApprovalBox: {
     flexDirection: 'row',

@@ -24,7 +24,7 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSystemDefault, setIsSystemDefault] = useState(true);
+  const [isSystemDefault, setIsSystemDefault] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Cargar preferencia guardada al inicializar
@@ -60,16 +60,15 @@ export const ThemeProvider = ({ children }) => {
           setIsDarkMode(preference.isDarkMode);
         }
       } else {
-        // Primera vez - usar preferencia del sistema
-        const systemColorScheme = Appearance.getColorScheme();
-        setIsDarkMode(systemColorScheme === 'dark');
-        setIsSystemDefault(true);
+        // Primera vez - arrancar siempre en modo claro
+        setIsDarkMode(false);
+        setIsSystemDefault(false);
       }
     } catch (error) {
       console.error('Error cargando preferencia de tema:', error);
-      // Fallback al sistema
-      const systemColorScheme = Appearance.getColorScheme();
-      setIsDarkMode(systemColorScheme === 'dark');
+      // Fallback a modo claro
+      setIsDarkMode(false);
+      setIsSystemDefault(false);
     } finally {
       setIsLoading(false);
     }
