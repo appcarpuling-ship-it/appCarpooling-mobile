@@ -528,7 +528,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
       {/* ── MINI BOTTOM SHEET ── */}
       {!isSearching && (
-        <View style={[styles.miniSheet, { backgroundColor: cardBg }]}>
+        <View style={[styles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 0) + 16 }]}>
           <View style={styles.handleContainer}>
             <View style={[styles.handle, { backgroundColor: border }]} />
           </View>
@@ -822,7 +822,6 @@ const styles = StyleSheet.create({
   miniSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10,
   },
   handleContainer: { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
