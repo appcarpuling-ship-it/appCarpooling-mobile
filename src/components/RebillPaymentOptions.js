@@ -36,7 +36,7 @@ const RebillPaymentOptions = ({
           activeOpacity={0.8}
         >
           <Ionicons name="card" size={20} color="#fff" />
-          <Text style={styles.checkoutButtonText}>Pagar con Checkout</Text>
+          <Text style={styles.checkoutButtonText}>Completar pago</Text>
         </TouchableOpacity>
       )}
 
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#ea580c',
+    backgroundColor: 'green',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,

@@ -12,6 +12,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Animated,
+  PanResponder,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,6 +78,55 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   const [searchVisible, setSearchVisible] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayTranslateY = useRef(new Animated.Value(16)).current;
+
+  // ── Bottom sheet drag ──────────────────────────────────────────────────────
+  // PEEK_HEIGHT como ref para que el PanResponder siempre use el valor actualizado
+  // Incluye insets.bottom para que el handle quede SOBRE la barra de gestos
+  const peekHeight = useRef(100);
+  useEffect(() => {
+    peekHeight.current = (insets.bottom || 0) + 100;
+  }, [insets.bottom]);
+
+  const sheetTranslateY = useRef(new Animated.Value(0)).current;
+  const sheetState = useRef('expanded'); // 'expanded' | 'collapsed'
+  const sheetFullHeight = useRef(0);
+  const dragStartValue = useRef(0);
+
+  const snapSheet = (toState) => {
+    const maxTranslate = sheetFullHeight.current - peekHeight.current;
+    const toValue = toState === 'collapsed' ? Math.max(0, maxTranslate) : 0;
+    sheetState.current = toState;
+    Animated.spring(sheetTranslateY, {
+      toValue,
+      useNativeDriver: true,
+      overshootClamping: true, // sin rebote que se pase del límite
+      tension: 60,
+      friction: 10,
+    }).start();
+  };
+
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 6,
+      onPanResponderGrant: () => {
+        dragStartValue.current = sheetState.current === 'expanded'
+          ? 0
+          : Math.max(0, sheetFullHeight.current - peekHeight.current);
+      },
+      onPanResponderMove: (_, { dy }) => {
+        const maxTranslate = Math.max(0, sheetFullHeight.current - peekHeight.current);
+        const newVal = Math.max(0, Math.min(maxTranslate, dragStartValue.current + dy));
+        sheetTranslateY.setValue(newVal);
+      },
+      onPanResponderRelease: (_, { dy, vy }) => {
+        const shouldCollapse = sheetState.current === 'expanded' && (dy > 25 || vy > 0.4);
+        const shouldExpand   = sheetState.current === 'collapsed' && (dy < -25 || vy < -0.4);
+        if (shouldCollapse) snapSheet('collapsed');
+        else if (shouldExpand) snapSheet('expanded');
+        else snapSheet(sheetState.current); // vuelve al estado actual
+      },
+    })
+  ).current;
 
   const [formData, setFormData] = useState({
     origin:      { address: '', city: '', province: '', coordinates: null },
@@ -528,8 +578,11 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
       {/* ── MINI BOTTOM SHEET ── */}
       {!isSearching && (
-        <View style={[styles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 0) + 16 }]}>
-          <View style={styles.handleContainer}>
+        <Animated.View
+          style={[styles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 0) + 16, transform: [{ translateY: sheetTranslateY }] }]}
+          onLayout={(e) => { sheetFullHeight.current = e.nativeEvent.layout.height; }}
+        >
+          <View style={styles.handleContainer} {...sheetPanResponder.panHandlers}>
             <View style={[styles.handle, { backgroundColor: border }]} />
           </View>
 
@@ -614,7 +667,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </Animated.View>
       )}
 
       {/* ── SEARCH OVERLAY (Uber style) ── */}
