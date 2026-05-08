@@ -132,6 +132,21 @@ const MainTabNavigator = () => {
         name="CarpoolingsTab"
         component={CarpoolingsStackNavigator}
         options={{ tabBarLabel: 'Viajes' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            const state = navigation.getState();
+            const currentRoute = state.routes[state.index];
+            const leavingOtherTab = currentRoute.name !== 'CarpoolingsTab';
+            const inner = currentRoute.state;
+            const nestedInCarpoolings =
+              currentRoute.name === 'CarpoolingsTab' && inner && inner.index > 0;
+
+            if (leavingOtherTab || nestedInCarpoolings) {
+              e.preventDefault();
+              navigation.navigate('CarpoolingsTab', { screen: 'Carpoolings' });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="ChatsTab"

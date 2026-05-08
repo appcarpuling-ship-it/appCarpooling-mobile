@@ -103,6 +103,7 @@ export function buildNotificationLikeFromPushData(raw) {
   const tripId = str('tripId');
   const bookingId = str('bookingId');
   const conversationId = str('conversationId');
+  const senderId = str('senderId');
   let actionUrl = str('actionUrl');
 
   if (!actionUrl && conversationId) {

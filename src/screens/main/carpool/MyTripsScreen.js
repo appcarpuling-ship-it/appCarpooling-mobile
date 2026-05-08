@@ -235,9 +235,11 @@ const MyTripsScreen = ({ navigation }) => {
         onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
         activeOpacity={0.7}
       >
-        {/* Cabecera: ruta + status pill */}
+        {/* Cabecera: estado arriba, luego ruta */}
         <View style={styles.cardHeader}>
-          {/* Ruta con puntos */}
+          <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+            <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
+          </View>
           <View style={styles.routeBlock}>
             <View style={styles.routeDots}>
               <View style={[styles.dotOrigin, { borderColor: accent }]} />
@@ -252,11 +254,6 @@ const MyTripsScreen = ({ navigation }) => {
                 {formatAddress(item.destination)}
               </Text>
             </View>
-          </View>
-
-          {/* Status pill */}
-          <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
-            <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
           </View>
         </View>
 
@@ -362,6 +359,23 @@ const MyTripsScreen = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {activeTab === 'past' ? (
+        <Text
+          style={{
+            fontSize: 11,
+            color: textMuted,
+            paddingHorizontal: 16,
+            paddingTop: 6,
+            paddingBottom: 4,
+            lineHeight: 15,
+            textAlign: 'center',
+          }}
+        >
+          Los viajes completados o cancelados se conservan un tiempo limitado (dos semanas) y luego se
+          eliminan automáticamente.
+        </Text>
+      ) : null}
 
       {/* Trips List */}
       {filteredTrips.length > 0 ? (
@@ -488,15 +502,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Cabecera: ruta + pill
+  // Cabecera: estado encima de la ruta
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     padding: 16,
     paddingBottom: 12,
     gap: 12,
   },
-  routeBlock: { flex: 1, flexDirection: 'row', gap: 10, alignItems: 'center' },
+  routeBlock: { flexDirection: 'row', gap: 10, alignItems: 'center', flex: 1 },
   routeDots:  { width: 14, alignItems: 'center', paddingVertical: 2 },
   dotOrigin: {
     width: 9, height: 9, borderRadius: 5, borderWidth: 2,
@@ -509,10 +523,9 @@ const styles = StyleSheet.create({
   // Status pill
   statusPill: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 20,
-    alignSelf: 'center',
-    flexShrink: 0,
+    alignSelf: 'flex-start',
   },
   statusPillText: { fontSize: 11, fontWeight: '600' },
 

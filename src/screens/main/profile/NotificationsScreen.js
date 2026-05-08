@@ -152,7 +152,7 @@ const NotificationsScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Content */}
+        {/* Content: título y mensaje pueden ocupar varias líneas (alto variable) */}
         <View style={styles.rowContent}>
           <View style={styles.rowTop}>
             <Text
@@ -161,7 +161,6 @@ const NotificationsScreen = ({ navigation }) => {
                 { color: isRead ? colors.textSecondary : textPrimary },
                 !isRead && { fontWeight: '600' },
               ]}
-              numberOfLines={1}
             >
               {item.title}
             </Text>
@@ -169,9 +168,9 @@ const NotificationsScreen = ({ navigation }) => {
               {getRelativeTime(item.createdAt)}
             </Text>
           </View>
-          <Text style={[styles.rowMessage, { color: textMuted }]} numberOfLines={2}>
-            {item.message}
-          </Text>
+          {item.message ? (
+            <Text style={[styles.rowMessage, { color: textMuted }]}>{item.message}</Text>
+          ) : null}
         </View>
 
         {/* Unread indicator */}
@@ -229,7 +228,7 @@ const NotificationsScreen = ({ navigation }) => {
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
           refreshControl={
@@ -301,7 +300,7 @@ const styles = StyleSheet.create({
   // Row
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
     paddingVertical: 16,
     gap: 14,
@@ -320,28 +319,31 @@ const styles = StyleSheet.create({
   },
   rowTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 8,
   },
   rowTitle: {
     flex: 1,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '500',
   },
   rowTime: {
     fontSize: 12,
     flexShrink: 0,
+    marginTop: 1,
   },
   rowMessage: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   unreadDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
     flexShrink: 0,
+    alignSelf: 'center',
   },
 
   // Empty

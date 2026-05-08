@@ -119,9 +119,12 @@ export const put_withauth = async (endpoint, formData = {}) => {
  * @param {string} endpoint - Endpoint de la API
  * @returns {Promise} - Promesa con la respuesta
  */
-export const delete_withauth = async (endpoint) => {
+export const delete_withauth = async (endpoint, data) => {
   try {
-    const response = await api.delete(endpoint);
+    const config = data != null && typeof data === 'object' && Object.keys(data).length > 0
+      ? { data }
+      : {};
+    const response = await api.delete(endpoint, config);
     return response.data;
   } catch (error) {
     throw handleError(error);

@@ -140,16 +140,35 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const getPill = (item) => {
     const ts = item.trip?.status;
     const rs = item.seatReservation?.reservationStatus;
-    if (ts === 'cancelled') return { c: textMuted, t: 'Viaje cancelado' };
-    if (ts === 'completed') return { c: textMuted, t: 'Finalizado' };
-    if (ts === 'started') return { c: '#CA8A04', t: 'En curso' };
+    // Estados del viaje primero (misma paleta que Mis viajes / MyTripsScreen)
+    if (ts === 'cancelled') {
+      return { c: dark ? '#F87171' : '#EF4444', t: 'Viaje cancelado' };
+    }
+    if (ts === 'completed') {
+      return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Viaje finalizado' };
+    }
+    if (ts === 'started') {
+      return { c: dark ? '#FBBF24' : '#F59E0B', t: 'En curso' };
+    }
     switch (rs) {
-      case 'pending_approval': return { c: '#CA8A04', t: 'Pendiente' };
-      case 'pending_payment': return { c: '#EA580C', t: 'Pagar' };
-      case 'reserved': return { c: '#16A34A', t: 'Confirmada' };
-      case 'rejected': return { c: '#DC2626', t: 'Rechazada' };
-      case 'cancelled': return { c: textMuted, t: 'Cancelada' };
-      default: return { c: textMuted, t: '—' };
+      case 'pending_approval':
+        return { c: dark ? '#FBBF24' : '#F59E0B', t: 'Pendiente de aprobación' };
+      case 'pending_payment':
+        return { c: dark ? '#FB923C' : '#EA580C', t: 'Pendiente de pago' };
+      case 'payment_failed':
+        return { c: dark ? '#F87171' : '#DC2626', t: 'Pago fallido' };
+      case 'reserved':
+        return { c: dark ? '#34D399' : '#10B981', t: 'Confirmada' };
+      case 'trip_completed':
+        return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Completada' };
+      case 'expired':
+        return { c: textMuted, t: 'Vencida' };
+      case 'rejected':
+        return { c: dark ? '#F87171' : '#EF4444', t: 'Rechazada' };
+      case 'cancelled':
+        return { c: dark ? '#F87171' : '#EF4444', t: 'Cancelada' };
+      default:
+        return { c: textMuted, t: '—' };
     }
   };
 
@@ -216,7 +235,10 @@ const MySeatReservationsScreen = ({ navigation }) => {
           activeOpacity={0.85}
           onPress={() => item.trip?.id && navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip.id })}
         >
-          <View style={styles.rowTop}>
+          <View style={styles.cardTop}>
+            <View style={[styles.statusPill, { backgroundColor: pill.c + '22' }]}>
+              <Text style={[styles.statusPillText, { color: pill.c }]}>{pill.t}</Text>
+            </View>
             <View style={styles.routeBlock}>
               <Text style={[styles.addr, { color: textPrimary }]} numberOfLines={2}>
                 {item.trip?.from || 'Origen'}
@@ -224,9 +246,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
               <Text style={[styles.addr, { color: textPrimary, marginTop: 6 }]} numberOfLines={2}>
                 {item.trip?.to || 'Destino'}
               </Text>
-            </View>
-            <View style={[styles.pill, { backgroundColor: pill.c + '14' }]}>
-              <Text style={[styles.pillText, { color: pill.c }]}>{pill.t}</Text>
             </View>
           </View>
 
@@ -360,11 +379,16 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: 14,
   },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  routeBlock: { flex: 1, minWidth: 0 },
+  cardTop: { flexDirection: 'column', alignItems: 'stretch', gap: 12 },
+  routeBlock: { minWidth: 0 },
   addr: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
-  pill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, maxWidth: '38%' },
-  pillText: { fontSize: 11, fontWeight: '600' },
+  statusPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  statusPillText: { fontSize: 11, fontWeight: '600' },
   meta: { fontSize: 12, marginTop: 10 },
   actions: { marginTop: 12, paddingTop: 12, gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

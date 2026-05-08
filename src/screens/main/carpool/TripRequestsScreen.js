@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Image,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -21,9 +23,38 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 
 const TripRequestsScreen = ({ route }) => {
+  const navigation = useNavigation();
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
   const { tripId } = route.params || {};
+
+  useLayoutEffect(() => {
+    const tint = isDarkMode ? '#FFFFFF' : '#1F2937';
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Volver a gestionar viajes"
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Carpoolings');
+            }
+          }}
+          style={{
+            marginLeft: Platform.OS === 'android' ? 6 : 4,
+            paddingVertical: 10,
+            paddingRight: 10,
+            paddingLeft: 4,
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={tint} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isDarkMode]);
 
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';

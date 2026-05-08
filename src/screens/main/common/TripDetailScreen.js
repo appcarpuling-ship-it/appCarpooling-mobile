@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
-import { getPendingPaymentReservations, confirmFromCallback } from '../../../services/seatReservationService';
+import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservation } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
 import Toast from '../../../components/Toast';
@@ -243,8 +243,9 @@ const TripDetailScreen = ({ route, navigation }) => {
         const existingBooking = bookings.find(booking => {
           const bt = booking.trip?._id || booking.trip;
           const bookingTripId = bt ? String(bt) : '';
-          const activeStatuses = ['pending', 'confirmed', 'accepted', 'active', 'completed', 'cancelled'];
-          return bookingTripId === tid && activeStatuses.includes(booking.status);
+          // No incluir 'cancelled': el usuario puede volver a reservar el mismo viaje
+          const statusesThatBlockNewReservation = ['pending', 'confirmed', 'accepted', 'active', 'completed'];
+          return bookingTripId === tid && statusesThatBlockNewReservation.includes(booking.status);
         });
         setUserBooking(existingBooking || null);
       }
@@ -349,27 +350,38 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleCancelPendingReservation = async () => {
-    showAlert('Cancelar reserva', 'Estas seguro?', [
+    const seatRes = userBooking?.seatReservation;
+    const seatReservationId =
+      (seatRes && typeof seatRes === 'object' && (seatRes._id || seatRes.id)) ||
+      (typeof seatRes === 'string' ? seatRes : null);
+
+    if (!seatReservationId) {
+      showAlert('No se pudo cancelar', 'No encontramos el dato de la reserva. Sali y volvé a entrar al viaje e intentá de nuevo.');
+      return;
+    }
+
+    showAlert('Cancelar reserva', '¿Estás seguro?', [
       { text: 'No', style: 'cancel' },
       {
-        text: 'Si, cancelar',
+        text: 'Sí, cancelar',
         style: 'destructive',
         onPress: async () => {
           try {
             setPaymentLoading(true);
-            const { cancelSeatReservation } = require('../../services/seatReservationService');
-            const seatReservationId = userBooking.seatReservation?._id;
-            if (seatReservationId) {
-              await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-            }
+            await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
+            await checkUserBooking();
             await loadTripDetail();
           } catch (error) {
-            showAlert('Error', 'No se pudo cancelar');
+            const msg =
+              error?.response?.data?.message ||
+              error?.message ||
+              'No se pudo cancelar';
+            showAlert('Error', msg);
           } finally {
             setPaymentLoading(false);
           }
-        }
-      }
+        },
+      },
     ]);
   };
 
@@ -801,6 +813,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
               </Text>
             </View>
+            {trip.womenOnly && (
+              <View style={styles.ruleItem}>
+                <Ionicons name="woman" size={18} color={textSecondary} />
+                <Text style={[styles.ruleText, { color: textSecondary }]}>
+                  Solo mujeres (pasajeras)
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -903,35 +923,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Footer — passenger */}
         {!isOwnTrip && (
-          <View style={[styles.footer, { borderTopColor: divider, gap: 10 }]}>
-            {showDriverChatCta && (
-              <TouchableOpacity
-                style={[
-                  styles.footerBtn,
-                  {
-                    backgroundColor: cardBg,
-                    borderWidth: 1.5,
-                    borderColor: dark ? '#3F3F46' : '#D4D4D8',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  },
-                ]}
-                onPress={handleStartChat}
-                disabled={chatLoading}
-                activeOpacity={0.8}
-              >
-                {chatLoading ? (
-                  <ActivityIndicator size="small" color={accent} />
-                ) : (
-                  <>
-                    <Ionicons name="chatbubble-ellipses-outline" size={18} color={textPrimary} />
-                    <Text style={[styles.footerBtnText, { color: textPrimary }]}>Chatear con el conductor</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+          <View style={[styles.footer, { borderTopColor: divider, gap: 0 }]}>
             {userBooking ? (
               (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
                 <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
@@ -940,7 +932,6 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
                 <View style={[styles.statusFooter, { backgroundColor: (colors.warning || '#F59E0B') + '15' }]}>
-                  <Ionicons name="time-outline" size={18} color={colors.warning || '#F59E0B'} />
                   <Text style={[styles.statusFooterText, { color: colors.warning || '#F59E0B' }]}>
                     Esperando aprobacion del conductor
                   </Text>
@@ -997,6 +988,36 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </Text>
               </TouchableOpacity>
               )
+            )}
+
+            {showDriverChatCta && (
+              <View
+                style={[
+                  styles.footerChatWrap,
+                  { marginTop: 16, paddingTop: 16, borderTopColor: divider },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.footerChatBtn,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: dark ? '#3F3F46' : '#D4D4D8',
+                    },
+                  ]}
+                  onPress={handleStartChat}
+                  disabled={chatLoading}
+                  activeOpacity={0.8}
+                >
+                  {chatLoading ? (
+                    <ActivityIndicator size="small" color={accent} />
+                  ) : (
+                    <>
+                      <Text style={[styles.footerChatBtnText, { color: textPrimary }]}>Chatear con el conductor</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         )}
@@ -1316,6 +1337,19 @@ const styles = StyleSheet.create({
   pendingDot: { width: 8, height: 8, borderRadius: 4 },
   pendingLabel: { fontSize: 14, fontWeight: '500' },
   cancelLink: { fontSize: 14, fontWeight: '500' },
+  footerChatWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  footerChatBtn: {
+    height: 50,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+  },
+  footerChatBtnText: { fontSize: 15, fontWeight: '600' },
 
   // Modals
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
