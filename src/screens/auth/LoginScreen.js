@@ -50,12 +50,13 @@ const LoginScreen = ({ navigation }) => {
     setLoading(false);
     if (!result.success) {
       if (result.requiresVerification) {
-        showAlert('Cuenta no verificada', 'Tu cuenta aún no ha sido verificada. Por favor verifica tu email para continuar.', [
-          { text: 'Verificar ahora', onPress: () => navigation.navigate('Verification', { email: result.email || email }) },
-          { text: 'Cancelar', style: 'cancel' },
-        ]);
+        const verificationEmail = (result.email || email).trim();
+        navigation.replace('Verification', {
+          email: verificationEmail,
+          sendCodeOnMount: true,
+        });
       } else {
-        showAlert('Error', result.message || 'Error al iniciar sesión');
+        showAlert('No pudimos iniciar sesión', result.message || 'Revisá tus datos e intentá de nuevo.');
       }
     }
   };

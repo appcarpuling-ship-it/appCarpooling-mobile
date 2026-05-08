@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 
 const VerificationScreen = ({ route, navigation }) => {
-  const { email } = route.params || {};
+  const { email, sendCodeOnMount } = route.params || {};
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -31,6 +31,39 @@ const VerificationScreen = ({ route, navigation }) => {
   const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
   const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
+
+  const autoSendStarted = useRef(false);
+  useEffect(() => {
+    if (!sendCodeOnMount || !email?.trim()) return;
+    if (autoSendStarted.current) return;
+    autoSendStarted.current = true;
+
+    let cancelled = false;
+    (async () => {
+      setResending(true);
+      try {
+        const result = await resendVerification(email.trim());
+        if (cancelled) return;
+        if (result.success) {
+          showAlert(
+            'Código enviado',
+            'Te enviamos un código de verificación. Revisá tu correo (y la carpeta de spam).'
+          );
+        } else {
+          showAlert(
+            'No se pudo enviar el código',
+            result.message || 'Podés tocar «Reenviar código» para intentarlo de nuevo.'
+          );
+        }
+      } finally {
+        if (!cancelled) setResending(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sendCodeOnMount, email, resendVerification, showAlert]);
 
   const handleVerify = async () => {
     if (!verificationCode || verificationCode.length !== 6) {

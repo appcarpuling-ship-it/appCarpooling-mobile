@@ -107,6 +107,15 @@ export const AuthProvider = ({ children }) => {
 
       return { success: false, message: response.message };
     } catch (error) {
+      const res = error.response;
+      if (res?.status === 403 && res?.data?.requiresVerification) {
+        return {
+          success: false,
+          message: res.data.message || 'Por favor verificá tu email antes de iniciar sesión.',
+          requiresVerification: true,
+          email: res.data.data?.email,
+        };
+      }
       return { success: false, message: error.message };
     }
   };
@@ -166,16 +175,24 @@ export const AuthProvider = ({ children }) => {
                         !response.message
       };
     } catch (error) {
-      console.error('❌ [verifyEmail] Error completo:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data,
-        status: error.response?.status,
-        url: `${API_CONFIG.BASE_URL}${ENDPOINTS.VERIFY_EMAIL}`
-      });
+      const status = error.response?.status;
+      const serverMessage = error.response?.data?.message;
+
+      // 4xx = respuesta válida del servidor (código mal, expirado, etc.); no es bug ni crash
+      if (status >= 400 && status < 500) {
+        console.log('🔐 [verifyEmail] Validación:', { status, message: serverMessage || error.message });
+      } else {
+        console.error('❌ [verifyEmail] Error completo:', {
+          message: error.message,
+          stack: error.stack,
+          response: error.response?.data,
+          status,
+          url: `${API_CONFIG.BASE_URL}${ENDPOINTS.VERIFY_EMAIL}`,
+        });
+      }
 
       // Detectar si es un error de backend no implementado
-      const isEndpointMissing = error.response?.status === 404 ||
+      const isEndpointMissing = status === 404 ||
                                error.message?.includes('Not Found') ||
                                error.message?.includes('Cannot POST');
 
@@ -184,13 +201,13 @@ export const AuthProvider = ({ children }) => {
 
       return {
         success: false,
-        message: error.message || 'Error de conexión al verificar código',
+        message: serverMessage || error.message || 'Error de conexión al verificar código',
         isBackendIssue: isEndpointMissing || isUserNotFound,
         errorDetails: {
           type: isEndpointMissing ? 'ENDPOINT_MISSING' : isUserNotFound ? 'USER_NOT_FOUND' : 'CONNECTION_ERROR',
-          status: error.response?.status,
-          url: `${API_CONFIG.BASE_URL}${ENDPOINTS.VERIFY_EMAIL}`
-        }
+          status,
+          url: `${API_CONFIG.BASE_URL}${ENDPOINTS.VERIFY_EMAIL}`,
+        },
       };
     }
   };

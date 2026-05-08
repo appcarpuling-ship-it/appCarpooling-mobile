@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -144,7 +145,7 @@ const FormInput = ({
       ]}>
         {/* Left Icon */}
         {leftIcon && (
-          <View style={styles.leftIconContainer}>
+          <View style={[styles.leftIconContainer, multiline && styles.leftIconContainerMultiline]}>
             <Ionicons
               name={leftIcon}
               size={20}
@@ -178,6 +179,7 @@ const FormInput = ({
           numberOfLines={numberOfLines}
           maxLength={maxLength}
           selectionColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+          {...(multiline && Platform.OS === 'android' ? { includeFontPadding: false } : {})}
           {...props}
         />
 
@@ -278,6 +280,10 @@ const styles = StyleSheet.create({
   },
   leftIconContainer: {
     marginRight: spacing.sm,
+  },
+  /** Alinea el icono con la primera línea del texto (multiline tiene padding vertical en el input). */
+  leftIconContainerMultiline: {
+    paddingTop: spacing.sm + Platform.select({ ios: 1, android: 0, default: 0 }),
   },
   rightIconContainer: {
     marginLeft: spacing.sm,

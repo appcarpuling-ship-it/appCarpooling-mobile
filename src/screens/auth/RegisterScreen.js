@@ -22,6 +22,7 @@ import FormPicker from '../../components/forms/FormPicker';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
+import { API_CONFIG } from '../../config/api';
 
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
@@ -67,7 +68,7 @@ const RegisterScreen = ({ navigation }) => {
     setValidatingReferral(true);
     setReferralMessage('');
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/validate-referral/${code.toUpperCase()}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/validate-referral/${code.toUpperCase()}`);
       const data = await response.json();
       setReferralMessage(data.success
         ? `Código válido. Referido por: ${data.data.referrerName}`
@@ -158,15 +159,6 @@ const RegisterScreen = ({ navigation }) => {
       case 0:
         return (
           <>
-            <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
-              {avatarUri
-                ? <Image source={{ uri: avatarUri }} style={[styles.avatar, { borderColor: border }]} />
-                : <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-                    <Ionicons name="camera" size={28} color={textMuted} />
-                  </View>
-              }
-              <Text style={[styles.avatarText, { color: textMuted }]}>Foto de perfil (opcional)</Text>
-            </TouchableOpacity>
             <FormInput label="Nombre" placeholder="Ingresá tu nombre" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('firstName')} />
             <FormInput label="Apellido" placeholder="Ingresá tu apellido" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('lastName')} />
           </>
@@ -251,11 +243,29 @@ const RegisterScreen = ({ navigation }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Step header */}
-          <Animated.View style={{ opacity: stepAnim, marginBottom: 28 }}>
-            <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[currentStep].title}</Text>
-            <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[currentStep].subtitle}</Text>
-          </Animated.View>
+          {/* Paso 0: título + avatar en fila para alinear texto con la foto */}
+          {currentStep === 0 ? (
+            <Animated.View style={[styles.stepHeroRow, { opacity: stepAnim, marginBottom: 24 }]}>
+              <TouchableOpacity style={styles.avatarHeroTouch} onPress={pickImage} activeOpacity={0.85}>
+                {avatarUri
+                  ? <Image source={{ uri: avatarUri }} style={[styles.avatarHero, { borderColor: border }]} />
+                  : <View style={[styles.avatarHeroPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
+                      <Ionicons name="camera" size={24} color={textMuted} />
+                    </View>
+                }
+              </TouchableOpacity>
+              <View style={styles.stepHeroTextCol}>
+                <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
+                <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[0].subtitle}</Text>
+                <Text style={[styles.avatarCaption, { color: textMuted }]}>Tocá para agregar foto (opcional)</Text>
+              </View>
+            </Animated.View>
+          ) : (
+            <Animated.View style={{ opacity: stepAnim, marginBottom: 28 }}>
+              <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[currentStep].title}</Text>
+              <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[currentStep].subtitle}</Text>
+            </Animated.View>
+          )}
 
           {/* Step content */}
           <Animated.View style={{ opacity: stepAnim }}>
@@ -318,12 +328,35 @@ const styles = StyleSheet.create({
   dot:          { height: 8, borderRadius: 4 },
   stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
   scrollContent:{ paddingHorizontal: 24, paddingBottom: 40 },
+  stepHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarHeroTouch: { marginRight: 16 },
+  avatarHero: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+  },
+  avatarHeroPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepHeroTextCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  avatarCaption: {
+    fontSize: 12,
+    marginTop: 6,
+  },
   stepTitle:    { fontSize: 26, fontWeight: '700', marginBottom: 6 },
   stepSubtitle: { fontSize: 14 },
-  avatarContainer: { alignItems: 'center', marginBottom: 24 },
-  avatar:       { width: 96, height: 96, borderRadius: 48, borderWidth: 2 },
-  avatarPlaceholder: { width: 96, height: 96, borderRadius: 48, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
-  avatarText:   { marginTop: 10, fontSize: 13 },
   btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', marginTop: 8, marginBottom: 8 },
   btnText:      { fontSize: 16, fontWeight: '700' },
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },

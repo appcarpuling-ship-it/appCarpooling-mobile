@@ -9,6 +9,11 @@ const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL ||
   process.env.EXPO_PUBLIC_API_BASE_URL ||
   'https://appcarpuling.cloud/api';
 
+if (__DEV__) {
+  // Útil cuando cambiás IP en .env: debe coincidir con lo que ves acá tras reiniciar Metro (-c).
+  console.log('[API_CONFIG] BASE_URL →', API_BASE_URL);
+}
+
 // Configuración de la API
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,

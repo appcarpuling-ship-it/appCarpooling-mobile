@@ -124,7 +124,7 @@ const CarpoolingsScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={isDarkMode ? require('../../../assets/logo/192x192-white.png') : require('../../../assets/logo/192x192-black.png')}
+            source={isDarkMode ? require('../../../../assets/logo/192x192-white.png') : require('../../../../assets/logo/192x192-black.png')}
             style={styles.logo}
             resizeMode="contain"
           />

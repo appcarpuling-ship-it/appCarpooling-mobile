@@ -509,14 +509,14 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       >
         {originMarker && (
           Platform.OS === 'android'
-            ? <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-origin.png')} />
+            ? <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
             : <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
                 <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
               </Marker>
         )}
         {destinationMarker && (
           Platform.OS === 'android'
-            ? <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-dest.png')} />
+            ? <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-dest.png')} />
             : <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
                 <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
               </Marker>

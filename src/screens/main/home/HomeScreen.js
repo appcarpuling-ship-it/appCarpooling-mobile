@@ -117,8 +117,8 @@ const HomeScreen = ({ navigation }) => {
   const dark = getCurrentThemeMode() === 'dark';
 
   const LOGO_SOURCE = dark
-    ? require('../../../assets/logo/192x192-white.png')
-    : require('../../../assets/logo/192x192-black.png');
+    ? require('../../../../assets/logo/192x192-white.png')
+    : require('../../../../assets/logo/192x192-black.png');
 
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');

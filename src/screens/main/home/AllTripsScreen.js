@@ -245,7 +245,7 @@ const AllTripsScreen = ({ navigation }) => {
                   <Image
                     source={{ uri: buildImageUri(driver.avatar) }}
                     style={[styles.avatarImage, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
-                    defaultSource={require('../../../assets/logo/192x192-black.png')}
+                    defaultSource={require('../../../../assets/logo/192x192-black.png')}
                   />
                 ) : (
                   <View style={[styles.avatarSmall, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
