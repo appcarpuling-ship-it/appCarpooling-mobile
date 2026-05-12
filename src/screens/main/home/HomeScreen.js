@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { get_public, buildImageUri } from '../../../services/apiService';
+import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { useNotifications } from '../../../context/NotificationContext';
@@ -72,7 +73,7 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) 
             onPress={() => onBannerPress?.(item)}
           >
             {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+              <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
             ) : (
               <View style={styles.bannerContent} />
             )}

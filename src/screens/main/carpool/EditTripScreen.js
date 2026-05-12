@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Switch,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -279,6 +278,7 @@ const EditTripScreen = ({ navigation, route }) => {
       city: '',
       province: '',
     },
+    intermediateStops: [],
     departureDate: '',
     departureTime: '',
     availableSeats: '',
@@ -328,6 +328,13 @@ const EditTripScreen = ({ navigation, route }) => {
         const trip = response.data;
         console.log('✅ [EditTrip] Datos del viaje:', trip);
 
+        if (!['pending', 'active'].includes(trip.status)) {
+          showAlert('No editable', 'Este viaje ya no se puede editar.');
+          setLoadingTrip(false);
+          navigation.goBack();
+          return;
+        }
+
         // Parsear fecha
         const tripDate = new Date(trip.departureDate);
         setDate(tripDate);
@@ -341,7 +348,10 @@ const EditTripScreen = ({ navigation, route }) => {
         console.log('🕒 [EditTrip] Hora parseada:', tripTime);
 
         const newFormData = {
-          vehicle: trip.vehicle._id || trip.vehicle,
+          vehicle:
+            typeof trip.vehicle === 'object' && trip.vehicle !== null
+              ? trip.vehicle._id || ''
+              : trip.vehicle || '',
           origin: {
             address: trip.origin.address || '',
             city: trip.origin.city || '',
@@ -352,7 +362,13 @@ const EditTripScreen = ({ navigation, route }) => {
             city: trip.destination.city || '',
             province: trip.destination.province || '',
           },
-          departureDate: trip.departureDate.split('T')[0],
+          intermediateStops: [...(trip.intermediateStops || [])].sort(
+            (a, b) => (a.order || 0) - (b.order || 0)
+          ),
+          departureDate:
+            typeof trip.departureDate === 'string'
+              ? trip.departureDate.split('T')[0]
+              : new Date(trip.departureDate).toISOString().slice(0, 10),
           departureTime: trip.departureTime,
           availableSeats: trip.availableSeats.toString(),
           pricePerSeat: trip.pricePerSeat ? trip.pricePerSeat.toString() : '',
@@ -478,55 +494,22 @@ const EditTripScreen = ({ navigation, route }) => {
   };
 
   const handleUpdateTrip = async () => {
-    const {
-      vehicle,
-      origin,
-      destination,
-      departureDate,
-      departureTime,
-      availableSeats,
-      pricePerSeat,
-    } = formData;
+    const { vehicle, departureDate, departureTime } = formData;
 
-    if (
-      !vehicle ||
-      !origin.address ||
-      !origin.city ||
-      !origin.province ||
-      !destination.address ||
-      !destination.city ||
-      !destination.province ||
-      !departureDate ||
-      !departureTime ||
-      !availableSeats
-    ) {
-      setModalMessage('Por favor completa todos los campos obligatorios');
+    if (!vehicle || !departureDate || !departureTime) {
+      setModalMessage('Seleccioná fecha, hora y vehículo.');
       setShowErrorModal(true);
       return;
     }
 
     setLoading(true);
     try {
+      /** Solo estos campos acepta el backend para conductores */
       const tripData = {
         vehicle: formData.vehicle,
-        origin: formData.origin,
-        destination: formData.destination,
         departureDate: formData.departureDate,
         departureTime: formData.departureTime,
-        availableSeats: parseInt(availableSeats),
-        notes: formData.notes,
-        rules: {
-          smokingAllowed: formData.allowSmoking,
-          petsAllowed: formData.allowPets,
-        }
       };
-
-      // Solo agregar pricePerSeat si tiene un valor
-      if (pricePerSeat && pricePerSeat.trim() !== '') {
-        tripData.pricePerSeat = parseFloat(pricePerSeat);
-      } else {
-        tripData.pricePerSeat = 0;
-      }
 
       const response = await put_withauth(ENDPOINTS.UPDATE_TRIP(tripId), tripData);
 
@@ -598,6 +581,9 @@ const EditTripScreen = ({ navigation, route }) => {
               style={dynamicStyles.section}
             >
               <Text style={dynamicStyles.label}>Vehículo *</Text>
+              <Text style={dynamicStyles.emptySubtext}>
+                Solo podés cambiar la fecha, la hora y el vehículo. La ruta y el resto del viaje no se pueden editar.
+              </Text>
               <TouchableOpacity
                 onPress={() => setShowVehiclePicker(true)}
                 activeOpacity={0.7}
@@ -674,102 +660,53 @@ const EditTripScreen = ({ navigation, route }) => {
               </Modal>
             </LinearGradient>
 
-            {/* Route Section - Origin */}
+            {/* Ruta — solo lectura */}
             <LinearGradient
               colors={createColorArray(colors.surfaceElevated, colors.surface)}
               style={dynamicStyles.section}
             >
               <View style={styles.sectionHeader}>
-                <Ionicons name="location-outline" size={24} color={colors.primary} />
-                <Text style={dynamicStyles.sectionTitle}>Origen</Text>
+                <Ionicons name="map-outline" size={24} color={colors.primary} />
+                <Text style={dynamicStyles.sectionTitle}>Ruta</Text>
               </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Dirección *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.origin.address}
-                  onChangeText={(value) => handleChange('origin.address', value)}
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Ciudad *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.origin.city}
-                  onChangeText={(value) => handleChange('origin.city', value)}
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="map-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Provincia *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.origin.province}
-                  onChangeText={(value) => handleChange('origin.province', value)}
-                />
-              </View>
+              <Text style={dynamicStyles.label}>Origen</Text>
+              <Text style={[dynamicStyles.dateTimeText, { marginBottom: spacing.sm }]}>
+                {formData.origin.address || '—'}
+                {(formData.origin.city || formData.origin.province)
+                  ? `\n${[formData.origin.city, formData.origin.province].filter(Boolean).join(', ')}`
+                  : ''}
+              </Text>
+              {!!formData.intermediateStops?.length && (
+                <>
+                  <Text style={dynamicStyles.label}>Paradas intermedias</Text>
+                  {formData.intermediateStops.map((stop, idx) => (
+                    <Text
+                      key={stop.order != null ? `stop-${stop.order}` : `stop-${idx}`}
+                      style={[dynamicStyles.dateTimeText, { marginBottom: spacing.xs }]}
+                    >
+                      {stop.address || '—'}
+                      {(stop.city || stop.province) ? ` (${[stop.city, stop.province].filter(Boolean).join(', ')})` : ''}
+                    </Text>
+                  ))}
+                </>
+              )}
+              <Text style={dynamicStyles.label}>Destino</Text>
+              <Text style={dynamicStyles.dateTimeText}>
+                {formData.destination.address || '—'}
+                {(formData.destination.city || formData.destination.province)
+                  ? `\n${[formData.destination.city, formData.destination.province].filter(Boolean).join(', ')}`
+                  : ''}
+              </Text>
             </LinearGradient>
 
-            {/* Route Section - Destination */}
+            {/* Fecha y hora */}
             <LinearGradient
               colors={createColorArray(colors.surfaceElevated, colors.surface)}
               style={dynamicStyles.section}
             >
               <View style={styles.sectionHeader}>
-                <Ionicons name="flag-outline" size={24} color={colors.accent} />
-                <Text style={dynamicStyles.sectionTitle}>Destino</Text>
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Dirección *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.destination.address}
-                  onChangeText={(value) => handleChange('destination.address', value)}
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Ciudad *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.destination.city}
-                  onChangeText={(value) => handleChange('destination.city', value)}
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="map-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Provincia *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.destination.province}
-                  onChangeText={(value) => handleChange('destination.province', value)}
-                />
-              </View>
-            </LinearGradient>
-
-            {/* Details Section */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="information-circle-outline" size={24} color={colors.info} />
-                <Text style={dynamicStyles.sectionTitle}>Detalles del Viaje</Text>
+                <Ionicons name="calendar-outline" size={24} color={colors.info} />
+                <Text style={dynamicStyles.sectionTitle}>Fecha y hora</Text>
               </View>
 
               <TouchableOpacity onPress={() => {
@@ -890,85 +827,6 @@ const EditTripScreen = ({ navigation, route }) => {
                   </View>
                 </View>
               </Modal>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="¿Cuántos asientos disponibles? *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.availableSeats}
-                  onChangeText={(value) => handleChange('availableSeats', value)}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="cash-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Precio por asiento (opcional)"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.pricePerSeat}
-                  onChangeText={(value) => handleChange('pricePerSeat', value)}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-
-              <View style={[dynamicStyles.inputWrapper, styles.textAreaWrapper]}>
-                <View style={styles.textAreaIconContainer}>
-                  <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={[dynamicStyles.input, styles.textArea]}
-                  placeholder="Notas (opcional)"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.notes}
-                  onChangeText={(value) => handleChange('notes', value)}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </View>
-            </LinearGradient>
-
-            {/* Preferences Section */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="settings-outline" size={24} color={colors.accentOrange} />
-                <Text style={dynamicStyles.sectionTitle}>Preferencias</Text>
-              </View>
-
-              <View style={dynamicStyles.switchRow}>
-                <View style={styles.switchLabelContainer}>
-                  <Ionicons name="cloud-outline" size={20} color={colors.textSecondary} />
-                  <Text style={dynamicStyles.switchLabel}>Permitir fumar</Text>
-                </View>
-                <Switch
-                  value={formData.allowSmoking}
-                  onValueChange={(value) => handleChange('allowSmoking', value)}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                  thumbColor={formData.allowSmoking ? colors.primary : colors.textMuted}
-                  ios_backgroundColor={colors.inputBorder}
-                />
-              </View>
-
-              <View style={dynamicStyles.switchRow}>
-                <View style={styles.switchLabelContainer}>
-                  <Ionicons name="paw-outline" size={20} color={colors.textSecondary} />
-                  <Text style={dynamicStyles.switchLabel}>Permitir mascotas</Text>
-                </View>
-                <Switch
-                  value={formData.allowPets}
-                  onValueChange={(value) => handleChange('allowPets', value)}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                  thumbColor={formData.allowPets ? colors.primary : colors.textMuted}
-                  ios_backgroundColor={colors.inputBorder}
-                />
-              </View>
             </LinearGradient>
 
             {/* Submit Button */}

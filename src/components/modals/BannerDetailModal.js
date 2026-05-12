@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { sanitizeImageUrl } from '../../utils/imageUtils';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -97,7 +98,7 @@ const BannerDetailModal = ({ visible, banner, onClose, navigation: _navigation, 
             {banner.imageUrl ? (
               <View style={styles.heroWrap}>
                 <Image
-                  source={{ uri: banner.imageUrl }}
+                  source={{ uri: sanitizeImageUrl(banner.imageUrl) }}
                   style={styles.heroImage}
                   resizeMode="cover"
                 />

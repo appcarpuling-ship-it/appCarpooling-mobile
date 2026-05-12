@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -211,11 +211,6 @@ const TripRequestsScreen = ({ route }) => {
     loadUserTrips(tripsPage + 1, { append: true });
   };
 
-  const onRequestsEndReached = () => {
-    if (!selectedTripId || !reqHasMore || loadingMoreRequests || reqFetchLock.current || loadingRequests) return;
-    loadRequests(reqPage + 1, { append: true });
-  };
-
   const handleAccept = (request) => {
     const requestId = request._id || request.id;
     const isSeatReservation = request.bookingType === 'seat_reservation';
@@ -233,7 +228,7 @@ const TripRequestsScreen = ({ route }) => {
             try {
               if (isSeatReservation && seatReservationId) {
                 const res = await approveOrRejectReservation(seatReservationId, 'approve');
-                  if (res.success) {
+                if (res.success) {
                   showAlert('Aprobado', 'El pasajero recibirá una notificación para completar el pago.', [
                     { text: 'OK', onPress: () => loadRequests(1, { append: false }) },
                   ]);
@@ -243,7 +238,10 @@ const TripRequestsScreen = ({ route }) => {
                 if (res.success) { showAlert('Éxito', 'Solicitud aceptada'); loadRequests(1, { append: false }); }
               }
             } catch (error) {
-              showAlert('Error', error?.response?.data?.message || error.message);
+              showAlert(
+                'Error',
+                String(error?.response?.data?.message || error?.message || 'No se pudo aprobar o rechazar la solicitud')
+              );
             } finally {
               setAcceptingRequestId(null);
             }
@@ -269,7 +267,7 @@ const TripRequestsScreen = ({ route }) => {
         if (res.success) close();
       }
     } catch (error) {
-      showAlert('Error', error?.response?.data?.message || error.message);
+      showAlert('Error', String(error?.response?.data?.message || error?.message || 'Error al rechazar'));
     }
   };
 
@@ -304,9 +302,67 @@ const TripRequestsScreen = ({ route }) => {
   const fmtCurrency = (n) =>
     n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-  const activeTrips = trips.filter(t => t.status === 'active' || t.status === 'started');
+  const activeTrips = trips.filter((t) => t.status === 'active' || t.status === 'started');
 
-  // ─── Trip card (for the selector list) ───────────────────────────────────
+  /** Viaje actualmente seleccionado (origen / destino para el encabezado de solicitudes) */
+  const selectedTrip = useMemo(
+    () => trips.find((t) => String(t._id) === String(selectedTripId)),
+    [trips, selectedTripId]
+  );
+
+  /** Encabezado de viaje: dentro de la tarjeta unificada (sin borde propio). */
+  const renderTripContextBlock = () => {
+    if (!selectedTripId) return null;
+
+    if (!selectedTrip) {
+      return (
+        <View style={styles.tripContextEmbedded}>
+          <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
+          <Text style={[styles.tripContextLine, { color: textPrimary }]}>
+            Cargando ruta del viaje…
+          </Text>
+          {activeTrips.length > 1 ? (
+            <TouchableOpacity
+              onPress={() => setSelectedTripId(null)}
+              style={styles.tripContextSwitchBtn}
+              hitSlop={{ top: 8, bottom: 8 }}
+            >
+              <Text style={[styles.tripContextSwitchText, { color: accent }]}>Cambiar de viaje</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      );
+    }
+
+    const o = fmtAddress(selectedTrip.origin?.address, selectedTrip.origin?.city);
+    const d = fmtAddress(selectedTrip.destination?.address, selectedTrip.destination?.city);
+    return (
+      <View style={styles.tripContextEmbedded}>
+        <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
+        <Text style={[styles.tripContextLine, { color: textPrimary }]} numberOfLines={2}>
+          {o || selectedTrip.origin?.city || 'Origen'}{' '}
+          <Text style={{ color: textMuted }}>→</Text>
+          {' '}
+          {d || selectedTrip.destination?.city || 'Destino'}
+        </Text>
+        <View style={styles.tripContextMetaRow}>
+          <Ionicons name="calendar-outline" size={14} color={textMuted} />
+          <Text style={[styles.tripContextMetaText, { color: textMuted }]}>
+            Salida: {fmtDate(selectedTrip.departureDate)} · {selectedTrip.departureTime || '—'}
+          </Text>
+        </View>
+        {activeTrips.length > 1 ? (
+          <TouchableOpacity
+            onPress={() => setSelectedTripId(null)}
+            style={styles.tripContextSwitchBtn}
+            hitSlop={{ top: 8, bottom: 8 }}
+          >
+            <Text style={[styles.tripContextSwitchText, { color: accent }]}>Cambiar de viaje</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  };
   const renderTripCard = ({ item }) => {
     const pending = pendingCounts[item._id] || 0;
     return (
@@ -355,33 +411,32 @@ const TripRequestsScreen = ({ route }) => {
     );
   };
 
-  // ─── Request card ─────────────────────────────────────────────────────────
-  const renderRequestCard = ({ item }) => {
+  // ─── Solicitud (contenido sin tarjeta propia: va dentro de tarjeta unificada con el viaje) ─
+  const renderRequestSection = (item) => {
     if (!item.passenger?._id) {
       return (
-        <View style={[styles.reqCard, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={styles.reqSectionPad}>
           <Text style={{ color: textMuted }}>Usuario no disponible</Text>
         </View>
       );
     }
     const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
     const resStatus = item.seatReservation?.reservationStatus || item.status;
-    const status    = getStatus(resStatus);
+    const status = getStatus(resStatus);
     const isPending = resStatus === 'pending_approval' || resStatus === 'pending';
-    const amount    = item.seatReservation?.reservationAmount;
-    const seats     = item.seatsBooked || item.seatsRequested;
+    const amount = item.seatReservation?.reservationAmount;
+    const seats = item.seatsBooked || item.seatsRequested;
 
     return (
-      <View style={[styles.reqCard, { backgroundColor: cardBg, borderColor: border }]}>
-
-        {/* Passenger row */}
+      <View>
         <View style={styles.passengerRow}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
               <Text style={[styles.avatarInitials, { color: textMuted }]}>
-                {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
+                {item.passenger?.firstName?.[0]}
+                {item.passenger?.lastName?.[0]}
               </Text>
             </View>
           )}
@@ -399,7 +454,6 @@ const TripRequestsScreen = ({ route }) => {
           )}
         </View>
 
-        {/* Meta row */}
         <View style={[styles.metaRow, { borderTopColor: divider }]}>
           <View style={styles.metaItem}>
             <Ionicons name="people-outline" size={13} color={textMuted} />
@@ -407,32 +461,34 @@ const TripRequestsScreen = ({ route }) => {
               {seats} asiento{seats === 1 ? '' : 's'}
             </Text>
           </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>{fmtDate(item.createdAt)}</Text>
+          <View style={[styles.metaItem, styles.metaHint]}>
+            <Ionicons name="time-outline" size={13} color={textMuted} />
+            <Text style={[styles.metaText, { color: textMuted }]}>
+              Solicitud: {fmtDate(item.createdAt)}
+            </Text>
           </View>
         </View>
 
-        {/* Message */}
         {item.message && (
           <Text style={[styles.messageText, { color: textMuted, borderTopColor: divider }]} numberOfLines={3}>
             "{item.message}"
           </Text>
         )}
 
-        {/* Rejection reason */}
         {item.status === 'rejected' && item.rejectionReason && (
           <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
             Razón: {item.rejectionReason}
           </Text>
         )}
 
-        {/* Actions */}
         {isPending && (
           <View style={[styles.actionsRow, { borderTopColor: divider }]}>
             <TouchableOpacity
               style={[styles.btnReject, { backgroundColor: isDarkMode ? '#3D1A1A' : '#FEE2E2' }]}
-              onPress={() => { setSelectedRequest(item._id); setRejectModalVisible(true); }}
+              onPress={() => {
+                setSelectedRequest(item._id);
+                setRejectModalVisible(true);
+              }}
               activeOpacity={0.7}
             >
               <Text style={[styles.btnRejectText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>Rechazar</Text>
@@ -454,6 +510,25 @@ const TripRequestsScreen = ({ route }) => {
       </View>
     );
   };
+
+  const handleRequestsScroll = useCallback(
+    (e) => {
+      if (!selectedTripId || !reqHasMore || loadingMoreRequests || reqFetchLock.current || loadingRequests) return;
+      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+      const threshold = 220;
+      if (layoutMeasurement.height + contentOffset.y >= contentSize.height - threshold) {
+        loadRequests(reqPage + 1, { append: true });
+      }
+    },
+    [
+      selectedTripId,
+      reqHasMore,
+      loadingMoreRequests,
+      loadingRequests,
+      reqPage,
+      loadRequests,
+    ]
+  );
 
   const listFooter = (loadingMore) =>
     loadingMore ? (
@@ -499,28 +574,55 @@ const TripRequestsScreen = ({ route }) => {
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Selecciona un viaje</Text>
           }
         />
-      ) : selectedTripId && requests.length > 0 ? (
-        <FlatList
-          data={requests}
-          keyExtractor={(item) => item._id}
-          renderItem={renderRequestCard}
-          contentContainerStyle={styles.listPad}
+      ) : selectedTripId ? (
+        <ScrollView
+          contentContainerStyle={[
+            styles.listPad,
+            requests.length === 0 ? { flexGrow: 1 } : undefined,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
-          onEndReached={onRequestsEndReached}
-          onEndReachedThreshold={0.35}
-          ListFooterComponent={listFooter(loadingMoreRequests)}
-        />
+          onScroll={handleRequestsScroll}
+          scrollEventThrottle={400}
+        >
+          <View style={[styles.unifiedCard, { backgroundColor: cardBg, borderColor: border }]}>
+            {renderTripContextBlock()}
+            {requests.length > 0 && (
+              <View style={[styles.inCardFullBleedLine, { backgroundColor: divider }]} />
+            )}
+            {requests.length === 0 ? (
+              <View style={[styles.emptyBlock, styles.emptyInsideCard]}>
+                <Ionicons name="people-outline" size={40} color={textMuted} />
+                <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin solicitudes</Text>
+                <Text style={[styles.emptySubtitle, { color: textMuted }]}>
+                  Las solicitudes aparecerán aquí
+                </Text>
+              </View>
+            ) : (
+              requests.map((item, index) => (
+                <View
+                  key={item._id || item.id || String(index)}
+                  style={
+                    index > 0
+                      ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: divider }
+                      : undefined
+                  }
+                >
+                  {renderRequestSection(item)}
+                </View>
+              ))
+            )}
+          </View>
+          {listFooter(loadingMoreRequests)}
+        </ScrollView>
       ) : (
         <ScrollView
           contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
         >
-          <Ionicons name={selectedTripId ? 'people-outline' : 'car-outline'} size={48} color={textMuted} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>
-            {selectedTripId ? 'Sin solicitudes' : 'Sin viajes activos'}
-          </Text>
+          <Ionicons name="car-outline" size={48} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin viajes activos</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            {selectedTripId ? 'Las solicitudes aparecerán aquí' : 'Crea un viaje para recibir reservas'}
+            Crea un viaje para recibir reservas
           </Text>
         </ScrollView>
       )}
@@ -587,6 +689,49 @@ const styles = StyleSheet.create({
   listPad:      { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontSize: 13, marginBottom: 12 },
 
+  /** Viaje + solicitudes en una sola tarjeta */
+  unifiedCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  tripContextEmbedded: {
+    padding: 14,
+  },
+  inCardFullBleedLine: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+  },
+  emptyInsideCard: {
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 28,
+  },
+
+  tripContextLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  tripContextLine: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 21,
+  },
+  tripContextMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  tripContextMetaText: { fontSize: 13 },
+  tripContextSwitchBtn: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 },
+  tripContextSwitchText: { fontSize: 14, fontWeight: '600' },
+
+  emptyBlock: { alignItems: 'center', gap: 12, paddingVertical: 32 },
+  emptyBlockGrow: { flex: 1, justifyContent: 'center', paddingVertical: 48 },
+
   // Trip card
   tripCard: {
     borderRadius: 14,
@@ -641,13 +786,11 @@ const styles = StyleSheet.create({
   },
   pendingBadgeText: { fontSize: 12, fontWeight: '600', color: '#B45309' },
 
-  // Request card
-  reqCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 12,
-    overflow: 'hidden',
+  reqSectionPad: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
+
   passengerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,6 +824,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaHint: { flexShrink: 1 },
   metaText:  { fontSize: 13 },
 
   messageText: {

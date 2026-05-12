@@ -38,16 +38,11 @@ const VehiclesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const fetchLock = useRef(false);
   const hasDataRef = useRef(false);
+  const loadVehiclesRef = useRef(null);
 
   useEffect(() => {
     hasDataRef.current = vehicles.length > 0;
   }, [vehicles.length]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadVehicles(1, true, { skipMainLoading: hasDataRef.current });
-    }, [])
-  );
 
   const loadVehicles = async (pageNum = 1, reset = false, opts = {}) => {
     const { skipMainLoading = false } = opts;
@@ -79,6 +74,14 @@ const VehiclesScreen = () => {
       setRefreshing(false);
     }
   };
+
+  loadVehiclesRef.current = loadVehicles;
+
+  useFocusEffect(
+    useCallback(() => {
+      loadVehiclesRef.current?.(1, true, { skipMainLoading: hasDataRef.current });
+    }, [])
+  );
 
   const onEndReached = () => {
     if (!hasMore || loadingMore || loading || fetchLock.current) return;

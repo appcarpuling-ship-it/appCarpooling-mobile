@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api';
+import { sanitizeImageUrl } from '../utils/imageUtils';
 import { notifySessionInvalid } from './authSession';
 
 const NATIVE_APP_VERSION =
@@ -254,9 +255,9 @@ export const buildImageUri = (imagePath) => {
     return null;
   }
 
-  // Si ya es una URL completa (empieza con http), ret?rnaIa tal cual
+  // URL absoluta: rutas heredadas pueden apuntar a servicios placeholder caídos
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
-    return cleanPath;
+    return sanitizeImageUrl(cleanPath) || cleanPath;
   }
 
   // Construye la URI base sin '/api'

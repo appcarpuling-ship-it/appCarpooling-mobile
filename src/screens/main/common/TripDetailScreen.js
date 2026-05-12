@@ -21,6 +21,7 @@ const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
+import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservation } from '../../../services/seatReservationService';
@@ -67,7 +68,7 @@ const BannerCarousel = ({ banners, onPress }) => {
           >
             {item.imageUrl ? (
               <View style={StyleSheet.absoluteFillObject}>
-                <Image source={{ uri: item.imageUrl }} style={bannerStyles.image} resizeMode="cover" />
+                <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={bannerStyles.image} resizeMode="cover" />
               </View>
             ) : (
               <View style={bannerStyles.content}>

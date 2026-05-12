@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // eslint-disable-line
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // eslint-disable-line
 import {
   View,
   Text,
@@ -18,10 +18,14 @@ import { buildImageUri } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
 import { useTutorial } from '../../../context/TutorialContext';
 
+/** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
+const PROFILE_REFRESH_GAP_MS = 45000;
+
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
+  const lastProfileFetchAtRef = useRef(0);
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
@@ -58,19 +62,44 @@ const ProfileScreen = () => {
 
   const [avatarImageLoading, setAvatarImageLoading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+  const avatarLoaderTimeoutRef = useRef(null);
 
   const avatarUri = user?.avatar ? buildImageUri(user.avatar) : null;
 
+  const avatarSource = useMemo(
+    () => (avatarUri ? { uri: avatarUri } : null),
+    [avatarUri]
+  );
+
+  /** Un solo ciclo por URI; sin `onLoadStart` (en RN suele repetir sin emparejar con `onLoad` y deja el spinner fijo). */
+  useEffect(() => {
+    avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
+    if (!avatarUri) {
+      setAvatarImageLoading(false);
+      return undefined;
+    }
+    setAvatarImageLoading(true);
+    avatarLoaderTimeoutRef.current = setTimeout(() => setAvatarImageLoading(false), 12000);
+    return () => {
+      avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
+    };
+  }, [avatarUri]);
+
   useFocusEffect(
     useCallback(() => {
+      const now = Date.now();
+      if (now - lastProfileFetchAtRef.current < PROFILE_REFRESH_GAP_MS) {
+        return;
+      }
+      lastProfileFetchAtRef.current = now;
       refreshUser();
     }, [refreshUser])
   );
 
-  useEffect(() => {
-    if (avatarUri) setAvatarImageLoading(true);
-    else setAvatarImageLoading(false);
-  }, [avatarUri]);
+  const clearAvatarLoaderTimeout = () => {
+    avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
+    avatarLoaderTimeoutRef.current = null;
+  };
 
   const menuSections = [
     {
@@ -122,8 +151,8 @@ const ProfileScreen = () => {
           style={[styles.avatarModalBackdrop, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.88)' }]}
           onPress={() => setAvatarPreviewVisible(false)}
         >
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarModalImage} resizeMode="contain" />
+          {avatarSource ? (
+            <Image source={avatarSource} style={styles.avatarModalImage} resizeMode="contain" />
           ) : null}
           {/* <Text style={styles.avatarModalHint}>Tocá fuera para cerrar</Text> */}
         </Pressable>
@@ -137,7 +166,7 @@ const ProfileScreen = () => {
             <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
               <ActivityIndicator size="large" color={textMuted} />
             </View>
-          ) : avatarUri ? (
+          ) : avatarSource ? (
             <TouchableOpacity
               onPress={() => setAvatarPreviewVisible(true)}
               activeOpacity={0.85}
@@ -146,12 +175,17 @@ const ProfileScreen = () => {
             >
               <View style={styles.avatarImageWrap}>
                 <Image
-                  source={{ uri: avatarUri }}
+                  key={avatarUri}
+                  source={avatarSource}
                   style={styles.avatarImage}
-                  onLoadStart={() => setAvatarImageLoading(true)}
-                  onLoad={() => setAvatarImageLoading(false)}
-                  onLoadEnd={() => setAvatarImageLoading(false)}
-                  onError={() => setAvatarImageLoading(false)}
+                  onLoadEnd={() => {
+                    clearAvatarLoaderTimeout();
+                    setAvatarImageLoading(false);
+                  }}
+                  onError={() => {
+                    clearAvatarLoaderTimeout();
+                    setAvatarImageLoading(false);
+                  }}
                 />
                 {avatarImageLoading ? (
                   <View style={[styles.avatarImageLoader, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.65)' }]}>

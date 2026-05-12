@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
@@ -291,7 +292,7 @@ const BookingScreen = ({ route, navigation }) => {
                     onPress={() => setBannerModal({ visible: true, banner: item })}
                   >
                     {item.imageUrl ? (
-                      <Image source={{ uri: item.imageUrl }} style={styles.bannerThumbImage} resizeMode="cover" />
+                      <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerThumbImage} resizeMode="cover" />
                     ) : (
                       <View style={[styles.bannerThumbFallback, { backgroundColor: cardBg }]}>
                         <Text style={[styles.bannerTitle, { color: textPrimary }]} numberOfLines={2}>

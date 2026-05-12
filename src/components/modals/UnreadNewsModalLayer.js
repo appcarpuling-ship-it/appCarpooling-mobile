@@ -3,6 +3,7 @@ import { get_withauth, post_withauth, buildImageUri } from '../../services/apiSe
 import { ENDPOINTS } from '../../config/api';
 import BannerDetailModal from './BannerDetailModal';
 import useColors from '../../hooks/useColors';
+import { sanitizeImageUrl } from '../../utils/imageUtils';
 
 /**
  * Noticias creadas en el dashboard: modal estilo banner, una a la vez; al cerrar se marca como leída.
@@ -47,14 +48,17 @@ export default function UnreadNewsModalLayer() {
     setActive(null);
   };
 
+  const rawImage = active
+    ? active.imageUrl && !String(active.imageUrl).startsWith('http')
+      ? buildImageUri(active.imageUrl)
+      : active.imageUrl
+    : null;
+
   const banner = active
     ? {
         title: active.title,
         description: active.body,
-        imageUrl:
-          active.imageUrl && !String(active.imageUrl).startsWith('http')
-            ? buildImageUri(active.imageUrl)
-            : active.imageUrl,
+        imageUrl: rawImage ? sanitizeImageUrl(rawImage) : undefined,
       }
     : null;
 

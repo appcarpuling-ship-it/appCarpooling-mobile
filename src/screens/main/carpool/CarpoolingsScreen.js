@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import useColors from '../../../hooks/useColors';
 
@@ -110,7 +111,7 @@ const CarpoolingsScreen = ({ navigation }) => {
       onPress={() => setBannerModal({ visible: true, banner: item })}
     >
       {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+        <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
       ) : (
         <View style={styles.bannerContent} />
       )}

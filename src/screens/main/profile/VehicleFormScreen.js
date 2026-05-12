@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -70,6 +70,21 @@ const VehicleFormScreen = ({ navigation, route }) => {
       setExistingPhotos(vehicleData.photos);
     }
   }, []);
+
+  /** Índice alineado con existingPhotos (buildImageUri no puede filtrarse sin romper el botón ✕). */
+  const resolvedExistingPhotoRows = useMemo(
+    () =>
+      existingPhotos.map((p, idx) => {
+        const raw = typeof p === 'string' ? p : '';
+        return { idx, fullUri: raw ? buildImageUri(raw) : null };
+      }),
+    [existingPhotos],
+  );
+
+  const registrationSavedUri =
+    !registrationCardUri && hasRegistrationOnServer && vehicleData?.registrationCardUrl
+      ? buildImageUri(vehicleData.registrationCardUrl)
+      : null;
 
   const handleChange = (name, value) => setFormData({ ...formData, [name]: value });
 
@@ -278,15 +293,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
               style={styles.photosScroll}
               contentContainerStyle={styles.photosContainer}
             >
-              {existingPhotos.map((url, i) => (
-                <View key={`ex-${i}`} style={styles.photoWrapper}>
-                  <RemoteImageWithLoader
-                    uri={buildImageUri(url)}
-                    style={styles.photoImg}
-                    isDarkMode={isDarkMode}
-                    spinnerColor={textPrimary}
-                  />
-                  <TouchableOpacity style={styles.photoRemove} onPress={() => setExistingPhotos(existingPhotos.filter((_, j) => j !== i))}>
+              {resolvedExistingPhotoRows.map(({ idx, fullUri }) => (
+                <View key={`ex-${idx}`} style={styles.photoWrapper}>
+                  {fullUri ? (
+                    <RemoteImageWithLoader
+                      uri={fullUri}
+                      style={styles.photoImg}
+                      isDarkMode={isDarkMode}
+                      spinnerColor={textPrimary}
+                    />
+                  ) : (
+                    <View style={[styles.photoImg, { backgroundColor: divider, justifyContent: 'center', alignItems: 'center' }]}>
+                      <Ionicons name="image-outline" size={26} color={textMuted} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.photoRemove}
+                    onPress={() => setExistingPhotos(existingPhotos.filter((_, j) => j !== idx))}
+                  >
                     <Ionicons name="close" size={14} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
@@ -346,7 +370,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
               ) : hasRegistrationOnServer ? (
                 <View style={styles.regCardPreview}>
                   <RemoteImageWithLoader
-                    uri={buildImageUri(vehicleData.registrationCardUrl)}
+                    uri={registrationSavedUri}
                     style={styles.regCardImg}
                     isDarkMode={isDarkMode}
                     spinnerColor={textPrimary}

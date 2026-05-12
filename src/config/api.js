@@ -1,17 +1,33 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Leer configuración desde .env o usar valores por defecto
-// Para producción: https://appcarpuling.cloud/api
-// Para desarrollo local: http://TU_IP:5000/api (ej: http://192.168.1.6:5000/api)
-// Para Android Emulator: http://10.0.2.2:5000/api
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL ||
-  process.env.API_BASE_URL ||
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  'https://appcarpuling.cloud/api';
+const PRODUCTION_DEFAULT = 'https://appcarpuling.cloud/api';
+
+function resolveApiBaseUrl() {
+  const fromExtra = Constants.expoConfig?.extra?.API_BASE_URL;
+  const fromEnv =
+    process.env.API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL;
+
+  // Expo Web / react-native-web: el navegador corre en la PC → localhost en dev.
+  // EXPO_PUBLIC_API_BASE_URL suele ser la IP LAN para el celular; no usarla en web dev.
+  if (Platform.OS === 'web' && __DEV__) {
+    return (
+      process.env.EXPO_PUBLIC_API_BASE_URL_WEB ||
+      'http://localhost:5000/api'
+    );
+  }
+
+  return fromExtra || fromEnv || PRODUCTION_DEFAULT;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 if (__DEV__) {
-  // Útil cuando cambiás IP en .env: debe coincidir con lo que ves acá tras reiniciar Metro (-c).
-  console.log('[API_CONFIG] BASE_URL →', API_BASE_URL);
+  console.log(
+    '[API_CONFIG] platform=%s BASE_URL → %s',
+    Platform.OS,
+    API_BASE_URL
+  );
 }
 
 // Configuración de la API
