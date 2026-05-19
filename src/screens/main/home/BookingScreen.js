@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { calculateReservationPrice, createSeatReservation } from '../../../servi
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
+import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
@@ -25,6 +26,12 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
+
+function formatNumber(num) {
+  if (typeof num !== 'number') num = parseFloat(num);
+  if (isNaN(num)) return num;
+  return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 
 const BookingScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
@@ -89,59 +96,24 @@ const BookingScreen = ({ route, navigation }) => {
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   
-  const { trip, existingReservation } = route.params;
-  
-  if (!trip || !trip.origin || !trip.destination) {
-    return (
-      <View style={[styles.container, { backgroundColor: bg }]}>
-        <View style={styles.centerContainer}>
-          <Text style={[styles.errorText, { color: colors.error || '#EF4444' }]}>
-            Error: Datos del viaje incompletos
-          </Text>
-        </View>
-      </View>
-    );
-  }
-  
-  // Entry animation
+  const routeParams = route.params || {};
+  const trip = routeParams.trip;
+  const existingReservation = routeParams.existingReservation;
+
+  const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]);
+  const tripCap = useMemo(() => tripSeatCapacity(trip), [trip]);
+
+  /** Cupos libres ahora mismo (0 si el viaje está lleno o hay holds pendientes). */
+  const maxSelectableSeats = useMemo(() => {
+    if (!tripFreeNow || tripFreeNow <= 0) return 0;
+    return Math.min(99, tripFreeNow);
+  }, [tripFreeNow]);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
-  
-  useEffect(() => {
-    if (!existingReservation) {
-      calculatePrice();
-    } else {
-      setPriceData({
-        pricing: {
-          basePrice: existingReservation.totalPrice,
-          totalPrice: existingReservation.totalPrice,
-          numberOfSeats: existingReservation.seatsBooked,
-        },
-      });
-      setSeats(existingReservation.seatsBooked);
-      setCalculatingPrice(false);
-    }
-    loadBanners();
-    
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]).start();
-  }, []);
-
-  useEffect(() => {
-    if (seats > 0 && !existingReservation) {
-      calculatePrice();
-    }
-  }, [seats]);
-
-  const formatNumber = (num) => {
-    if (typeof num !== 'number') num = parseFloat(num);
-    if (isNaN(num)) return num;
-    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  };
 
   const calculatePrice = async () => {
+    if (!trip) return;
     try {
       setCalculatingPrice(true);
       setError('');
@@ -187,8 +159,65 @@ const BookingScreen = ({ route, navigation }) => {
     }
   };
 
+  useEffect(() => {
+    setSeats((s) => {
+      if (!maxSelectableSeats || maxSelectableSeats <= 0) return 0;
+      return Math.min(Math.max(1, s), maxSelectableSeats);
+    });
+  }, [maxSelectableSeats]);
+
+  useEffect(() => {
+    if (!trip) return;
+    if (!existingReservation) {
+      const free = tripRemainingSeats(trip);
+      if (free <= 0) {
+        setCalculatingPrice(false);
+        setPriceData(null);
+        setError(
+          'No hay asientos disponibles. El viaje puede estar completo o con solicitudes pendientes.'
+        );
+        return;
+      }
+      calculatePrice();
+    } else {
+      setPriceData({
+        pricing: {
+          basePrice: existingReservation.totalPrice,
+          totalPrice: existingReservation.totalPrice,
+          numberOfSeats: existingReservation.seatsBooked,
+        },
+      });
+      setSeats(existingReservation.seatsBooked);
+      setCalculatingPrice(false);
+    }
+    loadBanners();
+    
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    if (!trip || seats <= 0 || existingReservation) return;
+    if (tripRemainingSeats(trip) <= 0) return;
+    calculatePrice();
+  }, [seats]);
+
+  if (!trip || !trip.origin || !trip.destination) {
+    return (
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorText, { color: colors.error || '#EF4444' }]}>
+            Error: Datos del viaje incompletos
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const handleCreateReservation = async () => {
-    if (!priceData) return;
+    if (tripRemainingSeats(trip) <= 0 || !priceData) return;
     setLoading(true);
     setError('');
     try {
@@ -270,7 +299,9 @@ const BookingScreen = ({ route, navigation }) => {
               <View style={[styles.metaDivider, { backgroundColor: divider }]} />
               <View style={styles.metaItem}>
                 <Ionicons name="people-outline" size={15} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{trip.availableSeats || 0} disponibles</Text>
+                <Text style={[styles.metaText, { color: textMuted }]}>
+                  {tripFreeNow} disponible{tripFreeNow !== 1 ? 's' : ''}
+                </Text>
               </View>
             </View>
           </View>
@@ -338,13 +369,13 @@ const BookingScreen = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={[
                     styles.seatBtn,
-                    { backgroundColor: seats === trip.availableSeats ? divider : accent },
+                    { backgroundColor: seats === maxSelectableSeats ? divider : accent },
                   ]}
-                  onPress={() => setSeats(Math.min(trip.availableSeats || 5, seats + 1))}
-                  disabled={seats === trip.availableSeats}
+                  onPress={() => setSeats((s) => Math.min(maxSelectableSeats, s + 1))}
+                  disabled={seats >= maxSelectableSeats}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={20} color={seats === trip.availableSeats ? textMuted : accentInverse} />
+                  <Ionicons name="add" size={20} color={seats >= maxSelectableSeats ? textMuted : accentInverse} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -451,7 +482,7 @@ const BookingScreen = ({ route, navigation }) => {
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: textMuted }]}>Asientos disponibles</Text>
               <Text style={[styles.detailValue, { color: textPrimary }]}>
-                {trip.availableSeats || 0} de {trip.totalSeats || trip.availableSeats || 0}
+                {tripFreeNow} de {tripCap || trip.totalSeats || 0}
               </Text>
             </View>
 
@@ -520,19 +551,35 @@ const BookingScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.confirmBtn,
-              { backgroundColor: accent },
-              (loading || calculatingPrice || !priceData) && { opacity: 0.5 },
+              {
+                backgroundColor:
+                  tripFreeNow <= 0 ? (colors.error || '#EF4444') : accent,
+                opacity:
+                  loading ||
+                  calculatingPrice ||
+                  tripFreeNow <= 0 ||
+                  (!priceData && tripFreeNow > 0)
+                    ? 0.5
+                    : 1,
+              },
             ]}
             onPress={handleCreateReservation}
-            disabled={loading || calculatingPrice || !priceData}
+            disabled={
+              loading ||
+              calculatingPrice ||
+              tripFreeNow <= 0 ||
+              (!priceData && tripFreeNow > 0)
+            }
             activeOpacity={0.8}
           >
             {loading ? (
               <ActivityIndicator color={accentInverse} size="small" />
             ) : (
               <>
-                <Text style={[styles.confirmBtnText, { color: accentInverse }]}>Solicitar Reserva</Text>
-                {priceData && (
+                <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
+                  {tripFreeNow <= 0 ? 'No hay cupos disponibles' : 'Solicitar Reserva'}
+                </Text>
+                {priceData && tripFreeNow > 0 && (
                   <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
                     ${formatNumber(displayPrice)} ARS
                   </Text>

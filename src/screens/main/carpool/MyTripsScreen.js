@@ -17,6 +17,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
+import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
@@ -222,6 +223,7 @@ const MyTripsScreen = ({ navigation }) => {
 
   const renderTripItem = ({ item }) => {
     const { color, text: statusText } = getStatusConfig(item.status);
+    const freeNow = tripRemainingSeats(item);
     const textPrimary   = isDarkMode ? '#FFFFFF' : '#000000';
     const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
     const cardBg        = colors.cardBackground;
@@ -271,7 +273,9 @@ const MyTripsScreen = ({ navigation }) => {
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
             <Ionicons name="people-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>{item.availableSeats} disponibles</Text>
+            <Text style={[styles.metaText, { color: textMuted }]}>
+              {freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
+            </Text>
           </View>
           {activeTab === 'upcoming' && item.bookingsCount > 0 && (
             <>

@@ -67,8 +67,9 @@ const MyBookingsScreen = ({ navigation }) => {
     if (socketService.socket) socketService.socket.off('trip:cancelled');
   };
 
-  const loadMyBookings = async (pageNum = 1, reset = false) => {
-    if (fetchingRef.current) return;
+  const loadMyBookings = async (pageNum = 1, reset = false, opts = {}) => {
+    const force = !!opts.force;
+    if (!force && fetchingRef.current) return;
     fetchingRef.current = true;
     try {
       const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: pageNum, limit: LIST_PAGE_SIZE });
@@ -107,9 +108,17 @@ const MyBookingsScreen = ({ navigation }) => {
         onPress: async () => {
           try {
             const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
-            if (response.success) loadMyBookings(1, true);
+            if (!response.success) {
+              showAlert(
+                'No se pudo cancelar',
+                response.message || 'Intentá de nuevo en un momento.'
+              );
+              return;
+            }
+            showAlert('Reserva cancelada', 'Ya no tenés esa reserva activa.');
+            await loadMyBookings(1, true, { force: true });
           } catch (error) {
-            showAlert('Error', error.message);
+            showAlert('Error', error.message || 'No se pudo cancelar.');
           }
         },
       },

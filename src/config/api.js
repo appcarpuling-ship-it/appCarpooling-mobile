@@ -17,6 +17,19 @@ function resolveApiBaseUrl() {
     );
   }
 
+  // Native dev: Metro inyecta EXPO_PUBLIC_* en cada bundle; manifest (extra) puede quedar viejo tras cambiar solo .env.
+  if (__DEV__) {
+    if (fromEnv && fromExtra && String(fromEnv).trim() !== String(fromExtra).trim()) {
+      console.warn(
+        '[API_CONFIG] extra ≠ env (.env tiene prioridad): env →',
+        String(fromEnv).trim(),
+        '| manifest extra →',
+        String(fromExtra).trim()
+      );
+    }
+    return (fromEnv && String(fromEnv).trim()) || fromExtra || PRODUCTION_DEFAULT;
+  }
+
   return fromExtra || fromEnv || PRODUCTION_DEFAULT;
 }
 
@@ -35,6 +48,13 @@ export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
   TIMEOUT: 10000,
 };
+
+/** ngrok Free a veces devuelve HTML de aviso; esta cabecera evita ese HTML en llamadas HTTP. */
+export function tunnelExtraHeaders() {
+  if (typeof API_CONFIG.BASE_URL !== 'string') return {};
+  if (!/ngrok-free\.dev|\.ngrok\.io/i.test(API_CONFIG.BASE_URL)) return {};
+  return { 'ngrok-skip-browser-warning': 'true' };
+}
 
 // Endpoints de la API
 export const ENDPOINTS = {

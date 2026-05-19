@@ -29,11 +29,26 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useColors } from '../../../hooks/useColors';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
+
+/** Incluye solo viajes públicos verdaderamente “próximos”: no cancelados ni completados, listado activo y salida aún no pasada */
+function tripQualifiesForHomeUpcomingStrip(trip) {
+  if (!trip) return false;
+  const status = trip.status;
+  if (status === 'cancelled' || status === 'completed') return false;
+  if (status === 'started') return false;
+  if (trip.isActive === false) return false;
+  const rawTime = trip.departureTime != null ? String(trip.departureTime).trim() : '';
+  const timePart = rawTime || '00:00';
+  const dep = new Date(`${trip.departureDate}T${timePart}`);
+  if (!Number.isNaN(dep.getTime()) && dep.getTime() < Date.now()) return false;
+  return true;
+}
 
 const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -159,11 +174,12 @@ const HomeScreen = ({ navigation }) => {
       setLoading(true);
     }
     try {
-      const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 10 });
-      if (response.success) {
-        const sortedTrips = response.data.sort((a, b) => {
-          const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-          const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+      const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 40 });
+      if (response.success && Array.isArray(response.data)) {
+        const upcoming = response.data.filter(tripQualifiesForHomeUpcomingStrip);
+        const sortedTrips = [...upcoming].sort((a, b) => {
+          const dateA = new Date(`${a.departureDate}T${a.departureTime || '00:00'}`);
+          const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`);
           return dateA - dateB;
         });
         setRecentTrips(sortedTrips.slice(0, 5));
@@ -294,7 +310,9 @@ const HomeScreen = ({ navigation }) => {
   const searchFieldLabel = dark ? textMuted : '#000000';
   const searchFieldEmpty = dark ? textMuted : '#000000';
 
-  const renderTripCard = (trip) => (
+  const renderTripCard = (trip) => {
+    const freeSeats = tripRemainingSeats(trip);
+    return (
     <TouchableOpacity
       key={trip._id}
       style={[
@@ -359,7 +377,9 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.tripFooterItem}>
           <Ionicons name="person-outline" size={13} color={tripRouteMuted} />
           <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
-            {trip.availableSeats} lugar{trip.availableSeats !== 1 ? 'es' : ''}
+            {freeSeats === 0
+              ? 'Completo'
+              : `${freeSeats} disponible${freeSeats !== 1 ? 's' : ''}`}
           </Text>
         </View>
         {trip.intermediateStops?.length > 0 && (
@@ -372,7 +392,8 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   const renderProvincePicker = (visible, onClose, selected, onSelect, title) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

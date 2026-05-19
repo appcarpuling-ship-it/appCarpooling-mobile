@@ -46,8 +46,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
     loadReservations(1, true);
   }, []);
 
-  const loadReservations = async (pageNum = 1, reset = false) => {
-    if (fetchingRef.current) return;
+  const loadReservations = async (pageNum = 1, reset = false, opts = {}) => {
+    const force = !!opts.force;
+    if (!force && fetchingRef.current) return;
     fetchingRef.current = true;
     try {
       const response = await getMyReservations({ page: pageNum, limit: LIST_PAGE_SIZE });
@@ -110,8 +111,8 @@ const MySeatReservationsScreen = ({ navigation }) => {
         onPress: async () => {
           try {
             await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-            showToast('Cancelada', 'success');
-            setTimeout(() => { loadReservations(1, true); }, 400);
+            showToast('Reserva cancelada', 'success');
+            await loadReservations(1, true, { force: true });
           } catch (error) {
             showToast(error?.response?.data?.message || error.message || 'Error', 'error');
           }

@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigationState } from '@react-navigation/native';
 import { get_withauth } from '../services/apiService';
 import socketService from '../services/socketService';
 import { useAuth } from '../context/AuthContext';
 
 export const useUnreadMessages = () => {
   const { user, isAuthenticated } = useAuth();
+  const authUserId = user?._id?.toString() || user?.id?.toString() || '';
+
   const [unreadCount, setUnreadCount] = useState(0);
   const listenersSetup = useRef(false);
   const userRef = useRef(user);
   const setUnreadCountRef = useRef(setUnreadCount);
-
-  // Obtener el estado de navegación para saber si estamos en un chat activo
-  const navigationState = useNavigationState(state => state);
+  const prevAuthUserIdRef = useRef(null);
   const activeConversationId = useRef(null);
 
   // Update user ref when user changes
@@ -68,8 +67,9 @@ export const useUnreadMessages = () => {
     loadingRef.current = true;
     try {
       const response = await get_withauth('/chat/unread-count');
-      if (response.success) {
-        const newCount = response.data.count || 0;
+      if (response.success && response.data != null) {
+        const newCount =
+          typeof response.data.count === 'number' ? response.data.count : Number(response.data.count) || 0;
         if (newCount !== unreadCountRef.current) {
           console.log('📊 [useUnreadMessages] Contador actualizado:', unreadCountRef.current, '→', newCount);
           setUnreadCountRef.current(newCount);
@@ -83,9 +83,17 @@ export const useUnreadMessages = () => {
   });
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setUnreadCountRef.current(0);
+    if (!isAuthenticated || !authUserId) {
+      setUnreadCount(0);
+      prevAuthUserIdRef.current = null;
       return;
+    }
+
+    const switchedAccount =
+      prevAuthUserIdRef.current != null && prevAuthUserIdRef.current !== authUserId;
+    prevAuthUserIdRef.current = authUserId;
+    if (switchedAccount) {
+      setUnreadCount(0);
     }
 
     loadUnreadCountRef.current();
@@ -128,7 +136,7 @@ export const useUnreadMessages = () => {
         socketService.removeListener('messages:read');
       }
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authUserId]);
 
   const markAsRead = (conversationId) => {
     // Disminuir el contador cuando se marca una conversación como leída

@@ -22,13 +22,13 @@ import FormPicker from '../../components/forms/FormPicker';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
-import { API_CONFIG } from '../../config/api';
+import { API_CONFIG, tunnelExtraHeaders } from '../../config/api';
 
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
   { title: 'Tu cuenta',       subtitle: 'Creá tus credenciales de acceso',                  fields: ['email', 'password', 'confirmPassword'] },
   { title: 'Tus datos',       subtitle: 'Información de contacto y ubicación',              fields: ['phone', 'gender', 'age', 'province', 'city'] },
-  { title: 'Últimos detalles', subtitle: 'Bio y código opcionales. DNI: necesario para publicar viajes (podés subirlo después en perfil).', fields: [] },
+  { title: 'Últimos detalles', subtitle: 'Bio y código opcionales. DNI: lo pedimos a todos los usuarios para verificar identidad (podés subirlo después en perfil).', fields: [] },
 ];
 
 const RegisterScreen = ({ navigation }) => {
@@ -96,7 +96,9 @@ const RegisterScreen = ({ navigation }) => {
     setValidatingReferral(true);
     setReferralMessage('');
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/validate-referral/${code.toUpperCase()}`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/validate-referral/${code.toUpperCase()}`, {
+        headers: tunnelExtraHeaders(),
+      });
       const data = await response.json();
       setReferralMessage(data.success
         ? `Código válido. Referido por: ${data.data.referrerName}`
@@ -240,9 +242,9 @@ const RegisterScreen = ({ navigation }) => {
                 }
               </View>
             )}
-            <Text style={[styles.dniSectionTitle, { color: textPrimary }]}>DNI (conductor)</Text>
+            <Text style={[styles.dniSectionTitle, { color: textPrimary }]}>Documentación (DNI)</Text>
             <Text style={[styles.dniHint, { color: textMuted }]}>
-              Para publicar viajes necesitás frente y dorso. Podés cargarlos ahora o después en Editar perfil.
+              Lo pedimos a todos (conductores y pasajeros) para verificar tu identidad. Necesitamos frente y dorso. Podés cargarlos ahora o después en Editar perfil.
             </Text>
             <View style={styles.dniRow}>
               <TouchableOpacity

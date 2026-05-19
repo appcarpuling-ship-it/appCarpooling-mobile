@@ -15,6 +15,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
 import AdvancedFiltersModal from '../../../components/modals/AdvancedFiltersModal';
+import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const SearchTripsScreen = ({ route, navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
@@ -480,6 +481,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     // Extraer ciudad de diferentes posibles estructuras
     const originCity = tripOrigin.city || tripOrigin.name || tripOrigin.address || 'Ciudad origen';
     const destinationCity = tripDestination.city || tripDestination.name || tripDestination.address || 'Ciudad destino';
+    const freeSeats = tripRemainingSeats(item);
 
     return (
       <TouchableOpacity
@@ -516,7 +518,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
             </View>
             <View style={staticStyles.tripMetrics}>
               <Text style={staticStyles.seatsText}>
-                {item.availableSeats || item.remainingSeats || 0} asientos
+                {freeSeats <= 0 ? 'Completo' : `${freeSeats} libres`}
               </Text>
             </View>
           </View>

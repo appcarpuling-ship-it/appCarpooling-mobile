@@ -263,11 +263,11 @@ const EditProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* DNI (publicar viajes como conductor) */}
+          {/* DNI — verificación para todos los usuarios */}
           <View style={[styles.dniSection, { borderBottomColor: divider }]}>
             <Text style={[styles.dniBlockTitle, { color: labelTitleColor }]}>Documentación (DNI)</Text>
             <Text style={[styles.dniBlockHint, { color: textMuted }]}>
-              Para publicar viajes necesitás frente y dorso. Las fotos se guardan de forma segura.
+              Lo solicitamos a conductores y pasajeros para verificar identidad. Necesitás frente y dorso. Las fotos se guardan de forma segura.
             </Text>
             <View style={styles.dniRow}>
               <TouchableOpacity

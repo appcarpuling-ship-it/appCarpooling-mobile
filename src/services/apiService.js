@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, tunnelExtraHeaders } from '../config/api';
 import { sanitizeImageUrl } from '../utils/imageUtils';
 import { notifySessionInvalid } from './authSession';
 
@@ -30,6 +30,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'X-Platform': 'mobile',
     'X-Client-Platform': 'mobile',
+    ...tunnelExtraHeaders(),
   },
 });
 

@@ -23,6 +23,7 @@ import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colo
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const AllTripsScreen = ({ navigation }) => {
   const { colors, createColorArray } = useColors();
@@ -226,6 +227,7 @@ const AllTripsScreen = ({ navigation }) => {
       
       const originAddress = formatAddress(item.origin);
       const destAddress = formatAddress(item.destination);
+      const freeSeats = tripRemainingSeats(item);
 
       return (
         <TouchableOpacity
@@ -282,7 +284,7 @@ const AllTripsScreen = ({ navigation }) => {
               <View style={styles.metaItem}>
                 <Ionicons name="people-outline" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
                 <Text style={[styles.metaText, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
-                  {item.availableSeats} disponible{item.availableSeats !== 1 ? 's' : ''}
+                  {freeSeats === 0 ? 'Completo' : `${freeSeats} disponible${freeSeats !== 1 ? 's' : ''}`}
                 </Text>
               </View>
             </View>

@@ -18,6 +18,7 @@ import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } fr
 import useColors from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import { typography } from '../../../theme/typography';
+import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const SearchResultsScreen = ({ route, navigation }) => {
   const { colors, gradients, createColorArray, getCurrentThemeMode } = useColors();
@@ -363,7 +364,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
     );
   };
 
-  const renderTripCard = ({ item: trip }) => (
+  const renderTripCard = ({ item: trip }) => {
+    const free = tripRemainingSeats(trip);
+    return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
@@ -438,7 +441,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
           <View style={dynamicStyles.detailItem}>
             <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
             <Text style={dynamicStyles.detailText}>
-              {trip.availableSeats} asiento{trip.availableSeats > 1 ? 's' : ''} libre
+              {free === 0
+                ? 'Sin cupos'
+                : `${free} ${free === 1 ? 'asiento libre' : 'asientos libres'}`}
             </Text>
           </View>
         </View>
@@ -473,7 +478,8 @@ const SearchResultsScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -489,7 +495,6 @@ const SearchResultsScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={dynamicStyles.container} edges={['top']}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-      >
         {/* Header */}
         <Animated.View
           style={[

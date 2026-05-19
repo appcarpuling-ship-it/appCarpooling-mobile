@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carpuling",
     "slug": "carpuling",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/logo/1024x1024.jpg",
@@ -50,6 +50,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.carpuling.app.ar",
       "googleServicesFile": "./android/app/google-services.json",
+      "versionCode": 15,
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",

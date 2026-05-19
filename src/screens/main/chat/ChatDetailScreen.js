@@ -11,7 +11,8 @@ import {
   Platform,
   ActivityIndicator,
   Image,
-  Animated
+  Animated,
+  StatusBar,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -438,11 +439,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
+  const keyboardVerticalOffset =
+    Platform.OS === 'android'
+      ? headerHeight + (StatusBar.currentHeight || 0)
+      : headerHeight;
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+      behavior="padding"
+      keyboardVerticalOffset={keyboardVerticalOffset}
     >
       <View style={{ flex: 1 }}>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>

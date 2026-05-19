@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 16.26.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -19,9 +19,28 @@
         "buildType": "apk"
       }
     },
+    "ngrok": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "channel": "ngrok",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://kimberlee-traceried-arrhythmically.ngrok-free.dev/api",
+        "API_BASE_URL": "https://kimberlee-traceried-arrhythmically.ngrok-free.dev/api"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://appcarpuling.cloud/api",
+        "API_BASE_URL": "https://appcarpuling.cloud/api"
+      },
       "android": {
         "buildType": "app-bundle"
       }

@@ -9,10 +9,14 @@
  */
 export function tripRemainingSeats(trip) {
   if (!trip) return 0;
-  if (trip.remainingSeats != null) return Math.max(0, Number(trip.remainingSeats));
+  // Preferir el virtual del backend (incluye pendingSeatHolds)
+  if (trip.remainingSeats != null && !Number.isNaN(Number(trip.remainingSeats))) {
+    return Math.max(0, Number(trip.remainingSeats));
+  }
   const cap = Number(trip.availableSeats ?? 0);
   const occ = Number(trip.occupiedSeats ?? trip.passengers?.length ?? 0);
-  return Math.max(0, cap - occ);
+  const holds = Number(trip.pendingSeatHolds ?? 0);
+  return Math.max(0, cap - occ - holds);
 }
 
 /**

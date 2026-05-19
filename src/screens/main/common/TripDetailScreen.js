@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
+import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservation } from '../../../services/seatReservationService';
@@ -155,6 +156,9 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const canReserveWomenOnlyTrip = trip ? (!trip.womenOnly || user?.gender === 'female') : false;
 
+  const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]);
+  const tripSeatCap = useMemo(() => (trip ? tripSeatCapacity(trip) : 0), [trip]);
+
   useEffect(() => {
     loadTripDetail();
     loadBanners();
@@ -237,7 +241,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const checkUserBooking = async () => {
     try {
-      const response = await get_withauth('/bookings/my-bookings');
+      const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: 1, limit: 100 });
       const bookings = response?.data || [];
       if (response?.success && Array.isArray(bookings)) {
         const tid = String(tripId || '');
@@ -256,7 +260,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleBookTrip = () => {
-    if (!trip || trip.availableSeats === 0) {
+    if (!trip || tripFreeSeats <= 0) {
       showAlert('Error', 'No hay asientos disponibles');
       return;
     }
@@ -268,7 +272,7 @@ const TripDetailScreen = ({ route, navigation }) => {
       setPaymentLoading(true);
       let updatedBooking = userBooking;
       try {
-        const response = await get_withauth('/bookings/my-bookings');
+        const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: 1, limit: 100 });
         const bookings = response?.data || [];
         if (response?.success && Array.isArray(bookings)) {
           const tid = String(tripId || '');
@@ -370,8 +374,10 @@ const TripDetailScreen = ({ route, navigation }) => {
           try {
             setPaymentLoading(true);
             await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
+            setUserBooking(null);
             await checkUserBooking();
-            await loadTripDetail();
+            showToast('Reserva cancelada', 'success');
+            if (typeof refreshUser === 'function') await refreshUser();
           } catch (error) {
             const msg =
               error?.response?.data?.message ||
@@ -643,7 +649,9 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
             <Ionicons name="person-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{trip.availableSeats} asientos</Text>
+            <Text style={[styles.metaText, { color: textSecondary }]}>
+              {tripFreeSeats}/{tripSeatCap} libres
+            </Text>
           </View>
         </View>
 
@@ -975,19 +983,35 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
               ) : (
-              <TouchableOpacity
-                style={[styles.footerBtn, {
-                  backgroundColor: trip.availableSeats === 0 ? (dark ? '#2A2A2A' : '#E0E0E0') : accent
-                }]}
-                onPress={handleBookTrip}
-                disabled={trip.availableSeats === 0}
-              >
-                <Text style={[styles.footerBtnText, {
-                  color: trip.availableSeats === 0 ? textMuted : accentInverse
-                }]}>
-                  {trip.availableSeats === 0 ? 'Sin asientos disponibles' : 'Reservar'}
-                </Text>
-              </TouchableOpacity>
+              <>
+                {tripFreeSeats <= 0 && (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: colors?.error || '#EF4444',
+                      textAlign: 'center',
+                      marginBottom: 10,
+                      paddingHorizontal: 8,
+                    }}
+                  >
+                    No hay asientos disponibles · el viaje está completo o hay solicitudes pendientes
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={[styles.footerBtn, {
+                    backgroundColor: tripFreeSeats <= 0 ? (dark ? '#2A2A2A' : '#E0E0E0') : accent
+                  }]}
+                  onPress={handleBookTrip}
+                  disabled={tripFreeSeats <= 0}
+                >
+                  <Text style={[styles.footerBtnText, {
+                    color: tripFreeSeats <= 0 ? textMuted : accentInverse
+                  }]}>
+                    {tripFreeSeats <= 0 ? 'Sin cupos' : 'Reservar'}
+                  </Text>
+                </TouchableOpacity>
+              </>
               )
             )}
 
