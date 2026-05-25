@@ -45,6 +45,7 @@ api.interceptors.request.use(
     }
     config.headers['X-Client-OS'] = Platform.OS === 'ios' ? 'ios' : 'android';
     config.headers['X-App-Version'] = NATIVE_APP_VERSION;
+    Object.assign(config.headers, tunnelExtraHeaders());
     return config;
   },
   (error) => {
@@ -192,7 +193,13 @@ export const post_public = async (endpoint, formData = {}) => {
 export const post_withauth_formdata = async (endpoint, formData) => {
   try {
     const response = await api.post(endpoint, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        ...getNativeClientHeaders(false),
+        'Content-Type': 'multipart/form-data',
+        'X-Platform': 'mobile',
+        'X-Client-Platform': 'mobile',
+      },
+      timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
     return response.data;
   } catch (error) {
@@ -209,7 +216,13 @@ export const post_withauth_formdata = async (endpoint, formData) => {
 export const put_withauth_formdata = async (endpoint, formData) => {
   try {
     const response = await api.put(endpoint, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        ...getNativeClientHeaders(false),
+        'Content-Type': 'multipart/form-data',
+        'X-Platform': 'mobile',
+        'X-Client-Platform': 'mobile',
+      },
+      timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
     return response.data;
   } catch (error) {
@@ -222,7 +235,32 @@ export const put_withauth_formdata = async (endpoint, formData) => {
  * @param {object} error - Error de axios
  * @returns {Error} - Error formateado con informaci?n completa
  */
+const connectionHintForBaseUrl = (baseUrl) => {
+  if (/ngrok-free\.dev|\.ngrok\.io/i.test(baseUrl)) {
+    return (
+      'No se alcanzó el servidor de desarrollo (ngrok). ' +
+      'En la PC: backend en el puerto 5000 y `ngrok http 5000 --domain=kimberlee-traceried-arrhythmically.ngrok-free.dev`. ' +
+      'Si cambiaste la URL, generá un APK nuevo con `eas build --profile ngrok` o reiniciá Expo con `npx expo start -c`.'
+    );
+  }
+  if (/192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\./i.test(baseUrl)) {
+    return (
+      'No se alcanzó el servidor en tu red local. El celular debe estar en la misma Wi‑Fi que la PC, ' +
+      'o usá ngrok en mobile/.env (EXPO_PUBLIC_API_BASE_URL) y reiniciá con `npx expo start -c`.'
+    );
+  }
+  if (/appcarpuling\.cloud/i.test(baseUrl)) {
+    return (
+      'No se pudo conectar con appcarpuling.cloud (producción). ' +
+      'Para probar en local, usá el perfil ngrok: `eas build --profile ngrok` o la URL ngrok en .env con Expo.'
+    );
+  }
+  return `No se pudo conectar con el servidor (${baseUrl}). Verificá tu conexión e intentá de nuevo.`;
+};
+
 const handleError = (error) => {
+  const baseUrl = API_CONFIG.BASE_URL;
+
   if (error.response) {
     // El servidor respondi? con un c?digo de estado fuera del rango 2xx
     const message = error.response.data?.message || 'Error en el servidor';
@@ -238,8 +276,12 @@ const handleError = (error) => {
     };
     return enhancedError;
   } else if (error.request) {
-    // La petici?n fue hecha pero no se recibi? respuesta
-    return new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+    if (error.code === 'ECONNABORTED') {
+      return new Error(
+        `El servidor tardó demasiado en responder. ${connectionHintForBaseUrl(baseUrl)}`
+      );
+    }
+    return new Error(connectionHintForBaseUrl(baseUrl));
   } else {
     // Algo pas? al configurar la petici?n
     return new Error(error.message || 'Error desconocido');

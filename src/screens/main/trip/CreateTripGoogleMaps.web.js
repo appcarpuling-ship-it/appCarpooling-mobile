@@ -84,17 +84,22 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   };
 
   const parseAddressComponents = (components) => {
-    let city = '', province = '', street = '', streetNumber = '';
+    let city = '';
+    let province = '';
+    let street = '';
+    let streetNumber = '';
     if (Array.isArray(components)) {
       components.forEach(component => {
         if (Array.isArray(component?.types)) {
           if (component.types.includes('street_number')) streetNumber = component.long_name || '';
           if (component.types.includes('route')) street = component.long_name || '';
-          if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) city = component.long_name || '';
+          if (component.types.includes('locality')) city = component.long_name || '';
+          if (component.types.includes('administrative_area_level_2') && !city) city = component.long_name || '';
           if (component.types.includes('administrative_area_level_1')) province = component.long_name || '';
         }
       });
     }
+    if (!city && province) city = province;
     return { city, province, street, streetNumber };
   };
 

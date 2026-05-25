@@ -28,7 +28,7 @@
         "API_BASE_URL": "https://kimberlee-traceried-arrhythmically.ngrok-free.dev/api"
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
       },
       "ios": {
         "resourceClass": "m-medium"

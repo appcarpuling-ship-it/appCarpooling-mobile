@@ -35,6 +35,21 @@ const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 const MAP_SELECTION_IDLE_MS = 1500;
 const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
+/** locality a veces no viene (ej. Santa Cruz); usar provincia o nivel 2. */
+const cityFromGoogleComponents = (components) => {
+  let city = '';
+  let province = '';
+  if (!Array.isArray(components)) return { city, province };
+  components.forEach((c) => {
+    const types = c.types || [];
+    if (types.includes('locality')) city = c.long_name;
+    if (types.includes('administrative_area_level_2') && !city) city = c.long_name;
+    if (types.includes('administrative_area_level_1')) province = c.long_name;
+  });
+  if (!city && province) city = province;
+  return { city, province };
+};
+
 const CreateTripGoogleMaps = ({ navigation }) => {
   const { getCurrentThemeMode } = useColors();
   const insets = useSafeAreaInsets();
@@ -290,12 +305,12 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       const data = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`).then(r => r.json());
       if (data.results?.length > 0) {
         const result = data.results[0];
-        let city = '', province = '', street = '', streetNumber = '';
+        let street = '';
+        let streetNumber = '';
+        const { city, province } = cityFromGoogleComponents(result.address_components);
         result.address_components?.forEach(c => {
           if (c.types?.includes('street_number')) streetNumber = c.long_name;
           if (c.types?.includes('route')) street = c.long_name;
-          if (c.types?.includes('locality') || c.types?.includes('administrative_area_level_2')) city = c.long_name;
-          if (c.types?.includes('administrative_area_level_1')) province = c.long_name;
         });
         const fullStreet = [street, streetNumber].filter(Boolean).join(' ');
         return { address: fullStreet || result.formatted_address?.split(',')[0]?.trim() || '', city, province, country: 'Argentina', coordinates: { latitude, longitude } };
@@ -376,12 +391,12 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   }, [applyMapSelectionAt]);
 
   const extractComponents = (details) => {
-    let city = '', province = '', street = '', streetNumber = '';
+    let street = '';
+    let streetNumber = '';
+    const { city, province } = cityFromGoogleComponents(details?.address_components);
     details.address_components?.forEach(c => {
       if (c.types?.includes('street_number')) streetNumber = c.long_name;
       if (c.types?.includes('route')) street = c.long_name;
-      if (c.types?.includes('locality') || c.types?.includes('administrative_area_level_2')) city = c.long_name;
-      if (c.types?.includes('administrative_area_level_1')) province = c.long_name;
     });
     return { city, province, fullStreet: [street, streetNumber].filter(Boolean).join(' ') };
   };

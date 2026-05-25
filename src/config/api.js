@@ -35,18 +35,28 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+const isNgrokTunnel = /ngrok-free\.dev|\.ngrok\.io/i.test(API_BASE_URL);
+const isLanDev = /\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(API_BASE_URL);
+
 if (__DEV__) {
   console.log(
     '[API_CONFIG] platform=%s BASE_URL → %s',
     Platform.OS,
     API_BASE_URL
   );
+  if (API_BASE_URL.includes('appcarpuling.cloud')) {
+    console.warn(
+      '[API_CONFIG] Estás en dev pero la API apunta a producción. ' +
+        'Para túnel local: EXPO_PUBLIC_API_BASE_URL en mobile/.env y `npx expo start -c`. ' +
+        'Para APK: `eas build --profile ngrok`.'
+    );
+  }
 }
 
-// Configuración de la API
+// Configuración de la API (ngrok/LAN suelen ser más lentos que producción)
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
-  TIMEOUT: 10000,
+  TIMEOUT: isNgrokTunnel ? 45000 : isLanDev ? 30000 : 15000,
 };
 
 /** ngrok Free a veces devuelve HTML de aviso; esta cabecera evita ese HTML en llamadas HTTP. */
