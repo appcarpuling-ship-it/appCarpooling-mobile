@@ -211,6 +211,11 @@ const TripRequestsScreen = ({ route }) => {
     loadUserTrips(tripsPage + 1, { append: true });
   };
 
+  const seatsLabelEs = (n) => {
+    const s = Math.max(1, Number(n) || 1);
+    return s === 1 ? '1 asiento' : `${s} asientos`;
+  };
+
   const handleAccept = (request) => {
     const requestId = request._id || request.id;
     const isSeatReservation = request.bookingType === 'seat_reservation';
@@ -218,7 +223,7 @@ const TripRequestsScreen = ({ route }) => {
 
     showAlert(
       'Aceptar solicitud',
-      `¿Aceptar ${request.seatsBooked || request.seatsRequested} asiento(s)?`,
+      `¿Aceptar ${seatsLabelEs(request.seatsBooked || request.seatsRequested)}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -252,18 +257,29 @@ const TripRequestsScreen = ({ route }) => {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) { showAlert('Error', 'Ingresa una razón para el rechazo'); return; }
     try {
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
-      const isSeatReservation = request?.bookingType === 'seat_reservation';
-      const seatReservationId = request?.seatReservation?._id || request?.seatReservation?.id;
+      if (!request) {
+        showAlert('Error', 'No se encontró la solicitud.');
+        return;
+      }
+      const isSeatReservation = request.bookingType === 'seat_reservation';
+      const seatReservationRaw = request.seatReservation?._id || request.seatReservation?.id || request.seatReservation;
+      const seatReservationId = seatReservationRaw != null ? String(seatReservationRaw) : '';
+
       const close = () => { setRejectModalVisible(false); setRejectReason(''); setSelectedRequest(null); loadRequests(1, { append: false }); };
 
-      if (isSeatReservation && seatReservationId) {
-        const res = await approveOrRejectReservation(seatReservationId, 'reject', rejectReason);
+      const reasonToSend = (rejectReason && rejectReason.trim()) || '';
+
+      if (isSeatReservation) {
+        if (!seatReservationId) {
+          showAlert('Error', 'Faltan datos de la reserva. Actualizá la lista e intentá de nuevo.');
+          return;
+        }
+        const res = await approveOrRejectReservation(seatReservationId, 'reject', reasonToSend);
         if (res.success) close();
       } else {
-        const res = await put_withauth(`/bookings/${selectedRequest}/reject`, { reason: rejectReason });
+        const res = await put_withauth(`/bookings/${selectedRequest}/reject`, { reason: reasonToSend || undefined });
         if (res.success) close();
       }
     } catch (error) {
@@ -637,7 +653,7 @@ const TripRequestsScreen = ({ route }) => {
                 <Ionicons name="close" size={22} color={textMuted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.modalLabel, { color: textMuted }]}>Razón del rechazo</Text>
+            <Text style={[styles.modalLabel, { color: textMuted }]}>Razón del rechazo (opcional)</Text>
             <TextInput
               style={[styles.textArea, { backgroundColor: bg, borderColor: border, color: textPrimary }]}
               placeholder="Escribe la razón aquí..."

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Modal,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -158,6 +159,34 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]);
   const tripSeatCap = useMemo(() => (trip ? tripSeatCapacity(trip) : 0), [trip]);
+
+  const headerBackTint = dark ? '#FFFFFF' : '#1F2937';
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+          style={{
+            marginLeft: Platform.OS === 'android' ? 6 : 4,
+            paddingVertical: 10,
+            paddingRight: 10,
+            paddingLeft: 4,
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={headerBackTint} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, headerBackTint]);
 
   useEffect(() => {
     loadTripDetail();
