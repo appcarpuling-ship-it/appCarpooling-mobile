@@ -17,7 +17,9 @@ import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
+
+const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 const CreateTripGoogleMaps = ({ navigation }) => {
   const { colors, isDarkMode } = useColors();

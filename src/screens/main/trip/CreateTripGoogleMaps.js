@@ -17,6 +17,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+
+import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { Ionicons } from '@expo/vector-icons';
 import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import * as Location from 'expo-location';
@@ -31,7 +33,7 @@ const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 /** Tras arrastrar el mapa, si el pin central queda quieto este tiempo, se confirma el punto */
 const MAP_SELECTION_IDLE_MS = 1500;
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 const CreateTripGoogleMaps = ({ navigation }) => {
   const { getCurrentThemeMode } = useColors();

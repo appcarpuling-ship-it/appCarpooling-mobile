@@ -37,11 +37,40 @@ module.exports = ({ config }) => {
     fromLan ||
     'https://appcarpuling.cloud/api';
 
+  const fromEnvMaps =
+    (process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY &&
+      process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY.trim()) ||
+    (process.env.GOOGLE_MAPS_API_KEY && process.env.GOOGLE_MAPS_API_KEY.trim()) ||
+    '';
+  const mapsFromJsonIos = config?.ios?.config?.googleMapsApiKey;
+  const mapsFromJsonAndroid = config?.android?.config?.googleMaps?.apiKey;
+  const googleMapsApiKey =
+    fromEnvMaps || mapsFromJsonIos || mapsFromJsonAndroid || '';
+
   return {
     ...config,
+    ios: {
+      ...(config.ios || {}),
+      config: {
+        ...(config.ios?.config || {}),
+        googleMapsApiKey: googleMapsApiKey || mapsFromJsonIos,
+      },
+    },
+    android: {
+      ...(config.android || {}),
+      config: {
+        ...(config.android?.config || {}),
+        googleMaps: {
+          ...(config.android?.config?.googleMaps || {}),
+          apiKey: googleMapsApiKey || mapsFromJsonAndroid,
+        },
+      },
+    },
     extra: {
       ...(config.extra || {}),
       API_BASE_URL,
+      /** Fallback runtime si babel no inlinó EXPO_PUBLIC_ (mis builds EAS pueden leer sólo desde extra) */
+      googleMapsApiKey: googleMapsApiKey || undefined,
     },
   };
 };

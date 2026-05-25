@@ -15,6 +15,8 @@ const getNativeClientHeaders = (includeJsonContentType = false) => {
   const h = {
     'X-Client-OS': Platform.OS === 'ios' ? 'ios' : 'android',
     'X-App-Version': NATIVE_APP_VERSION,
+    /** ngrok-free: mismo criterio que la instancia `api` para no recibir HTML de aviso. */
+    ...tunnelExtraHeaders(),
   };
   if (includeJsonContentType) {
     h['Content-Type'] = 'application/json';
@@ -143,6 +145,7 @@ export const get_public = async (endpoint, params = {}) => {
   try {
     const response = await axios.get(`${API_CONFIG.BASE_URL}${endpoint}`, {
       params,
+      timeout: API_CONFIG.TIMEOUT,
       headers: getNativeClientHeaders(false),
     });
     return response.data;
@@ -161,12 +164,18 @@ export const post_public = async (endpoint, formData = {}) => {
   try {
     const isFormData =
       typeof FormData !== 'undefined' && formData instanceof FormData;
+    const timeout = isFormData ? Math.max(API_CONFIG.TIMEOUT || 10000, 120000) : API_CONFIG.TIMEOUT;
     const response = await axios.post(
       `${API_CONFIG.BASE_URL}${endpoint}`,
       formData,
       {
-        headers: getNativeClientHeaders(!isFormData),
-      }
+        timeout,
+        headers: {
+          ...getNativeClientHeaders(!isFormData),
+          'X-Platform': 'mobile',
+          'X-Client-Platform': 'mobile',
+        },
+      },
     );
     return response.data;
   } catch (error) {
