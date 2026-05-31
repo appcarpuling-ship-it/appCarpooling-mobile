@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -42,7 +42,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      showAlert('Error', 'Por favor completa todos los campos');
+      showAlert('Ocurrió algo', 'Por favor completa todos los campos');
       return;
     }
     setLoading(true);

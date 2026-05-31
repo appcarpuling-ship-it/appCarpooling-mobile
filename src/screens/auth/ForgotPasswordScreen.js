@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleResetPassword = async () => {
     if (!email) {
-      showAlert('Error', 'Por favor ingresá tu email');
+      showAlert('Ocurrió algo', 'Por favor ingresá tu email');
       return;
     }
     setLoading(true);
@@ -43,7 +43,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         { text: 'Ingresar código', onPress: () => navigation.navigate('ResetPassword', { email }) },
       ]);
     } catch (error) {
-      showAlert('Error', error.message || 'Error al enviar el email');
+      showAlert('Ocurrió algo', error.message || 'Error al enviar el email');
     } finally {
       setLoading(false);
     }

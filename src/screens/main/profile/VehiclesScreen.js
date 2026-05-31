@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+﻿import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -65,7 +65,7 @@ const VehiclesScreen = () => {
         setHasMore(false);
       }
     } catch (error) {
-      showAlert('Error', 'No se pudieron cargar los vehículos');
+      showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos');
       if (reset || pageNum === 1) setVehicles([]);
     } finally {
       fetchLock.current = false;
@@ -109,7 +109,7 @@ const VehiclesScreen = () => {
                 loadVehicles(1, true, { skipMainLoading: true });
               }
             } catch (error) {
-              showAlert('Error', error.message);
+              showAlert('Ocurrió algo', error.message);
             }
           },
         },

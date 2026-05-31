@@ -50,7 +50,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.carpuling.app.ar",
       "googleServicesFile": "./android/app/google-services.json",
-      "versionCode": 16,
+      "versionCode": 17,
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",

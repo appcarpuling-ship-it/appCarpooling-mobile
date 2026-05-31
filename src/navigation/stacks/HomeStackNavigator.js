@@ -1,5 +1,7 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../hooks/useColors';
 import { useTheme } from '../../context/ThemeContext';
 import HomeScreen from '../../screens/main/home/HomeScreen';
@@ -18,7 +20,7 @@ const HomeStackNavigator = () => {
   
   return (
     <Stack.Navigator
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
@@ -33,7 +35,13 @@ const HomeStackNavigator = () => {
           color: isDarkMode ? '#FFFFFF' : '#1F2937',
         },
         headerBackTitleVisible: false,
-      }}
+        headerLeft: ({ canGoBack }) =>
+          canGoBack ? (
+            <TouchableOpacity onPress={navigation.goBack} style={{ paddingHorizontal: 12 }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="chevron-back" size={26} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+            </TouchableOpacity>
+          ) : null,
+      })}
     >
       <Stack.Screen
         name="Home"

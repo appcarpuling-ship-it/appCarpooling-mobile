@@ -1,11 +1,13 @@
-import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   Image,
@@ -22,7 +24,7 @@ import FormPicker from '../../components/forms/FormPicker';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
-import { API_CONFIG, tunnelExtraHeaders } from '../../config/api';
+import { get_public } from '../../services/apiService';
 
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
@@ -96,15 +98,14 @@ const RegisterScreen = ({ navigation }) => {
     setValidatingReferral(true);
     setReferralMessage('');
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/validate-referral/${code.toUpperCase()}`, {
-        headers: tunnelExtraHeaders(),
-      });
-      const data = await response.json();
+      const data = await get_public(`/users/validate-referral/${code.toUpperCase()}`);
       setReferralMessage(data.success
         ? `Código válido. Referido por: ${data.data.referrerName}`
         : 'Código promocional no válido');
-    } catch {
-      setReferralMessage('Error al validar código');
+    } catch (err) {
+      // 404 = código no existe; cualquier otro error = problema de red
+      const msg = err?.response?.data?.message;
+      setReferralMessage(msg || 'Código promocional no válido');
     } finally {
       setValidatingReferral(false);
     }
@@ -114,7 +115,7 @@ const RegisterScreen = ({ navigation }) => {
   const handleReferralCodeChange = (text) => {
     setValue('referralCode', text.toUpperCase());
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => validateReferralCode(text), 500);
+    debounceRef.current = setTimeout(() => validateReferralCode(text), 1000);
   };
 
   const animateToStep = (newStep) => {
@@ -169,14 +170,14 @@ const RegisterScreen = ({ navigation }) => {
       appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
       const result = await register(formDataToSend);
       if (result.success) {
-        showAlert('Registro exitoso', 'Te enviamos un código de verificación a tu email', [
+        showAlert('Registro exitoso', 'Te enviamos un código de verificación a tu email. Recuerda revisar la carpeta (spam).', [
           { text: 'OK', onPress: () => navigation.navigate('Verification', { email: values.email }) },
         ]);
       } else {
-        showAlert('Error', result.message || 'Error al registrar usuario');
+        showAlert('Ocurrió algo', result.message || 'Error al registrar usuario');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al registrar usuario');
+      showAlert('Ocurrió algo', error.message || 'Error al registrar usuario');
     } finally {
       setLoading(false);
     }
@@ -219,7 +220,7 @@ const RegisterScreen = ({ navigation }) => {
             <Text style={{ fontSize: 12, color: textMuted, marginTop: -10, marginBottom: 8 }}>
               No podrás cambiar el sexo después del registro.
             </Text>
-            <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" maxLength={2} required {...getFieldProps('age')} />
+            <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
             <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => setValue('province', value)} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
             <FormInput label="Ciudad" placeholder="Ingresá tu ciudad" leftIcon="location-outline" autoCapitalize="words" required {...getFieldProps('city')} />
           </>
@@ -283,6 +284,7 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* Top nav */}
@@ -319,7 +321,9 @@ const RegisterScreen = ({ navigation }) => {
               <View style={styles.stepHeroTextCol}>
                 <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
                 <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[0].subtitle}</Text>
-                <Text style={[styles.avatarCaption, { color: textMuted }]}>Tocá para agregar foto (opcional)</Text>
+                <Text style={[styles.avatarCaption, { color: textPrimary, fontWeight: '600' }]}>
+                  {avatarUri ? '✓ Foto cargada' : '📷 Tocá para agregar tu foto'}
+                </Text>
               </View>
             </Animated.View>
           ) : (
@@ -333,8 +337,10 @@ const RegisterScreen = ({ navigation }) => {
           <Animated.View style={{ opacity: stepAnim }}>
             {renderStepContent()}
           </Animated.View>
+        </ScrollView>
 
-          {/* Action button */}
+        {/* Action button — always at bottom */}
+        <View style={[styles.btnContainer, { backgroundColor: bg }]}>
           {currentStep < STEPS.length - 1 ? (
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
@@ -357,18 +363,9 @@ const RegisterScreen = ({ navigation }) => {
               }
             </TouchableOpacity>
           )}
-
-          {/* Login link — solo primer paso */}
-          {currentStep === 0 && (
-            <View style={styles.loginRow}>
-              <Text style={[styles.loginText, { color: textMuted }]}>¿Ya tenés cuenta? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={[styles.loginLink, { color: textPrimary }]}>Iniciá sesión</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
 
       <PermissionModal
         visible={showPermissionModal}
@@ -389,7 +386,7 @@ const styles = StyleSheet.create({
   dotsRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot:          { height: 8, borderRadius: 4 },
   stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
-  scrollContent:{ paddingHorizontal: 24, paddingBottom: 40 },
+  scrollContent:{ paddingHorizontal: 24, paddingBottom: 16 },
   stepHeroRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -419,7 +416,8 @@ const styles = StyleSheet.create({
   },
   stepTitle:    { fontSize: 26, fontWeight: '700', marginBottom: 6 },
   stepSubtitle: { fontSize: 14 },
-  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', marginTop: 8, marginBottom: 8 },
+  btnContainer: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
+  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
   btnText:      { fontSize: 16, fontWeight: '700' },
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   loginText:    { fontSize: 14 },

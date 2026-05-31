@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -342,7 +342,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Error loading search results:', error);
-      showAlert('Error', 'No se pudieron cargar los viajes');
+      showAlert('Ocurrió algo', 'No se pudieron cargar los viajes');
     } finally {
       setLoading(false);
     }

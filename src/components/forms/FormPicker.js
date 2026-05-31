@@ -203,7 +203,10 @@ const FormPicker = ({
                   <TouchableOpacity
                     style={[
                       styles.optionItem,
-                      { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' },
+                      {
+                        backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+                        borderBottomColor: isDarkMode ? '#2E2E2E' : '#F3F4F6',
+                      },
                       isSelected && {
                         backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF',
                         borderColor: isDarkMode ? '#3B82F6' : '#6366F1'

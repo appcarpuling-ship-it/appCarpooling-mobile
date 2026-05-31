@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   ScrollView,
   Modal,
   Pressable,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -237,11 +238,8 @@ const ChatsScreen = ({ navigation }) => {
         !conversations.length || Date.now() - lastConvLoadRef.current > 30000;
 
       if (shouldReload) {
-        console.log('📱 [ChatsScreen] Recargando conversaciones por focus');
         loadConversations(1);
         lastConvLoadRef.current = Date.now();
-      } else {
-        console.log('📱 [ChatsScreen] No es necesario recargar conversaciones');
       }
     }, [conversations.length])
   );
@@ -268,6 +266,14 @@ const ChatsScreen = ({ navigation }) => {
       return sorted;
     });
   };
+
+  // Escucha mensajes enviados desde ChatDetailScreen sin hacer request
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('conversationUpdated', ({ conversationId, message }) => {
+      updateConversation(conversationId, message);
+    });
+    return () => sub.remove();
+  }, []);
 
   const markConversationAsRead = (conversationId) => {
     setConversations(prevConversations => {
@@ -334,7 +340,7 @@ const ChatsScreen = ({ navigation }) => {
         showAlert('Listo', 'Usuario bloqueado.');
       } catch (e) {
         const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
-        showAlert('Error', msg);
+        showAlert('Ocurrió algo', msg);
       } finally {
         setBlockingFromList(false);
       }

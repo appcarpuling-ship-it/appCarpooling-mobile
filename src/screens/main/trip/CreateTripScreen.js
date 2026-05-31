@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -324,11 +324,11 @@ const CreateTripScreen = ({ navigation }) => {
         // }
       } else {
         console.warn('⚠️ [CreateTrip] Error cargando vehículos:', response.message);
-        showAlert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
+        showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('❌ [CreateTrip] Error loading vehicles:', error);
-      showAlert('Error', 'Error al cargar vehículos: ' + error.message);
+      showAlert('Ocurrió algo', 'Error al cargar vehículos: ' + error.message);
     } finally {
       setLoadingVehicles(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -53,7 +53,7 @@ const UserProfileScreen = ({ route, navigation }) => {
         setProfile(response.data);
       }
     } catch (_) {
-      showAlert('Error', 'No se pudo cargar el perfil');
+      showAlert('Ocurrió algo', 'No se pudo cargar el perfil');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ const UserProfileScreen = ({ route, navigation }) => {
       }
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo iniciar el chat';
-      showAlert('Error', msg);
+      showAlert('Ocurrió algo', msg);
     } finally {
       setChatLoading(false);
     }
@@ -132,7 +132,7 @@ const UserProfileScreen = ({ route, navigation }) => {
       showAlert('Enviado', 'Recibimos tu reporte. Lo revisará el equipo de moderación.');
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo enviar el reporte';
-      showAlert('Error', msg);
+      showAlert('Ocurrió algo', msg);
     } finally {
       setReportSubmitting(false);
     }
@@ -172,7 +172,7 @@ const UserProfileScreen = ({ route, navigation }) => {
       ]);
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
-      showAlert('Error', msg);
+      showAlert('Ocurrió algo', msg);
     } finally {
       setBlockLoading(false);
     }
@@ -255,7 +255,7 @@ const UserProfileScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {!isSelf && (
+      {!isSelf && !!tripId && (
         <TouchableOpacity
           style={[styles.chatButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
           onPress={handleStartChat}

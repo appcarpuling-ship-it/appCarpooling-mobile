@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ const ReferralScreen = () => {
       const response = await get_withauth('/users/referral-info');
       if (response.success) setReferralInfo(response.data);
     } catch {
-      showAlert('Error', 'No se pudo cargar la información de referidos');
+      showAlert('Ocurrió algo', 'No se pudo cargar la información de referidos');
     } finally {
       setLoading(false);
     }

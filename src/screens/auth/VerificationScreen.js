@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -67,7 +67,7 @@ const VerificationScreen = ({ route, navigation }) => {
 
   const handleVerify = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
-      showAlert('Error', 'Por favor ingresá un código válido de 6 dígitos');
+      showAlert('Ocurrió algo', 'Por favor ingresá un código válido de 6 dígitos');
       return;
     }
     setLoading(true);
@@ -83,11 +83,11 @@ const VerificationScreen = ({ route, navigation }) => {
             { text: 'Intentar después', style: 'cancel' },
           ]);
         } else {
-          showAlert('Error', result.message || 'Código de verificación inválido');
+          showAlert('Ocurrió algo', result.message || 'Código de verificación inválido');
         }
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al verificar el código');
+      showAlert('Ocurrió algo', error.message || 'Error al verificar el código');
     } finally {
       setLoading(false);
     }
@@ -100,10 +100,10 @@ const VerificationScreen = ({ route, navigation }) => {
       if (result.success) {
         showAlert('Código enviado', 'Se envió un nuevo código de verificación a tu email');
       } else {
-        showAlert('Error', result.message || 'Error al enviar el código');
+        showAlert('Ocurrió algo', result.message || 'Error al enviar el código');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al enviar el código');
+      showAlert('Ocurrió algo', error.message || 'Error al enviar el código');
     } finally {
       setResending(false);
     }

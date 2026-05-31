@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -52,7 +52,7 @@ const MyTripsScreen = ({ navigation }) => {
         setHasMore(response.hasMore ?? false);
       }
     } catch (error) {
-      showAlert('Error', 'No se pudieron cargar los viajes');
+      showAlert('Ocurrió algo', 'No se pudieron cargar los viajes');
     } finally {
       fetchingRef.current = false;
       setLoading(false);
@@ -106,10 +106,10 @@ const MyTripsScreen = ({ navigation }) => {
                 showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
                 loadMyTrips(1, true);
               } else {
-                showAlert('Error', response.message || 'No se pudo iniciar el viaje');
+                showAlert('Ocurrió algo', response.message || 'No se pudo iniciar el viaje');
               }
             } catch (error) {
-              showAlert('Error', error.message || 'Error al iniciar el viaje');
+              showAlert('Ocurrió algo', error.message || 'Error al iniciar el viaje');
             } finally {
               setStartingTripId(null);
             }
@@ -135,7 +135,7 @@ const MyTripsScreen = ({ navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Error', 'Ingresa un costo valido mayor a 0');
+      showAlert('Ocurrió algo', 'Ingresa un costo valido mayor a 0');
       return;
     }
     const pay = parseFloat(driverPay) || 0;
@@ -149,10 +149,10 @@ const MyTripsScreen = ({ navigation }) => {
         loadMyTrips(1, true);
         await refreshUser();
       } else {
-        showAlert('Error', response.message || 'No se pudo completar el viaje');
+        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al completar el viaje');
+      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
     }
   };
 

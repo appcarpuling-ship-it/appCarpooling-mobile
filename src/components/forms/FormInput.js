@@ -100,13 +100,13 @@ const FormInput = ({
 
   const getBorderColor = () => {
     if (error) return isDarkMode ? '#EF4444' : '#DC2626';
-    if (isFocused) return isDarkMode ? '#3B82F6' : '#6366F1';
+    if (isFocused) return isDarkMode ? '#FFFFFF' : '#000000';
     return isDarkMode ? '#404040' : '#E5E7EB';
   };
 
   const getIconColor = () => {
     if (error) return isDarkMode ? '#EF4444' : '#DC2626';
-    if (isFocused) return isDarkMode ? '#3B82F6' : '#6366F1';
+    if (isFocused) return isDarkMode ? '#FFFFFF' : '#000000';
     return isDarkMode ? '#9CA3AF' : '#6B7280';
   };
 

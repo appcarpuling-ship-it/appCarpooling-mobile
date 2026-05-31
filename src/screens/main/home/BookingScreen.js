@@ -426,54 +426,6 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Driver */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Conductor</Text>
-            <View style={styles.driverRow}>
-              <View style={[styles.avatar, { backgroundColor: accent }]}>
-                <Text style={[styles.avatarText, { color: accentInverse }]}>
-                  {trip.driver?.firstName?.[0]}{trip.driver?.lastName?.[0]}
-                </Text>
-              </View>
-              <View style={styles.driverInfo}>
-                <Text style={[styles.driverName, { color: textPrimary }]}>
-                  {trip.driver?.firstName} {trip.driver?.lastName}
-                </Text>
-                <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={13} color={colors.accentOrange || '#F59E0B'} />
-                  <Text style={[styles.ratingText, { color: textMuted }]}>
-                    {trip.driver?.rating?.toFixed(1) || '5.0'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Vehicle */}
-          {trip.vehicle && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
-              <View style={styles.vehicleRow}>
-                <View style={[styles.vehicleIconWrap, { backgroundColor: dark ? '#2A2A2A' : '#F0F0F0' }]}>
-                  <Ionicons name="car-outline" size={22} color={textPrimary} />
-                </View>
-                <View style={styles.vehicleInfo}>
-                  <Text style={[styles.vehicleName, { color: textPrimary }]}>
-                    {trip.vehicle?.brand || 'N/A'} {trip.vehicle?.model || ''}
-                  </Text>
-                  <Text style={[styles.vehicleYear, { color: textMuted }]}>
-                    {trip.vehicle?.year ? `Año ${trip.vehicle.year}` : ''}
-                    {trip.vehicle?.color ? `  ·  ${trip.vehicle.color}` : ''}
-                  </Text>
-                  {trip.vehicle?.plate && (
-                    <View style={[styles.plateWrap, { backgroundColor: dark ? '#2A2A2A' : '#F0F0F0' }]}>
-                      <Text style={[styles.plateText, { color: textPrimary }]}>{trip.vehicle.plate}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </View>
-          )}
 
           {/* Trip details */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>

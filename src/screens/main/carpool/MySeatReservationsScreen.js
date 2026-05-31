@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -59,7 +59,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
         setHasMore(response.data.pagination?.hasMore ?? false);
       }
     } catch {
-      showAlert('Error', 'No se pudieron cargar las reservas');
+      showAlert('Ocurrió algo', 'No se pudieron cargar las reservas');
     } finally {
       fetchingRef.current = false;
       setLoading(false);
@@ -80,7 +80,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   const handleOpenCheckout = (paymentUrl) => {
-    if (!paymentUrl) { showAlert('Error', 'No hay link de pago'); return; }
+    if (!paymentUrl) { showAlert('Ocurrió algo', 'No hay link de pago'); return; }
     setCheckoutModal({ visible: true, paymentUrl });
   };
 
@@ -102,7 +102,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   const handleCancelReservation = (reservation) => {
     const seatReservationId = reservation.seatReservation?._id || reservation.seatReservation?.id;
-    if (!seatReservationId) { showAlert('Error', 'No se puede cancelar'); return; }
+    if (!seatReservationId) { showAlert('Ocurrió algo', 'No se puede cancelar'); return; }
     showAlert('Cancelar', '¿Cancelar esta reserva?', [
       { text: 'No', style: 'cancel' },
       {
@@ -175,7 +175,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   const handleOpenChat = async (item) => {
     const driverId = item.trip?.driver?._id || item.trip?.driver?.id;
-    if (!driverId) { showAlert('Error', 'Sin datos del conductor'); return; }
+    if (!driverId) { showAlert('Ocurrió algo', 'Sin datos del conductor'); return; }
     const reservationId = item.seatReservation?._id;
     setChatLoading(prev => ({ ...prev, [reservationId]: true }));
     try {
@@ -195,10 +195,10 @@ const MySeatReservationsScreen = ({ navigation }) => {
           },
         });
       } else {
-        showAlert('Error', 'No se pudo abrir el chat');
+        showAlert('Ocurrió algo', 'No se pudo abrir el chat');
       }
     } catch {
-      showAlert('Error', 'No se pudo abrir el chat');
+      showAlert('Ocurrió algo', 'No se pudo abrir el chat');
     } finally {
       setChatLoading(prev => ({ ...prev, [reservationId]: false }));
     }

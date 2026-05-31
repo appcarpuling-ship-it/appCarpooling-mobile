@@ -12,14 +12,16 @@ export const AlertProvider = ({ children }) => {
     title: '',
     message: '',
     buttons: [],
+    type: undefined,
   });
 
-  const showAlert = useCallback((title, message, buttons = []) => {
+  const showAlert = useCallback((title, message, buttons = [], type = undefined) => {
     setAlertState({
       visible: true,
       title: title || '',
       message: message || '',
       buttons: buttons.length > 0 ? buttons : [{ text: 'OK' }],
+      type,
     });
   }, []);
 
@@ -41,6 +43,7 @@ export const AlertProvider = ({ children }) => {
         message={alertState.message}
         buttons={alertState.buttons}
         onRequestClose={hideAlert}
+        type={alertState.type}
       />
     </AlertContext.Provider>
   );

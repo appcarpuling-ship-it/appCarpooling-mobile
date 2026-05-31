@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -163,7 +163,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
     isMounted.current = true;
     loadVehicles();
     getCurrentLocation();
-    if (!GOOGLE_MAPS_API_KEY) showAlert('Error', 'La API Key de Google Maps no está configurada');
+    if (!GOOGLE_MAPS_API_KEY) showAlert('Ocurrió algo', 'La API Key de Google Maps no está configurada');
     return () => {
       isMounted.current = false;
       if (mapSelectionIdleTimerRef.current) {
@@ -335,7 +335,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       setLoadingMapSelection(false);
       if (!isMounted.current) return;
       if (!loc) {
-        showAlert('Error', 'No se pudo obtener la dirección');
+        showAlert('Ocurrió algo', 'No se pudo obtener la dirección');
         return;
       }
       if (mode === 'origin') {
@@ -721,11 +721,9 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         <>
           <View style={[styles.selectionBanner, { top: insets.top + 72 }]}>
             <Text style={styles.selectionText}>
-              {mapSelectionMode === 'origin'
-                ? 'Mové el mapa bajo el pin; si queda quieto ~1,5 s se elige solo. También podés tocar.'
-                : mapSelectionMode === 'destination'
-                  ? 'Mové el mapa bajo el pin; si queda quieto ~1,5 s se elige solo. También podés tocar.'
-                  : `Parada ${parseInt(mapSelectionMode.split('-')[1], 10) + 1}: mové el mapa o tocá; quieto ~1,5 s confirma.`}
+              {mapSelectionMode === 'origin' || mapSelectionMode === 'destination'
+                ? 'Mové el mapa o tocá para seleccionar.'
+                : `Parada ${parseInt(mapSelectionMode.split('-')[1], 10) + 1}: mové o tocá para seleccionar.`}
             </Text>
             <TouchableOpacity onPress={() => setMapSelectionMode(null)} style={{ marginLeft: 12 }}>
               <Text style={styles.selectionCancelText}>Cancelar</Text>

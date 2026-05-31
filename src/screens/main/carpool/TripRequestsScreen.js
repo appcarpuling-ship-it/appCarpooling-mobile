@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -138,7 +138,7 @@ const TripRequestsScreen = ({ route }) => {
         setTripsHasMore(false);
       }
     } catch {
-      showAlert('Error', 'No se pudieron cargar tus viajes');
+      showAlert('Ocurrió algo', 'No se pudieron cargar tus viajes');
     } finally {
       tripsFetchLock.current = false;
       setLoadingTrips(false);
@@ -166,7 +166,7 @@ const TripRequestsScreen = ({ route }) => {
       setReqHasMore(response.hasMore === true);
     } catch {
       if (tid === selectedTripId) {
-        showAlert('Error', 'No se pudieron cargar las solicitudes');
+        showAlert('Ocurrió algo', 'No se pudieron cargar las solicitudes');
       }
     } finally {
       if (tid === selectedTripId) {
@@ -260,7 +260,7 @@ const TripRequestsScreen = ({ route }) => {
     try {
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
       if (!request) {
-        showAlert('Error', 'No se encontró la solicitud.');
+        showAlert('Ocurrió algo', 'No se encontró la solicitud.');
         return;
       }
       const isSeatReservation = request.bookingType === 'seat_reservation';
@@ -273,7 +273,7 @@ const TripRequestsScreen = ({ route }) => {
 
       if (isSeatReservation) {
         if (!seatReservationId) {
-          showAlert('Error', 'Faltan datos de la reserva. Actualizá la lista e intentá de nuevo.');
+          showAlert('Ocurrió algo', 'Faltan datos de la reserva. Actualizá la lista e intentá de nuevo.');
           return;
         }
         const res = await approveOrRejectReservation(seatReservationId, 'reject', reasonToSend);
@@ -283,7 +283,7 @@ const TripRequestsScreen = ({ route }) => {
         if (res.success) close();
       }
     } catch (error) {
-      showAlert('Error', String(error?.response?.data?.message || error?.message || 'Error al rechazar'));
+      showAlert('Ocurrió algo', String(error?.response?.data?.message || error?.message || 'Error al rechazar'));
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -259,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
       return;
     }
     if (!origin && !destination) {
-      showAlert('Error', 'Por favor completa al menos el origen o destino');
+      showAlert('Ocurrió algo', 'Por favor completa al menos el origen o destino');
       return;
     }
     navigation.navigate('SearchResults', {

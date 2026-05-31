@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -53,12 +53,12 @@ const CreateReviewScreen = ({ route, navigation }) => {
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
-      showAlert('Error', 'Por favor selecciona una calificación');
+      showAlert('Ocurrió algo', 'Por favor selecciona una calificación');
       return;
     }
 
     if (comment.trim().length < 10) {
-      showAlert('Error', 'Por favor escribe un comentario de al menos 10 caracteres');
+      showAlert('Ocurrió algo', 'Por favor escribe un comentario de al menos 10 caracteres');
       return;
     }
 
@@ -87,10 +87,10 @@ const CreateReviewScreen = ({ route, navigation }) => {
           ]
         );
       } else {
-        showAlert('Error', response.message || 'Error al enviar la reseña');
+        showAlert('Ocurrió algo', response.message || 'Error al enviar la reseña');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al enviar la reseña');
+      showAlert('Ocurrió algo', error.message || 'Error al enviar la reseña');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // eslint-disable-line
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // eslint-disable-line
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import useColors from '../../../hooks/useColors';
 import { useTutorial } from '../../../context/TutorialContext';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
-const PROFILE_REFRESH_GAP_MS = 45000;
+const PROFILE_REFRESH_GAP_MS = 10000;
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -48,7 +48,7 @@ const ProfileScreen = () => {
           try {
             await logout();
           } catch (error) {
-            showAlert('Error', 'No se pudo cerrar sesión. Intenta nuevamente.');
+            showAlert('Ocurrió algo', 'No se pudo cerrar sesión. Intenta nuevamente.');
           }
         },
       },
@@ -126,7 +126,15 @@ const ProfileScreen = () => {
     {
       title: 'Referidos',
       items: [
-        { id: 8, title: 'Mi Código Promocional', icon: 'gift-outline', onPress: () => navigation.navigate('ReferralScreen') },
+        {
+          id: 8,
+          title: 'Mi Código Promocional',
+          subtitle: (user?.discountPercentage ?? 0) > 0
+            ? `${user.discountPercentage}% de descuento disponible`
+            : 'Invitá amigos y ganá descuentos',
+          icon: 'gift-outline',
+          onPress: () => navigation.navigate('ReferralScreen'),
+        },
       ],
     },
     {
@@ -209,14 +217,18 @@ const ProfileScreen = () => {
             </Text>
           ) : null} */}
 
-          {(user?.discountPercentage ?? 0) > 0 && (
-            <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
-              <Ionicons name="pricetag" size={13} color="#10B981" />
-              <Text style={[styles.discountText, { color: '#10B981' }]}>
-                {user.discountPercentage}% de descuento activo
-              </Text>
-            </View>
-          )}
+          {(user?.discountPercentage ?? 0) > 0 && (() => {
+            const pct = user.discountPercentage;
+            const count = Math.round(pct / 20) || 1;
+            return (
+              <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
+                <Ionicons name="pricetag" size={13} color="#10B981" />
+                <Text style={[styles.discountText, { color: '#10B981' }]}>
+                  {count} descuento{count !== 1 ? 's' : ''} activo{count !== 1 ? 's' : ''} · {pct}% de ahorro
+                </Text>
+              </View>
+            );
+          })()}
         </View>
 
         {/* Menu */}
@@ -245,12 +257,19 @@ const ProfileScreen = () => {
                         color={item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary}
                       />
                     </View>
-                    <Text style={[
-                      styles.menuItemText,
-                      { color: item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary },
-                    ]}>
-                      {item.title}
-                    </Text>
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={[
+                        styles.menuItemText,
+                        { color: item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary },
+                      ]}>
+                        {item.title}
+                      </Text>
+                      {item.subtitle ? (
+                        <Text style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
+                          {item.subtitle}
+                        </Text>
+                      ) : null}
+                    </View>
                     <Ionicons name="chevron-forward" size={17} color={textMuted} />
                   </TouchableOpacity>
                 ))}
@@ -376,7 +395,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuItemText: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '500',
   },

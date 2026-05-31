@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -79,7 +79,7 @@ const MyBookingsScreen = ({ navigation }) => {
         setHasMore(response.hasMore ?? false);
       }
     } catch {
-      showAlert('Error', 'No se pudieron cargar las reservas');
+      showAlert('Ocurrió algo', 'No se pudieron cargar las reservas');
     } finally {
       fetchingRef.current = false;
       setLoading(false);
@@ -118,7 +118,7 @@ const MyBookingsScreen = ({ navigation }) => {
             showAlert('Reserva cancelada', 'Ya no tenés esa reserva activa.');
             await loadMyBookings(1, true, { force: true });
           } catch (error) {
-            showAlert('Error', error.message || 'No se pudo cancelar.');
+            showAlert('Ocurrió algo', error.message || 'No se pudo cancelar.');
           }
         },
       },

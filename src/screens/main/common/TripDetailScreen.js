@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -248,7 +248,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
       }
     } catch (error) {
-      showAlert('Error', 'No se pudo cargar el viaje');
+      showAlert('Ocurrió algo', 'No se pudo cargar el viaje');
     } finally {
       setLoading(false);
     }
@@ -290,7 +290,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleBookTrip = () => {
     if (!trip || tripFreeSeats <= 0) {
-      showAlert('Error', 'No hay asientos disponibles');
+      showAlert('Ocurrió algo', 'No hay asientos disponibles');
       return;
     }
     navigation.navigate('Booking', { trip });
@@ -341,11 +341,11 @@ const TripDetailScreen = ({ route, navigation }) => {
           setPaymentModalData({ paymentUrl, qrDataUrl, amount });
           setPaymentModalVisible(true);
         } else {
-          showAlert('Error', 'No se puede realizar el pago. Contacta al soporte.');
+          showAlert('Ocurrió algo', 'No se puede realizar el pago. Contacta al soporte.');
         }
       }
     } catch (error) {
-      showAlert('Error', 'No se pudo procesar el pago');
+      showAlert('Ocurrió algo', 'No se pudo procesar el pago');
     } finally {
       setPaymentLoading(false);
     }
@@ -412,7 +412,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               error?.response?.data?.message ||
               error?.message ||
               'No se pudo cancelar';
-            showAlert('Error', msg);
+            showAlert('Ocurrió algo', msg);
           } finally {
             setPaymentLoading(false);
           }
@@ -423,7 +423,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleStartChat = async () => {
     const driverId = trip?.driver?._id || trip?.driver?.id;
-    if (!driverId) { showAlert('Error', 'No se encontraron datos del conductor'); return; }
+    if (!driverId) { showAlert('Ocurrió algo', 'No se encontraron datos del conductor'); return; }
     setChatLoading(true);
     try {
       const response = await post_withauth('/chat/conversation', { participantId: driverId });
@@ -438,10 +438,10 @@ const TripDetailScreen = ({ route, navigation }) => {
           params: { conversation, otherUser },
         });
       } else {
-        showAlert('Error', 'No se pudo abrir el chat');
+        showAlert('Ocurrió algo', 'No se pudo abrir el chat');
       }
     } catch {
-      showAlert('Error', 'No se pudo abrir el chat');
+      showAlert('Ocurrió algo', 'No se pudo abrir el chat');
     } finally {
       setChatLoading(false);
     }
@@ -463,7 +463,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         });
       }
     } catch (_) {
-      showAlert('Error', 'No se pudo iniciar el chat');
+      showAlert('Ocurrió algo', 'No se pudo iniciar el chat');
     }
   };
 
@@ -485,10 +485,10 @@ const TripDetailScreen = ({ route, navigation }) => {
               showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
               await loadTripDetail();
             } else {
-              showAlert('Error', response.message || 'No se pudo iniciar el viaje');
+              showAlert('Ocurrió algo', response.message || 'No se pudo iniciar el viaje');
             }
           } catch (error) {
-            showAlert('Error', error.message || 'Error al iniciar el viaje');
+            showAlert('Ocurrió algo', error.message || 'Error al iniciar el viaje');
           } finally {
             setStartingTrip(false);
           }
@@ -518,10 +518,10 @@ const TripDetailScreen = ({ route, navigation }) => {
                 { text: 'OK', onPress: () => navigation.goBack() },
               ]);
             } else {
-              showAlert('Error', response.message || 'No se pudo cancelar el viaje');
+              showAlert('Ocurrió algo', response.message || 'No se pudo cancelar el viaje');
             }
           } catch (error) {
-            showAlert('Error', error.message || 'Error al cancelar el viaje');
+            showAlert('Ocurrió algo', error.message || 'Error al cancelar el viaje');
           }
         },
       },
@@ -537,7 +537,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Error', 'Ingresa un costo valido mayor a 0');
+      showAlert('Ocurrió algo', 'Ingresa un costo valido mayor a 0');
       return;
     }
     const pay = parseFloat(driverPay) || 0;
@@ -558,10 +558,10 @@ const TripDetailScreen = ({ route, navigation }) => {
         await loadTripDetail();
         await refreshUser();
       } else {
-        showAlert('Error', response.message || 'No se pudo completar el viaje');
+        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al completar el viaje');
+      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
     }
   };
 
@@ -699,23 +699,6 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )} */}
 
-        {/* Cost banner — solo costo real (actualCost + driverPay); no mezclar con estimatedCost */}
-        {(trip.status === 'started' || trip.status === 'completed') &&
-          (Number(trip.actualCost) > 0 || Number(trip.driverPay) > 0) && (
-          <View style={[styles.costBanner, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
-            <View style={styles.costBannerLeft}>
-              <Text style={[styles.costBannerLabel, { color: colors.success }]}>Costo del viaje</Text>
-              {Number(trip.actualCost) > 0 && Number(trip.driverPay) > 0 && (
-                <Text style={[styles.costBannerSub, { color: colors.success }]}>
-                  Gastos ${formatNumber(trip.actualCost)} + Paga ${formatNumber(trip.driverPay)}
-                </Text>
-              )}
-            </View>
-            <Text style={[styles.costBannerValue, { color: colors.success }]}>
-              ${formatNumber((Number(trip.actualCost) || 0) + (Number(trip.driverPay) || 0))}
-            </Text>
-          </View>
-        )}
 
         {/* Driver */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
@@ -927,8 +910,16 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Footer — driver */}
-        {isOwnTrip && (trip.status === 'active' || trip.status === 'started') && (
+        {isOwnTrip && (trip.status === 'active' || trip.status === 'started' || trip.status === 'pending') && (
           <View style={[styles.footer, { borderTopColor: divider }]}>
+            {(trip.status === 'active' || trip.status === 'pending') && (
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: dark ? '#2E2E2E' : '#F3F4F6', borderWidth: 1, borderColor: dark ? '#404040' : '#E5E7EB' }]}
+                onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
+              >
+                <Text style={[styles.footerBtnText, { color: dark ? '#FFFFFF' : '#000000' }]}>Editar viaje</Text>
+              </TouchableOpacity>
+            )}
             {trip.status === 'active' && trip.occupiedSeats > 0 && (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }]}

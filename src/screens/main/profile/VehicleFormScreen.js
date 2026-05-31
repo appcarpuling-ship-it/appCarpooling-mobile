@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -129,7 +129,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
         }
       }
     } catch {
-      showAlert('Error', 'No se pudo seleccionar la imagen');
+      showAlert('Ocurrió algo', 'No se pudo seleccionar la imagen');
     }
   };
 
@@ -150,7 +150,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
           const next = [...photos, ...compressed];
           if (existingPhotos.length + next.length > 10) {
-            showAlert('Error', 'Máximo 10 fotos');
+            showAlert('Ocurrió algo', 'Máximo 10 fotos');
             return;
           }
           setPhotos(next);
@@ -159,45 +159,45 @@ const VehicleFormScreen = ({ navigation, route }) => {
         }
       }
     } catch {
-      showAlert('Error', 'No se pudieron seleccionar las imágenes');
+      showAlert('Ocurrió algo', 'No se pudieron seleccionar las imágenes');
     }
   };
 
   const handleSubmit = async () => {
     const { brand, model, year, color, licensePlate, capacity } = formData;
     if (!brand || !model || !year || !color || !licensePlate || !capacity) {
-      showAlert('Error', 'Completa todos los campos');
+      showAlert('Ocurrió algo', 'Completa todos los campos');
       return;
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
     if (!isEdit && totalPhotos < 3) {
-      showAlert('Error', `Mínimo 3 fotos. Tenés ${totalPhotos}`);
+      showAlert('Ocurrió algo', `Mínimo 3 fotos. Tenés ${totalPhotos}`);
       return;
     }
     if (isEdit && totalPhotos === 0) {
-      showAlert('Error', 'Necesitás al menos 1 foto');
+      showAlert('Ocurrió algo', 'Necesitás al menos 1 foto');
       return;
     }
 
     if (!isEdit && !registrationCardUri) {
-      showAlert('Error', 'Subí la tarjeta verde o cédula del vehículo');
+      showAlert('Ocurrió algo', 'Subí la tarjeta verde o cédula del vehículo');
       return;
     }
     if (isEdit && !hasRegistrationOnServer && !registrationCardUri) {
-      showAlert('Error', 'Subí la tarjeta verde o cédula del vehículo');
+      showAlert('Ocurrió algo', 'Subí la tarjeta verde o cédula del vehículo');
       return;
     }
 
     const yearNum = parseInt(year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      showAlert('Error', 'Año no válido');
+      showAlert('Ocurrió algo', 'Año no válido');
       return;
     }
 
     const capacityNum = parseInt(capacity);
     if (capacityNum < 1 || capacityNum > 8) {
-      showAlert('Error', 'Capacidad: 1 a 8 pasajeros');
+      showAlert('Ocurrió algo', 'Capacidad: 1 a 8 pasajeros');
       return;
     }
 
@@ -237,15 +237,16 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
       if (response.success) {
         showAlert(
-          isEdit ? 'Vehículo actualizado' : 'Vehículo creado',
-          isEdit ? 'Tu vehículo fue actualizado correctamente.' : 'Tu vehículo fue registrado correctamente.',
-          [{ text: 'OK', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }]
+          isEdit ? 'Vehículo Actualizado' : 'Vehículo Registrado',
+          isEdit ? 'Los cambios en tu vehículo se guardaron correctamente.' : 'Tu vehículo fue registrado con éxito.',
+          [{ text: 'Continuar', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }],
+          'success'
         );
       } else {
-        showAlert('Error', response.message || 'Error al guardar');
+        showAlert('Ocurrió algo', response.message || 'No pudimos guardar el vehículo.', [], 'error');
       }
     } catch (error) {
-      showAlert('Error', error.message || 'Error al guardar');
+      showAlert('Ocurrió algo', error.message || 'No pudimos guardar el vehículo.', [], 'error');
     } finally {
       setLoading(false);
     }
@@ -272,7 +273,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}

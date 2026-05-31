@@ -121,12 +121,10 @@ export const NotificationProvider = ({ children }) => {
 
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification?.request?.content?.data;
-      // Solo incrementar el badge si es una notificación de tipo viaje o reserva
-      // (no mensajes de chat, que ya los maneja useUnreadMessages)
       const tripTypes = ['trip_started', 'trip_completed', 'booking_accepted', 'booking_rejected', 'trip_cancelled'];
+      // Solo recargar desde el server — el socket ya incrementó el count.
+      // No incrementar manualmente acá para evitar doble conteo.
       if (data?.type && tripTypes.includes(data.type)) {
-        setUnreadCountRef.current(prev => prev + 1);
-        // Recargar lista completa para tener los datos actualizados
         loadNotifications();
       }
     });

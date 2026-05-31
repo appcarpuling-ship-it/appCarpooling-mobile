@@ -21,7 +21,6 @@ import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
-import Toast from '../../../components/Toast';
 
 const EditProfileScreen = ({ navigation }) => {
   const { getCurrentThemeMode } = useColors();
@@ -36,10 +35,10 @@ const EditProfileScreen = ({ navigation }) => {
   const accent      = isDarkMode ? '#FFFFFF' : '#000000';
   const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
 
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal]   = useState(false);
+  const [modalMessage, setModalMessage]       = useState('');
+  const [successMessage, setSuccessMessage]   = useState('');
 
   const { user, refreshUser } = useAuth();
   const [showProvincePicker, setShowProvincePicker] = useState(false);
@@ -93,8 +92,8 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
       if (response.success) {
         await refreshUser();
-        setToastMessage('Foto de perfil actualizada');
-        setShowSuccessToast(true);
+        setSuccessMessage('Foto de perfil actualizada');
+        setShowSuccessModal(true);
         setAvatarUri(null);
       } else {
         setModalMessage(response.message || 'Error al actualizar la foto');
@@ -143,8 +142,8 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, fd);
       if (response.success) {
         await refreshUser();
-        setToastMessage(side === 'front' ? 'Frente del DNI actualizado' : 'Dorso del DNI actualizado');
-        setShowSuccessToast(true);
+        setSuccessMessage(side === 'front' ? 'Frente del DNI actualizado' : 'Dorso del DNI actualizado');
+        setShowSuccessModal(true);
       } else {
         setModalMessage(response.message || 'No se pudo subir el DNI');
         setShowErrorModal(true);
@@ -200,8 +199,8 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
         await refreshUser();
-        setToastMessage('Perfil actualizado');
-        setShowSuccessToast(true);
+        setSuccessMessage('Tus datos personales se han guardado correctamente.');
+        setShowSuccessModal(true);
       } else {
         setModalMessage(response.message || 'Error al actualizar');
         setShowErrorModal(true);
@@ -239,7 +238,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
@@ -430,12 +429,15 @@ const EditProfileScreen = ({ navigation }) => {
         onRefreshPermissions={forceRefreshPermissions}
       />
 
-      <Toast
-        visible={showSuccessToast}
-        message={toastMessage}
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => setShowSuccessModal(false)}
         type="success"
-        duration={2000}
-        onHide={() => setShowSuccessToast(false)}
+        title="Perfil Actualizado"
+        message={successMessage}
+        confirmText="Continuar"
+        showCancel={false}
       />
 
       <ConfirmationModal

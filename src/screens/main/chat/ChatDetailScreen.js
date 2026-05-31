@@ -13,6 +13,7 @@ import {
   Image,
   Animated,
   StatusBar,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -332,6 +333,12 @@ const ChatDetailScreen = ({ route, navigation }) => {
       setMessages(prev => [...prev, tempMessage]);
       scrollToBottom();
 
+      // Notificar a ChatsScreen para actualizar el preview sin hacer request
+      DeviceEventEmitter.emit('conversationUpdated', {
+        conversationId,
+        message: tempMessage,
+      });
+
       // Detener indicador de escritura
       socketService.stopTyping(conversationId);
     } catch (error) {
@@ -447,7 +454,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior="padding"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
       <View style={{ flex: 1 }}>
@@ -672,10 +679,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    paddingTop: 10,
     marginRight: 8,
     fontSize: 15,
-    maxHeight: 100
+    maxHeight: 120,
+    textAlignVertical: 'top',
   },
   sendButton: {
     width: 44,

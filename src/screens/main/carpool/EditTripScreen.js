@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -381,11 +381,11 @@ const EditTripScreen = ({ navigation, route }) => {
         setFormData(newFormData);
       } else {
         console.warn('⚠️ [EditTrip] Error en respuesta:', response.message);
-        showAlert('Error', response.message || 'No se pudo cargar el viaje');
+        showAlert('Ocurrió algo', response.message || 'No se pudo cargar el viaje');
       }
     } catch (error) {
       console.error('❌ [EditTrip] Error cargando viaje:', error);
-      showAlert('Error', 'No se pudo cargar el viaje');
+      showAlert('Ocurrió algo', 'No se pudo cargar el viaje');
     } finally {
       setLoadingTrip(false);
     }
@@ -406,11 +406,11 @@ const EditTripScreen = ({ navigation, route }) => {
         // NO establecer vehículo por defecto aquí, se hará en loadTripData
       } else {
         console.warn('⚠️ [EditTrip] Error cargando vehículos:', response.message);
-        showAlert('Error', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
+        showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('❌ [EditTrip] Error loading vehicles:', error);
-      showAlert('Error', 'Error al cargar vehículos: ' + error.message);
+      showAlert('Ocurrió algo', 'Error al cargar vehículos: ' + error.message);
     } finally {
       setLoadingVehicles(false);
     }
@@ -504,21 +504,21 @@ const EditTripScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      /** Solo estos campos acepta el backend para conductores */
       const tripData = {
         vehicle: formData.vehicle,
         departureDate: formData.departureDate,
         departureTime: formData.departureTime,
+        availableSeats: parseInt(formData.availableSeats) || undefined,
       };
 
       const response = await put_withauth(ENDPOINTS.UPDATE_TRIP(tripId), tripData);
 
       if (response.success) {
-        setModalMessage('Viaje actualizado exitosamente');
+        setModalMessage('Los cambios se guardaron correctamente.');
         setShowSuccessModal(true);
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al actualizar el viaje');
+      setModalMessage(error.message || 'No pudimos actualizar el viaje.');
       setShowErrorModal(true);
     } finally {
       setLoading(false);
@@ -858,9 +858,9 @@ const EditTripScreen = ({ navigation, route }) => {
           navigation.goBack();
         }}
         type="success"
-        title="Éxito"
+        title="Viaje Actualizado"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Continuar"
         showCancel={false}
       />
 
@@ -869,7 +869,7 @@ const EditTripScreen = ({ navigation, route }) => {
         onClose={() => setShowErrorModal(false)}
         onConfirm={() => setShowErrorModal(false)}
         type="error"
-        title="Error"
+        title="Ocurrió algo"
         message={modalMessage}
         confirmText="OK"
         showCancel={false}

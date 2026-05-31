@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,22 +49,22 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
   const handleResetPassword = async () => {
     if (!code) {
-      showAlert('Error', 'Por favor ingresa el código de recuperación');
+      showAlert('Ocurrió algo', 'Por favor ingresa el código de recuperación');
       return;
     }
 
     if (!newPassword) {
-      showAlert('Error', 'Por favor ingresa tu nueva contraseña');
+      showAlert('Ocurrió algo', 'Por favor ingresa tu nueva contraseña');
       return;
     }
 
     if (newPassword.length < 6) {
-      showAlert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      showAlert('Ocurrió algo', 'La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showAlert('Error', 'Las contraseñas no coinciden');
+      showAlert('Ocurrió algo', 'Las contraseñas no coinciden');
       return;
     }
 
@@ -87,7 +87,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         ]
       );
     } catch (error) {
-      showAlert('Error', error.message || 'Error al restablecer la contraseña');
+      showAlert('Ocurrió algo', error.message || 'Error al restablecer la contraseña');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -71,7 +71,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
         });
       }
     } catch (error) {
-      showAlert('Error', 'No se pudieron cargar las reseñas');
+      showAlert('Ocurrió algo', 'No se pudieron cargar las reseñas');
     } finally {
       setLoading(false);
       setRefreshing(false);

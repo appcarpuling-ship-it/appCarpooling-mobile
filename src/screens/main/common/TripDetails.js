@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -17,12 +17,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
+import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
 
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, distance, duration, vehicles } = route.params;
     const { showAlert } = useAlert();
     const { getCurrentThemeMode } = useColors();
+    const { user } = useAuth();
 
     const isDarkMode  = getCurrentThemeMode() === 'dark';
     const bg          = isDarkMode ? '#161616' : '#F5F5F5';
@@ -94,7 +96,7 @@ const TripDetails = ({ navigation, route }) => {
     const handleCreateTrip = async () => {
         const { vehicle, departureDate, departureTime, availableSeats } = formData;
         if (!vehicle || !departureDate || !departureTime || !availableSeats) {
-            showAlert('Error', 'Por favor completá todos los campos obligatorios');
+            showAlert('Ocurrió algo', 'Por favor completá todos los campos obligatorios');
             return;
         }
 
@@ -119,7 +121,7 @@ const TripDetails = ({ navigation, route }) => {
 
             const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
             if (response.success) {
-                showAlert('Viaje creado', 'Tu viaje fue publicado exitosamente', [
+                showAlert('Viaje Publicado', 'Tu viaje ha sido creado con éxito. Ahora otros usuarios podrán verlo.', [
                     {
                         text: 'Continuar',
                         onPress: () => navigation.navigate('Main', {
@@ -127,10 +129,10 @@ const TripDetails = ({ navigation, route }) => {
                             params: { screen: 'Carpoolings' },
                         }),
                     },
-                ]);
+                ], 'success');
             }
         } catch (error) {
-            showAlert('Error', error.message || 'Error al crear el viaje');
+            showAlert('Ocurrió algo', error.message || 'No pudimos crear el viaje en este momento.', [], 'error');
         } finally {
             setLoading(false);
         }
@@ -141,14 +143,14 @@ const TripDetails = ({ navigation, route }) => {
     const preferences = [
         { key: 'allowSmoking',        label: 'Permitir fumar',        icon: 'ban-outline' },
         { key: 'allowPets',           label: 'Permitir mascotas',     icon: 'paw-outline' },
-        { key: 'womenOnly',           label: 'Solo mujeres',          icon: 'woman-outline' },
+        ...(user?.gender === 'female' ? [{ key: 'womenOnly', label: 'Solo mujeres', icon: 'woman-outline' }] : []),
         { key: 'largeLuggageAllowed', label: 'Equipaje grande',       icon: 'bag-handle-outline' },
     ];
 
     return (
         <>
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom', 'left', 'right']}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+                <KeyboardAvoidingView behavior="padding" style={styles.flex}>
                     <ScrollView
                         style={styles.flex}
                         contentContainerStyle={styles.scroll}

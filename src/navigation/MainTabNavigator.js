@@ -84,31 +84,6 @@ const MainTabNavigator = () => {
             );
           }
 
-          // Mostrar badge en el tab de perfil cuando hay notificaciones sin leer
-          if (route.name === 'ProfileTab' && unreadNotifications > 0) {
-            return (
-              <View style={styles.iconContainer}>
-                <Ionicons name={iconName} size={size} color={color} />
-                <View style={[
-                  styles.badge,
-                  {
-                    backgroundColor: isDarkMode ? '#60A5FA' : '#2563EB',
-                    borderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                    shadowColor: '#000000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 2,
-                    elevation: 3,
-                  }
-                ]}>
-                  <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </Text>
-                </View>
-              </View>
-            );
-          }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
