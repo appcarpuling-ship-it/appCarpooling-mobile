@@ -10,32 +10,12 @@
  * Tras cambiar sólo .env: npx expo start -c.
  */
 
-function normalizeLanHost(raw) {
-  if (!raw || typeof raw !== 'string') return null;
-  const s = raw.trim();
-  if (!s) return null;
-  if (s.includes('://')) {
-    try {
-      const u = new URL(/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(s) ? s : `http://${s}`);
-      return u.hostname || null;
-    } catch {
-      return null;
-    }
-  }
-  const hostOnly = s.split('/')[0].split(':')[0];
-  return hostOnly || null;
-}
-
 module.exports = ({ config }) => {
-  const LAN = normalizeLanHost(process.env.DEV_LAN_HOST);
-  const fromLan = LAN ? `http://${LAN}:5000/api` : null;
+  const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 
-  const API_BASE_URL =
-    (process.env.EXPO_PUBLIC_API_BASE_URL &&
-      process.env.EXPO_PUBLIC_API_BASE_URL.trim()) ||
-    (process.env.API_BASE_URL && process.env.API_BASE_URL.trim()) ||
-    fromLan ||
-    'https://appcarpuling.cloud/api';
+  if (!API_BASE_URL) {
+    console.warn('[app.config] ⚠️  EXPO_PUBLIC_API_BASE_URL no definida — revisá tu .env');
+  }
 
   const fromEnvMaps =
     (process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY &&
