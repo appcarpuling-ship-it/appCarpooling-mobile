@@ -251,3 +251,7 @@ nuevas funciones
 
 1.0.0 → 1.0.1
 bug fixes
+
+
+
+eas build --platform ios --profile build
