@@ -6,7 +6,7 @@ on:
 
 jobs:
   ota:
-    if: toJson(github.event.head_commit.modified) == '[]' && toJson(github.event.head_commit.added) == '[]' && contains(github.event.head_commit.message, 'dev.ota:')
+    if: contains(github.event.head_commit.message, 'dev.ota:')
     runs-on: ubuntu-latest
     env:
       CI: 1

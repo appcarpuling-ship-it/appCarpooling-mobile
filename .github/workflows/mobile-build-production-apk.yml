@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    if: toJson(github.event.head_commit.modified) == '[]' && toJson(github.event.head_commit.added) == '[]' && contains(github.event.head_commit.message, 'prod.build.apk')
+    if: contains(github.event.head_commit.message, 'prod.build.apk')
     runs-on: ubuntu-latest
     env:
       CI: 1
