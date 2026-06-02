@@ -24,8 +24,8 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci
-        working-directory: mobile
+
 
       - name: Build Android (AAB) + iOS (IPA)
         run: eas build --profile production --platform all --non-interactive
-        working-directory: mobile
+
