@@ -1,8 +1,8 @@
-name: Mobile · Dev Client
+name: Mobile · Dev Client Build
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
 
 jobs:
   dev-client:
@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - uses: expo/expo-github-action@v8
         with:
@@ -25,7 +25,5 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-
       - name: Build Dev Client (Android APK)
         run: eas build --profile development --platform android --non-interactive
-

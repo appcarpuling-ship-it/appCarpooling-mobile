@@ -21,7 +21,7 @@ import { ENDPOINTS } from '../../../config/api';
 const RUMBO_AVATAR_DARK = require('../../../../assets/agent/rumbo_128.png');
 const RUMBO_AVATAR_LIGHT = require('../../../../assets/agent/rumbo_black_128.png');
 const BOT_NAME = 'Rumbo';
-
+ 
 const THINKING_MSGS = [
   'Pensando...',
   'Investigando...',
