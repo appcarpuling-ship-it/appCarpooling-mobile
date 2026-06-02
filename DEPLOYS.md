@@ -1,76 +1,50 @@
-# Deploys · Carpuling Mobile
+# Despliegues · Carpuling Mobile
 
-Todos los deploys se disparan con **commits vacíos** desde la rama correspondiente.
+Este documento forma parte del proyecto Carpuling. Uso interno para el equipo de desarrollo.
+
+## Despliegues, actualizaciones y builds
+
+Los despliegues, actualizaciones "over the air" y builds se realizan de forma automática con GitHub Actions.
+
+Se deberá anteponer los siguientes prefijos en el mensaje del commit si se desea disparar alguna acción:
 
 ```bash
-git commit --allow-empty -m "<comando>"
-git push origin <rama>
+git commit --allow-empty -m "ACCIÓN:MENSAJE"
 ```
 
 ---
 
-## Rama `main` — Producción
-
-| Comando | Qué hace |
+| Acción | Descripción |
 |---|---|
-| `prod.ota:Mensaje` | Publica un OTA al canal **production**. Llega a todos los usuarios con el build de stores instalado. |
-| `prod.build` | Build completo para stores: **Android AAB** (Play Store) + **iOS IPA** (TestFlight). |
-| `prod.build.apk` | Build interno: **Android APK** + **iOS IPA** (distribución interna). Sirve para testear OTAs de producción en el dispositivo sin pasar por los stores. |
+| `dev.ota:` | Dispara una actualización "over the air" para dev |
+| `dev.build` | Dispara el build de una nueva versión de la app apuntando a dev |
+| `dev.client` | Dispara el build de una nueva versión dev client de la app apuntando a dev |
+| `prod.ota:` | Dispara una actualización "over the air" para prod |
+| `prod.build` | Dispara el build de una nueva versión de la app apuntando a prod (AAB + IPA) |
+| `prod.build.apk` | Dispara el build de una versión interna APK + IPA apuntando a prod (para testear OTAs) |
+
+---
 
 ### Ejemplos
 
 ```bash
-# Mandar un fix rápido a producción
-git commit --allow-empty -m "prod.ota:Fix crash en pantalla de login"
+# OTA a producción
+git commit --allow-empty -m "prod.ota:Fix crash en login"
 git push origin main
 
-# Generar nuevo build para Play Store y TestFlight
+# Build completo para stores
 git commit --allow-empty -m "prod.build"
 git push origin main
 
-# Generar APK/IPA interno para testear OTAs
-git commit --allow-empty -m "prod.build.apk"
-git push origin main
-```
-
----
-
-## Rama `dev` — Desarrollo
-
-| Comando | Qué hace |
-|---|---|
-| `dev.ota:Mensaje` | Publica un OTA al canal **development**. Llega a dispositivos con el dev client instalado. |
-| `dev.client` | Build del **dev client APK** para Android. |
-
-### Ejemplos
-
-```bash
-# Mandar cambios al dev client
-git commit --allow-empty -m "dev.ota:Probando nuevo feature de mapa"
+# OTA a desarrollo
+git commit --allow-empty -m "dev.ota:Probando nuevo feature"
 git push origin dev
 
-# Generar nuevo dev client
+# Dev client
 git commit --allow-empty -m "dev.client"
 git push origin dev
 ```
 
 ---
 
-## Canales EAS
-
-| Canal | Builds que lo reciben |
-|---|---|
-| `production` | Builds de Play Store / TestFlight / production-apk |
-| `development` | Dev client |
-| `build` | Builds internos con perfil `build` |
-
----
-
-## Secrets requeridos en GitHub
-
-Configurar en **Settings → Secrets and variables → Actions**:
-
-| Secret | Valor |
-|---|---|
-| `EXPO_TOKEN` | Token de expo.dev (Settings → Access Tokens) |
-| `EXPO_PUBLIC_API_BASE_URL` | `https://appcarpooling.onrender.com/api` |
+> **Nota:** los workflows solo se disparan con commits vacíos (`--allow-empty`). Un commit con archivos modificados no dispara ninguna acción automática.
