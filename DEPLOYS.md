@@ -40,8 +40,8 @@ git push origin dev
 | Acción | Descripción |
 |---|---|
 | `prod.ota:` | Dispara una actualización "over the air" para prod |
-| `prod.build` | Dispara el build AAB + IPA para Play Store y TestFlight |
-| `prod.build.apk` | Dispara el build APK + IPA interno para testear OTAs de prod en dispositivo |
+| `prod.build` | Dispara el build **AAB** (Google Play: pruebas cerradas/abiertas/producción) + **IPA** (TestFlight: pruebas internas/externas) |
+| `prod.build.apk` | Dispara el build **APK + IPA interno** para instalar directo en dispositivo y testear OTAs de prod sin pasar por los stores |
 
 ```bash
 git commit --allow-empty -m "prod.ota:Mensaje"
