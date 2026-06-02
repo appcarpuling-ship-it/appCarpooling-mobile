@@ -1,12 +1,12 @@
-name: Mobile · Dev Client
+name: Mobile · Build Dev
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
 
 jobs:
-  dev-client:
-    if: toJson(github.event.head_commit.modified) == '[]' && toJson(github.event.head_commit.added) == '[]' && contains(github.event.head_commit.message, 'dev.client')
+  build:
+    if: toJson(github.event.head_commit.modified) == '[]' && toJson(github.event.head_commit.added) == '[]' && contains(github.event.head_commit.message, 'dev.build')
     runs-on: ubuntu-latest
     env:
       CI: 1
@@ -28,7 +28,5 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-
-      - name: Build Dev Client (Android APK)
-        run: eas build --profile development --platform android
-
+      - name: Build Dev (Android APK)
+        run: eas build --profile build --platform android

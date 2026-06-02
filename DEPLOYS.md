@@ -14,35 +14,44 @@ git commit --allow-empty -m "ACCIÓN:MENSAJE"
 
 ---
 
+## Rama `dev`
+
 | Acción | Descripción |
 |---|---|
 | `dev.ota:` | Dispara una actualización "over the air" para dev |
-| `dev.build` | Dispara el build de una nueva versión de la app apuntando a dev |
-| `dev.client` | Dispara el build de una nueva versión dev client de la app apuntando a dev |
-| `prod.ota:` | Dispara una actualización "over the air" para prod |
-| `prod.build` | Dispara el build de una nueva versión de la app apuntando a prod (AAB + IPA) |
-| `prod.build.apk` | Dispara el build de una versión interna APK + IPA apuntando a prod (para testear OTAs) |
+| `dev.build` | Dispara el build de una nueva versión APK apuntando a dev |
+| `dev.client` | Dispara el build de una nueva versión dev client apuntando a dev |
+
+```bash
+git commit --allow-empty -m "dev.ota:Mensaje"
+git push origin dev
+
+git commit --allow-empty -m "dev.build"
+git push origin dev
+
+git commit --allow-empty -m "dev.client"
+git push origin dev
+```
 
 ---
 
-### Ejemplos
+## Rama `main`
+
+| Acción | Descripción |
+|---|---|
+| `prod.ota:` | Dispara una actualización "over the air" para prod |
+| `prod.build` | Dispara el build AAB + IPA para Play Store y TestFlight |
+| `prod.build.apk` | Dispara el build APK + IPA interno para testear OTAs de prod en dispositivo |
 
 ```bash
-# OTA a producción
-git commit --allow-empty -m "prod.ota:Fix crash en login"
+git commit --allow-empty -m "prod.ota:Mensaje"
 git push origin main
 
-# Build completo para stores
 git commit --allow-empty -m "prod.build"
 git push origin main
 
-# OTA a desarrollo
-git commit --allow-empty -m "dev.ota:Probando nuevo feature"
-git push origin dev
-
-# Dev client
-git commit --allow-empty -m "dev.client"
-git push origin dev
+git commit --allow-empty -m "prod.build.apk"
+git push origin main
 ```
 
 ---
