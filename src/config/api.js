@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const PRODUCTION_DEFAULT = 'https://appcarpuling.cloud/api';
+const PRODUCTION_DEFAULT = 'https://appcarpooling.onrender.com/api';
 
 function resolveApiBaseUrl() {
   const fromExtra = Constants.expoConfig?.extra?.API_BASE_URL;
