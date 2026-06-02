@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Keyboard, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, Keyboard, Platform } from 'react-native';
+
+const RUMBO_AVATAR_DARK = require('../../assets/agent/rumbo_128.png');
+const RUMBO_AVATAR_LIGHT = require('../../assets/agent/rumbo_black_128.png');
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +17,7 @@ import HomeStackNavigator from './stacks/HomeStackNavigator';
 import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
 import ChatStackNavigator from './stacks/ChatStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
+import AssistantStackNavigator from './stacks/AssistantStackNavigator';
 import UnreadNewsModalLayer from '../components/modals/UnreadNewsModalLayer';
 import AppTutorialOverlay from '../components/tutorial/AppTutorialOverlay';
 import { useTutorial } from '../context/TutorialContext';
@@ -47,8 +51,26 @@ const MainTabNavigator = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+          // Ícono custom de Rumbo
+          if (route.name === 'AssistantTab') {
+            return (
+              <View style={[
+                styles.rumboContainer,
+                {
+                  borderColor: focused
+                    ? (isDarkMode ? '#FFFFFF' : '#1F2937')
+                    : 'transparent',
+                },
+              ]}>
+                <Image
+                  source={isDarkMode ? RUMBO_AVATAR_DARK : RUMBO_AVATAR_LIGHT}
+                  style={styles.rumboAvatar}
+                />
+              </View>
+            );
+          }
 
+          let iconName;
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'CarpoolingsTab') {
@@ -59,7 +81,7 @@ const MainTabNavigator = () => {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          // Mostrar badge en el tab de chats
+          // Badge de mensajes no leídos
           if (route.name === 'ChatsTab' && unreadCount > 0) {
             return (
               <View style={styles.iconContainer}>
@@ -124,6 +146,11 @@ const MainTabNavigator = () => {
         })}
       />
       <Tab.Screen
+        name="AssistantTab"
+        component={AssistantStackNavigator}
+        options={{ tabBarLabel: 'Asistente' }}
+      />
+      <Tab.Screen
         name="ChatsTab"
         component={ChatStackNavigator}
         options={({ route }) => {
@@ -136,7 +163,6 @@ const MainTabNavigator = () => {
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
-            // Prevenir navegación por defecto
             e.preventDefault();
 
             console.log('🔄 [ChatTab] Tab pressed');
@@ -145,12 +171,10 @@ const MainTabNavigator = () => {
 
             console.log('📍 [ChatTab] Current route:', currentRoute.name);
 
-            // Si ya estamos en ChatsTab, verificar stack interno
             if (currentRoute.name === 'ChatsTab') {
               const chatTabState = currentRoute.state;
               console.log('📚 [ChatTab] Internal state:', chatTabState);
 
-              // Si estamos en una pantalla anidada, volver al inicio del stack
               if (chatTabState && chatTabState.index > 0) {
                 console.log('↩️ [ChatTab] Navegando a inicio del stack');
                 navigation.navigate('ChatsTab', {
@@ -161,7 +185,6 @@ const MainTabNavigator = () => {
                 console.log('🏠 [ChatTab] Ya en pantalla principal');
               }
             } else {
-              // Navegar al tab normalmente
               console.log('🔄 [ChatTab] Navegando al tab');
               navigation.navigate('ChatsTab', { screen: 'Chats' });
             }
@@ -218,6 +241,20 @@ const MainTabNavigator = () => {
 };
 
 const styles = StyleSheet.create({
+  rumboContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rumboAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
   iconContainer: {
     width: 24,
     height: 24,

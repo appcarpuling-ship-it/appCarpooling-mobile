@@ -29,7 +29,6 @@ import { ENDPOINTS } from '../../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservation } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
-import Toast from '../../../components/Toast';
 import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -143,7 +142,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [paymentModalData, setPaymentModalData] = useState({ paymentUrl: null, qrDataUrl: null, amount: null });
   const [checkoutWebViewVisible, setCheckoutWebViewVisible] = useState(false);
   const [checkoutWebViewUrl, setCheckoutWebViewUrl] = useState(null);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
@@ -198,10 +196,6 @@ const TripDetailScreen = ({ route, navigation }) => {
       checkUserBooking();
     }, [tripId])
   );
-
-  const showToast = (message, type = 'success') => {
-    setToast({ visible: true, message, type });
-  };
 
   const formatNumber = (num) => {
     if (typeof num !== 'number') num = parseFloat(num);
@@ -352,7 +346,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handlePaymentSuccess = async (paymentData) => {
-    showToast('Pago completado - Actualizando...', 'success');
+    showAlert('Pago Confirmado', 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.', [], 'success');
     let confirmOk = false;
     try {
       if (paymentData?.externalReference && paymentData?.status === 'approved') {
@@ -372,7 +366,7 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
     await checkUserBooking();
     await loadTripDetail();
-    if (confirmOk) showToast('Reserva confirmada', 'success');
+    if (confirmOk) showAlert('Reserva Confirmada', 'Tu lugar está asegurado. El conductor fue notificado.', [], 'success');
     setTimeout(async () => {
       await checkUserBooking();
       await loadTripDetail();
@@ -380,7 +374,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handlePaymentError = (error) => {
-    showToast(error.message || 'Error al procesar el pago', 'error');
+    showAlert('Ocurrió algo', error.message || 'No se pudo procesar el pago.', [], 'error');
   };
 
   const handleCancelPendingReservation = async () => {
@@ -405,7 +399,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
             setUserBooking(null);
             await checkUserBooking();
-            showToast('Reserva cancelada', 'success');
+            showAlert('Reserva Cancelada', 'Tu reserva fue cancelada correctamente.', [], 'success');
             if (typeof refreshUser === 'function') await refreshUser();
           } catch (error) {
             const msg =
@@ -598,13 +592,6 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast({ ...toast, visible: false })}
-      />
-
       <ScrollView showsVerticalScrollIndicator={false}>
         {statusCfg && (
           <View style={styles.statusRow}>

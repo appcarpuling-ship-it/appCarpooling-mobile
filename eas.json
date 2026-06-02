@@ -19,10 +19,10 @@
         "buildType": "apk"
       }
     },
-    "ngrok": {
+    "build": {
       "developmentClient": false,
       "distribution": "internal",
-      "channel": "ngrok",
+      "channel": "build",
       "android": {
         "buildType": "apk"
       },

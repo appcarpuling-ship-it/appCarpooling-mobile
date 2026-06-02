@@ -16,7 +16,6 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
-import Toast from '../../../components/Toast';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 const MySeatReservationsScreen = ({ navigation }) => {
@@ -38,7 +37,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
   const fetchingRef = useRef(false);
 
@@ -85,7 +83,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   const handlePaymentSuccess = async (paymentData) => {
-    showToast('Pago completado', 'success');
+    showAlert('Pago Confirmado', 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.', [], 'success');
     try {
       if (paymentData?.externalReference && paymentData?.status === 'approved') {
         await confirmFromCallback(paymentData.externalReference, 'approved');
@@ -97,7 +95,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   const handlePaymentError = (error) => {
-    showToast(error.message || 'Error al procesar el pago', 'error');
+    showAlert('Ocurrió algo', error.message || 'No se pudo procesar el pago.', [], 'error');
   };
 
   const handleCancelReservation = (reservation) => {
@@ -111,17 +109,16 @@ const MySeatReservationsScreen = ({ navigation }) => {
         onPress: async () => {
           try {
             await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-            showToast('Reserva cancelada', 'success');
+            showAlert('Reserva Cancelada', 'Tu reserva fue cancelada correctamente.', [], 'success');
             await loadReservations(1, true, { force: true });
           } catch (error) {
-            showToast(error?.response?.data?.message || error.message || 'Error', 'error');
+            showAlert('Ocurrió algo', error?.response?.data?.message || error.message || 'No se pudo cancelar.', [], 'error');
           }
         },
       },
     ]);
   };
 
-  const showToast = (message, type = 'success') => setToast({ visible: true, message, type });
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
@@ -325,13 +322,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast({ ...toast, visible: false })}
-      />
-
       {reservations.length > 0 ? (
         <FlatList
           data={sortedData}

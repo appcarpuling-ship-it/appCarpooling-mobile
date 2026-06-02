@@ -1,0 +1,31 @@
+name: Mobile · Build Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    if: contains(github.event.head_commit.message, 'prod.build')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Instalar dependencias
+        run: npm ci
+        working-directory: mobile
+
+      - name: Build Android (AAB) + iOS (IPA)
+        run: eas build --profile production --platform all --non-interactive
+        working-directory: mobile
