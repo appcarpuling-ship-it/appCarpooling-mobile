@@ -1018,6 +1018,7 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 16, bottom: 300,
     width: 42, height: 42, borderRadius: 21,
     justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
   },
 
@@ -1032,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
   selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
-  centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
 
   // Mini sheet
   miniSheet: {

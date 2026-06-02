@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
+import { ARGENTINA_PROVINCES, getCitiesForProvince } from '../../../constants/provinces';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
@@ -41,14 +41,18 @@ const AllTripsScreen = ({ navigation }) => {
 
   // Filters
   const [originProvince, setOriginProvince] = useState('');
+  const [originCity, setOriginCity] = useState('');
   const [destinationProvince, setDestinationProvince] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [minAvailableSeats, setMinAvailableSeats] = useState('');
 
   // Picker modals
   const [showOriginPicker, setShowOriginPicker] = useState(false);
+  const [showOriginCityPicker, setShowOriginCityPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [showDestinationCityPicker, setShowDestinationCityPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showSeatsPicker, setShowSeatsPicker] = useState(false);
@@ -79,7 +83,9 @@ const AllTripsScreen = ({ navigation }) => {
 
       const useSearch = !!(
         originProvince ||
+        originCity ||
         destinationProvince ||
+        destinationCity ||
         selectedDate ||
         selectedTime ||
         minAvailableSeats
@@ -88,7 +94,9 @@ const AllTripsScreen = ({ navigation }) => {
       const params = { page: pageNum, limit: LIST_PAGE_SIZE };
       if (useSearch) {
         if (originProvince) params.originProvince = originProvince;
+        if (originCity) params.originCity = originCity;
         if (destinationProvince) params.destinationProvince = destinationProvince;
+        if (destinationCity) params.destinationCity = destinationCity;
         if (selectedDate) {
           const y = selectedDate.getFullYear();
           const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -158,11 +166,13 @@ const AllTripsScreen = ({ navigation }) => {
     loadPage(1, { isRefresh: true });
   }, [loadPage]);
 
-  const hasActiveFilters = originProvince || destinationProvince || selectedDate || selectedTime || minAvailableSeats;
+  const hasActiveFilters = originProvince || originCity || destinationProvince || destinationCity || selectedDate || selectedTime || minAvailableSeats;
 
   const clearFilters = () => {
     setOriginProvince('');
+    setOriginCity('');
     setDestinationProvince('');
+    setDestinationCity('');
     setSelectedDate(null);
     setSelectedTime(null);
     setMinAvailableSeats('');
@@ -295,7 +305,7 @@ const AllTripsScreen = ({ navigation }) => {
     [isDarkMode, navigation],
   );
 
-  const renderProvinceModal = (visible, onClose, selected, onSelect, title) => (
+  const renderProvinceModal = (visible, onClose, selected, onSelect, title, onProvinceSelected) => (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
@@ -306,12 +316,23 @@ const AllTripsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.provinceList}>
+            {selected !== '' && (
+              <TouchableOpacity
+                onPress={() => { onSelect(''); onClose(); }}
+                style={[styles.provinceOption, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+              >
+                <Text style={[styles.provinceOptionText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                  Todas las provincias
+                </Text>
+              </TouchableOpacity>
+            )}
             {ARGENTINA_PROVINCES.map((province) => (
               <TouchableOpacity
                 key={province}
                 onPress={() => {
                   onSelect(province);
                   onClose();
+                  if (onProvinceSelected) onProvinceSelected(province);
                 }}
                 style={[
                   styles.provinceOption,
@@ -329,6 +350,55 @@ const AllTripsScreen = ({ navigation }) => {
                   {province}
                 </Text>
                 {selected === province && (
+                  <Ionicons name="checkmark" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderCityModal = (visible, onClose, selected, onSelect, title, cities) => (
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.provinceList}>
+            <TouchableOpacity
+              onPress={() => { onSelect(''); onClose(); }}
+              style={[styles.provinceOption, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+            >
+              <Text style={[styles.provinceOptionText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                Todas las ciudades
+              </Text>
+            </TouchableOpacity>
+            {cities.map((city) => (
+              <TouchableOpacity
+                key={city}
+                onPress={() => { onSelect(city); onClose(); }}
+                style={[
+                  styles.provinceOption,
+                  { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  selected === city && { backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.provinceOptionText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    selected === city && { color: isDarkMode ? '#FFFFFF' : '#000000', fontWeight: '600' },
+                  ]}
+                >
+                  {city}
+                </Text>
+                {selected === city && (
                   <Ionicons name="checkmark" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
                 )}
               </TouchableOpacity>
@@ -463,18 +533,19 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  originProvince && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
+                  (originProvince || originCity) && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
-                onPress={() => setShowOriginPicker(true)}
+                onPress={() => originProvince ? setShowOriginCityPicker(true) : setShowOriginPicker(true)}
+                onLongPress={() => setShowOriginPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="radio-button-on" size={14} color={originProvince ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="radio-button-on" size={14} color={(originProvince || originCity) ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  originProvince && { color: isDarkMode ? '#000000' : '#FFFFFF' }
+                  (originProvince || originCity) && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]} numberOfLines={1}>
-                  {originProvince || 'Origen'}
+                  {originCity || originProvince || 'Origen'}
                 </Text>
               </TouchableOpacity>
 
@@ -483,18 +554,19 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.filterChip,
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
-                  destinationProvince && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
+                  (destinationProvince || destinationCity) && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
-                onPress={() => setShowDestinationPicker(true)}
+                onPress={() => destinationProvince ? setShowDestinationCityPicker(true) : setShowDestinationPicker(true)}
+                onLongPress={() => setShowDestinationPicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="location" size={14} color={destinationProvince ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
+                <Ionicons name="location" size={14} color={(destinationProvince || destinationCity) ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280')} />
                 <Text style={[
                   styles.filterChipText,
                   { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  destinationProvince && { color: isDarkMode ? '#000000' : '#FFFFFF' }
+                  (destinationProvince || destinationCity) && { color: isDarkMode ? '#000000' : '#FFFFFF' }
                 ]} numberOfLines={1}>
-                  {destinationProvince || 'Destino'}
+                  {destinationCity || destinationProvince || 'Destino'}
                 </Text>
               </TouchableOpacity>
 
@@ -636,15 +708,33 @@ const AllTripsScreen = ({ navigation }) => {
           showOriginPicker,
           () => setShowOriginPicker(false),
           originProvince,
-          setOriginProvince,
-          'Seleccionar Origen',
+          (p) => { setOriginProvince(p); setOriginCity(''); },
+          'Seleccionar provincia de origen',
+          (p) => { if (getCitiesForProvince(p).length > 0) setShowOriginCityPicker(true); },
+        )}
+        {renderCityModal(
+          showOriginCityPicker,
+          () => setShowOriginCityPicker(false),
+          originCity,
+          setOriginCity,
+          'Seleccionar ciudad de origen',
+          getCitiesForProvince(originProvince),
         )}
         {renderProvinceModal(
           showDestinationPicker,
           () => setShowDestinationPicker(false),
           destinationProvince,
-          setDestinationProvince,
-          'Seleccionar Destino',
+          (p) => { setDestinationProvince(p); setDestinationCity(''); },
+          'Seleccionar provincia de destino',
+          (p) => { if (getCitiesForProvince(p).length > 0) setShowDestinationCityPicker(true); },
+        )}
+        {renderCityModal(
+          showDestinationCityPicker,
+          () => setShowDestinationCityPicker(false),
+          destinationCity,
+          setDestinationCity,
+          'Seleccionar ciudad de destino',
+          getCitiesForProvince(destinationProvince),
         )}
 
         {/* Time Range Modal */}
