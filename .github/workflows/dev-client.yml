@@ -6,7 +6,7 @@ on:
 
 jobs:
   dev-client:
-    if: contains(github.event.head_commit.message, 'dev.client')
+    if: toJson(github.event.head_commit.modified) == '[]' && toJson(github.event.head_commit.added) == '[]' && contains(github.event.head_commit.message, 'dev.client')
     runs-on: ubuntu-latest
     env:
       CI: 1
