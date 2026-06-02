@@ -21,7 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { get_public, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
-import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
+import { ARGENTINA_PROVINCES, getCitiesForProvince } from '../../../constants/provinces';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -137,7 +137,9 @@ const HomeScreen = ({ navigation }) => {
     : require('../../../../assets/logo/192x192-black.png');
 
   const [origin, setOrigin] = useState('');
+  const [originCity, setOriginCity] = useState('');
   const [destination, setDestination] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
   const [bannersEnterprise, setBannersEnterprise] = useState([]);
   const [bannersVip, setBannersVip] = useState([]);
@@ -148,7 +150,9 @@ const HomeScreen = ({ navigation }) => {
   const [selectedSeats, setSelectedSeats] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
+  const [showOriginCityPicker, setShowOriginCityPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [showDestinationCityPicker, setShowDestinationCityPicker] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
@@ -264,7 +268,9 @@ const HomeScreen = ({ navigation }) => {
     }
     navigation.navigate('SearchResults', {
       origin,
+      originCity,
       destination,
+      destinationCity,
       date: selectedDate,
       seats: selectedSeats,
     });
@@ -272,7 +278,9 @@ const HomeScreen = ({ navigation }) => {
 
   const clearFilters = () => {
     setOrigin('');
+    setOriginCity('');
     setDestination('');
+    setDestinationCity('');
     setSelectedDate(null);
     setSelectedSeats('');
   };
@@ -395,7 +403,7 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const renderProvincePicker = (visible, onClose, selected, onSelect, title) => (
+  const renderProvincePicker = (visible, onClose, selected, onSelect, title, onProvinceSelected) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
@@ -406,10 +414,24 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
+            {selected !== '' && (
+              <TouchableOpacity
+                onPress={() => { onSelect(''); onClose(); }}
+                style={[styles.provinceOption, { borderBottomColor: divider }]}
+              >
+                <Text style={[styles.provinceOptionText, { color: textSecondary }]}>
+                  Todas las provincias
+                </Text>
+              </TouchableOpacity>
+            )}
             {ARGENTINA_PROVINCES.map((province) => (
               <TouchableOpacity
                 key={province}
-                onPress={() => { onSelect(province); onClose(); }}
+                onPress={() => {
+                  onSelect(province);
+                  onClose();
+                  if (onProvinceSelected) onProvinceSelected(province);
+                }}
                 style={[
                   styles.provinceOption,
                   { borderBottomColor: divider },
@@ -424,6 +446,53 @@ const HomeScreen = ({ navigation }) => {
                   {province}
                 </Text>
                 {selected === province && (
+                  <Ionicons name="checkmark" size={18} color={accent} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderCityPicker = (visible, onClose, selected, onSelect, title, cities) => (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
+            <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={22} color={textSecondary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity
+              onPress={() => { onSelect(''); onClose(); }}
+              style={[styles.provinceOption, { borderBottomColor: divider }]}
+            >
+              <Text style={[styles.provinceOptionText, { color: textSecondary }]}>
+                Todas las ciudades
+              </Text>
+            </TouchableOpacity>
+            {cities.map((city) => (
+              <TouchableOpacity
+                key={city}
+                onPress={() => { onSelect(city); onClose(); }}
+                style={[
+                  styles.provinceOption,
+                  { borderBottomColor: divider },
+                  selected === city && { backgroundColor: dark ? '#222' : '#F5F5F5' },
+                ]}
+              >
+                <Text style={[
+                  styles.provinceOptionText,
+                  { color: selected === city ? textPrimary : textSecondary },
+                  selected === city && { fontWeight: '600' },
+                ]}>
+                  {city}
+                </Text>
+                {selected === city && (
                   <Ionicons name="checkmark" size={18} color={accent} />
                 )}
               </TouchableOpacity>
@@ -475,7 +544,8 @@ const HomeScreen = ({ navigation }) => {
           {/* Origin */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => setShowOriginPicker(true)}
+            onPress={() => origin ? setShowOriginCityPicker(true) : setShowOriginPicker(true)}
+            onLongPress={() => setShowOriginPicker(true)}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -483,9 +553,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={[
               styles.searchRowText,
-              { color: origin ? textPrimary : searchFieldEmpty },
+              { color: (origin || originCity) ? textPrimary : searchFieldEmpty },
             ]}>
-              {origin || 'Origen'}
+              {originCity || origin || 'Origen'}
             </Text>
           </TouchableOpacity>
 
@@ -496,7 +566,8 @@ const HomeScreen = ({ navigation }) => {
           {/* Destination */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => setShowDestinationPicker(true)}
+            onPress={() => destination ? setShowDestinationCityPicker(true) : setShowDestinationPicker(true)}
+            onLongPress={() => setShowDestinationPicker(true)}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -504,9 +575,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={[
               styles.searchRowText,
-              { color: destination ? textPrimary : searchFieldEmpty },
+              { color: (destination || destinationCity) ? textPrimary : searchFieldEmpty },
             ]}>
-              {destination || 'Destino'}
+              {destinationCity || destination || 'Destino'}
             </Text>
           </TouchableOpacity>
 
@@ -637,9 +708,39 @@ const HomeScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Province Pickers */}
-      {renderProvincePicker(showOriginPicker, () => setShowOriginPicker(false), origin, setOrigin, 'Origen')}
-      {renderProvincePicker(showDestinationPicker, () => setShowDestinationPicker(false), destination, setDestination, 'Destino')}
+      {/* Province & City Pickers */}
+      {renderProvincePicker(
+        showOriginPicker,
+        () => setShowOriginPicker(false),
+        origin,
+        (p) => { setOrigin(p); setOriginCity(''); },
+        'Provincia de origen',
+        (p) => { if (getCitiesForProvince(p).length > 0) setShowOriginCityPicker(true); },
+      )}
+      {renderCityPicker(
+        showOriginCityPicker,
+        () => setShowOriginCityPicker(false),
+        originCity,
+        setOriginCity,
+        'Ciudad de origen',
+        getCitiesForProvince(origin),
+      )}
+      {renderProvincePicker(
+        showDestinationPicker,
+        () => setShowDestinationPicker(false),
+        destination,
+        (p) => { setDestination(p); setDestinationCity(''); },
+        'Provincia de destino',
+        (p) => { if (getCitiesForProvince(p).length > 0) setShowDestinationCityPicker(true); },
+      )}
+      {renderCityPicker(
+        showDestinationCityPicker,
+        () => setShowDestinationCityPicker(false),
+        destinationCity,
+        setDestinationCity,
+        'Ciudad de destino',
+        getCitiesForProvince(destination),
+      )}
 
       {/* Date Picker */}
       {showDatePicker && (

@@ -150,7 +150,7 @@ const AllTripsScreen = ({ navigation }) => {
         setRefreshing(false);
       }
     },
-    [originProvince, destinationProvince, selectedDate, selectedTime, minAvailableSeats],
+    [originProvince, originCity, destinationProvince, destinationCity, selectedDate, selectedTime, minAvailableSeats],
   );
 
   useEffect(() => {

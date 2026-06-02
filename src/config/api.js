@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const PRODUCTION_DEFAULT = 'https://appcarpooling.onrender.com/api';
+const PRODUCTION_DEFAULT = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 function resolveApiBaseUrl() {
   const fromExtra = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -44,7 +44,7 @@ if (__DEV__) {
     Platform.OS,
     API_BASE_URL
   );
-  if (API_BASE_URL.includes('appcarpuling.cloud')) {
+  if (API_BASE_URL.includes('appcarpooling.onrender.com')) {
     console.warn(
       '[API_CONFIG] Estás en dev pero la API apunta a producción. ' +
         'Para túnel local: EXPO_PUBLIC_API_BASE_URL en mobile/.env y `npx expo start -c`. ' +

@@ -23,7 +23,7 @@ import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 const SearchResultsScreen = ({ route, navigation }) => {
   const { colors, gradients, createColorArray, getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
-  const { origin, destination } = route.params || {};
+  const { origin, originCity, destination, destinationCity } = route.params || {};
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -321,9 +321,14 @@ const SearchResultsScreen = ({ route, navigation }) => {
       if (origin?.trim()) {
         params.originProvince = origin.trim();
       }
-      
+      if (originCity?.trim()) {
+        params.originCity = originCity.trim();
+      }
       if (destination?.trim()) {
         params.destinationProvince = destination.trim();
+      }
+      if (destinationCity?.trim()) {
+        params.destinationCity = destinationCity.trim();
       }
 
       const response = await get_public(ENDPOINTS.SEARCH_TRIPS, params);
