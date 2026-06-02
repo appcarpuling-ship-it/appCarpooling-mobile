@@ -142,4 +142,7 @@ export const ENDPOINTS = {
 
   NEWS_UNREAD: '/news/unread',
   NEWS_ACK_READ: (id) => `/news/${id}/ack-read`,
+
+  // Bot assistant
+  BOT_MESSAGE: '/bot/message',
 };
