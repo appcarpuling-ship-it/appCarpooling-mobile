@@ -113,20 +113,21 @@ const ProfileScreen = () => {
     {
       title: 'Perfil',
       items: [
-        { id: 1, title: 'Editar Perfil',  icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, title: 'Mis Vehículos',  icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+        { id: 1, title: 'Editar Perfil',  subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
+        { id: 2, title: 'Mis Vehículos',  subtitle: 'Administrá tus vehículos',        icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
       ],
     },
     {
       title: 'Información',
       items: [
-        { id: 4, title: 'Términos y Condiciones', icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
-        { id: 5, title: 'Ayuda',                  icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
-        { id: 9, title: 'Mostrar introducción',   icon: 'book-outline',            onPress: () => resetTutorial() },
+        { id: 4, title: 'Términos y Condiciones', subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
+        { id: 5, title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
+        { id: 9, title: 'Mostrar introducción',   subtitle: 'Volvé a ver el tutorial de la app', icon: 'book-outline',          onPress: () => resetTutorial() },
         {
           id: 6,
-          title: isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
-          icon:  isDarkMode ? 'sunny-outline'   : 'moon-outline',
+          title:    isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
+          subtitle: isDarkMode ? 'Activar modo día' : 'Activar modo noche',
+          icon:     isDarkMode ? 'sunny-outline'   : 'moon-outline',
           onPress: handleThemeToggle,
         },
       ],
@@ -148,7 +149,7 @@ const ProfileScreen = () => {
     {
       title: 'Sesión',
       items: [
-        { id: 7, title: 'Cerrar Sesión', icon: 'log-out-outline', onPress: handleLogout, danger: true },
+        { id: 7, title: 'Cerrar Sesión', subtitle: 'Salí de tu cuenta', icon: 'log-out-outline', onPress: handleLogout, danger: true },
       ],
     },
   ];
@@ -277,7 +278,7 @@ const ProfileScreen = () => {
                         {item.title}
                       </Text>
                       {item.subtitle ? (
-                        <Text style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
+                        <Text numberOfLines={1} style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
                           {item.subtitle}
                         </Text>
                       ) : null}
