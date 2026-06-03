@@ -544,7 +544,10 @@ const CreateTripScreen = ({ navigation }) => {
               colors={createColorArray(colors.surfaceElevated, colors.surface)}
               style={dynamicStyles.section}
             >
-              <Text style={dynamicStyles.label}>Vehículo *</Text>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="car-sport-outline" size={24} color={colors.primary} />
+                <Text style={dynamicStyles.sectionTitle}>Vehículo</Text>
+              </View>
               <TouchableOpacity
                 onPress={() => setShowVehiclePicker(true)}
                 activeOpacity={0.7}
@@ -560,7 +563,7 @@ const CreateTripScreen = ({ navigation }) => {
                         : 'Selecciona un vehículo'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={18} color={colors.primary} />
                 </View>
               </TouchableOpacity>
 
@@ -864,13 +867,13 @@ const CreateTripScreen = ({ navigation }) => {
                 setShowDatePicker(true);
               }} activeOpacity={0.7}>
                 <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                  <Ionicons name="calendar-outline" size={18} color={colors.info} />
                   <View style={styles.dateTimeTextContainer}>
                     <Text style={[dynamicStyles.dateTimeText, !formData.departureDate && dynamicStyles.placeholderText]}>
                       {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Fecha de salida *'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={18} color={colors.info} />
                 </View>
               </TouchableOpacity>
 
@@ -927,13 +930,13 @@ const CreateTripScreen = ({ navigation }) => {
                 setShowTimePicker(true);
               }} activeOpacity={0.7}>
                 <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                  <Ionicons name="time-outline" size={18} color={colors.accentOrange} />
                   <View style={styles.dateTimeTextContainer}>
                     <Text style={[dynamicStyles.dateTimeText, !formData.departureTime && dynamicStyles.placeholderText]}>
                       {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Hora de salida *'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={18} color={colors.accentOrange} />
                 </View>
               </TouchableOpacity>
 
@@ -985,7 +988,7 @@ const CreateTripScreen = ({ navigation }) => {
               </Modal>
 
               <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="people-outline" size={18} color={colors.accentGreen} />
                 <TextInput
                   style={dynamicStyles.input}
                   placeholder="¿Cuántos asientos disponibles? *"
@@ -997,7 +1000,7 @@ const CreateTripScreen = ({ navigation }) => {
               </View>
 
               <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="cash-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="cash-outline" size={18} color={colors.accentGreen} />
                 <TextInput
                   style={dynamicStyles.input}
                   placeholder="Precio por asiento (opcional)"
@@ -1010,7 +1013,7 @@ const CreateTripScreen = ({ navigation }) => {
 
               <View style={[dynamicStyles.inputWrapper, styles.textAreaWrapper]}>
                 <View style={styles.textAreaIconContainer}>
-                  <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+                  <Ionicons name="document-text-outline" size={18} color={colors.primary} />
                 </View>
                 <TextInput
                   style={[dynamicStyles.input, styles.textArea]}

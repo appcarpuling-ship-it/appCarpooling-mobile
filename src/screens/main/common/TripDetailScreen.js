@@ -654,17 +654,17 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Date / time / seats */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={16} color={textMuted} />
+            <Ionicons name="calendar-outline" size={16} color={colors.info} />
             <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(trip.departureDate)}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={16} color={textMuted} />
+            <Ionicons name="time-outline" size={16} color={colors.accentOrange} />
             <Text style={[styles.metaText, { color: textSecondary }]}>{trip.departureTime}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={16} color={textMuted} />
+            <Ionicons name="person-outline" size={16} color={colors.accentGreen} />
             <Text style={[styles.metaText, { color: textSecondary }]}>
               {tripFreeSeats}/{tripSeatCap} libres
             </Text>
@@ -689,7 +689,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Driver */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>Conductor</Text>
+          <Text style={[styles.sectionLabel, { color: textSecondary }]}>Conductor</Text>
           <View style={styles.driverRow}>
             {(() => {
               const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
@@ -724,7 +724,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section, { borderBottomColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
+              <Text style={[styles.sectionLabel, { color: textSecondary }]}>Vehículo</Text>
               {vehiclePaths.length > 0 ? (
                 <ScrollView
                   horizontal
@@ -748,7 +748,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </ScrollView>
               ) : (
                 <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg, marginBottom: 12 }]}>
-                  <Ionicons name="car-outline" size={32} color={textMuted} />
+                  <Ionicons name="car-outline" size={32} color={colors.primary} />
                 </View>
               )}
               <View style={styles.vehicleInfoBlock}>
