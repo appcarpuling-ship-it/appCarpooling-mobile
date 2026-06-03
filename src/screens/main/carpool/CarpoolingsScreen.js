@@ -8,6 +8,7 @@ import {
   Image,
   FlatList,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -59,6 +60,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   const { colors } = useColors();
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
+  const [refreshing, setRefreshing] = useState(false);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
@@ -104,6 +106,12 @@ const CarpoolingsScreen = ({ navigation }) => {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadBanners();
+    setRefreshing(false);
+  };
+
   const onBannerScroll = (event) => {
     const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_WIDTH + 16));
     if (index !== activeBannerIndex && index >= 0 && index < banners.length) {
@@ -127,7 +135,11 @@ const CarpoolingsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textSecondary} colors={[textPrimary]} />}
+      >
 
         {/* Header */}
         <View style={styles.header}>

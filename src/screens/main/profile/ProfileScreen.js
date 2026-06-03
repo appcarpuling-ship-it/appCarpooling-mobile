@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -60,6 +61,7 @@ const ProfileScreen = () => {
     setThemeMode(current === 'light' ? 'dark' : 'light');
   };
 
+  const [refreshing, setRefreshing] = useState(false);
   const [avatarImageLoading, setAvatarImageLoading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const avatarLoaderTimeoutRef = useRef(null);
@@ -95,6 +97,12 @@ const ProfileScreen = () => {
       refreshUser();
     }, [refreshUser])
   );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshUser();
+    setRefreshing(false);
+  };
 
   const clearAvatarLoaderTimeout = () => {
     avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
@@ -166,7 +174,11 @@ const ProfileScreen = () => {
         </Pressable>
       </Modal>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textPrimary]} />}
+      >
 
         {/* Header */}
         <View style={styles.header}>
