@@ -183,14 +183,14 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Vehículo */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>VEHÍCULO</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>VEHÍCULO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
                                 style={styles.selectRow}
                                 onPress={() => setShowVehicleModal(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="car-outline" size={19} color={textMuted} />
+                                <Ionicons name="car-outline" size={19} color={textPrimary} />
                                 <Text style={[
                                     styles.selectText,
                                     { color: formData.vehicle ? textPrimary : textMuted },
@@ -199,7 +199,7 @@ const TripDetails = ({ navigation, route }) => {
                                         ? `${selectedVehicle.brand} ${selectedVehicle.model}`
                                         : 'Seleccionar vehículo'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
 
                             {selectedVehicle && (
@@ -219,37 +219,37 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Fecha y hora */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>FECHA Y HORA DE SALIDA</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
                                 style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
                                 onPress={() => setShowDatePicker(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="calendar-outline" size={19} color={textMuted} />
+                                <Ionicons name="calendar-outline" size={19} color={textPrimary} />
                                 <Text style={[styles.selectText, { color: formData.departureDate ? textPrimary : textMuted }]}>
                                     {formData.departureDate ? formatDateDisplay(formData.departureDate) : 'Seleccionar fecha'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.selectRow}
                                 onPress={() => setShowTimePicker(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="time-outline" size={19} color={textMuted} />
+                                <Ionicons name="time-outline" size={19} color={textPrimary} />
                                 <Text style={[styles.selectText, { color: formData.departureTime ? textPrimary : textMuted }]}>
                                     {formData.departureTime ? formatTimeDisplay(formData.departureTime) : 'Seleccionar hora'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
                         </View>
 
                         {/* Detalles */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>DETALLES</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>DETALLES</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}>
-                                <Ionicons name="people-outline" size={19} color={textMuted} />
+                                <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder="Asientos disponibles *"
@@ -275,7 +275,7 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Preferencias */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>PREFERENCIAS</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>PREFERENCIAS</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             {preferences.map((p, index) => (
                                 <TouchableOpacity

@@ -654,18 +654,18 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Date / time / seats */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={16} color={colors.info} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(trip.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={16} color={dark ? textPrimary : colors.info} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(trip.departureDate)}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={16} color={colors.accentOrange} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{trip.departureTime}</Text>
+            <Ionicons name="time-outline" size={16} color={dark ? textPrimary : colors.accentOrange} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>{trip.departureTime}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={16} color={colors.accentGreen} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>
+            <Ionicons name="person-outline" size={16} color={dark ? textPrimary : colors.accentGreen} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>
               {tripFreeSeats}/{tripSeatCap} libres
             </Text>
           </View>
@@ -689,7 +689,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Driver */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textSecondary }]}>Conductor</Text>
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor</Text>
           <View style={styles.driverRow}>
             {(() => {
               const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
@@ -724,7 +724,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section, { borderBottomColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textSecondary }]}>Vehículo</Text>
+              <Text style={[styles.sectionLabel, { color: textPrimary }]}>Vehículo</Text>
               {vehiclePaths.length > 0 ? (
                 <ScrollView
                   horizontal
@@ -767,30 +767,30 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Features */}
         {trip.vehicle?.features && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Caracteristicas</Text>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Caracteristicas</Text>
             <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="snow-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Aire</Text>
+                  <Ionicons name="snow-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Aire</Text>
                 </View>
               )}
               {trip.vehicle.features.music && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="musical-notes-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Musica</Text>
+                  <Ionicons name="musical-notes-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Musica</Text>
                 </View>
               )}
               {trip.vehicle.features.pets && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="paw-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Mascotas</Text>
+                  <Ionicons name="paw-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Mascotas</Text>
                 </View>
               )}
               {trip.vehicle.features.luggage && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="bag-handle-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Equipaje</Text>
+                  <Ionicons name="bag-handle-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Equipaje</Text>
                 </View>
               )}
             </View>
@@ -799,7 +799,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Rules */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>Reglas</Text>
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Reglas</Text>
           <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
               <Ionicons
@@ -807,7 +807,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 size={18}
                 color={trip.rules?.smokingAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: textSecondary }]}>
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
                 {trip.rules?.smokingAllowed ? 'Se puede fumar' : 'No fumar'}
               </Text>
             </View>
@@ -817,14 +817,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 size={18}
                 color={trip.rules?.petsAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: textSecondary }]}>
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
                 {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
               </Text>
             </View>
             {trip.womenOnly && (
               <View style={styles.ruleItem}>
                 <Ionicons name="woman" size={18} color={textSecondary} />
-                <Text style={[styles.ruleText, { color: textSecondary }]}>
+                <Text style={[styles.ruleText, { color: textPrimary }]}>
                   Solo mujeres (pasajeras)
                 </Text>
               </View>
@@ -835,15 +835,15 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Notes */}
         {trip.notes && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Notas</Text>
-            <Text style={[styles.notesText, { color: textSecondary }]}>{trip.notes}</Text>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Notas</Text>
+            <Text style={[styles.notesText, { color: textPrimary }]}>{trip.notes}</Text>
           </View>
         )}
 
         {/* Passengers (driver only) */}
         {isOwnTrip && passengers.length > 0 && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Pasajeros ({passengers.length})
             </Text>
             {passengers.map((booking) => {
