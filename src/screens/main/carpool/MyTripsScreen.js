@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { get_withauth, put_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
@@ -40,6 +41,12 @@ const MyTripsScreen = ({ navigation }) => {
   useEffect(() => {
     loadMyTrips(1, true);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMyTrips(1, true);
+    }, [activeTab])
+  );
 
   const loadMyTrips = async (pageNum = 1, reset = false) => {
     if (fetchingRef.current) return;

@@ -520,7 +520,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.header}>
           <Image source={LOGO_SOURCE} style={styles.logo} />
           <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
-          <Text style={[styles.headerSub, { color: textMuted }]}>Viaja inteligente</Text>
+          {/* <Text style={[styles.headerSub, { color: textMuted }]}>Viaja inteligente</Text> */}
           {isAuthenticated && (
             <TouchableOpacity
               onPress={() => setShowNotificationsModal(true)}
@@ -551,12 +551,16 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.routeIndicator}>
               <View style={[styles.dotOutline, { borderColor: accent }]} />
             </View>
-            <Text style={[
-              styles.searchRowText,
-              { color: (origin || originCity) ? textPrimary : searchFieldEmpty },
-            ]}>
-              {originCity || origin || 'Origen'}
-            </Text>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Origen</Text>
+              {!origin ? (
+                <Text style={[styles.searchRowValue, { color: searchFieldEmpty }]}>Provincia · Ciudad</Text>
+              ) : !originCity ? (
+                <Text style={[styles.searchRowValue, { color: accent }]}>{origin} · Elegir ciudad</Text>
+              ) : (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{originCity}, {origin}</Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <View style={[styles.searchDivider, { backgroundColor: divider }]}>
@@ -573,12 +577,16 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.routeIndicator}>
               <View style={[styles.dotFilled, { backgroundColor: accent }]} />
             </View>
-            <Text style={[
-              styles.searchRowText,
-              { color: (destination || destinationCity) ? textPrimary : searchFieldEmpty },
-            ]}>
-              {destinationCity || destination || 'Destino'}
-            </Text>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Destino</Text>
+              {!destination ? (
+                <Text style={[styles.searchRowValue, { color: searchFieldEmpty }]}>Provincia · Ciudad</Text>
+              ) : !destinationCity ? (
+                <Text style={[styles.searchRowValue, { color: accent }]}>{destination} · Elegir ciudad</Text>
+              ) : (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{destinationCity}, {destination}</Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />

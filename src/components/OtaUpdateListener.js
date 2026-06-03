@@ -32,35 +32,18 @@ export default function OtaUpdateListener() {
     await Updates.reloadAsync();
   };
 
-  const bg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const text    = isDarkMode ? '#FFFFFF' : '#111827';
+  const bg = isDarkMode ? '#1E1E1E' : '#FFFFFF';
+  const text = isDarkMode ? '#FFFFFF' : '#111827';
   const subtext = isDarkMode ? '#9CA3AF' : '#6B7280';
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: bg }]}>
-          <View style={styles.iconWrap}>
-            <Text style={styles.icon}>🚀</Text>
-          </View>
           <Text style={[styles.title, { color: text }]}>Nueva actualización</Text>
           <Text style={[styles.message, { color: subtext }]}>
-            Hay una versión nueva disponible. Reiniciá la app para aplicar los cambios.
+            Hay una versión nueva disponible, cierra y abre nuevamente la aplicación para aplicar los cambios.
           </Text>
-          <TouchableOpacity
-            style={styles.btn}
-            onPress={handleReload}
-            disabled={reloading}
-            activeOpacity={0.85}
-          >
-            {reloading
-              ? <ActivityIndicator color="#FFFFFF" />
-              : <Text style={styles.btnText}>Reiniciar ahora</Text>
-            }
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setVisible(false)} disabled={reloading}>
-            <Text style={[styles.later, { color: subtext }]}>Más tarde</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -96,8 +79,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  icon:    { fontSize: 30 },
-  title:   { fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  icon: { fontSize: 30 },
+  title: { fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
   message: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   btn: {
     width: '100%',
@@ -109,5 +92,5 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   btnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  later:   { fontSize: 14, fontWeight: '500' },
+  later: { fontSize: 14, fontWeight: '500' },
 });

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
@@ -41,6 +42,12 @@ const MyBookingsScreen = ({ navigation }) => {
     setupTripCancellationListener();
     return () => cleanupListeners();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMyBookings(1, true, { force: true });
+    }, [])
+  );
 
   const setupTripCancellationListener = () => {
     const handleTripCancelled = (data) => {

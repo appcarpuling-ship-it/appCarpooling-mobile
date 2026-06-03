@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -72,6 +73,12 @@ const CarpoolingsScreen = ({ navigation }) => {
     loadBanners();
     return () => clearInterval(bannerAutoScrollTimer.current);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBanners();
+    }, [])
+  );
 
   useEffect(() => {
     if (banners.length > 1) {
