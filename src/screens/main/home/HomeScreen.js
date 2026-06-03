@@ -152,9 +152,9 @@ const HomeScreen = ({ navigation }) => {
   const [selectedSeats, setSelectedSeats] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
-  const [showOriginCityPicker, setShowOriginCityPicker] = useState(false);
+  const [originStep, setOriginStep] = useState('province');
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
-  const [showDestinationCityPicker, setShowDestinationCityPicker] = useState(false);
+  const [destinationStep, setDestinationStep] = useState('province');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
@@ -404,125 +404,120 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const renderProvincePicker = (visible, onClose, selected, onSelect, title, onProvinceSelected) => {
+  const renderLocationPicker = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
     const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
-    const data = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
-    return (
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={22} color={textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={data}
-              keyExtractor={(item) => item.key}
-              numColumns={2}
-              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-              contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isSelected = selected === item.key;
-                const cardBackground = isSelected
-                  ? (dark ? '#FFFFFF' : '#1F2937')
-                  : (dark ? '#252525' : '#FFFFFF');
-                const imgTint = isSelected
-                  ? (dark ? '#1F2937' : '#FFFFFF')
-                  : (dark ? '#FFFFFF' : '#1F2937');
-                const labelColor = isSelected
-                  ? (dark ? '#1F2937' : '#FFFFFF')
-                  : textSecondary;
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.provinceGridItem,
-                      {
-                        width: ITEM_SIZE,
-                        backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
-                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
-                        shadowOpacity: isSelected ? 0.15 : 0,
-                        shadowRadius: 8,
-                        elevation: isSelected ? 4 : 0,
-                      },
-                    ]}
-                    onPress={() => {
-                      onSelect(item.key);
-                      onClose();
-                      if (onProvinceSelected) onProvinceSelected(item.key);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Image
-                      source={PROVINCE_IMAGES[item.key]}
-                      style={[styles.provinceGridImage, { tintColor: imgTint }]}
-                      resizeMode="contain"
-                    />
-                    <Text
-                      style={[
-                        styles.provinceGridLabel,
-                        { color: labelColor },
-                        isSelected && { fontWeight: '700' },
-                      ]}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
-    );
-  };
+    const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
+    const depts = getDepartmentsForProvince(selectedProvince);
 
-  const renderDepartmentPicker = (visible, onClose, selectedDept, onSelect, title, province) => {
-    const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
-    const depts = getDepartmentsForProvince(province);
+    const handleProvinceSelect = (p) => {
+      onProvinceSelect(p);
+      onStepChange('loading');
+      setTimeout(() => onStepChange('department'), 2000);
+    };
+
+    const handleClose = () => {
+      onClose();
+      setTimeout(() => onStepChange('province'), 300);
+    };
+
+    const title = step === 'province' ? provinceTitle : step === 'loading' ? selectedProvince : `${selectedProvince}`;
+
     return (
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
           <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
             <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              {step === 'department' && (
+                <TouchableOpacity
+                  onPress={() => onStepChange('province')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{ marginRight: 10 }}
+                >
+                  <Ionicons name="arrow-back" size={22} color={textSecondary} />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
+              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close" size={22} color={textSecondary} />
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={depts}
-              keyExtractor={(item) => item.key}
-              numColumns={2}
-              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-              contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-              showsVerticalScrollIndicator={false}
-              ListHeaderComponent={
-                <TouchableOpacity
-                  style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor: dark ? '#333333' : '#E5E7EB' }]}
-                  onPress={() => { onSelect(''); onClose(); }}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="grid-outline" size={28} color={textSecondary} style={{ marginBottom: 6 }} />
-                  <Text style={[styles.provinceGridLabel, { color: textSecondary }]}>Todos los departamentos</Text>
-                </TouchableOpacity>
-              }
-              renderItem={({ item }) => {
-                const isSelected = selectedDept === item.label;
-                const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
-                return (
+
+            {(step === 'province' || step === 'loading') && (
+              <View style={{ flex: 1 }}>
+                <FlatList
+                  data={provinces}
+                  keyExtractor={(item) => item.key}
+                  numColumns={2}
+                  columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                  contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                  showsVerticalScrollIndicator={false}
+                  initialNumToRender={provinces.length}
+                  maxToRenderPerBatch={provinces.length}
+                  windowSize={5}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedProvince === item.key;
+                    const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
+                    const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
+                    const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.provinceGridItem, {
+                          width: ITEM_SIZE,
+                          backgroundColor: cardBackground,
+                          borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                          shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
+                          shadowOpacity: isSelected ? 0.15 : 0,
+                          shadowRadius: 8,
+                          elevation: isSelected ? 4 : 0,
+                        }]}
+                        onPress={() => handleProvinceSelect(item.key)}
+                        activeOpacity={0.75}
+                      >
+                        <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                        <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+                {step === 'loading' && (
+                  <View style={styles.pickerLoadingOverlay}>
+                    <ActivityIndicator size="large" color={accent} />
+                  </View>
+                )}
+              </View>
+            )}
+
+            {step === 'department' && (
+              <FlatList
+                data={depts}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={depts.length}
+                maxToRenderPerBatch={depts.length}
+                windowSize={5}
+                ListHeaderComponent={
                   <TouchableOpacity
-                    style={[
-                      styles.provinceGridItem,
-                      {
+                    style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor: dark ? '#333333' : '#E5E7EB' }]}
+                    onPress={() => { onDeptSelect(''); handleClose(); }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="grid-outline" size={28} color={textSecondary} style={{ marginBottom: 6 }} />
+                    <Text style={[styles.provinceGridLabel, { color: textSecondary }]}>Todos los departamentos</Text>
+                  </TouchableOpacity>
+                }
+                renderItem={({ item }) => {
+                  const isSelected = selectedDept === item.label;
+                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
                         borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
@@ -530,24 +525,19 @@ const HomeScreen = ({ navigation }) => {
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,
                         elevation: isSelected ? 4 : 0,
-                      },
-                    ]}
-                    onPress={() => { onSelect(item.label); onClose(); }}
-                    activeOpacity={0.75}
-                  >
-                    <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                    <Text
-                      style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
+                      }]}
+                      onPress={() => { onDeptSelect(item.label); handleClose(); }}
+                      activeOpacity={0.75}
                     >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
+                      <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -595,8 +585,8 @@ const HomeScreen = ({ navigation }) => {
           {/* Origin */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => origin ? setShowOriginCityPicker(true) : setShowOriginPicker(true)}
-            onLongPress={() => setShowOriginPicker(true)}
+            onPress={() => { setOriginStep(origin ? 'department' : 'province'); setShowOriginPicker(true); }}
+            onLongPress={() => { setOriginStep('province'); setShowOriginPicker(true); }}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -621,8 +611,8 @@ const HomeScreen = ({ navigation }) => {
           {/* Destination */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => destination ? setShowDestinationCityPicker(true) : setShowDestinationPicker(true)}
-            onLongPress={() => setShowDestinationPicker(true)}
+            onPress={() => { setDestinationStep(destination ? 'department' : 'province'); setShowDestinationPicker(true); }}
+            onLongPress={() => { setDestinationStep('province'); setShowDestinationPicker(true); }}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -699,7 +689,7 @@ const HomeScreen = ({ navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Restablecer búsqueda y limpiar filtros"
             >
-              <Text style={[styles.clearFiltersLinkText, { color: textMuted }]}>
+              <Text style={[styles.clearFiltersLinkText, { color: '#EF4444' }]}>
                 Restablecer búsqueda
               </Text>
             </TouchableOpacity>
@@ -768,37 +758,29 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Province & City Pickers */}
-      {renderProvincePicker(
+      {renderLocationPicker(
         showOriginPicker,
         () => setShowOriginPicker(false),
+        originStep,
+        setOriginStep,
         origin,
         (p) => { setOrigin(p); setOriginCity(''); },
-        'Provincia de origen',
-        (p) => { if (getDepartmentsForProvince(p).length > 0) setShowOriginCityPicker(true); },
-      )}
-      {renderDepartmentPicker(
-        showOriginCityPicker,
-        () => setShowOriginCityPicker(false),
         originCity,
         setOriginCity,
+        'Provincia de origen',
         'Departamento de origen',
-        origin,
       )}
-      {renderProvincePicker(
+      {renderLocationPicker(
         showDestinationPicker,
         () => setShowDestinationPicker(false),
+        destinationStep,
+        setDestinationStep,
         destination,
         (p) => { setDestination(p); setDestinationCity(''); },
-        'Provincia de destino',
-        (p) => { if (getDepartmentsForProvince(p).length > 0) setShowDestinationCityPicker(true); },
-      )}
-      {renderDepartmentPicker(
-        showDestinationCityPicker,
-        () => setShowDestinationCityPicker(false),
         destinationCity,
         setDestinationCity,
+        'Provincia de destino',
         'Departamento de destino',
-        destination,
       )}
 
       {/* Date Picker */}
@@ -814,7 +796,7 @@ const HomeScreen = ({ navigation }) => {
                       <Ionicons name="close" size={22} color={textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <View style={{ padding: 16 }}>
+                  <View style={{ padding: 16, alignItems: 'center' }}>
                     <DateTimePicker
                       value={selectedDate || new Date()}
                       mode="date"
@@ -1248,6 +1230,13 @@ const styles = StyleSheet.create({
     width: '96%',
     maxHeight: '90%',
     overflow: 'hidden',
+  },
+  pickerLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
   },
   pickerHeader: {
     flexDirection: 'row',

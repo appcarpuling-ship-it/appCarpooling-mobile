@@ -55,9 +55,9 @@ const AllTripsScreen = ({ navigation }) => {
 
   // Picker modals
   const [showOriginPicker, setShowOriginPicker] = useState(false);
-  const [showOriginCityPicker, setShowOriginCityPicker] = useState(false);
+  const [originStep, setOriginStep] = useState('province');
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
-  const [showDestinationCityPicker, setShowDestinationCityPicker] = useState(false);
+  const [destinationStep, setDestinationStep] = useState('province');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showSeatsPicker, setShowSeatsPicker] = useState(false);
@@ -310,133 +310,120 @@ const AllTripsScreen = ({ navigation }) => {
     [isDarkMode, navigation],
   );
 
-  const renderProvinceModal = (visible, onClose, selected, onSelect, title, onProvinceSelected) => {
+  const renderLocationModal = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
     const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
+    const borderColor = isDarkMode ? '#404040' : '#E5E7EB';
+    const textMuted = isDarkMode ? '#9CA3AF' : '#6B7280';
+    const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
     const accent = isDarkMode ? '#FFFFFF' : '#1F2937';
-    const cardBg = isDarkMode ? '#1E1E1E' : '#F9FAFB';
-    const borderColor = isDarkMode ? '#404040' : '#E5E7EB';
-    const textMuted = isDarkMode ? '#9CA3AF' : '#6B7280';
-    const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-    const data = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
-    return (
-      <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={24} color={textPrimary} />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={data}
-              keyExtractor={(item) => item.key}
-              numColumns={2}
-              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-              contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isSelected = selected === item.key;
-                const cardBackground = isSelected
-                  ? (isDarkMode ? '#FFFFFF' : '#1F2937')
-                  : (isDarkMode ? '#252525' : '#FFFFFF');
-                const imgTint = isSelected
-                  ? (isDarkMode ? '#1F2937' : '#FFFFFF')
-                  : (isDarkMode ? '#FFFFFF' : '#1F2937');
-                const labelColor = isSelected
-                  ? (isDarkMode ? '#1F2937' : '#FFFFFF')
-                  : textMuted;
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.provinceGridItem,
-                      {
-                        width: ITEM_SIZE,
-                        backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : borderColor,
-                        shadowColor: isSelected ? (isDarkMode ? '#FFFFFF' : '#000') : 'transparent',
-                        shadowOpacity: isSelected ? 0.15 : 0,
-                        shadowRadius: 8,
-                        elevation: isSelected ? 4 : 0,
-                      },
-                    ]}
-                    onPress={() => {
-                      onSelect(item.key);
-                      onClose();
-                      if (onProvinceSelected) onProvinceSelected(item.key);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Image
-                      source={PROVINCE_IMAGES[item.key]}
-                      style={[styles.provinceGridImage, { tintColor: imgTint }]}
-                      resizeMode="contain"
-                    />
-                    <Text
-                      style={[
-                        styles.provinceGridLabel,
-                        { color: labelColor },
-                        isSelected && { fontWeight: '700' },
-                      ]}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
-    );
-  };
+    const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
+    const depts = getDepartmentsForProvince(selectedProvince);
 
-  const renderDepartmentModal = (visible, onClose, selectedDept, onSelect, title, province) => {
-    const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
-    const borderColor = isDarkMode ? '#404040' : '#E5E7EB';
-    const textMuted = isDarkMode ? '#9CA3AF' : '#6B7280';
-    const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-    const depts = getDepartmentsForProvince(province);
+    const handleProvinceSelect = (p) => {
+      onProvinceSelect(p);
+      onStepChange('loading');
+      setTimeout(() => onStepChange('department'), 2000);
+    };
+
+    const handleClose = () => {
+      onClose();
+      setTimeout(() => onStepChange('province'), 300);
+    };
+
+    const title = step === 'province' ? provinceTitle : selectedProvince;
+
     return (
-      <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+      <Modal transparent animationType="fade" visible={visible} onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
           <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
             <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              {step === 'department' && (
+                <TouchableOpacity onPress={() => onStepChange('province')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 10 }}>
+                  <Ionicons name="arrow-back" size={22} color={textPrimary} />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
+              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close" size={24} color={textPrimary} />
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={depts}
-              keyExtractor={(item) => item.key}
-              numColumns={2}
-              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-              contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-              showsVerticalScrollIndicator={false}
-              ListHeaderComponent={
-                <TouchableOpacity
-                  style={[styles.deptAllItem, { backgroundColor: isDarkMode ? '#252525' : '#FFFFFF', borderColor }]}
-                  onPress={() => { onSelect(''); onClose(); }}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="grid-outline" size={28} color={textMuted} style={{ marginBottom: 6 }} />
-                  <Text style={[styles.provinceGridLabel, { color: textMuted }]}>Todos los departamentos</Text>
-                </TouchableOpacity>
-              }
-              renderItem={({ item }) => {
-                const isSelected = selectedDept === item.label;
-                const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
-                const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
-                const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
-                return (
+
+            {(step === 'province' || step === 'loading') && (
+              <View style={{ flex: 1 }}>
+                <FlatList
+                  data={provinces}
+                  keyExtractor={(item) => item.key}
+                  numColumns={2}
+                  columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                  contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                  showsVerticalScrollIndicator={false}
+                  initialNumToRender={provinces.length}
+                  maxToRenderPerBatch={provinces.length}
+                  windowSize={5}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedProvince === item.key;
+                    const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
+                    const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
+                    const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.provinceGridItem, {
+                          width: ITEM_SIZE,
+                          backgroundColor: cardBackground,
+                          borderColor: isSelected ? cardBackground : borderColor,
+                          shadowColor: isSelected ? (isDarkMode ? '#FFFFFF' : '#000') : 'transparent',
+                          shadowOpacity: isSelected ? 0.15 : 0,
+                          shadowRadius: 8,
+                          elevation: isSelected ? 4 : 0,
+                        }]}
+                        onPress={() => handleProvinceSelect(item.key)}
+                        activeOpacity={0.75}
+                      >
+                        <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                        <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+                {step === 'loading' && (
+                  <View style={styles.pickerLoadingOverlay}>
+                    <ActivityIndicator size="large" color={accent} />
+                  </View>
+                )}
+              </View>
+            )}
+
+            {step === 'department' && (
+              <FlatList
+                data={depts}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={depts.length}
+                maxToRenderPerBatch={depts.length}
+                windowSize={5}
+                ListHeaderComponent={
                   <TouchableOpacity
-                    style={[
-                      styles.provinceGridItem,
-                      {
+                    style={[styles.deptAllItem, { backgroundColor: isDarkMode ? '#252525' : '#FFFFFF', borderColor }]}
+                    onPress={() => { onDeptSelect(''); handleClose(); }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="grid-outline" size={28} color={textMuted} style={{ marginBottom: 6 }} />
+                    <Text style={[styles.provinceGridLabel, { color: textMuted }]}>Todos los departamentos</Text>
+                  </TouchableOpacity>
+                }
+                renderItem={({ item }) => {
+                  const isSelected = selectedDept === item.label;
+                  const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
                         borderColor: isSelected ? cardBackground : borderColor,
@@ -444,24 +431,19 @@ const AllTripsScreen = ({ navigation }) => {
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,
                         elevation: isSelected ? 4 : 0,
-                      },
-                    ]}
-                    onPress={() => { onSelect(item.label); onClose(); }}
-                    activeOpacity={0.75}
-                  >
-                    <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                    <Text
-                      style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
+                      }]}
+                      onPress={() => { onDeptSelect(item.label); handleClose(); }}
+                      activeOpacity={0.75}
                     >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
+                      <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -594,7 +576,7 @@ const AllTripsScreen = ({ navigation }) => {
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
                   (originProvince || originCity) && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
-                onPress={() => originProvince ? setShowOriginCityPicker(true) : setShowOriginPicker(true)}
+                onPress={() => { setOriginStep(originProvince ? 'department' : 'province'); setShowOriginPicker(true); }}
                 onLongPress={() => setShowOriginPicker(true)}
                 activeOpacity={0.7}
               >
@@ -615,7 +597,7 @@ const AllTripsScreen = ({ navigation }) => {
                   { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
                   (destinationProvince || destinationCity) && { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
-                onPress={() => destinationProvince ? setShowDestinationCityPicker(true) : setShowDestinationPicker(true)}
+                onPress={() => { setDestinationStep(destinationProvince ? 'department' : 'province'); setShowDestinationPicker(true); }}
                 onLongPress={() => setShowDestinationPicker(true)}
                 activeOpacity={0.7}
               >
@@ -763,37 +745,29 @@ const AllTripsScreen = ({ navigation }) => {
         </Animated.View>
 
         {/* Province Modals */}
-        {renderProvinceModal(
+        {renderLocationModal(
           showOriginPicker,
           () => setShowOriginPicker(false),
+          originStep,
+          setOriginStep,
           originProvince,
           (p) => { setOriginProvince(p); setOriginCity(''); },
-          'Seleccionar provincia de origen',
-          (p) => { if (getDepartmentsForProvince(p).length > 0) setShowOriginCityPicker(true); },
-        )}
-        {renderDepartmentModal(
-          showOriginCityPicker,
-          () => setShowOriginCityPicker(false),
           originCity,
           setOriginCity,
+          'Provincia de origen',
           'Departamento de origen',
-          originProvince,
         )}
-        {renderProvinceModal(
+        {renderLocationModal(
           showDestinationPicker,
           () => setShowDestinationPicker(false),
+          destinationStep,
+          setDestinationStep,
           destinationProvince,
           (p) => { setDestinationProvince(p); setDestinationCity(''); },
-          'Seleccionar provincia de destino',
-          (p) => { if (getDepartmentsForProvince(p).length > 0) setShowDestinationCityPicker(true); },
-        )}
-        {renderDepartmentModal(
-          showDestinationCityPicker,
-          () => setShowDestinationCityPicker(false),
           destinationCity,
           setDestinationCity,
+          'Provincia de destino',
           'Departamento de destino',
-          destinationProvince,
         )}
 
         {/* Time Range Modal */}
@@ -1098,6 +1072,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     maxHeight: '70%',
     width: '85%',
+  },
+  pickerLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
   },
   pickerHeader: {
     flexDirection: 'row',
