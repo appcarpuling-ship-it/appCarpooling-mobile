@@ -349,49 +349,47 @@ const AllTripsScreen = ({ navigation }) => {
             </View>
 
             {(step === 'province' || step === 'loading') && (
-              <View style={{ flex: 1 }}>
-                <FlatList
-                  data={provinces}
-                  keyExtractor={(item) => item.key}
-                  numColumns={2}
-                  columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                  contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-                  showsVerticalScrollIndicator={false}
-                  initialNumToRender={provinces.length}
-                  maxToRenderPerBatch={provinces.length}
-                  windowSize={5}
-                  renderItem={({ item }) => {
-                    const isSelected = selectedProvince === item.key;
-                    const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
-                    const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
-                    const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
-                    return (
-                      <TouchableOpacity
-                        style={[styles.provinceGridItem, {
-                          width: ITEM_SIZE,
-                          backgroundColor: cardBackground,
-                          borderColor: isSelected ? cardBackground : borderColor,
-                          shadowColor: isSelected ? (isDarkMode ? '#FFFFFF' : '#000') : 'transparent',
-                          shadowOpacity: isSelected ? 0.15 : 0,
-                          shadowRadius: 8,
-                          elevation: isSelected ? 4 : 0,
-                        }]}
-                        onPress={() => handleProvinceSelect(item.key)}
-                        activeOpacity={0.75}
-                      >
-                        <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                        <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-                {step === 'loading' && (
-                  <View style={styles.pickerLoadingOverlay}>
-                    <ActivityIndicator size="large" color={accent} />
-                  </View>
-                )}
+              <FlatList
+                data={provinces}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={provinces.length}
+                maxToRenderPerBatch={provinces.length}
+                windowSize={5}
+                renderItem={({ item }) => {
+                  const isSelected = selectedProvince === item.key;
+                  const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
+                        width: ITEM_SIZE,
+                        backgroundColor: cardBackground,
+                        borderColor: isSelected ? cardBackground : borderColor,
+                        shadowColor: isSelected ? (isDarkMode ? '#FFFFFF' : '#000') : 'transparent',
+                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowRadius: 8,
+                        elevation: isSelected ? 4 : 0,
+                      }]}
+                      onPress={() => handleProvinceSelect(item.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+            {step === 'loading' && (
+              <View style={styles.pickerLoadingOverlay}>
+                <ActivityIndicator size="large" color={accent} />
               </View>
             )}
 
@@ -436,7 +434,7 @@ const AllTripsScreen = ({ navigation }) => {
                       activeOpacity={0.75}
                     >
                       <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
                         {item.label}
                       </Text>
                     </TouchableOpacity>

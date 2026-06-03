@@ -443,49 +443,47 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {(step === 'province' || step === 'loading') && (
-              <View style={{ flex: 1 }}>
-                <FlatList
-                  data={provinces}
-                  keyExtractor={(item) => item.key}
-                  numColumns={2}
-                  columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                  contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-                  showsVerticalScrollIndicator={false}
-                  initialNumToRender={provinces.length}
-                  maxToRenderPerBatch={provinces.length}
-                  windowSize={5}
-                  renderItem={({ item }) => {
-                    const isSelected = selectedProvince === item.key;
-                    const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                    const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                    const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
-                    return (
-                      <TouchableOpacity
-                        style={[styles.provinceGridItem, {
-                          width: ITEM_SIZE,
-                          backgroundColor: cardBackground,
-                          borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
-                          shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
-                          shadowOpacity: isSelected ? 0.15 : 0,
-                          shadowRadius: 8,
-                          elevation: isSelected ? 4 : 0,
-                        }]}
-                        onPress={() => handleProvinceSelect(item.key)}
-                        activeOpacity={0.75}
-                      >
-                        <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                        <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-                {step === 'loading' && (
-                  <View style={styles.pickerLoadingOverlay}>
-                    <ActivityIndicator size="large" color={accent} />
-                  </View>
-                )}
+              <FlatList
+                data={provinces}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={provinces.length}
+                maxToRenderPerBatch={provinces.length}
+                windowSize={5}
+                renderItem={({ item }) => {
+                  const isSelected = selectedProvince === item.key;
+                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
+                        width: ITEM_SIZE,
+                        backgroundColor: cardBackground,
+                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
+                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowRadius: 8,
+                        elevation: isSelected ? 4 : 0,
+                      }]}
+                      onPress={() => handleProvinceSelect(item.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+            {step === 'loading' && (
+              <View style={styles.pickerLoadingOverlay}>
+                <ActivityIndicator size="large" color={accent} />
               </View>
             )}
 
@@ -530,7 +528,7 @@ const HomeScreen = ({ navigation }) => {
                       activeOpacity={0.75}
                     >
                       <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
                         {item.label}
                       </Text>
                     </TouchableOpacity>
@@ -804,6 +802,7 @@ const HomeScreen = ({ navigation }) => {
                       onChange={handleDateChange}
                       minimumDate={new Date()}
                       textColor={textPrimary}
+                      themeVariant={dark ? 'dark' : 'light'}
                     />
                   </View>
                   <View style={[styles.datePickerActions, { borderTopColor: divider }]}>
