@@ -434,7 +434,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const inputBottomPadding = keyboardOpen
+  const inputBottomPadding = (Platform.OS === 'android' || keyboardOpen)
     ? COMPOSER_VERTICAL_INSET
     : COMPOSER_VERTICAL_INSET + insets.bottom;
 
