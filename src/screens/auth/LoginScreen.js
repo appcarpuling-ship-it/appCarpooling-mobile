@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 
-WebBrowser.maybeCompleteAuthSession();
+const GOOGLE_START_URL = 'https://appcarpooling.onrender.com/api/auth/google/start';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -29,7 +29,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithGoogleToken, loginWithApple } = useAuth();
+  const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
   const { getCurrentThemeMode } = useColors();
 
@@ -46,33 +46,28 @@ const LoginScreen = ({ navigation }) => {
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
-  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    clientId: '1063777674242-vieh68cbahn3855qkd09840sosobjbl8.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-    usePKCE: false,
-  });
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const code = googleResponse.params?.code;
-      const redirectUri = googleRequest?.redirectUri;
-      if (code) {
-        (async () => {
-          const result = await loginWithGoogleToken(code, redirectUri);
-          setSsoLoading(null);
-          if (!result.success) showAlert('Error con Google', result.message || 'No se pudo iniciar sesión.');
-        })();
-      }
-    } else if (googleResponse?.type === 'error' || googleResponse?.type === 'dismiss') {
-      setSsoLoading(null);
-    }
-  }, [googleResponse]);
-
-  const handleGoogleLogin = () => {
-    console.log('[Google] redirectUri:', googleRequest?.redirectUri);
-    console.log('[Google] url:', googleRequest?.url);
+  const handleGoogleLogin = async () => {
     setSsoLoading('google');
-    promptGoogleAsync();
+    try {
+      const redirectUrl = Linking.createURL('auth/google');
+      const startUrl = `${GOOGLE_START_URL}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUrl);
+
+      if (result.type === 'success') {
+        const params = new URLSearchParams(result.url.split('?')[1] || '');
+        const token = params.get('token');
+        const error = params.get('error');
+        if (token) {
+          const loginResult = await loginWithJwt(token);
+          if (!loginResult.success) showAlert('Error con Google', loginResult.message || 'No se pudo iniciar sesión.');
+        } else if (error !== 'cancelled') {
+          showAlert('Error con Google', 'No se pudo completar el inicio de sesión.');
+        }
+      }
+    } catch (e) {
+      showAlert('Error con Google', e.message || 'Error inesperado.');
+    }
+    setSsoLoading(null);
   };
 
   const handleAppleLogin = async () => {
@@ -169,36 +164,36 @@ const LoginScreen = ({ navigation }) => {
             <View style={[styles.dividerLine, { backgroundColor: border }]} />
           </View>
 
-          {/* Google (no disponible en web) */}
-          {Platform.OS !== 'web' && (
-            <TouchableOpacity
-              style={[styles.ssoBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.7 }]}
-              onPress={handleGoogleLogin}
-              disabled={!!ssoLoading}
-              activeOpacity={0.85}
-            >
-              {ssoLoading === 'google'
-                ? <ActivityIndicator color={textMuted} />
-                : <>
-                    <FontAwesome name="google" size={18} color="#DB4437" style={styles.ssoIcon} />
-                    <Text style={[styles.ssoBtnText, { color: textPrimary }]}>Continuar con Google</Text>
-                  </>
-              }
-            </TouchableOpacity>
-          )}
+          {/* SSO icons */}
+          <View style={styles.ssoRow}>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.6 }]}
+                onPress={handleGoogleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'google'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="google" size={22} color="#DB4437" />
+                }
+              </TouchableOpacity>
+            )}
 
-          {/* Apple (solo iOS) */}
-          {Platform.OS === 'ios' && (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={isDarkMode
-                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={14}
-              style={styles.appleBtn}
-              onPress={handleAppleLogin}
-            />
-          )}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'apple' && { opacity: 0.6 }]}
+                onPress={handleAppleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'apple'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                }
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Forgot password */}
           <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
@@ -243,10 +238,8 @@ const styles = StyleSheet.create({
   divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
   dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
   dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
-  ssoBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, height: 54, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12 },
-  ssoIcon:       { marginRight: 10 },
-  ssoBtnText:    { fontSize: 15, fontWeight: '600' },
-  appleBtn:      { height: 54, marginBottom: 12 },
+  ssoRow:        { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12 },
+  ssoIconBtn:    { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default LoginScreen;

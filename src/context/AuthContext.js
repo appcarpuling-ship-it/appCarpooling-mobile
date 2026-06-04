@@ -24,7 +24,7 @@ export const useAuth = () => {
       loading: false,
       isAuthenticated: false,
       login: () => Promise.resolve({ success: false }),
-      loginWithGoogleToken: () => Promise.resolve({ success: false }),
+      loginWithJwt: () => Promise.resolve({ success: false }),
       loginWithApple: () => Promise.resolve({ success: false }),
       register: () => Promise.resolve({ success: false }),
       logout: () => {},
@@ -310,14 +310,26 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  const loginWithGoogleToken = async (code, redirectUri) => {
+  const loginWithJwt = async (token) => {
     try {
-      const response = await post_public(ENDPOINTS.GOOGLE_AUTH, { code, redirectUri });
+      await AsyncStorage.setItem('token', token);
+      const response = await get_withauth(ENDPOINTS.GET_ME);
       if (response.success) {
-        return await _completeSsoLogin(response.data.token, response.data.user);
+        const user = response.data;
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
+        setIsAuthenticated(true);
+        socketService.connect();
+        try {
+          const pushToken = await registerForPushNotificationsAsync();
+          if (pushToken) await savePushTokenToServer(pushToken);
+        } catch {}
+        return { success: true };
       }
+      await AsyncStorage.removeItem('token');
       return { success: false, message: response.message };
     } catch (error) {
+      await AsyncStorage.removeItem('token');
       return { success: false, message: error.message };
     }
   };
@@ -365,7 +377,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
-    loginWithGoogleToken,
+    loginWithJwt,
     loginWithApple,
     register,
     verifyEmail,
