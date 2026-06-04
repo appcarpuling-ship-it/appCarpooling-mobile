@@ -61,16 +61,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const inputPadBottom = useRef(new Animated.Value(COMPOSER_VERTICAL_INSET + insets.bottom)).current;
 
   useEffect(() => {
     isFocusedRef.current = isFocused;
   }, [isFocused]);
 
-  /** Android usa adjustResize + softwareKeyboardLayoutMode: no sumar altura del teclado a mano (duplica y sube el input). Solo scroll. */
+  /** Android usa adjustResize: solo necesitamos scroll al abrir teclado. */
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
     const onShow = Keyboard.addListener('keyboardDidShow', () => {
@@ -80,15 +80,13 @@ const ChatDetailScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvt, () => setKeyboardOpen(true));
-    const hide = Keyboard.addListener(hideEvt, () => setKeyboardOpen(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+    if (Platform.OS !== 'ios') return;
+    const show = Keyboard.addListener('keyboardWillShow', () =>
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET));
+    const hide = Keyboard.addListener('keyboardWillHide', () =>
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + insets.bottom));
+    return () => { show.remove(); hide.remove(); };
+  }, [insets.bottom]);
 
   useLayoutEffect(() => {
     if (!conversationId) {
@@ -434,9 +432,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const inputBottomPadding = (Platform.OS === 'android' || keyboardOpen)
-    ? COMPOSER_VERTICAL_INSET
-    : COMPOSER_VERTICAL_INSET + insets.bottom;
 
   if (loading) {
     return (
@@ -454,7 +449,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
       <View style={{ flex: 1 }}>
@@ -482,13 +477,13 @@ const ChatDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        <View style={[
+        <Animated.View style={[
           styles.inputContainer,
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
             paddingTop: COMPOSER_VERTICAL_INSET,
-            paddingBottom: inputBottomPadding,
+            paddingBottom: inputPadBottom,
           },
         ]}>
           <TextInput
@@ -504,6 +499,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
             placeholderTextColor={colors.placeholder}
             value={newMessage}
             onChangeText={handleTyping}
+            onFocus={() => { if (Platform.OS === 'android') inputPadBottom.setValue(COMPOSER_VERTICAL_INSET); }}
+            onBlur={() => { if (Platform.OS === 'android') inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + insets.bottom); }}
             multiline
             maxLength={1000}
           />
@@ -525,7 +522,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
               )}
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
         </Animated.View>
       </View>
     </KeyboardAvoidingView>
