@@ -310,9 +310,9 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  const loginWithGoogleToken = async (idToken) => {
+  const loginWithGoogleToken = async (accessToken) => {
     try {
-      const response = await post_public(ENDPOINTS.GOOGLE_AUTH, { idToken });
+      const response = await post_public(ENDPOINTS.GOOGLE_AUTH, { accessToken });
       if (response.success) {
         return await _completeSsoLogin(response.data.token, response.data.user);
       }

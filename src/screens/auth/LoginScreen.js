@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { ResponseType } from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -25,7 +30,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithGoogle, loginWithApple } = useAuth();
+  const { login, loginWithGoogleToken, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
   const { getCurrentThemeMode } = useColors();
 
@@ -42,13 +47,30 @@ const LoginScreen = ({ navigation }) => {
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
-  const handleGoogleLogin = async () => {
-    setSsoLoading('google');
-    const result = await loginWithGoogle();
-    setSsoLoading(null);
-    if (!result.success && !result.cancelled) {
-      showAlert('Error con Google', result.message || 'No se pudo iniciar sesión con Google.');
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    responseType: ResponseType.Token,
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const accessToken = googleResponse.authentication?.accessToken;
+      if (accessToken) {
+        (async () => {
+          const result = await loginWithGoogleToken(accessToken);
+          setSsoLoading(null);
+          if (!result.success) showAlert('Error con Google', result.message || 'No se pudo iniciar sesión.');
+        })();
+      }
+    } else if (googleResponse?.type === 'error' || googleResponse?.type === 'dismiss') {
+      setSsoLoading(null);
     }
+  }, [googleResponse]);
+
+  const handleGoogleLogin = () => {
+    setSsoLoading('google');
+    promptGoogleAsync();
   };
 
   const handleAppleLogin = async () => {
