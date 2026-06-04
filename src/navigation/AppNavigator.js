@@ -11,6 +11,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerificationScreen from '../screens/auth/VerificationScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
 
 // Main navigation
 import MainTabNavigator from './MainTabNavigator';
@@ -20,7 +21,7 @@ import TripDetails from '../screens/main/common/TripDetails';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const colors = useColors();
   const { isDarkMode } = useTheme();
 
@@ -49,6 +50,8 @@ const AppNavigator = () => {
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         </>
+      ) : !user?.phone ? (
+        <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       ) : (
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
