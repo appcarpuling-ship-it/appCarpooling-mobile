@@ -145,21 +145,23 @@ const LoginScreen = ({ navigation }) => {
             <View style={[styles.dividerLine, { backgroundColor: border }]} />
           </View>
 
-          {/* Google */}
-          <TouchableOpacity
-            style={[styles.ssoBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.7 }]}
-            onPress={handleGoogleLogin}
-            disabled={!!ssoLoading}
-            activeOpacity={0.85}
-          >
-            {ssoLoading === 'google'
-              ? <ActivityIndicator color={textMuted} />
-              : <>
-                  <FontAwesome name="google" size={18} color="#DB4437" style={styles.ssoIcon} />
-                  <Text style={[styles.ssoBtnText, { color: textPrimary }]}>Continuar con Google</Text>
-                </>
-            }
-          </TouchableOpacity>
+          {/* Google (no disponible en web) */}
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity
+              style={[styles.ssoBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.7 }]}
+              onPress={handleGoogleLogin}
+              disabled={!!ssoLoading}
+              activeOpacity={0.85}
+            >
+              {ssoLoading === 'google'
+                ? <ActivityIndicator color={textMuted} />
+                : <>
+                    <FontAwesome name="google" size={18} color="#DB4437" style={styles.ssoIcon} />
+                    <Text style={[styles.ssoBtnText, { color: textPrimary }]}>Continuar con Google</Text>
+                  </>
+              }
+            </TouchableOpacity>
+          )}
 
           {/* Apple (solo iOS) */}
           {Platform.OS === 'ios' && (

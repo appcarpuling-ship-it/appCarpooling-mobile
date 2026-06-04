@@ -10,14 +10,7 @@ import {
   savePushTokenToServer,
   removePushTokenFromServer
 } from '../services/pushNotificationService';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  offlineAccess: false,
-});
 
 const AuthContext = createContext();
 
@@ -31,7 +24,7 @@ export const useAuth = () => {
       loading: false,
       isAuthenticated: false,
       login: () => Promise.resolve({ success: false }),
-      loginWithGoogle: () => Promise.resolve({ success: false }),
+      loginWithGoogleToken: () => Promise.resolve({ success: false }),
       loginWithApple: () => Promise.resolve({ success: false }),
       register: () => Promise.resolve({ success: false }),
       logout: () => {},
@@ -317,21 +310,14 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogleToken = async (idToken) => {
     try {
-      await GoogleSignin.hasPlayServices();
-      const signInResult = await GoogleSignin.signIn();
-      const idToken = signInResult?.data?.idToken ?? signInResult?.idToken;
-      if (!idToken) return { success: false, message: 'No se obtuvo token de Google' };
-
       const response = await post_public(ENDPOINTS.GOOGLE_AUTH, { idToken });
       if (response.success) {
         return await _completeSsoLogin(response.data.token, response.data.user);
       }
       return { success: false, message: response.message };
     } catch (error) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) return { success: false, cancelled: true };
-      if (error.code === statusCodes.IN_PROGRESS) return { success: false, cancelled: true };
       return { success: false, message: error.message };
     }
   };
@@ -379,7 +365,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
-    loginWithGoogle,
+    loginWithGoogleToken,
     loginWithApple,
     register,
     verifyEmail,
