@@ -19,31 +19,27 @@ import { put_withauth_formdata } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 
 const STEPS = [
-  { title: 'Sobre vos',      subtitle: 'Contanos quién sos',                        fields: ['firstName', 'lastName'] },
-  { title: 'Tus datos',      subtitle: 'Información de contacto y ubicación',        fields: ['phone', 'gender', 'age', 'province', 'city'] },
-  { title: 'Últimos detalles', subtitle: 'Bio opcional y verificación de identidad', fields: [] },
+  { title: 'Sobre vos',        subtitle: 'Contanos quién sos',                        fields: ['firstName', 'lastName'] },
+  { title: 'Tus datos',        subtitle: 'Información de contacto y ubicación',        fields: ['phone', 'gender', 'age', 'province', 'city'] },
+  { title: 'Últimos detalles', subtitle: 'Bio opcional y verificación de identidad',   fields: [] },
 ];
 
-const validationSchema = {
-  firstName: (v) => !v?.trim() ? 'El nombre es requerido' : null,
-  lastName:  (v) => !v?.trim() ? 'El apellido es requerido' : null,
-  phone:     (v) => !v?.trim() ? 'El teléfono es requerido' : null,
-  gender:    (v) => !v ? 'El sexo es requerido' : null,
-  age:       (v) => {
-    if (!v) return 'La edad es requerida';
-    const n = parseInt(v);
-    if (isNaN(n) || n < 18) return 'Debés tener al menos 18 años';
-    return null;
-  },
-  province:  (v) => !v ? 'La provincia es requerida' : null,
-  city:      (v) => !v?.trim() ? 'La ciudad es requerida' : null,
+const completeProfileSchema = {
+  firstName: ['required', { type: 'maxLength', value: 50 }],
+  lastName:  ['required', { type: 'maxLength', value: 50 }],
+  phone:     ['required', 'phone'],
+  gender:    ['required'],
+  age:       ['required', 'age'],
+  province:  ['required'],
+  city:      ['required', { type: 'maxLength', value: 100 }],
+  bio:       [{ type: 'maxLength', value: 500 }],
 };
 
 const isPlaceholder = (name) =>
   !name || ['Usuario', 'Google', 'Apple'].includes(name);
 
 const CompleteProfileScreen = () => {
-  const { user, updateProfile, refreshUser } = useAuth();
+  const { user, updateProfile, refreshUser, logout } = useAuth();
   const { showAlert } = useAlert();
   const { getCurrentThemeMode } = useColors();
 
@@ -63,8 +59,8 @@ const CompleteProfileScreen = () => {
     phone: '', gender: '', age: '', city: '', province: '', bio: '',
   };
 
-  const { values, errors, touched, setValue, setFieldTouched, getFieldProps } = useFormValidation(
-    initialValues, validationSchema
+  const { values, errors, touched, setValue, setFieldTouched, validateAllFields, getFieldProps } = useFormValidation(
+    initialValues, completeProfileSchema
   );
 
   const [avatarUri,   setAvatarUri]   = useState(null);
@@ -105,9 +101,10 @@ const CompleteProfileScreen = () => {
   const handleNext = () => {
     const fields = STEPS[currentStep].fields;
     fields.forEach(f => setFieldTouched(f, true));
-    const hasError = fields.some(f => validationSchema[f]?.(values[f]));
+    const { errors: stepErrors } = validateAllFields();
+    const hasError = fields.some(f => stepErrors[f]);
     if (hasError) {
-      const msg = fields.map(f => validationSchema[f]?.(values[f])).find(Boolean);
+      const msg = fields.map(f => stepErrors[f]).find(Boolean);
       showAlert('Error de validación', msg);
       return;
     }
@@ -115,11 +112,13 @@ const CompleteProfileScreen = () => {
   };
 
   const handleSave = async () => {
-    // Validar todos los campos requeridos
-    const allFields = ['firstName', 'lastName', 'phone', 'gender', 'age', 'province', 'city'];
-    allFields.forEach(f => setFieldTouched(f, true));
-    const firstError = allFields.map(f => validationSchema[f]?.(values[f])).find(Boolean);
-    if (firstError) { showAlert('Error de validación', firstError); return; }
+    const requiredFields = ['firstName', 'lastName', 'phone', 'gender', 'age', 'province', 'city'];
+    requiredFields.forEach(f => setFieldTouched(f, true));
+    const { isValid, errors: allErrors } = validateAllFields();
+    if (!isValid) {
+      const msg = requiredFields.map(f => allErrors[f]).find(Boolean);
+      if (msg) { showAlert('Error de validación', msg); return; }
+    }
 
     setLoading(true);
     try {
@@ -214,7 +213,16 @@ const CompleteProfileScreen = () => {
 
           {/* Top nav */}
           <View style={styles.topNav}>
-            <View style={{ width: 40 }} />
+            <TouchableOpacity
+              onPress={currentStep > 0 ? () => animateToStep(currentStep - 1) : logout}
+              style={styles.exitBtn}
+            >
+              <Ionicons
+                name={currentStep > 0 ? 'arrow-back' : 'log-out-outline'}
+                size={22}
+                color={textPrimary}
+              />
+            </TouchableOpacity>
             <View style={styles.dotsRow}>
               {STEPS.map((_, i) => (
                 <View key={i} style={[styles.dot, { width: i === currentStep ? 24 : 8, backgroundColor: i <= currentStep ? textPrimary : border }]} />
@@ -278,6 +286,7 @@ const CompleteProfileScreen = () => {
 const styles = StyleSheet.create({
   container:       { flex: 1 },
   topNav:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  exitBtn:         { width: 40, height: 40, justifyContent: 'center' },
   dotsRow:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot:             { height: 8, borderRadius: 4 },
   counter:         { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
