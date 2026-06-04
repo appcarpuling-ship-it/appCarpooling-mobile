@@ -16,7 +16,6 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { ResponseType } from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
@@ -48,17 +47,18 @@ const LoginScreen = ({ navigation }) => {
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    responseType: ResponseType.Token,
+    clientId: '1063777674242-vieh68cbahn3855qkd09840sosobjbl8.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+    usePKCE: false,
   });
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      const accessToken = googleResponse.authentication?.accessToken;
-      if (accessToken) {
+      const code = googleResponse.params?.code;
+      const redirectUri = googleRequest?.redirectUri;
+      if (code) {
         (async () => {
-          const result = await loginWithGoogleToken(accessToken);
+          const result = await loginWithGoogleToken(code, redirectUri);
           setSsoLoading(null);
           if (!result.success) showAlert('Error con Google', result.message || 'No se pudo iniciar sesión.');
         })();
@@ -69,6 +69,8 @@ const LoginScreen = ({ navigation }) => {
   }, [googleResponse]);
 
   const handleGoogleLogin = () => {
+    console.log('[Google] redirectUri:', googleRequest?.redirectUri);
+    console.log('[Google] url:', googleRequest?.url);
     setSsoLoading('google');
     promptGoogleAsync();
   };
