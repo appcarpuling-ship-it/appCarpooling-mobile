@@ -70,6 +70,8 @@ export function tunnelExtraHeaders() {
 export const ENDPOINTS = {
   // Auth
   LOGIN: '/auth/login',
+  GOOGLE_AUTH: '/auth/google',
+  APPLE_AUTH: '/auth/apple',
   REGISTER: '/auth/register',
   VERIFY_EMAIL: '/auth/verify-email',
   RESEND_VERIFICATION: '/auth/resend-code',

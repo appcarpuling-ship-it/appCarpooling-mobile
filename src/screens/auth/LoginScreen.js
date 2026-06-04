@@ -12,7 +12,8 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
@@ -22,8 +23,9 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
   const { getCurrentThemeMode } = useColors();
 
@@ -39,6 +41,24 @@ const LoginScreen = ({ navigation }) => {
     : require('../../../assets/logo/192x192-black.png');
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  const handleGoogleLogin = async () => {
+    setSsoLoading('google');
+    const result = await loginWithGoogle();
+    setSsoLoading(null);
+    if (!result.success && !result.cancelled) {
+      showAlert('Error con Google', result.message || 'No se pudo iniciar sesión con Google.');
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setSsoLoading('apple');
+    const result = await loginWithApple();
+    setSsoLoading(null);
+    if (!result.success && !result.cancelled) {
+      showAlert('Error con Apple', result.message || 'No se pudo iniciar sesión con Apple.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -118,6 +138,42 @@ const LoginScreen = ({ navigation }) => {
             }
           </TouchableOpacity>
 
+          {/* Divider SSO */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+            <Text style={[styles.dividerLabel, { color: textMuted }]}>o continuá con</Text>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+          </View>
+
+          {/* Google */}
+          <TouchableOpacity
+            style={[styles.ssoBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.7 }]}
+            onPress={handleGoogleLogin}
+            disabled={!!ssoLoading}
+            activeOpacity={0.85}
+          >
+            {ssoLoading === 'google'
+              ? <ActivityIndicator color={textMuted} />
+              : <>
+                  <FontAwesome name="google" size={18} color="#DB4437" style={styles.ssoIcon} />
+                  <Text style={[styles.ssoBtnText, { color: textPrimary }]}>Continuar con Google</Text>
+                </>
+            }
+          </TouchableOpacity>
+
+          {/* Apple (solo iOS) */}
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={isDarkMode
+                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={14}
+              style={styles.appleBtn}
+              onPress={handleAppleLogin}
+            />
+          )}
+
           {/* Forgot password */}
           <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={[styles.linkText, { color: textMuted }]}>¿Olvidaste tu contraseña?</Text>
@@ -158,6 +214,13 @@ const styles = StyleSheet.create({
   registerText:  { fontSize: 14 },
   registerLink:  { fontSize: 14, fontWeight: '600' },
   version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
+  divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
+  ssoBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, height: 54, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12 },
+  ssoIcon:       { marginRight: 10 },
+  ssoBtnText:    { fontSize: 15, fontWeight: '600' },
+  appleBtn:      { height: 54, marginBottom: 12 },
 });
 
 export default LoginScreen;

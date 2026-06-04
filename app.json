@@ -30,6 +30,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.carpuling.app.ar",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
@@ -84,6 +85,13 @@
     },
     "plugins": [
       "expo-updates",
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1063777674242-9fj1tai8hti9cmvnhk095jlnj8qe5008"
+        }
+      ],
       [
         "expo-notifications",
         {

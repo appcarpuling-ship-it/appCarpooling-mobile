@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { post_public, get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS, API_CONFIG } from '../config/api';
 import socketService from '../services/socketService';
@@ -9,6 +10,14 @@ import {
   savePushTokenToServer,
   removePushTokenFromServer
 } from '../services/pushNotificationService';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  offlineAccess: false,
+});
 
 const AuthContext = createContext();
 
@@ -22,6 +31,8 @@ export const useAuth = () => {
       loading: false,
       isAuthenticated: false,
       login: () => Promise.resolve({ success: false }),
+      loginWithGoogle: () => Promise.resolve({ success: false }),
+      loginWithApple: () => Promise.resolve({ success: false }),
       register: () => Promise.resolve({ success: false }),
       logout: () => {},
       updateProfile: () => Promise.resolve({ success: false }),
@@ -292,6 +303,63 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Helper compartido: persiste sesión SSO y conecta servicios
+  const _completeSsoLogin = async (token, user) => {
+    await AsyncStorage.setItem('token', token);
+    await AsyncStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    setIsAuthenticated(true);
+    socketService.connect();
+    try {
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) await savePushTokenToServer(pushToken);
+    } catch {}
+    return { success: true };
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const signInResult = await GoogleSignin.signIn();
+      const idToken = signInResult?.data?.idToken ?? signInResult?.idToken;
+      if (!idToken) return { success: false, message: 'No se obtuvo token de Google' };
+
+      const response = await post_public(ENDPOINTS.GOOGLE_AUTH, { idToken });
+      if (response.success) {
+        return await _completeSsoLogin(response.data.token, response.data.user);
+      }
+      return { success: false, message: response.message };
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) return { success: false, cancelled: true };
+      if (error.code === statusCodes.IN_PROGRESS) return { success: false, cancelled: true };
+      return { success: false, message: error.message };
+    }
+  };
+
+  const loginWithApple = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const response = await post_public(ENDPOINTS.APPLE_AUTH, {
+        identityToken: credential.identityToken,
+        fullName: credential.fullName,
+        email: credential.email,
+      });
+      if (response.success) {
+        return await _completeSsoLogin(response.data.token, response.data.user);
+      }
+      return { success: false, message: response.message };
+    } catch (error) {
+      if (error.code === 'ERR_REQUEST_CANCELED') return { success: false, cancelled: true };
+      return { success: false, message: error.message };
+    }
+  };
+
   const refreshUser = useCallback(async () => {
     try {
       const response = await get_withauth(ENDPOINTS.GET_ME);
@@ -311,6 +379,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
+    loginWithGoogle,
+    loginWithApple,
     register,
     verifyEmail,
     resendVerification,
