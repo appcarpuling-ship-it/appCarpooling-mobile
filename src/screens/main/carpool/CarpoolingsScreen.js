@@ -9,6 +9,7 @@ import {
   FlatList,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -61,6 +62,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
@@ -103,6 +105,8 @@ const CarpoolingsScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading banners:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,6 +136,14 @@ const CarpoolingsScreen = ({ navigation }) => {
       )}
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={textPrimary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>

@@ -130,6 +130,8 @@ const TripDetails = ({ navigation, route }) => {
                         }),
                     },
                 ], 'success');
+            } else {
+                showAlert('Ocurrió algo', response.message || 'No pudimos crear el viaje en este momento.', [], 'error');
             }
         } catch (error) {
             showAlert('Ocurrió algo', error.message || 'No pudimos crear el viaje en este momento.', [], 'error');

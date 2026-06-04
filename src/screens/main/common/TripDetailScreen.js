@@ -420,7 +420,7 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (!driverId) { showAlert('Ocurrió algo', 'No se encontraron datos del conductor'); return; }
     setChatLoading(true);
     try {
-      const response = await post_withauth('/chat/conversation', { participantId: driverId });
+      const response = await post_withauth('/chat/conversation', { participantId: driverId, tripId: trip._id });
       if (response?.success) {
         const conversation = response.data?.conversation || response.data;
         const otherUser =

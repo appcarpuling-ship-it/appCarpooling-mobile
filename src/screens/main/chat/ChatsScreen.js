@@ -590,6 +590,7 @@ const ChatsScreen = ({ navigation }) => {
 
         {filteredConversations.length === 0 ? (
           <ScrollView
+            style={{ flex: 1 }}
             contentContainerStyle={styles.emptyScrollContent}
             refreshControl={
               <RefreshControl
@@ -599,26 +600,19 @@ const ChatsScreen = ({ navigation }) => {
               />
             }
           >
-          <View style={styles.emptyContainer}>
+            <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
-                {conversations.length === 0 
-                  ? 'No tienes conversaciones' 
+                {conversations.length === 0
+                  ? 'No tienes conversaciones'
                   : searchTerm
                     ? 'No se encontraron conversaciones'
-                    : filter === 'trips' 
+                    : filter === 'trips'
                       ? 'No tienes conversaciones de viajes'
                       : filter === 'direct'
                         ? 'No tienes mensajes directos'
                         : 'No hay conversaciones'}
               </Text>
-            {/* <Text style={[styles.emptySubtext, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                {conversations.length === 0
-                  ? 'En el detalle de un viaje, usá «Chatear con el conductor» (arriba del botón Reservar o de tu estado de reserva)'
-                  : searchTerm
-                    ? 'Intenta con otro término de búsqueda'
-                    : 'Intenta cambiar el filtro para ver más conversaciones'}
-            </Text> */}
-          </View>
+            </View>
           </ScrollView>
         ) : (
           <FlatList
@@ -935,8 +929,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
-    minHeight: '100%',
   },
   emptyContainer: {
     justifyContent: 'center',
