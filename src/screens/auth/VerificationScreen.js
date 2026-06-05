@@ -114,7 +114,7 @@ const VerificationScreen = ({ route, navigation }) => {
   const isReady = verificationCode.length === 6;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }, Platform.OS === 'web' && { minHeight: '100vh' }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.content}>
 

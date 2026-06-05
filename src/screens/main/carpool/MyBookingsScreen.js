@@ -38,7 +38,6 @@ const MyBookingsScreen = ({ navigation }) => {
   const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
 
   useEffect(() => {
-    loadMyBookings(1, true);
     setupTripCancellationListener();
     return () => cleanupListeners();
   }, []);

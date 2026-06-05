@@ -118,6 +118,12 @@ const ProfileScreen = () => {
       ],
     },
     {
+      title: 'Privacidad',
+      items: [
+        { id: 10, title: 'Usuarios bloqueados', subtitle: 'Administrá quién tenés bloqueado', icon: 'ban-outline', onPress: () => navigation.navigate('BlockedUsers') },
+      ],
+    },
+    {
       title: 'Información',
       items: [
         { id: 4, title: 'Términos y Condiciones', subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },

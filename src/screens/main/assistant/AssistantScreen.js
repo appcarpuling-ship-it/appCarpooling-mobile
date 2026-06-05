@@ -95,7 +95,7 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
 
         {/* Descripción */}
         <Text style={[styles.profileBio, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
-          Hola, soy Rumbo 👋 Estoy aquí para ayudarte con todo lo que necesites dentro de Carpuling. Desde buscar viajes hasta resolver dudas sobre pagos.
+          Hola, soy Rumbo. Estoy aquí para ayudarte con todo lo que necesites dentro de Carpuling. Desde buscar viajes hasta resolver dudas sobre pagos.
         </Text>
 
         {/* Lo que puedo hacer */}
@@ -236,7 +236,7 @@ export default function AssistantScreen() {
           id: botId,
           type: 'bot',
           text: 'Ocurrió un error. Por favor, intentá de nuevo.',
-          options: [{ id: 'start', label: '🏠 Volver al inicio' }],
+          options: [{ id: 'start', label: 'Volver al inicio' }],
         },
       ]);
       setActiveOptionsId(botId);

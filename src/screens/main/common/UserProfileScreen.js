@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { get_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
+import { get_withauth, post_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
@@ -45,6 +45,7 @@ const UserProfileScreen = ({ route, navigation }) => {
 
   const selfId = user?._id || user?.id;
   const isSelf = selfId && userId && String(selfId) === String(userId);
+  const isBlocked = (user?.blockedUserIds || []).includes(String(userId));
 
   const loadProfile = useCallback(async () => {
     try {
@@ -139,18 +140,25 @@ const UserProfileScreen = ({ route, navigation }) => {
   };
 
   const confirmBlock = () => {
-    showAlert(
-      'Bloquear usuario',
-      'No podrán enviarse mensajes y el chat desaparecerá para ambos. ¿Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Bloquear',
-          style: 'destructive',
-          onPress: () => runBlock(),
-        },
-      ]
-    );
+    if (isBlocked) {
+      showAlert(
+        'Desbloquear usuario',
+        `¿Querés desbloquear a ${profile?.firstName}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Desbloquear', onPress: () => runUnblock() },
+        ]
+      );
+    } else {
+      showAlert(
+        'Bloquear usuario',
+        'No podrán enviarse mensajes y el chat desaparecerá para ambos. ¿Continuar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Bloquear', style: 'destructive', onPress: () => runBlock() },
+        ]
+      );
+    }
   };
 
   const runBlock = async () => {
@@ -172,6 +180,20 @@ const UserProfileScreen = ({ route, navigation }) => {
       ]);
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
+      showAlert('Ocurrió algo', msg);
+    } finally {
+      setBlockLoading(false);
+    }
+  };
+
+  const runUnblock = async () => {
+    setBlockLoading(true);
+    try {
+      await delete_withauth(ENDPOINTS.UNBLOCK_USER(userId));
+      await refreshUser();
+      showAlert('Listo', 'Usuario desbloqueado.');
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || 'No se pudo desbloquear';
       showAlert('Ocurrió algo', msg);
     } finally {
       setBlockLoading(false);
@@ -238,13 +260,23 @@ const UserProfileScreen = ({ route, navigation }) => {
             <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>Reportar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: '#DC2626', backgroundColor: cardBg }]}
+            style={[
+              styles.secondaryBtn,
+              isBlocked
+                ? { borderColor: colors.border, backgroundColor: cardBg }
+                : { borderColor: '#DC2626', backgroundColor: cardBg },
+            ]}
             onPress={confirmBlock}
             disabled={blockLoading}
             activeOpacity={0.8}
           >
             {blockLoading ? (
-              <ActivityIndicator size="small" color="#DC2626" />
+              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : '#DC2626'} />
+            ) : isBlocked ? (
+              <>
+                <Ionicons name="lock-open-outline" size={18} color={colors.textPrimary} />
+                <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>Desbloquear</Text>
+              </>
             ) : (
               <>
                 <Ionicons name="ban-outline" size={18} color="#DC2626" />

@@ -265,7 +265,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
     { key: 'model',        label: 'Modelo',   placeholder: 'Corolla, Focus, Cruze...',   half: false },
     { key: 'year',         label: 'Año',      placeholder: '2020', half: true, keyboard: 'numeric', max: 4 },
     { key: 'color',        label: 'Color',    placeholder: 'Blanco',                    half: true },
-    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en el vehículo o documento', half: false, noAutoUpper: true, autoCapitalize: 'none', max: 50 },
+    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en el vehículo o documento', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
     { key: 'capacity',     label: 'Capacidad de pasajeros', placeholder: '4', half: false, keyboard: 'numeric', max: 1 },
   ];
 

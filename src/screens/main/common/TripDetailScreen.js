@@ -901,10 +901,10 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={[styles.footer, { borderTopColor: divider }]}>
             {(trip.status === 'active' || trip.status === 'pending') && (
               <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: dark ? '#2E2E2E' : '#F3F4F6', borderWidth: 1, borderColor: dark ? '#404040' : '#E5E7EB' }]}
+                style={[styles.footerBtn, { backgroundColor: accent }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
               >
-                <Text style={[styles.footerBtnText, { color: dark ? '#FFFFFF' : '#000000' }]}>Editar viaje</Text>
+                <Text style={[styles.footerBtnText, { color: accentInverse }]}>Editar viaje</Text>
               </TouchableOpacity>
             )}
             {trip.status === 'active' && trip.occupiedSeats > 0 && (

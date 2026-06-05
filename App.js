@@ -18,6 +18,10 @@ import NativeCheckout from './src/components/payment/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
 import OtaUpdateListener from './src/components/OtaUpdateListener';
 
+// Forzar Sora como fuente por defecto en todos los Text de la app
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.style = { fontFamily: 'Sora_400Regular' };
+
 // Componente interno para manejar el StatusBar que responde al tema
 const AppWithTheme = () => {
   const { useTheme } = require('./src/context/ThemeContext');
@@ -44,14 +48,15 @@ export default function App() {
   const [fontsLoaded] = useFonts(soraFonts);
   const [showSplash, setShowSplash] = useState(true);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      const JailMonkey = require('jail-monkey').default;
-      if (JailMonkey.isJailBroken()) {
-        setDeviceBlocked(true);
-      }
-    }
-  }, []);
+  // TODO: descomentar cuando se genere dev client o build de producción
+  // useEffect(() => {
+  //   if (Platform.OS !== 'web') {
+  //     const JailMonkey = require('jail-monkey').default;
+  //     if (JailMonkey.isJailBroken()) {
+  //       setDeviceBlocked(true);
+  //     }
+  //   }
+  // }, []);
 
   // Deep links de MercadoPago
   useEffect(() => {

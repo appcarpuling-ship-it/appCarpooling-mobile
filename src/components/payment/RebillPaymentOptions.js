@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import useColors from '../../hooks/useColors';
+import { useTheme } from '../../context/ThemeContext';
 
-/**
- * Muestra opciones de pago Rebill: Checkout (redirect) y QR
- */
 const RebillPaymentOptions = ({
   paymentUrl,
   qrDataUrl,
@@ -13,6 +12,9 @@ const RebillPaymentOptions = ({
   onCheckoutPress,
   style,
 }) => {
+  const { colors } = useColors();
+  const { getCurrentThemeMode } = useTheme();
+  const dark = getCurrentThemeMode() === 'dark';
   const [showQR, setShowQR] = useState(false);
 
   const hasCheckout = !!paymentUrl;
@@ -20,42 +22,41 @@ const RebillPaymentOptions = ({
 
   if (!hasCheckout && !hasQR) return null;
 
-  const handleCheckout = () => {
-    if (onCheckoutPress && paymentUrl) {
-      onCheckoutPress(paymentUrl);
-    }
-  };
-
   return (
     <View style={[styles.container, style]}>
-      {/* Checkout - redirect */}
       {hasCheckout && (
         <TouchableOpacity
           style={styles.checkoutButton}
-          onPress={handleCheckout}
+          onPress={() => onCheckoutPress?.(paymentUrl)}
           activeOpacity={0.8}
         >
-          <Ionicons name="card" size={20} color="#fff" />
           <Text style={styles.checkoutButtonText}>Completar pago</Text>
         </TouchableOpacity>
       )}
 
-      {/* QR - toggle */}
       {hasQR && (
-        <View style={styles.qrSection}>
+        <View style={[styles.qrSection, {
+          borderColor: dark ? '#2A2A2A' : '#E5E7EB',
+          backgroundColor: dark ? '#1A1A1A' : '#F9FAFB',
+        }]}>
           <TouchableOpacity
             style={styles.qrToggle}
             onPress={() => setShowQR(!showQR)}
             activeOpacity={0.7}
           >
-            <Ionicons name="qr-code" size={20} color="#374151" />
-            <Text style={styles.qrToggleText}>
+            <Ionicons name="qr-code" size={18} color={colors.textPrimary} />
+            <Text style={[styles.qrToggleText, { color: colors.textPrimary }]}>
               {showQR ? 'Ocultar QR' : 'Pagar con QR'}
             </Text>
+            <Ionicons
+              name={showQR ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
           {showQR && (
             <View style={styles.qrContent}>
-              <Text style={styles.qrHint}>
+              <Text style={[styles.qrHint, { color: colors.textMuted }]}>
                 Escaneá el QR con la app de Rebill
               </Text>
               <View style={styles.qrImageContainer}>
@@ -66,8 +67,8 @@ const RebillPaymentOptions = ({
                 />
               </View>
               {amount != null && (
-                <Text style={styles.qrAmount}>
-                  Monto: {formatCurrency(amount)}
+                <Text style={[styles.qrAmount, { color: colors.textPrimary }]}>
+                  {formatCurrency(amount)}
                 </Text>
               )}
             </View>
@@ -80,65 +81,61 @@ const RebillPaymentOptions = ({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: 10,
   },
   checkoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'green',
-    paddingVertical: 12,
+    backgroundColor: '#16A34A',
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   checkoutButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   qrSection: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
     padding: 12,
-    backgroundColor: '#f9fafb',
   },
   qrToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 8,
+    gap: 6,
+    paddingVertical: 4,
   },
   qrToggleText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   qrContent: {
-    marginTop: 12,
+    marginTop: 14,
     alignItems: 'center',
+    gap: 10,
   },
   qrHint: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 12,
+    fontSize: 12,
   },
   qrImageContainer: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
   },
   qrImage: {
     width: 180,
     height: 180,
   },
   qrAmount: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

@@ -14,6 +14,7 @@ import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import ReferralScreen from '../../screens/main/profile/ReferralScreen';
+import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 
 const Stack = createStackNavigator();
 
@@ -95,6 +96,11 @@ const ProfileStackNavigator = () => {
         name="CreateReview"
         component={CreateReviewScreen}
         options={{ title: 'Crear Reseña' }}
+      />
+      <Stack.Screen
+        name="BlockedUsers"
+        component={BlockedUsersScreen}
+        options={{ title: 'Usuarios bloqueados' }}
       />
     </Stack.Navigator>
   );

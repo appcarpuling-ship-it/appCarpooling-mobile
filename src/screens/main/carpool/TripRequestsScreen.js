@@ -350,16 +350,21 @@ const TripRequestsScreen = ({ route }) => {
       );
     }
 
-    const o = fmtAddress(selectedTrip.origin?.address, selectedTrip.origin?.city);
-    const d = fmtAddress(selectedTrip.destination?.address, selectedTrip.destination?.city);
+    const fmtFull = (loc) => {
+      const addr = fmtAddress(loc?.address, loc?.city);
+      const cityProv = [loc?.city, loc?.province].filter(Boolean).join(', ');
+      return [addr, cityProv].filter(Boolean).join(', ');
+    };
+    const o = fmtFull(selectedTrip.origin);
+    const d = fmtFull(selectedTrip.destination);
     return (
       <View style={styles.tripContextEmbedded}>
         <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
         <Text style={[styles.tripContextLine, { color: textPrimary }]} numberOfLines={2}>
-          {o || selectedTrip.origin?.city || 'Origen'}{' '}
+          {o || 'Origen'}{' '}
           <Text style={{ color: textMuted }}>→</Text>
           {' '}
-          {d || selectedTrip.destination?.city || 'Destino'}
+          {d || 'Destino'}
         </Text>
         <View style={styles.tripContextMetaRow}>
           <Ionicons name="calendar-outline" size={14} color={textMuted} />
@@ -445,7 +450,11 @@ const TripRequestsScreen = ({ route }) => {
 
     return (
       <View>
-        <View style={styles.passengerRow}>
+        <TouchableOpacity
+          style={styles.passengerRow}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('UserProfile', { userId: item.passenger._id, tripId: selectedTripId })}
+        >
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
@@ -468,7 +477,7 @@ const TripRequestsScreen = ({ route }) => {
           {amount != null && (
             <Text style={[styles.amountText, { color: textPrimary }]}>{fmtCurrency(amount)}</Text>
           )}
-        </View>
+        </TouchableOpacity>
 
         <View style={[styles.metaRow, { borderTopColor: divider }]}>
           <View style={styles.metaItem}>
