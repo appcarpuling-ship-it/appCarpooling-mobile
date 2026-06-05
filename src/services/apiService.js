@@ -197,8 +197,7 @@ export const post_withauth_formdata = async (endpoint, formData) => {
         ...getNativeClientHeaders(false),
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
-        // Content-Type se omite intencionalmente: el browser/RN lo setea
-        // automáticamente con el boundary correcto para multipart/form-data
+        'Content-Type': undefined, // anula el default 'application/json' de la instancia
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
@@ -215,8 +214,7 @@ export const put_withauth_formdata = async (endpoint, formData) => {
         ...getNativeClientHeaders(false),
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
-        // Content-Type se omite intencionalmente: el browser/RN lo setea
-        // automáticamente con el boundary correcto para multipart/form-data
+        'Content-Type': undefined, // anula el default 'application/json' de la instancia
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
