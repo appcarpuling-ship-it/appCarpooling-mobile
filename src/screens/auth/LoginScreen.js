@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
@@ -43,6 +44,11 @@ const LoginScreen = ({ navigation }) => {
   const LOGO_SOURCE = isDarkMode
     ? require('../../../assets/logo/192x192-white.png')
     : require('../../../assets/logo/192x192-black.png');
+
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => { ScreenCapture.allowScreenCaptureAsync(); };
+  }, []);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const otaId = Updates.updateId ? Updates.updateId.replace(/-/g, '').slice(0, 8) : null;

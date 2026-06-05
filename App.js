@@ -44,11 +44,27 @@ export default function App() {
   const [fontsLoaded] = useFonts(soraFonts);
   const [showSplash, setShowSplash] = useState(true);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
-
   useEffect(() => {
     if (JailMonkey.isJailBroken()) {
       setDeviceBlocked(true);
     }
+  }, []);
+
+  // Deep links de MercadoPago
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url && url.startsWith('carpooling://')) {
+        NativeCheckout.handleDeepLink(url);
+      }
+    });
+
+    const subscription = Linking.addEventListener('url', (event) => {
+      if (event.url && event.url.startsWith('carpooling://')) {
+        NativeCheckout.handleDeepLink(event.url);
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   if (deviceBlocked) {
@@ -61,29 +77,6 @@ export default function App() {
       </View>
     );
   }
-
-  // Configurar listener para deep links de MercadoPago
-  useEffect(() => {
-    // Manejar deep link si la app ya estaba abierta
-    Linking.getInitialURL().then((url) => {
-      if (url && url.startsWith('carpooling://')) {
-        console.log('🔗 [App] Deep link inicial recibido:', url);
-        NativeCheckout.handleDeepLink(url);
-      }
-    });
-
-    // Manejar deep links cuando la app está en primer plano
-    const subscription = Linking.addEventListener('url', (event) => {
-      if (event.url && event.url.startsWith('carpooling://')) {
-        console.log('🔗 [App] Deep link recibido (app en primer plano):', event.url);
-        NativeCheckout.handleDeepLink(event.url);
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   return (
     <SafeAreaProvider>
