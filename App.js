@@ -48,15 +48,14 @@ export default function App() {
   const [fontsLoaded] = useFonts(soraFonts);
   const [showSplash, setShowSplash] = useState(true);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
-  // TODO: descomentar cuando se genere dev client o build de producción
-  // useEffect(() => {
-  //   if (Platform.OS !== 'web') {
-  //     const JailMonkey = require('jail-monkey').default;
-  //     if (JailMonkey.isJailBroken()) {
-  //       setDeviceBlocked(true);
-  //     }
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      const JailMonkey = require('jail-monkey').default;
+      if (JailMonkey.isJailBroken()) {
+        setDeviceBlocked(true);
+      }
+    }
+  }, []);
 
   // Deep links de MercadoPago
   useEffect(() => {
