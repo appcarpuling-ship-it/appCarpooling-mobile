@@ -208,7 +208,7 @@ const CompleteProfileScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} accessible={false}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
           {/* Top nav */}
@@ -233,22 +233,23 @@ const CompleteProfileScreen = () => {
 
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {currentStep === 0 ? (
-              <Animated.View style={[styles.heroRow, { opacity: stepAnim, marginBottom: 24 }]}>
-                <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={{ marginRight: 16 }}>
+              <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
+                <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
+                <Text style={[styles.stepSubtitle, { color: textMuted, marginBottom: 28 }]}>{STEPS[0].subtitle}</Text>
+                <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarCenter}>
                   {avatarUri
-                    ? <Image source={{ uri: avatarUri }} style={[styles.avatar, { borderColor: border }]} />
-                    : <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-                        <Ionicons name="camera" size={24} color={textMuted} />
+                    ? <Image source={{ uri: avatarUri }} style={[styles.avatarLarge, { borderColor: border }]} />
+                    : <View style={[styles.avatarPlaceholderLarge, { backgroundColor: cardBg, borderColor: border }]}>
+                        <Ionicons name="camera-outline" size={40} color={textMuted} />
                       </View>
                   }
+                  <View style={[styles.cameraBadge, { backgroundColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' }]}>
+                    <Ionicons name="camera" size={14} color={textPrimary} />
+                  </View>
                 </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
-                  <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[0].subtitle}</Text>
-                  <Text style={{ fontSize: 12, color: textPrimary, fontWeight: '600', marginTop: 6 }}>
-                    {avatarUri ? '✓ Foto cargada' : '📷 Tocá para agregar tu foto'}
-                  </Text>
-                </View>
+                <Text style={[styles.avatarHint, { color: avatarUri ? textPrimary : textMuted }]}>
+                  {avatarUri ? 'Foto cargada' : 'Tocá para agregar tu foto'}
+                </Text>
               </Animated.View>
             ) : (
               <Animated.View style={{ opacity: stepAnim, marginBottom: 28 }}>
@@ -291,9 +292,11 @@ const styles = StyleSheet.create({
   dot:             { height: 8, borderRadius: 4 },
   counter:         { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
   scroll:          { paddingHorizontal: 24, paddingBottom: 16 },
-  heroRow:         { flexDirection: 'row', alignItems: 'center' },
-  avatar:          { width: 80, height: 80, borderRadius: 40, borderWidth: 2 },
-  avatarPlaceholder: { width: 80, height: 80, borderRadius: 40, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
+  avatarCenter:          { alignSelf: 'center', position: 'relative', marginBottom: 12 },
+  avatarLarge:           { width: 130, height: 130, borderRadius: 65, borderWidth: 2 },
+  avatarPlaceholderLarge: { width: 130, height: 130, borderRadius: 65, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
+  cameraBadge:           { position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  avatarHint:            { textAlign: 'center', fontSize: 13, marginBottom: 28, fontWeight: '500' },
   stepTitle:       { fontSize: 26, fontWeight: '700', marginBottom: 6 },
   stepSubtitle:    { fontSize: 14 },
   btnContainer:    { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },

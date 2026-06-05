@@ -294,10 +294,13 @@ const HomeScreen = ({ navigation }) => {
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
-    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ').trim();
     const city = location.city || location.name || '';
-    if (raw) return raw;
-    return city;
+    const province = location.province || '';
+    let result = raw || city;
+    if (city && result && !result.includes(city)) result += `, ${city}`;
+    if (province && !result.includes(province)) result += `, ${province}`;
+    return result;
   };
 
   // Dynamic colors
@@ -370,12 +373,12 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.tripInfoColumn}>
           <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
             {formatAddress(trip.origin) || trip.origin?.city}
           </Text>
           <View style={{ height: 14 }} />
           <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
             {formatAddress(trip.destination) || trip.destination?.city}
           </Text>
         </View>
