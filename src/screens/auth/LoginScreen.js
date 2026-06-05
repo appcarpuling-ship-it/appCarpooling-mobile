@@ -16,6 +16,7 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
@@ -44,6 +45,8 @@ const LoginScreen = ({ navigation }) => {
     : require('../../../assets/logo/192x192-black.png');
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const otaId = Updates.updateId ? Updates.updateId.replace(/-/g, '').slice(0, 8) : null;
+  const versionLabel = otaId ? `v${version} - OTA ${otaId}` : `v${version}`;
 
   const handleGoogleLogin = async () => {
     setSsoLoading('google');
@@ -207,7 +210,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.version, { color: textMuted }]}>v{version}</Text>
+          <Text style={[styles.version, { color: textMuted }]}>{versionLabel}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
