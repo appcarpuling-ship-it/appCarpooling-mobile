@@ -195,9 +195,10 @@ export const post_withauth_formdata = async (endpoint, formData) => {
     const response = await api.post(endpoint, formData, {
       headers: {
         ...getNativeClientHeaders(false),
-        'Content-Type': 'multipart/form-data',
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
+        // Content-Type se omite intencionalmente: el browser/RN lo setea
+        // automáticamente con el boundary correcto para multipart/form-data
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
@@ -207,20 +208,15 @@ export const post_withauth_formdata = async (endpoint, formData) => {
   }
 };
 
-/**
- * PUT request con autenticaci?n y FormData (para archivos)
- * @param {string} endpoint - Endpoint de la API
- * @param {FormData} formData - FormData con archivos
- * @returns {Promise} - Promesa con la respuesta
- */
 export const put_withauth_formdata = async (endpoint, formData) => {
   try {
     const response = await api.put(endpoint, formData, {
       headers: {
         ...getNativeClientHeaders(false),
-        'Content-Type': 'multipart/form-data',
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
+        // Content-Type se omite intencionalmente: el browser/RN lo setea
+        // automáticamente con el boundary correcto para multipart/form-data
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
