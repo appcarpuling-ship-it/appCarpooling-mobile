@@ -192,12 +192,14 @@ export const post_public = async (endpoint, formData = {}) => {
  */
 export const post_withauth_formdata = async (endpoint, formData) => {
   try {
-    const response = await api.post(endpoint, formData, {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.post(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
       headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...getNativeClientHeaders(false),
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
-        'Content-Type': undefined, // anula el default 'application/json' de la instancia
+        ...tunnelExtraHeaders(),
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
@@ -209,12 +211,14 @@ export const post_withauth_formdata = async (endpoint, formData) => {
 
 export const put_withauth_formdata = async (endpoint, formData) => {
   try {
-    const response = await api.put(endpoint, formData, {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.put(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
       headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...getNativeClientHeaders(false),
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
-        'Content-Type': undefined, // anula el default 'application/json' de la instancia
+        ...tunnelExtraHeaders(),
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
