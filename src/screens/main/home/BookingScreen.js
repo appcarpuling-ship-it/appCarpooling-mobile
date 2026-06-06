@@ -83,6 +83,7 @@ const BookingScreen = ({ route, navigation }) => {
   const divider = dark ? '#2A2A2A' : '#F0F0F0';
   const accent = dark ? '#FFFFFF' : '#000000';
   const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const sectionLabelColor = dark ? textMuted : '#374151';
   const successColor = colors.success || '#10B981';
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -252,7 +253,7 @@ const BookingScreen = ({ route, navigation }) => {
         >
           {/* Trip Summary */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Resumen del viaje</Text>
+            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Resumen del viaje</Text>
 
             {/* Route */}
             <View style={styles.routeRow}>
@@ -349,7 +350,7 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           ) : priceData ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Asientos</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asientos</Text>
 
               <View style={styles.seatSelector}>
                 <TouchableOpacity
@@ -384,7 +385,7 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Price Breakdown */}
           {priceData && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Precio</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Precio</Text>
 
               <View style={styles.priceRow}>
                 <Text style={[styles.priceLabel, { color: textMuted }]}>
@@ -429,7 +430,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Trip details */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Detalles</Text>
+            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Detalles</Text>
 
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: textMuted }]}>Asientos disponibles</Text>
@@ -449,7 +450,7 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Preferences */}
           {trip.rules && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Preferencias</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Preferencias</Text>
               <View style={styles.prefGrid}>
                 <View style={styles.prefItem}>
                   <Ionicons
@@ -494,7 +495,7 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Notes */}
           {trip.notes && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Notas del conductor</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Notas del conductor</Text>
               <Text style={[styles.notesText, { color: textMuted }]}>{trip.notes}</Text>
             </View>
           )}
@@ -559,7 +560,7 @@ const BookingScreen = ({ route, navigation }) => {
         type="success"
         title="Solicitud Enviada"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Continuar"
         showCancel={false}
       />
 
@@ -630,9 +631,9 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     marginBottom: 14,
   },
 

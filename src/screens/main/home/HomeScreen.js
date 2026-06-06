@@ -13,12 +13,13 @@ import {
   Platform,
   Dimensions,
   Image,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { get_public, buildImageUri } from '../../../services/apiService';
+import { get_public, get_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
@@ -157,20 +158,37 @@ const HomeScreen = ({ navigation }) => {
   const [destinationStep, setDestinationStep] = useState('province');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
+  const [activeTrip, setActiveTrip] = useState(null);
+  const [activeTripRole, setActiveTripRole] = useState(null); // 'driver' | 'passenger'
+  const pulseDot = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadRecentTrips();
     loadBannersEnterprise();
     loadBannersVip();
     loadBannersPremium();
+    if (isAuthenticated) loadActiveTrip();
   }, []);
+
+  useEffect(() => {
+    if (!activeTrip) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseDot, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseDot, { toValue: 1,   duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [activeTrip]);
 
   useFocusEffect(
     useCallback(() => {
+      if (isAuthenticated) loadActiveTrip();
       return () => {
         setShowNotificationsModal(false);
       };
-    }, [])
+    }, [isAuthenticated])
   );
 
   const loadRecentTrips = async (isRefreshing = false) => {
@@ -195,6 +213,29 @@ const HomeScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const loadActiveTrip = async () => {
+    try {
+      const [driverRes, passengerRes] = await Promise.allSettled([
+        get_withauth(ENDPOINTS.MY_TRIPS_DRIVER),
+        get_withauth(ENDPOINTS.MY_TRIPS_PASSENGER),
+      ]);
+      let found = null;
+      let role = null;
+      if (driverRes.status === 'fulfilled' && driverRes.value?.success) {
+        const started = (driverRes.value.data || []).find(t => t.status === 'started');
+        if (started) { found = started; role = 'driver'; }
+      }
+      if (!found && passengerRes.status === 'fulfilled' && passengerRes.value?.success) {
+        const started = (passengerRes.value.data || []).find(t => t.status === 'started');
+        if (started) { found = started; role = 'passenger'; }
+      }
+      setActiveTrip(found || null);
+      setActiveTripRole(found ? role : null);
+    } catch {
+      // no-op: banner is optional
     }
   };
 
@@ -236,6 +277,7 @@ const HomeScreen = ({ navigation }) => {
     loadBannersEnterprise();
     loadBannersVip();
     loadBannersPremium();
+    if (isAuthenticated) loadActiveTrip();
   };
 
   const handleDateChange = (event, date) => {
@@ -581,6 +623,28 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* Banner viaje en curso */}
+        {activeTrip && (
+          <TouchableOpacity
+            style={styles.activeTripBanner}
+            onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+            activeOpacity={0.88}
+          >
+            <View style={styles.activeTripLeft}>
+              <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.activeTripLabel}>
+                  {activeTripRole === 'driver' ? 'Conductor · Viaje en curso' : 'Pasajero · Viaje en curso'}
+                </Text>
+                <Text style={styles.activeTripDest} numberOfLines={1}>
+                  En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+        )}
+
         {/* Search block */}
         <View style={[styles.searchBlock, { backgroundColor: inputBg }]}>
           {/* Origin */}
@@ -875,6 +939,48 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+
+  // Active trip banner
+  activeTripBanner: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  activeTripLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  activeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22C55E',
+  },
+  activeTripLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  activeTripDest: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
   // Header
