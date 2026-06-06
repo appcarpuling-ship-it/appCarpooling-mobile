@@ -11,6 +11,7 @@ import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
 import BookingScreen from '../../screens/main/home/BookingScreen';
 import AllTripsScreen from '../../screens/main/home/AllTripsScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
+import TripMapScreen from '../../screens/main/trip/TripMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -82,6 +83,11 @@ const HomeStackNavigator = () => {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Stack.Screen
+        name="TripMap"
+        component={TripMapScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

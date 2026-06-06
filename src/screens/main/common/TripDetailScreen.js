@@ -651,6 +651,19 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Ver trayecto en mapa */}
+        {(trip.origin?.coordinates?.latitude || trip.destination?.coordinates?.latitude) && (
+          <TouchableOpacity
+            style={[styles.mapBtn, { borderColor: dark ? '#2E2E2E' : '#E5E7EB' }]}
+            onPress={() => navigation.navigate('TripMap', { trip })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="map-outline" size={18} color={textPrimary} />
+            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
+            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Date / time / seats */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
@@ -909,7 +922,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             )}
             {trip.status === 'active' && trip.occupiedSeats > 0 && (
               <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: accent }]}
+                style={[styles.footerBtn, { backgroundColor: accent, marginTop: 8 }]}
                 onPress={handleStartTrip}
                 disabled={startingTrip}
               >
@@ -1337,6 +1350,16 @@ const styles = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',
   },
+
+  mapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  mapBtnText: { flex: 1, fontSize: 14, fontWeight: '500' },
 
   // Footer
   footer: {

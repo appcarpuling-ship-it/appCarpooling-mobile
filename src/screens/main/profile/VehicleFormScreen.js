@@ -39,6 +39,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const isEdit = !!route.params?.vehicle;
   const vehicleData = route.params?.vehicle;
 
+  const VEHICLE_TYPES = [
+    { key: 'sedan',    label: 'Sedán',    maxCapacity: 4 },
+    { key: 'hatchback',label: 'Hatchback',maxCapacity: 4 },
+    { key: 'suv',      label: 'SUV',      maxCapacity: 6 },
+    { key: 'pickup',   label: 'Pickup',   maxCapacity: 3 },
+    { key: 'van',      label: 'Van',      maxCapacity: 8 },
+    { key: 'otro',     label: 'Otro',     maxCapacity: 8 },
+  ];
+
+  const [selectedType, setSelectedType] = useState(vehicleData?.type || 'sedan');
+  const maxCapacityForType = VEHICLE_TYPES.find(t => t.key === selectedType)?.maxCapacity ?? 8;
+
   const [formData, setFormData] = useState({
     brand:        vehicleData?.brand || '',
     model:        vehicleData?.model || '',
@@ -86,7 +98,22 @@ const VehicleFormScreen = ({ navigation, route }) => {
       ? buildImageUri(vehicleData.registrationCardUrl)
       : null;
 
-  const handleChange = (name, value) => setFormData({ ...formData, [name]: value });
+  const handleChange = (name, value) => {
+    if (name === 'capacity') {
+      const num = parseInt(value);
+      if (!isNaN(num) && num > maxCapacityForType) return;
+    }
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleTypeChange = (typeKey) => {
+    setSelectedType(typeKey);
+    const maxCap = VEHICLE_TYPES.find(t => t.key === typeKey)?.maxCapacity ?? 8;
+    const currentCap = parseInt(formData.capacity);
+    if (!isNaN(currentCap) && currentCap > maxCap) {
+      setFormData(prev => ({ ...prev, capacity: maxCap.toString() }));
+    }
+  };
 
   const {
     showPermissionModal,
@@ -196,8 +223,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
     }
 
     const capacityNum = parseInt(capacity);
-    if (capacityNum < 1 || capacityNum > 8) {
-      showAlert('Ocurrió algo', 'Capacidad: 1 a 8 pasajeros');
+    if (capacityNum < 1 || capacityNum > maxCapacityForType) {
+      showAlert('Ocurrió algo', `Capacidad: 1 a ${maxCapacityForType} pasajeros para el tipo seleccionado`);
       return;
     }
 
@@ -210,6 +237,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
       fd.append('color', color);
       fd.append('licensePlate', licensePlate);
       fd.append('capacity', capacityNum);
+      fd.append('type', selectedType);
       fd.append('features', JSON.stringify(features));
 
       if (isEdit && existingPhotos.length > 0) {
@@ -266,7 +294,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
     { key: 'year',         label: 'Año',      placeholder: '2020', half: true, keyboard: 'numeric', max: 4 },
     { key: 'color',        label: 'Color',    placeholder: 'Blanco',                    half: true },
     { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en el vehículo o documento', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
-    { key: 'capacity',     label: 'Capacidad de pasajeros', placeholder: '4', half: false, keyboard: 'numeric', max: 1 },
+    { key: 'capacity',     label: `Capacidad de pasajeros (máx. ${maxCapacityForType})`, placeholder: `1–${maxCapacityForType}`, half: false, keyboard: 'numeric', max: 1 },
   ];
 
   const totalPhotos = existingPhotos.length + photos.length;
@@ -416,6 +444,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
           {/* Info */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
             <Text style={[styles.sectionLabel, { color: textLabel }]}>Información</Text>
+
+            {/* Tipo de vehículo */}
+            <Text style={[styles.label, { color: textLabel, marginBottom: 10 }]}>Tipo de vehículo</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll} contentContainerStyle={styles.typeContainer}>
+              {VEHICLE_TYPES.map(t => {
+                const active = selectedType === t.key;
+                return (
+                  <TouchableOpacity
+                    key={t.key}
+                    style={[styles.typeChip, { borderColor: active ? textPrimary : border, backgroundColor: active ? textPrimary : 'transparent' }]}
+                    onPress={() => handleTypeChange(t.key)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.typeChipText, { color: active ? (isDarkMode ? '#000000' : '#FFFFFF') : textMuted }]}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
             <View style={styles.row}>
               {fields.filter(f => f.half).map(f => (
@@ -625,6 +671,17 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 16,
   },
+
+  // Type chips
+  typeScroll:    { marginHorizontal: -20, marginBottom: 20 },
+  typeContainer: { paddingHorizontal: 20, gap: 8, flexDirection: 'row' },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  typeChipText: { fontSize: 14, fontWeight: '600' },
 
   // Form
   row:       { flexDirection: 'row', gap: 20 },

@@ -1,0 +1,224 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+  StatusBar,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
+import { useColors } from '../../../hooks/useColors';
+
+const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
+
+const decodePolyline = (encoded) => {
+  if (!encoded) return [];
+  const pts = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    shift = 0; result = 0;
+    do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    pts.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
+  }
+  return pts;
+};
+
+const TripMapScreen = ({ route, navigation }) => {
+  const { trip } = route.params;
+  const insets = useSafeAreaInsets();
+  const { getCurrentThemeMode } = useColors();
+  const mapRef = useRef(null);
+  const isMounted = useRef(true);
+
+  const isDark = getCurrentThemeMode() === 'dark';
+  const cardBg = isDark ? '#1E1E1E' : '#FFFFFF';
+  const textPrimary = isDark ? '#FFFFFF' : '#000000';
+
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const originCoords = trip?.origin?.coordinates;
+  const destCoords = trip?.destination?.coordinates;
+  const stops = (trip?.intermediateStops || [])
+    .filter(s => s?.coordinates?.latitude && s?.coordinates?.longitude)
+    .sort((a, b) => a.order - b.order);
+
+  useEffect(() => {
+    isMounted.current = true;
+    fetchRoute();
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const fetchRoute = async () => {
+    if (!originCoords?.latitude || !destCoords?.latitude) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const orig = `${originCoords.latitude},${originCoords.longitude}`;
+      const dest = `${destCoords.latitude},${destCoords.longitude}`;
+      let waypointsParam = '';
+      if (stops.length > 0) {
+        const coords = stops.map(s => `${s.coordinates.latitude},${s.coordinates.longitude}`);
+        waypointsParam = `&waypoints=${encodeURIComponent(coords.join('|'))}`;
+      }
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(orig)}&destination=${encodeURIComponent(dest)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
+      const data = await fetch(url).then(r => r.json());
+      if (!isMounted.current) return;
+      if (data.routes?.length > 0) {
+        const r = data.routes[0];
+        let points = [];
+        r.legs?.forEach(leg => leg.steps?.forEach(step => {
+          if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points));
+        }));
+        if (points.length === 0 && r.overview_polyline?.points) points = decodePolyline(r.overview_polyline.points);
+        if (points.length > 0) {
+          setRouteCoordinates(points);
+          setTimeout(() => {
+            if (mapRef.current && isMounted.current) {
+              mapRef.current.fitToCoordinates(points, {
+                edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
+                animated: true,
+              });
+            }
+          }, 400);
+        }
+      }
+    } catch (e) {
+      // fallback: fit to markers
+      const allCoords = [
+        originCoords && { latitude: originCoords.latitude, longitude: originCoords.longitude },
+        ...stops.map(s => ({ latitude: s.coordinates.latitude, longitude: s.coordinates.longitude })),
+        destCoords && { latitude: destCoords.latitude, longitude: destCoords.longitude },
+      ].filter(Boolean);
+      if (mapRef.current && isMounted.current && allCoords.length > 0) {
+        setTimeout(() => {
+          mapRef.current?.fitToCoordinates(allCoords, {
+            edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
+            animated: true,
+          });
+        }, 400);
+      }
+    } finally {
+      if (isMounted.current) setLoading(false);
+    }
+  };
+
+  const initialRegion = originCoords?.latitude
+    ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
+    : { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 2, longitudeDelta: 2 };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        initialRegion={initialRegion}
+        showsUserLocation={false}
+        showsMyLocationButton={false}
+        paddingAdjustmentBehavior="never"
+      >
+        {originCoords?.latitude && (
+          Platform.OS === 'android'
+            ? <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
+            : <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.originMarker}><View style={styles.markerInner} /></View>
+              </Marker>
+        )}
+
+        {stops.map((stop, i) => (
+          <Marker key={`stop-${i}`} coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.waypointMarker}>
+              <Ionicons name="ellipse" size={8} color="#FFFFFF" />
+            </View>
+          </Marker>
+        ))}
+
+        {destCoords?.latitude && (
+          Platform.OS === 'android'
+            ? <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-dest.png')} />
+            : <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.destMarker}><View style={styles.markerInner} /></View>
+              </Marker>
+        )}
+
+        {routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeWidth={5}
+            strokeColor="#010101"
+            strokeColors={['#010101']}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
+      </MapView>
+
+      {/* Back button */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: cardBg }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={22} color={textPrimary} />
+        </TouchableOpacity>
+      </View>
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#010101" />
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  map: { ...StyleSheet.absoluteFillObject },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  originMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
+  waypointMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+});
+
+export default TripMapScreen;
