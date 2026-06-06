@@ -44,6 +44,7 @@ const EditTripScreen = ({ navigation, route }) => {
   const [time, setTime]       = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
   const [tempTime, setTempTime] = useState(new Date());
+  const [occupiedSeats, setOccupiedSeats] = useState(0);
   const [formData, setFormData] = useState({
     vehicle: '',
     origin:      { address: '', city: '', province: '' },
@@ -84,6 +85,7 @@ const EditTripScreen = ({ navigation, route }) => {
         const tripTime = new Date();
         tripTime.setHours(parseInt(hours), parseInt(minutes));
         setTime(tripTime);
+        setOccupiedSeats(trip.occupiedSeats ?? trip.passengers?.length ?? 0);
         setFormData({
           vehicle: typeof trip.vehicle === 'object' && trip.vehicle !== null
             ? trip.vehicle._id || ''
@@ -128,7 +130,13 @@ const EditTripScreen = ({ navigation, route }) => {
   };
 
   const handleChange = (field, value) => {
-    if (field.includes('.')) {
+    if (field === 'vehicle') {
+      const newVehicle = vehicles.find(v => v._id === value);
+      const maxCap = newVehicle?.capacity ?? 8;
+      const currentSeats = parseInt(formData.availableSeats) || 1;
+      const clampedSeats = Math.min(currentSeats, maxCap);
+      setFormData(prev => ({ ...prev, vehicle: value, availableSeats: clampedSeats.toString() }));
+    } else if (field.includes('.')) {
       const [parent, child] = field.split('.');
       setFormData({ ...formData, [parent]: { ...formData[parent], [child]: value } });
     } else {
@@ -172,9 +180,26 @@ const EditTripScreen = ({ navigation, route }) => {
   };
 
   const handleUpdateTrip = async () => {
-    const { vehicle, departureDate, departureTime } = formData;
+    const { vehicle, departureDate, departureTime, availableSeats } = formData;
     if (!vehicle || !departureDate || !departureTime) {
       setModalMessage('Seleccioná fecha, hora y vehículo.');
+      setShowErrorModal(true);
+      return;
+    }
+    const seatsNum = parseInt(availableSeats);
+    if (!seatsNum || seatsNum < 1) {
+      setModalMessage('Indicá cuántos asientos tiene el viaje.');
+      setShowErrorModal(true);
+      return;
+    }
+    if (seatsNum < occupiedSeats) {
+      setModalMessage(`No podés bajar los asientos a ${seatsNum}: ya hay ${occupiedSeats} pasajero${occupiedSeats !== 1 ? 's' : ''} confirmado${occupiedSeats !== 1 ? 's' : ''}.`);
+      setShowErrorModal(true);
+      return;
+    }
+    const maxSeats = selectedVehicle?.capacity ?? 8;
+    if (seatsNum > maxSeats) {
+      setModalMessage(`El vehículo elegido tiene capacidad máxima de ${maxSeats} pasajeros.`);
       setShowErrorModal(true);
       return;
     }
@@ -346,6 +371,51 @@ const EditTripScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
+          {/* ── Asientos ── */}
+          {selectedVehicle && (() => {
+            const maxCap = selectedVehicle.capacity;
+            const current = parseInt(formData.availableSeats) || 1;
+            const minSeats = Math.max(1, occupiedSeats);
+            return (
+              <>
+                <Text style={[styles.sectionLabel, { color: tm }]}>Asientos del viaje</Text>
+                <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+                  <View style={[styles.row, { justifyContent: 'space-between' }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowText, { color: tp }]}>Asientos disponibles</Text>
+                      <Text style={[{ fontSize: 12, color: tm, marginTop: 2 }]}>
+                        Máx. {maxCap} · vehículo{occupiedSeats > 0 ? ` · ${occupiedSeats} ya reservado${occupiedSeats !== 1 ? 's' : ''}` : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.stepper}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (current > minSeats) handleChange('availableSeats', (current - 1).toString());
+                        }}
+                        style={[styles.stepperBtn, { borderColor: border, opacity: current <= minSeats ? 0.3 : 1 }]}
+                        disabled={current <= minSeats}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="remove" size={16} color={tp} />
+                      </TouchableOpacity>
+                      <Text style={[styles.stepperVal, { color: tp }]}>{current}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (current < maxCap) handleChange('availableSeats', (current + 1).toString());
+                        }}
+                        style={[styles.stepperBtn, { borderColor: border, opacity: current >= maxCap ? 0.3 : 1 }]}
+                        disabled={current >= maxCap}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="add" size={16} color={tp} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </>
+            );
+          })()}
+
           {/* Botón guardar */}
           <TouchableOpacity
             onPress={handleUpdateTrip}
@@ -392,7 +462,7 @@ const EditTripScreen = ({ navigation, route }) => {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.vehicleName, { color: tp }]}>{v.brand} {v.model}</Text>
-                    <Text style={[styles.vehiclePlate, { color: tm }]}>{v.licensePlate}</Text>
+                    <Text style={[styles.vehiclePlate, { color: tm }]}>{v.licensePlate} · {v.capacity} asientos</Text>
                   </View>
                   {formData.vehicle === v._id && (
                     <Ionicons name="checkmark" size={20} color={tp} />
@@ -554,6 +624,15 @@ const styles = StyleSheet.create({
   routeTag:   { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   routeAddress: { fontSize: 14, fontWeight: '500' },
   routeCity:    { fontSize: 12, marginTop: 2 },
+
+  // Stepper
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepperBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  stepperVal: { fontSize: 18, fontWeight: '700', minWidth: 24, textAlign: 'center' },
 
   // Botón
   saveBtn: {
