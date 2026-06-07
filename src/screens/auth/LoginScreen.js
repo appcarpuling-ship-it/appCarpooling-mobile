@@ -52,7 +52,7 @@ const LoginScreen = ({ navigation }) => {
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const otaId = Updates.updateId ? Updates.updateId.replace(/-/g, '').slice(0, 8) : null;
-  const versionLabel = otaId ? `v${version} - OTA ${otaId}` : `v${version}`;
+  const versionLabel = otaId ? `v${version} - ${otaId}` : `v${version}`;
 
   const handleGoogleLogin = async () => {
     setSsoLoading('google');
