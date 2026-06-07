@@ -126,8 +126,10 @@ const ProfileScreen = () => {
     {
       title: 'Información',
       items: [
-        { id: 4, title: 'Términos y Condiciones', subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
-        { id: 5, title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
+        { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
+        { id: 11, title: 'Política de Privacidad', subtitle: 'Cómo usamos tus datos personales',  icon: 'shield-outline',        onPress: () => navigation.navigate('Privacy') },
+        { id: 12, title: 'Cookies',                subtitle: 'Información sobre almacenamiento', icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
+        { id: 5,  title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
         { id: 9, title: 'Mostrar introducción',   subtitle: 'Volvé a ver el tutorial de la app', icon: 'book-outline',          onPress: () => resetTutorial() },
         {
           id: 6,
