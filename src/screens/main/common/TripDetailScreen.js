@@ -221,9 +221,9 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const loadBanners = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('enterprise'), { isActive: true });
+      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'trip_detail' });
       if (response.success && Array.isArray(response.data)) {
-        setBanners(response.data.filter(b => b.isActive));
+        setBanners(response.data.flatMap(s => s.banners || []));
       }
     } catch (_) {}
   };
