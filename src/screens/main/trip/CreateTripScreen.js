@@ -454,6 +454,14 @@ const CreateTripScreen = ({ navigation }) => {
       return;
     }
 
+    const seatsNum = parseInt(availableSeats);
+    const selectedVehicle = vehicles.find(v => v._id === vehicle);
+    if (selectedVehicle?.capacity && seatsNum > selectedVehicle.capacity) {
+      setModalMessage(`El vehículo tiene capacidad máxima de ${selectedVehicle.capacity} pasajero${selectedVehicle.capacity !== 1 ? 's' : ''}`);
+      setShowErrorModal(true);
+      return;
+    }
+
     setLoading(true);
     try {
       const tripData = {
@@ -998,6 +1006,14 @@ const CreateTripScreen = ({ navigation }) => {
                   keyboardType="numeric"
                 />
               </View>
+              {formData.vehicle && (() => {
+                const sv = vehicles.find(v => v._id === formData.vehicle);
+                return sv?.capacity ? (
+                  <Text style={{ fontSize: 12, color: colors.textTertiary, marginTop: -8, marginBottom: 8, marginLeft: 4 }}>
+                    Máx. {sv.capacity} según el vehículo
+                  </Text>
+                ) : null;
+              })()}
 
               <View style={dynamicStyles.inputWrapper}>
                 <Ionicons name="cash-outline" size={18} color={colors.accentGreen} />

@@ -37,6 +37,7 @@ const MyTripsScreen = ({ navigation }) => {
   const [completingTripId, setCompletingTripId] = useState(null);
   const [actualCost, setActualCost] = useState('');
   const [driverPay, setDriverPay] = useState('');
+  const [submittingComplete, setSubmittingComplete] = useState(false);
 
   useEffect(() => {
     loadMyTrips(1, true);
@@ -142,24 +143,27 @@ const MyTripsScreen = ({ navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Ocurrió algo', 'Ingresa un costo valido mayor a 0');
+      showAlert('Campo requerido', 'Ingresá un costo válido mayor a 0');
       return;
     }
     const pay = parseFloat(driverPay) || 0;
 
+    setSubmittingComplete(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
         setShowCostModal(false);
+        await loadMyTrips(1, true);
+        await refreshUser();
         const total = cost + pay;
         showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
-        loadMyTrips(1, true);
-        await refreshUser();
       } else {
         showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
       showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
+    } finally {
+      setSubmittingComplete(false);
     }
   };
 
@@ -462,17 +466,22 @@ const MyTripsScreen = ({ navigation }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { borderColor: colors.border }]}
+                style={[styles.modalCancelButton, { borderColor: colors.border, opacity: submittingComplete ? 0.4 : 1 }]}
                 onPress={() => setShowCostModal(false)}
+                disabled={submittingComplete}
               >
                 <Text style={[styles.modalCancelText, { color: colors.textTertiary }]}>Cancelar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalConfirmButton, { backgroundColor: colors.textPrimary }]}
+                style={[styles.modalConfirmButton, { backgroundColor: colors.textPrimary, opacity: submittingComplete ? 0.7 : 1 }]}
                 onPress={submitCompleteTrip}
+                disabled={submittingComplete}
               >
-                <Text style={[styles.modalConfirmText, { color: colors.background }]}>Completar</Text>
+                {submittingComplete
+                  ? <ActivityIndicator size="small" color={colors.background} />
+                  : <Text style={[styles.modalConfirmText, { color: colors.background }]}>Completar</Text>
+                }
               </TouchableOpacity>
             </View>
           </View>

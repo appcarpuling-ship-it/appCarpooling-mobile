@@ -10,10 +10,12 @@ import {
   Dimensions,
   ScrollView,
   Pressable,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { sanitizeImageUrl } from '../../utils/imageUtils';
+import { handleBannerPress } from '../../utils/bannerNavigation';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -29,7 +31,7 @@ const TOP_INSET_WITHOUT_HANDLE = 20;
 /**
  * Modal tipo bottom sheet con imagen, texto y botón fijo "Cerrar" (solo cierra, no navega).
  */
-const BannerDetailModal = ({ visible, banner, onClose, navigation: _navigation, colors }) => {
+const BannerDetailModal = ({ visible, banner, onClose, navigation, colors }) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const slide = useRef(new Animated.Value(SCREEN_H)).current;
@@ -67,8 +69,16 @@ const BannerDetailModal = ({ visible, banner, onClose, navigation: _navigation, 
 
   if (!visible || !banner) return null;
 
-  const title = typeof banner.title === 'string' ? banner.title.trim() : '';
-  const description = typeof banner.description === 'string' ? banner.description.trim() : '';
+  const title       = typeof banner.title === 'string' ? banner.title.trim() : '';
+  const description = typeof banner.texto === 'string' ? banner.texto.trim()
+                    : typeof banner.description === 'string' ? banner.description.trim() : '';
+  const hasLink     = banner.hipervinculo && (banner.appGoTo || banner.webGoTo || banner.clickUrl);
+  const linkLabel   = banner.textHipervinculo || 'Ver más';
+
+  const handleLink = () => {
+    handleBannerPress(banner, navigation);
+    handleClose();
+  };
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={handleClose}>
@@ -127,6 +137,15 @@ const BannerDetailModal = ({ visible, banner, onClose, navigation: _navigation, 
               },
             ]}
           >
+            {hasLink && (
+              <TouchableOpacity
+                style={[styles.linkBtn, { borderColor: closeBtnBg }]}
+                onPress={handleLink}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.linkBtnText, { color: closeBtnBg }]}>{linkLabel}</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.closeActionBtn, { backgroundColor: closeBtnBg }]}
               onPress={handleClose}
@@ -196,6 +215,17 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 20,
     paddingTop: 12,
+    gap: 10,
+  },
+  linkBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  linkBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   closeActionBtn: {
     borderRadius: 12,

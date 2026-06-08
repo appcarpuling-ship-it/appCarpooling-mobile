@@ -140,7 +140,8 @@ export const ENDPOINTS = {
   MY_SEAT_RESERVATIONS: '/seat-reservations/my-reservations',
 
   // Banners
-  GET_BANNERS_BY_PACKAGE: (packageId) => `/banners/package/${packageId}`,
+  GET_BANNER_SECTIONS: '/banners/sections',
+  GET_BANNERS_BY_SECTION: (sectionTitle) => `/banners/section/${encodeURIComponent(sectionTitle)}`,
   REGISTER_BANNER_VIEW: (id) => `/banners/${id}/register-view`,
   REGISTER_BANNER_CLICK: (id) => `/banners/${id}/register-click`,
 

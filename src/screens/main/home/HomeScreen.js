@@ -144,9 +144,7 @@ const HomeScreen = ({ navigation }) => {
   const [destination, setDestination] = useState('');
   const [destinationCity, setDestinationCity] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
-  const [bannersEnterprise, setBannersEnterprise] = useState([]);
-  const [bannersVip, setBannersVip] = useState([]);
-  const [bannersPremium, setBannersPremium] = useState([]);
+  const [bannerSections, setBannerSections] = useState([]); // [{sectionTitle, banners}]
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -164,9 +162,7 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadRecentTrips();
-    loadBannersEnterprise();
-    loadBannersVip();
-    loadBannersPremium();
+    loadBannerSections();
     if (isAuthenticated) loadActiveTrip();
   }, []);
 
@@ -239,44 +235,20 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const loadBannersEnterprise = async () => {
+  const loadBannerSections = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('enterprise'), { isActive: true });
+      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS);
       if (response.success && Array.isArray(response.data)) {
-        setBannersEnterprise(response.data.filter(b => b.isActive));
+        setBannerSections(response.data);
       }
     } catch (error) {
-      console.error('Error loading bannersEnterprise:', error);
-    }
-  };
-
-  const loadBannersVip = async () => {
-    try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('vip'), { isActive: true });
-      if (response.success && Array.isArray(response.data)) {
-        setBannersVip(response.data.filter(b => b.isActive));
-      }
-    } catch (error) {
-      console.error('Error loading bannersVip:', error);
-    }
-  };
-
-  const loadBannersPremium = async () => {
-    try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('premium'), { isActive: true });
-      if (response.success && Array.isArray(response.data)) {
-        setBannersPremium(response.data.filter(b => b.isActive));
-      }
-    } catch (error) {
-      console.error('Error loading bannersPremium:', error);
+      console.error('Error loading banner sections:', error);
     }
   };
 
   const onRefresh = () => {
     loadRecentTrips(true);
-    loadBannersEnterprise();
-    loadBannersVip();
-    loadBannersPremium();
+    loadBannerSections();
     if (isAuthenticated) loadActiveTrip();
   };
 
@@ -761,18 +733,6 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Banner Enterprise */}
-        {bannersEnterprise.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersEnterprise}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
-        )}
-
         {/* Upcoming trips */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -797,28 +757,21 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Banner VIP */}
-        {bannersVip.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersVip}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
-        )}
-
-        {/* Banner Premium */}
-        {bannersPremium.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersPremium}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
+        {/* Banner sections (dynamic) */}
+        {bannerSections.map((section) =>
+          section.banners.length > 0 ? (
+            <View key={section.sectionTitle} style={styles.bannerSection}>
+              <Text style={[styles.bannerSectionTitle, { color: textPrimary }]}>
+                {section.sectionTitle}
+              </Text>
+              <BannerCarousel
+                banners={section.banners}
+                dotColor={accent}
+                dotInactiveColor={borderColor}
+                onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+              />
+            </View>
+          ) : null
         )}
       </ScrollView>
 
@@ -1152,6 +1105,12 @@ const styles = StyleSheet.create({
   // Banners
   bannerSection: {
     marginTop: 28,
+  },
+  bannerSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+    paddingHorizontal: 24,
   },
   bannerListContent: {
     paddingHorizontal: 24,
