@@ -38,6 +38,7 @@ const MyTripsScreen = ({ navigation }) => {
   const [actualCost, setActualCost] = useState('');
   const [driverPay, setDriverPay] = useState('');
   const [submittingComplete, setSubmittingComplete] = useState(false);
+  const [costError, setCostError] = useState('');
 
   useEffect(() => {
     loadMyTrips(1, true);
@@ -131,6 +132,7 @@ const MyTripsScreen = ({ navigation }) => {
     setCompletingTripId(tripId);
     setActualCost('');
     setDriverPay('');
+    setCostError('');
     setShowCostModal(true);
   };
 
@@ -143,18 +145,19 @@ const MyTripsScreen = ({ navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Campo requerido', 'Ingresá un costo válido mayor a 0');
+      setCostError('Ingresá un costo válido mayor a 0');
       return;
     }
+    setCostError('');
     const pay = parseFloat(driverPay) || 0;
 
     setSubmittingComplete(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
-        setShowCostModal(false);
         await loadMyTrips(1, true);
         await refreshUser();
+        setShowCostModal(false);
         const total = cost + pay;
         showAlert('Viaje Completado', pay > 0 ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}` : `Costo final: $${formatNumber(cost)}`);
       } else {
@@ -443,14 +446,19 @@ const MyTripsScreen = ({ navigation }) => {
             </Text>
 
             <TextInput
-              style={[styles.costInput, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
+              style={[styles.costInput, { borderColor: costError ? '#EF4444' : colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
               placeholder="Ej: 1500"
               placeholderTextColor={colors.placeholder}
               keyboardType="decimal-pad"
               value={actualCost}
-              onChangeText={setActualCost}
+              onChangeText={(v) => { setActualCost(v); if (costError) setCostError(''); }}
               autoFocus
             />
+            {costError ? (
+              <Text style={{ fontSize: 12, color: '#EF4444', marginTop: -8, marginBottom: 8, marginLeft: 2 }}>
+                {costError}
+              </Text>
+            ) : null}
 
             <Text style={[styles.modalSubtitle, { color: colors.textTertiary, marginTop: 12 }]}>
               Contribución extra (tu paga)

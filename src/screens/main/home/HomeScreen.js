@@ -606,7 +606,7 @@ const HomeScreen = ({ navigation }) => {
               <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.activeTripLabel}>
-                  {activeTripRole === 'driver' ? 'Conductor · Viaje en curso' : 'Pasajero · Viaje en curso'}
+                  {activeTripRole === 'driver' ? 'Viaje en curso' : 'Viaje en curso'}
                 </Text>
                 <Text style={styles.activeTripDest} numberOfLines={1}>
                   En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}

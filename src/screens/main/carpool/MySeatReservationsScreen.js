@@ -352,9 +352,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
         {(rs === 'rejected' || rs === 'cancelled') && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
-            <View style={[styles.metaChip, { backgroundColor: chipBg }]}>
-              <Ionicons name={rs === 'rejected' ? 'close-circle-outline' : 'ban-outline'} size={13} color={textMuted} />
-              <Text style={[styles.metaText, { color: textMuted }]}>
+            <View style={[styles.metaChip, { backgroundColor: pill.c + '20', alignSelf: 'flex-start' }]}>
+              {rs === 'rejected' && <Ionicons name="close-circle-outline" size={13} color={pill.c} />}
+              <Text style={[styles.metaText, { color: pill.c }]}>
                 {rs === 'rejected' ? 'Rechazada por el conductor' : 'Reserva cancelada'}
               </Text>
             </View>
@@ -366,14 +366,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: bg }]}>
+      <View style={[styles.centered, { backgroundColor: chipBg }]}>
         <ActivityIndicator size="small" color={textMuted} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <View style={[styles.container, { backgroundColor: chipBg }]}>
       {reservations.length > 0 ? (
         <FlatList
           data={sortedData}
@@ -422,6 +422,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   cardHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

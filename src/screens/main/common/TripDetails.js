@@ -213,14 +213,30 @@ const TripDetails = ({ navigation, route }) => {
                                 <View style={[styles.vehicleExtra, { borderTopColor: divider }]}>
                                     <Text style={[styles.vehiclePlate, { color: textMuted }]}>
                                         {selectedVehicle.licensePlate}
+                                        {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
                                     </Text>
-                                    {selectedVehicle.features && (
-                                        <View style={styles.chips}>
-                                            {selectedVehicle.features.ac      && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>A/C</Text></View>}
-                                            {selectedVehicle.features.music   && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>Música</Text></View>}
-                                            {selectedVehicle.features.luggage && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>Equipaje</Text></View>}
-                                        </View>
-                                    )}
+                                    <Text style={[styles.chipText, { color: textMuted, marginBottom: 4 }]}>Características</Text>
+                                    {(() => {
+                                        const f = selectedVehicle.features || {};
+                                        const activeFeatures = [
+                                            f.ac      && { label: 'A/C',      icon: 'snow-outline' },
+                                            f.music   && { label: 'Música',   icon: 'musical-notes-outline' },
+                                            f.luggage && { label: 'Equipaje', icon: 'bag-handle-outline' },
+                                            f.pets    && { label: 'Mascotas', icon: 'paw-outline' },
+                                        ].filter(Boolean);
+                                        return activeFeatures.length > 0 ? (
+                                            <View style={styles.chips}>
+                                                {activeFeatures.map(feat => (
+                                                    <View key={feat.label} style={[styles.chip, { backgroundColor: divider, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                                                        <Ionicons name={feat.icon} size={12} color={textPrimary} />
+                                                        <Text style={[styles.chipText, { color: textPrimary }]}>{feat.label}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        ) : (
+                                            <Text style={[styles.chipText, { color: textMuted }]}>Sin características registradas</Text>
+                                        );
+                                    })()}
                                 </View>
                             )}
                         </View>

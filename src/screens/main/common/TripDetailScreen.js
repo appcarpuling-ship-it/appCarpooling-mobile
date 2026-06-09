@@ -13,6 +13,7 @@ import {
   TextInput,
   Dimensions,
   Platform,
+  RefreshControl,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -147,6 +148,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [showCostModal, setShowCostModal] = useState(false);
   const [actualCost, setActualCost] = useState('');
   const [driverPay, setDriverPay] = useState('');
+  const [submittingComplete, setSubmittingComplete] = useState(false);
+  const [costError, setCostError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -531,18 +535,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Ocurrió algo', 'Ingresa un costo valido mayor a 0');
+      setCostError('Ingresá un costo válido mayor a 0');
       return;
     }
+    setCostError('');
     const pay = parseFloat(driverPay) || 0;
+    setSubmittingComplete(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
-        setShowCostModal(false);
-        const total = cost + pay;
-        showAlert('Viaje Completado', pay > 0
-          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
-          : `Costo final: $${formatNumber(cost)}`);
         if (response.data) {
           const updatedTrip = response.data.trip || response.data;
           const actualCostVal = updatedTrip?.actualCost ?? response.data.actualCost ?? cost;
@@ -551,11 +552,18 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
         await loadTripDetail();
         await refreshUser();
+        setShowCostModal(false);
+        const total = cost + pay;
+        showAlert('Viaje Completado', pay > 0
+          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
+          : `Costo final: $${formatNumber(cost)}`);
       } else {
-        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
+        setCostError(response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
+      setCostError(error.message || 'Error al completar el viaje');
+    } finally {
+      setSubmittingComplete(false);
     }
   };
 
@@ -593,7 +601,21 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadTripDetail();
+              setRefreshing(false);
+            }}
+            tintColor={textMuted}
+            colors={[textMuted]}
+          />
+        }
+      >
         {statusCfg && (
           <View style={styles.statusRow}>
             <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
@@ -684,22 +706,6 @@ const TripDetailScreen = ({ route, navigation }) => {
             </Text>
           </View>
         </View>
-
-        {/* Estimated cost card */}
-        {/* {Number(trip.estimatedCost) > 0 && trip.status === 'active' && (
-          <View style={[styles.priceCard, { backgroundColor: cardBg }]}>
-            <View style={styles.priceCardLeft}>
-              <Text style={[styles.priceCardLabel, { color: textMuted }]}>Costo estimado</Text>
-              <Text style={[styles.priceCardValue, { color: textPrimary }]}>
-                ${formatNumber(trip.estimatedCost)}
-              </Text>
-            </View>
-            <View style={[styles.priceCardIcon, { backgroundColor: dark ? '#2A2A2A' : '#EFEFEF' }]}>
-              <Ionicons name="cash-outline" size={22} color={textSecondary} />
-            </View>
-          </View>
-        )} */}
-
 
         {/* Driver */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
@@ -857,14 +863,17 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Passengers (driver only) */}
-        {isOwnTrip && passengers.length > 0 && (
+        {isOwnTrip && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
-              Pasajeros ({passengers.length})
+              Pasajeros confirmados ({passengers.length})
             </Text>
-            {passengers.map((booking) => {
+            {passengers.length === 0 ? (
+              <Text style={{ fontSize: 13, color: textMuted }}>Sin pasajeros confirmados aún</Text>
+            ) : passengers.map((booking) => {
               const p = booking.passenger;
               const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
+              const paid = booking.seatReservation?.reservationStatus === 'reserved';
               return (
                 <TouchableOpacity
                   key={booking._id}
@@ -885,9 +894,19 @@ const TripDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {p?.firstName} {p?.lastName}
                     </Text>
-                    <Text style={[styles.passengerSeats, { color: textMuted }]}>
-                      {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                      <Text style={[styles.passengerSeats, { color: textMuted }]}>
+                        {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
+                      </Text>
+                      <View style={{
+                        paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
+                        backgroundColor: paid ? (colors.success + '20') : (colors.accentOrange + '20'),
+                      }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: paid ? colors.success : colors.accentOrange }}>
+                          {paid ? 'Pagó' : 'Confirmado'}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                   <TouchableOpacity
                     style={[styles.chatBtn, { backgroundColor: cardBg }]}
@@ -905,7 +924,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Banners */}
         {banners.length > 0 && (
           <View style={styles.bannersSection}>
-            <Text style={[styles.sectionLabel, { color: textMuted, paddingHorizontal: 20, marginBottom: 14 }]}>
+            <Text style={[styles.sectionLabel, { color: textPrimary, paddingHorizontal: 20, marginBottom: 14 }]}>
               Destacados
             </Text>
             <BannerCarousel banners={banners} onPress={(item) => setBannerModal({ visible: true, banner: item })} />
@@ -1129,20 +1148,21 @@ const TripDetailScreen = ({ route, navigation }) => {
       </Modal>
 
       {/* Cost Modal */}
-      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => setShowCostModal(false)}>
+      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => { if (!submittingComplete) setShowCostModal(false); }}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: bg }]}>
             <Text style={[styles.modalTitle, { color: textPrimary }]}>Completar viaje</Text>
             <Text style={[styles.modalSub, { color: textMuted }]}>Costo real del viaje</Text>
             <TextInput
-              style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg }]}
+              style={[styles.modalInput, { borderColor: costError ? '#EF4444' : divider, color: textPrimary, backgroundColor: cardBg }]}
               placeholder="Ej: 1500"
               placeholderTextColor={textMuted}
               keyboardType="decimal-pad"
               value={actualCost}
-              onChangeText={setActualCost}
+              onChangeText={v => { setActualCost(v); if (costError) setCostError(''); }}
               autoFocus
             />
+            {costError ? <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 6 }}>{costError}</Text> : null}
             <Text style={[styles.modalSub, { color: textMuted }]}>Tu contribucion extra (opcional)</Text>
             <TextInput
               style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg, marginTop: 6 }]}
@@ -1154,16 +1174,21 @@ const TripDetailScreen = ({ route, navigation }) => {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalBtnSecondary, { borderColor: divider }]}
-                onPress={() => setShowCostModal(false)}
+                style={[styles.modalBtnSecondary, { borderColor: divider, opacity: submittingComplete ? 0.5 : 1 }]}
+                onPress={() => { if (!submittingComplete) setShowCostModal(false); }}
+                disabled={submittingComplete}
               >
                 <Text style={[styles.modalBtnSecondaryText, { color: textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: accent }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: accent, opacity: submittingComplete ? 0.7 : 1 }]}
                 onPress={submitCompleteTrip}
+                disabled={submittingComplete}
               >
-                <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
+                {submittingComplete
+                  ? <ActivityIndicator size="small" color={accentInverse} />
+                  : <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
+                }
               </TouchableOpacity>
             </View>
           </View>
