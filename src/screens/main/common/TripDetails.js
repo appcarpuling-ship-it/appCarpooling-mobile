@@ -100,6 +100,11 @@ const TripDetails = ({ navigation, route }) => {
             return;
         }
 
+        if (selectedVehicle?.capacity && parseInt(availableSeats) > selectedVehicle.capacity) {
+            showAlert('Asientos inválidos', `El vehículo seleccionado tiene capacidad para ${selectedVehicle.capacity} pasajeros.`);
+            return;
+        }
+
         setLoading(true);
         try {
             const tripData = {
@@ -257,9 +262,19 @@ const TripDetails = ({ navigation, route }) => {
                                     placeholder="Asientos disponibles *"
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
-                                    onChangeText={v => handleChange('availableSeats', v)}
+                                    onChangeText={v => {
+                                        const num = parseInt(v);
+                                        const cap = selectedVehicle?.capacity;
+                                        if (cap && num > cap) return;
+                                        handleChange('availableSeats', v);
+                                    }}
                                     keyboardType="numeric"
                                 />
+                                {selectedVehicle?.capacity && (
+                                    <Text style={[styles.capacityHint, { color: textMuted }]}>
+                                        máx {selectedVehicle.capacity}
+                                    </Text>
+                                )}
                             </View>
                             {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                                 <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
@@ -543,6 +558,10 @@ const styles = StyleSheet.create({
     textArea: {
         minHeight: 72,
         paddingTop: 0,
+    },
+    capacityHint: {
+        fontSize: 12,
+        fontWeight: '500',
     },
 
     // Preferences

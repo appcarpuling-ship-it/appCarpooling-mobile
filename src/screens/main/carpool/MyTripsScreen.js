@@ -314,7 +314,7 @@ const MyTripsScreen = ({ navigation }) => {
               )}
             </TouchableOpacity>
 
-            {item.occupiedSeats > 0 && isTripToday(item.departureDate) && (
+            {isTripToday(item.departureDate) && (
               <TouchableOpacity
                 style={[styles.footerBtnOutline, { borderColor: divider }]}
                 onPress={() => handleStartTrip(item._id)}

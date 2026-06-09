@@ -584,9 +584,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   );
 
   const statusMap = {
-    started: { color: colors.info, label: 'En curso' },
-    completed: { color: colors.success, label: 'Finalizado' },
-    cancelled: { color: colors.error, label: 'Cancelado' },
+    active:    { color: colors.accentGreen  || '#10B981', label: 'Activo' },
+    started:   { color: colors.info,                      label: 'En curso' },
+    completed: { color: colors.success,                   label: 'Finalizado' },
+    cancelled: { color: colors.error,                     label: 'Cancelado' },
   };
   const statusCfg = statusMap[trip.status];
 
@@ -780,7 +781,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Features */}
         {trip.vehicle?.features && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Caracteristicas</Text>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
             <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
@@ -812,7 +813,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Rules */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Reglas</Text>
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Preferencias</Text>
           <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
               <Ionicons
@@ -821,7 +822,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 color={trip.rules?.smokingAllowed ? colors.success : colors.error}
               />
               <Text style={[styles.ruleText, { color: textPrimary }]}>
-                {trip.rules?.smokingAllowed ? 'Se puede fumar' : 'No fumar'}
+                {trip.rules?.smokingAllowed ? 'Fumar permitido' : 'No se permite fumar'}
               </Text>
             </View>
             <View style={styles.ruleItem}>
@@ -831,17 +832,19 @@ const TripDetailScreen = ({ route, navigation }) => {
                 color={trip.rules?.petsAllowed ? colors.success : colors.error}
               />
               <Text style={[styles.ruleText, { color: textPrimary }]}>
-                {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
+                {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'No se permiten mascotas'}
               </Text>
             </View>
-            {trip.womenOnly && (
-              <View style={styles.ruleItem}>
-                <Ionicons name="woman" size={18} color={textSecondary} />
-                <Text style={[styles.ruleText, { color: textPrimary }]}>
-                  Solo mujeres (pasajeras)
-                </Text>
-              </View>
-            )}
+            <View style={styles.ruleItem}>
+              <Ionicons
+                name={trip.rules?.largeLuggageAllowed ? 'checkmark-circle' : 'close-circle'}
+                size={18}
+                color={trip.rules?.largeLuggageAllowed ? colors.success : colors.error}
+              />
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
+                {trip.rules?.largeLuggageAllowed ? 'Equipaje grande permitido' : 'Sin equipaje grande'}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -920,7 +923,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 <Text style={[styles.footerBtnText, { color: accentInverse }]}>Editar viaje</Text>
               </TouchableOpacity>
             )}
-            {trip.status === 'active' && trip.occupiedSeats > 0 && (
+            {trip.status === 'active' && (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent, marginTop: 8 }]}
                 onPress={handleStartTrip}
