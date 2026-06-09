@@ -592,10 +592,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   );
 
   const statusMap = {
-    active:    { color: colors.accentGreen  || '#10B981', label: 'Activo' },
-    started:   { color: colors.info,                      label: 'En curso' },
-    completed: { color: colors.success,                   label: 'Finalizado' },
-    cancelled: { color: colors.error,                     label: 'Cancelado' },
+    active:    { color: dark ? '#34D399' : '#10B981', label: 'Activo' },
+    started:   { color: dark ? '#FBBF24' : '#F59E0B', label: 'En curso' },
+    completed: { color: dark ? '#60A5FA' : '#3B82F6', label: 'Finalizado' },
+    cancelled: { color: dark ? '#F87171' : '#EF4444', label: 'Cancelado' },
   };
   const statusCfg = statusMap[trip.status];
 

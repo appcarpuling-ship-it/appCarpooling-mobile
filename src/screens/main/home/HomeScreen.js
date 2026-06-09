@@ -597,24 +597,30 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Banner viaje en curso */}
         {activeTrip && (
-          <TouchableOpacity
-            style={styles.activeTripBanner}
-            onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
-            activeOpacity={0.88}
-          >
-            <View style={styles.activeTripLeft}>
-              <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.activeTripLabel}>
-                  {activeTripRole === 'driver' ? 'Viaje en curso' : 'Viaje en curso'}
-                </Text>
-                <Text style={styles.activeTripDest} numberOfLines={1}>
-                  En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
-                </Text>
+          <View style={styles.activeTripWrapper}>
+            <TouchableOpacity
+              style={styles.activeTripBanner}
+              onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+              activeOpacity={0.88}
+            >
+              <View style={styles.activeTripLeft}>
+                <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.activeTripLabel}>
+                    {activeTripRole === 'driver' ? 'Viaje en curso' : 'Viaje en curso'}
+                  </Text>
+                  <Text style={styles.activeTripDest} numberOfLines={1}>
+                    En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
-          </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.activeTripRing, { opacity: pulseDot }]}
+            />
+          </View>
         )}
 
         {/* Search block */}
@@ -895,9 +901,17 @@ const styles = StyleSheet.create({
   },
 
   // Active trip banner
-  activeTripBanner: {
+  activeTripWrapper: {
     marginHorizontal: 24,
     marginBottom: 16,
+  },
+  activeTripRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
+    borderWidth: 0.8,
+    borderColor: '#F59E0B',
+  },
+  activeTripBanner: {
     backgroundColor: '#111111',
     borderRadius: 16,
     paddingHorizontal: 18,
