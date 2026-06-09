@@ -971,12 +971,22 @@ const TripDetailScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
             {trip.status === 'started' && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: accent }]}
-                onPress={handleCompleteTrip}
-              >
-                <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: accent }]}
+                  onPress={handleCompleteTrip}
+                >
+                  <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
+                </TouchableOpacity>
+                <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    onPress={handleCancelTrip}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
           </View>
         )}
