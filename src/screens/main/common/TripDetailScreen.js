@@ -934,23 +934,40 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Footer — driver */}
         {isOwnTrip && (trip.status === 'active' || trip.status === 'started' || trip.status === 'pending') && (
           <View style={[styles.footer, { borderTopColor: divider }]}>
-            {(trip.status === 'active' || trip.status === 'pending') && (
+            {trip.status === 'active' && (
+              <>
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: accent }]}
+                  onPress={handleStartTrip}
+                  disabled={startingTrip}
+                >
+                  {startingTrip
+                    ? <ActivityIndicator size="small" color={accentInverse} />
+                    : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Iniciar viaje</Text>
+                  }
+                </TouchableOpacity>
+                <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }]}
+                    onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    onPress={handleCancelTrip}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+            {trip.status === 'pending' && (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
               >
                 <Text style={[styles.footerBtnText, { color: accentInverse }]}>Editar viaje</Text>
-              </TouchableOpacity>
-            )}
-            {trip.status === 'active' && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: accent, marginTop: 8 }]}
-                onPress={handleStartTrip}
-                disabled={startingTrip}
-              >
-                <Text style={[styles.footerBtnText, { color: accentInverse }]}>
-                  {startingTrip ? 'Iniciando...' : 'Iniciar viaje'}
-                </Text>
               </TouchableOpacity>
             )}
             {trip.status === 'started' && (
@@ -959,14 +976,6 @@ const TripDetailScreen = ({ route, navigation }) => {
                 onPress={handleCompleteTrip}
               >
                 <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
-              </TouchableOpacity>
-            )}
-            {trip.status === 'active' && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: dark ? '#3D1A1A' : '#FEE2E2', marginTop: 8 }]}
-                onPress={handleCancelTrip}
-              >
-                <Text style={[styles.footerBtnText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1395,12 +1404,30 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: 8,
+    gap: 4,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   footerBtn: {
     height: 52, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
+    flexDirection: 'row', gap: 6,
   },
   footerBtnText: { fontSize: 16, fontWeight: '600' },
+  footerBtnOutline: {
+    height: 52, borderRadius: 12,
+    borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center',
+    flexDirection: 'row', gap: 6,
+  },
+  footerBtnOutlineText: { fontSize: 15, fontWeight: '600' },
+  cancelLink: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  cancelLinkText: { fontSize: 14, fontWeight: '500' },
   statusFooter: {
     flexDirection: 'row',
     alignItems: 'center',
