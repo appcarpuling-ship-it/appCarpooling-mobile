@@ -29,6 +29,9 @@ jobs:
         run: npm ci
 
 
-      - name: Build Android (AAB) + iOS (IPA)
-        run: eas build --profile production --platform all
+      - name: Build iOS (IPA)
+        run: eas build --profile production --platform ios --clear-credentials
+
+      - name: Build Android (AAB)
+        run: eas build --profile production --platform android
 
