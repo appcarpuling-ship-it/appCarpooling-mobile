@@ -445,24 +445,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
             <Text style={[styles.sectionLabel, { color: textLabel }]}>Información</Text>
 
-            {/* Tipo de vehículo */}
-            <Text style={[styles.label, { color: textLabel, marginBottom: 10 }]}>Tipo de vehículo</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll} contentContainerStyle={styles.typeContainer}>
-              {VEHICLE_TYPES.map(t => {
-                const active = selectedType === t.key;
-                return (
-                  <TouchableOpacity
-                    key={t.key}
-                    style={[styles.typeChip, { borderColor: active ? textPrimary : border, backgroundColor: active ? textPrimary : 'transparent' }]}
-                    onPress={() => handleTypeChange(t.key)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[styles.typeChipText, { color: active ? (isDarkMode ? '#000000' : '#FFFFFF') : textMuted }]}>{t.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
             <View style={styles.row}>
               {fields.filter(f => f.half).map(f => (
                 <View key={f.key} style={[styles.inputGroup, styles.halfWidth]}>
