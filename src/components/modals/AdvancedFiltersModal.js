@@ -360,18 +360,18 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
       transparent={true}
       onRequestClose={closeModal}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <Animated.View
-                style={[
-                  styles.modalContainer,
-                  { transform: [{ translateY: slideAnim }] }
-                ]}
+      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                { transform: [{ translateY: slideAnim }] }
+              ]}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
               >
                 <LinearGradient
                   colors={createColorArray(colors.background, colors.surface)}
@@ -385,7 +385,7 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {/* Ubicaciones */}
                     <View style={styles.section}>
                       <Text style={dynamicStyles.sectionTitle}>Ubicaciones</Text>
@@ -546,22 +546,22 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
                     </TouchableOpacity>
                   </View>
                 </LinearGradient>
-              </Animated.View>
-            </TouchableWithoutFeedback>
+              </KeyboardAvoidingView>
+            </Animated.View>
+          </TouchableWithoutFeedback>
 
-            {/* Date Picker */}
-            {showDatePicker && (
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                minimumDate={new Date()}
-              />
-            )}
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+          {/* Date Picker */}
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              minimumDate={new Date()}
+            />
+          )}
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };

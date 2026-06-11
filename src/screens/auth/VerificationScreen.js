@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -116,7 +117,11 @@ const VerificationScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }, Platform.OS === 'web' && { minHeight: '100vh' }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* Icon */}
           <View style={styles.header}>
@@ -171,7 +176,7 @@ const VerificationScreen = ({ route, navigation }) => {
               }
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -179,7 +184,7 @@ const VerificationScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container:  { flex: 1 },
-  content:    { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  content:    { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
   header:     { alignItems: 'center', marginBottom: 32 },
   iconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   title:      { fontSize: 26, fontWeight: '700', marginBottom: 8 },

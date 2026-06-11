@@ -142,6 +142,7 @@ const CreateReviewScreen = ({ route, navigation }) => {
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             <Animated.View
               style={[

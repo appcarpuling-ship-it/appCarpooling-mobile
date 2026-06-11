@@ -10,6 +10,7 @@ import {
   FlatList,
   RefreshControl,
   Modal,
+  KeyboardAvoidingView,
   Platform,
   Dimensions,
   Image,
@@ -561,9 +562,11 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -780,6 +783,7 @@ const HomeScreen = ({ navigation }) => {
           ) : null
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Province & City Pickers */}
       {renderLocationPicker(

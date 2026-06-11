@@ -111,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* Header */}
           <View style={styles.header}>
