@@ -500,6 +500,16 @@ const TripRequestsScreen = ({ route }) => {
           </Text>
         )}
 
+        {item.seatReservation?.pickupLocation?.address && (
+          <View style={[styles.pickupRow, { borderTopColor: divider }]}>
+            <Ionicons name="location-outline" size={13} color={textMuted} style={{ marginTop: 1 }} />
+            <Text style={[styles.pickupText, { color: textMuted }]} numberOfLines={2}>
+              <Text style={{ fontWeight: '600' }}>Punto de recogida: </Text>
+              {item.seatReservation.pickupLocation.address}
+            </Text>
+          </View>
+        )}
+
         {item.status === 'rejected' && item.rejectionReason && (
           <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
             Razón: {item.rejectionReason}
@@ -851,6 +861,20 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaHint: { flexShrink: 1 },
   metaText:  { fontSize: 13 },
+
+  pickupRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  pickupText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
 
   messageText: {
     fontSize: 13,

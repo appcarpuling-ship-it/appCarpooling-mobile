@@ -22,6 +22,8 @@ import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
+import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -88,6 +90,8 @@ const BookingScreen = ({ route, navigation }) => {
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState(null);
+  const pickupRef = useRef(null);
   const [modalMessage, setModalMessage] = useState('');
   const [priceData, setPriceData] = useState(null);
   const [seats, setSeats] = useState(1);
@@ -223,7 +227,12 @@ const BookingScreen = ({ route, navigation }) => {
     setError('');
     try {
       const tripId = trip._id || trip.id;
-      const reservationResponse = await createSeatReservation({ tripId, seatsBooked: seats, message: '' });
+      const reservationResponse = await createSeatReservation({
+        tripId,
+        seatsBooked: seats,
+        message: '',
+        ...(pickupLocation?.address && { pickupLocation })
+      });
       if (!reservationResponse?.success) {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
       }
@@ -499,6 +508,68 @@ const BookingScreen = ({ route, navigation }) => {
               <Text style={[styles.notesText, { color: textMuted }]}>{trip.notes}</Text>
             </View>
           )}
+
+          {/* Pickup Location */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Punto de recogida</Text>
+            <Text style={[styles.notesText, { color: textMuted, marginBottom: 12 }]}>
+              Opcional. Indicá dónde querés que el conductor te pase a buscar.
+            </Text>
+            <View style={[styles.pickupInputWrap, { backgroundColor: dark ? '#2A2A2A' : '#F5F5F5', borderColor: divider }]}>
+              <Ionicons name="location-outline" size={16} color={textMuted} style={{ marginLeft: 12 }} />
+              <SafePlacesAutocomplete
+                inputRef={pickupRef}
+                placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+                apiKey={getGoogleMapsApiKey()}
+                onPress={(prediction, details) => {
+                  if (!details) return;
+                  let city = '';
+                  if (details.address_components) {
+                    const locality = details.address_components.find(c => c.types.includes('locality'));
+                    const level2 = details.address_components.find(c => c.types.includes('administrative_area_level_2'));
+                    city = locality?.long_name || level2?.long_name || '';
+                  }
+                  const coords = details.geometry?.location
+                    ? { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng }
+                    : undefined;
+                  setPickupLocation({
+                    address: details.formatted_address || prediction.description,
+                    city,
+                    ...(coords && { coordinates: coords })
+                  });
+                }}
+                styles={{
+                  container: { flex: 1 },
+                  textInput: {
+                    color: textPrimary,
+                    fontSize: 14,
+                    backgroundColor: 'transparent',
+                    paddingVertical: 10,
+                  },
+                }}
+              />
+              {pickupLocation && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setPickupLocation(null);
+                    pickupRef.current?.setAddressText('');
+                  }}
+                  style={{ paddingHorizontal: 12 }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close-circle" size={18} color={textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {pickupLocation && (
+              <View style={[styles.pickupConfirmed, { backgroundColor: dark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.06)' }]}>
+                <Ionicons name="checkmark-circle" size={14} color={successColor} />
+                <Text style={[styles.pickupConfirmedText, { color: successColor }]} numberOfLines={1}>
+                  {pickupLocation.address}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Footer */}
           <TouchableOpacity
@@ -924,6 +995,27 @@ const styles = StyleSheet.create({
   bannerDesc: {
     fontSize: 13,
     lineHeight: 18,
+  },
+
+  pickupInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'visible',
+  },
+  pickupConfirmed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  pickupConfirmedText: {
+    fontSize: 12,
+    flex: 1,
   },
 
   confirmBtn: {
