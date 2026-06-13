@@ -156,6 +156,7 @@ const HomeScreen = ({ navigation }) => {
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
   const [destinationStep, setDestinationStep] = useState('province');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('inicio');
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [activeTrip, setActiveTrip] = useState(null);
   const [activeTripRole, setActiveTripRole] = useState(null); // 'driver' | 'passenger'
@@ -562,6 +563,55 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
+
+      {/* Fixed header */}
+      <View style={[styles.header, { backgroundColor: bg }]}>
+        <Image source={LOGO_SOURCE} style={styles.logo} />
+        <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
+        {isAuthenticated && (
+          <TouchableOpacity
+            onPress={() => setShowNotificationsModal(true)}
+            style={[styles.notifBtn, { backgroundColor: inputBg }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={20} color={textPrimary} />
+            {unreadCount > 0 && (
+              <View style={[styles.notifBadge, { borderColor: bg }]}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Top tab bar */}
+      <View style={[styles.topTabBar, { backgroundColor: bg, borderBottomColor: divider }]}>
+        <TouchableOpacity
+          style={[styles.topTab, activeTab === 'inicio' && styles.topTabActive]}
+          onPress={() => setActiveTab('inicio')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.topTabText, { color: activeTab === 'inicio' ? textPrimary : textMuted }]}>
+            Inicio
+          </Text>
+          {activeTab === 'inicio' && <View style={[styles.topTabIndicator, { backgroundColor: textPrimary }]} />}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.topTab, activeTab === 'solicitudes' && styles.topTabActive]}
+          onPress={() => setActiveTab('solicitudes')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.topTabText, { color: activeTab === 'solicitudes' ? textPrimary : textMuted }]}>
+            Solicitudes
+          </Text>
+          {activeTab === 'solicitudes' && <View style={[styles.topTabIndicator, { backgroundColor: textPrimary }]} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* Inicio tab */}
+      <View style={{ flex: 1, display: activeTab === 'inicio' ? 'flex' : 'none' }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -575,28 +625,6 @@ const HomeScreen = ({ navigation }) => {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Image source={LOGO_SOURCE} style={styles.logo} />
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
-          {/* <Text style={[styles.headerSub, { color: textMuted }]}>Viaja inteligente</Text> */}
-          {isAuthenticated && (
-            <TouchableOpacity
-              onPress={() => setShowNotificationsModal(true)}
-              style={[styles.notifBtn, { backgroundColor: inputBg }]}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="notifications-outline" size={20} color={textPrimary} />
-              {unreadCount > 0 && (
-                <View style={[styles.notifBadge, { borderColor: bg }]}>
-                  <Text style={styles.notifBadgeText}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
 
         {/* Banner viaje en curso */}
         {activeTrip && (
@@ -784,6 +812,57 @@ const HomeScreen = ({ navigation }) => {
         )}
       </ScrollView>
       </KeyboardAvoidingView>
+      </View>
+
+      {/* Solicitudes tab */}
+      <View style={{ flex: 1, display: activeTab === 'solicitudes' ? 'flex' : 'none' }}>
+        <ScrollView contentContainerStyle={styles.solicitudesScroll} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('CreateTripRequest')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: accent }]}>
+              <Ionicons name="add" size={22} color={accentInverse} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Publicar solicitud</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Indicá a dónde querés ir y los conductores se postulan</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('MyTripRequests')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="list" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis solicitudes</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes que publicaste y elegí conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('OpenTripRequests')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="search" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Ver solicitudes abiertas</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Explorá pedidos de pasajeros y postulate como conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Province & City Pickers */}
       {renderLocationPicker(
@@ -958,8 +1037,8 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 24,
+    paddingTop: 14,
+    paddingBottom: 10,
     position: 'relative',
   },
   logo: {
@@ -1118,6 +1197,61 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textDecorationLine: 'underline',
     textDecorationStyle: 'solid',
+  },
+
+  // Top tab bar
+  topTabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+  },
+  topTab: {
+    paddingVertical: 12,
+    marginRight: 24,
+    position: 'relative',
+  },
+  topTabActive: {},
+  topTabText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  topTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderRadius: 2,
+  },
+
+  // Solicitudes hub
+  solicitudesScroll: {
+    padding: 16,
+    gap: 12,
+  },
+  hubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+  },
+  hubIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hubCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  hubCardSub: {
+    fontSize: 12,
+    lineHeight: 17,
   },
 
   // Banners

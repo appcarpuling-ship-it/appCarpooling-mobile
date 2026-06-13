@@ -150,4 +150,13 @@ export const ENDPOINTS = {
 
   // Bot assistant
   BOT_MESSAGE: '/bot/message',
+
+  // Trip Requests (solicitudes de viaje de pasajeros)
+  TRIP_REQUESTS: '/trip-requests',
+  MY_TRIP_REQUESTS: '/trip-requests/my',
+  MY_TRIP_REQUEST_APPLICATIONS: '/trip-requests/my-applications',
+  GET_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
+  APPLY_TO_TRIP_REQUEST: (id) => `/trip-requests/${id}/apply`,
+  ACCEPT_TRIP_REQUEST_APPLICATION: (id, appId) => `/trip-requests/${id}/accept/${appId}`,
+  CANCEL_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
 };

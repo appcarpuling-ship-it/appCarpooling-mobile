@@ -119,6 +119,15 @@ export const put_withauth = async (endpoint, formData = {}) => {
   }
 };
 
+export const patch_withauth = async (endpoint, formData = {}) => {
+  try {
+    const response = await api.patch(endpoint, formData);
+    return response.data;
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
 /**
  * DELETE request con autenticaci?n
  * @param {string} endpoint - Endpoint de la API

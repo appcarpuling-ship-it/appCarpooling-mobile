@@ -50,7 +50,8 @@ const cityFromGoogleComponents = (components) => {
   return { city, province };
 };
 
-const CreateTripGoogleMaps = ({ navigation }) => {
+const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
+  const isRequestMode = navRoute?.params?.mode === 'request';
   const { getCurrentThemeMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -96,6 +97,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   const [userLocation, setUserLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [distance, setDistance] = useState(null);
+  const [distanceKm, setDistanceKm] = useState(0);
   const [duration, setDuration] = useState(null);
   const [mapSelectionMode, setMapSelectionMode] = useState(null);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -161,7 +163,8 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
   useEffect(() => {
     isMounted.current = true;
-    loadVehicles();
+    if (!isRequestMode) loadVehicles();
+    else setLoadingVehicles(false);
     getCurrentLocation();
     if (!GOOGLE_MAPS_API_KEY) showAlert('Ocurrió algo', 'La API Key de Google Maps no está configurada');
     return () => {
@@ -273,6 +276,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
           let totalDist = 0, totalDur = 0;
           route.legs?.forEach(leg => { totalDist += leg.distance?.value || 0; totalDur += leg.duration?.value || 0; });
           setDistance(totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)} km` : `${totalDist} m`);
+          setDistanceKm(totalDist / 1000);
           setDuration(totalDur >= 3600 ? `${Math.floor(totalDur / 3600)}h ${Math.floor((totalDur % 3600) / 60)}min` : `${Math.floor(totalDur / 60)} min`);
           if (mapRef.current && isMounted.current) {
             setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.fitToCoordinates(points, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true }); }, 300);
@@ -582,6 +586,10 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
+    if (isRequestMode) {
+      navigation.getParent('AppStack')?.navigate('TripRequestDetails', { origin: formData.origin, destination: formData.destination, distanceKm });
+      return;
+    }
     if (loadingVehicles) { showAlert('Un momento', 'Estamos verificando tus vehículos...'); return; }
     if (!vehicles?.length) {
       showAlert('Vehículo requerido', 'Necesitás registrar un vehículo antes de crear un viaje', [
@@ -597,7 +605,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
   // ─── Early returns ────────────────────────────────────────────────────────
 
-  if (loadingVehicles) {
+  if (!isRequestMode && loadingVehicles) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
         {renderEarlyExitHeader()}
@@ -609,7 +617,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
     );
   }
 
-  if (!vehicles?.length) {
+  if (!isRequestMode && !vehicles?.length) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
         {renderEarlyExitHeader()}
