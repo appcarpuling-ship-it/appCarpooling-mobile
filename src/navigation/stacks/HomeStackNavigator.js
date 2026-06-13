@@ -15,6 +15,7 @@ import TripMapScreen from '../../screens/main/trip/TripMapScreen';
 import CreateTripGoogleMaps from '../../screens/main/trip/CreateTripGoogleMaps';
 import MyTripRequestsScreen from '../../screens/main/home/MyTripRequestsScreen';
 import OpenTripRequestsScreen from '../../screens/main/home/OpenTripRequestsScreen';
+import MyApplicationsScreen from '../../screens/main/home/MyApplicationsScreen';
 
 const Stack = createStackNavigator();
 
@@ -107,6 +108,11 @@ const HomeStackNavigator = () => {
         name="OpenTripRequests"
         component={OpenTripRequestsScreen}
         options={{ title: 'Solicitudes abiertas' }}
+      />
+      <Stack.Screen
+        name="MyApplications"
+        component={MyApplicationsScreen}
+        options={{ title: 'Viajes que ofrecí' }}
       />
     </Stack.Navigator>
   );

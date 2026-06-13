@@ -19,6 +19,7 @@ import CreateTripGoogleMaps from '../screens/main/trip/CreateTripGoogleMaps';
 import TripDetails from '../screens/main/common/TripDetails';
 import TripRequestDetailScreen from '../screens/main/home/TripRequestDetailScreen';
 import TripRequestDetailsScreen from '../screens/main/home/TripRequestDetailsScreen';
+import TripMapScreen from '../screens/main/trip/TripMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -98,6 +99,11 @@ const AppNavigator = () => {
               headerTitleStyle: { fontWeight: '600', fontSize: 18 },
               headerBackTitleVisible: false,
             }}
+          />
+          <Stack.Screen
+            name="TripMap"
+            component={TripMapScreen}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="TripDetails"

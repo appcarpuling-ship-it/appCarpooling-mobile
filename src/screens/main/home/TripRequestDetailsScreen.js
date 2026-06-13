@@ -84,10 +84,13 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
       showAlert('¡Solicitud publicada!', 'Los conductores podrán postularse a tu viaje.', [
         {
-          text: 'Ver mis solicitudes',
+          text: 'Ver',
           onPress: () => navigation.navigate('Main', {
             screen: 'HomeTab',
-            params: { screen: 'MyTripRequests' },
+            params: {
+              screen: 'Home',
+              params: { openTab: 'solicitudes' },
+            },
           }),
         },
       ]);

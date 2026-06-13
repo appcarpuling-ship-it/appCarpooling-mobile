@@ -127,7 +127,7 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) 
   );
 };
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   useTheme();
@@ -189,6 +189,11 @@ const HomeScreen = ({ navigation }) => {
     }, [isAuthenticated])
   );
 
+  useEffect(() => {
+    const tab = route.params?.openTab;
+    if (tab) setActiveTab(tab);
+  }, [route.params?.openTab]);
+
   const loadRecentTrips = async (isRefreshing = false) => {
     if (isRefreshing) {
       setRefreshing(true);
@@ -204,7 +209,7 @@ const HomeScreen = ({ navigation }) => {
           const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`);
           return dateA - dateB;
         });
-        setRecentTrips(sortedTrips.slice(0, 5));
+        setRecentTrips(sortedTrips.slice(0, 3));
       }
     } catch (error) {
       console.error('Error loading trips:', error);
@@ -561,11 +566,9 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
-
-      {/* Fixed header */}
-      <View style={[styles.header, { backgroundColor: bg }]}>
+  const renderTop = () => (
+    <>
+      <View style={styles.header}>
         <Image source={LOGO_SOURCE} style={styles.logo} />
         <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
         {isAuthenticated && (
@@ -585,30 +588,29 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
       </View>
-
-      {/* Top tab bar */}
-      <View style={[styles.topTabBar, { backgroundColor: bg, borderBottomColor: divider }]}>
-        <TouchableOpacity
-          style={[styles.topTab, activeTab === 'inicio' && styles.topTabActive]}
-          onPress={() => setActiveTab('inicio')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.topTabText, { color: activeTab === 'inicio' ? textPrimary : textMuted }]}>
-            Inicio
-          </Text>
-          {activeTab === 'inicio' && <View style={[styles.topTabIndicator, { backgroundColor: textPrimary }]} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.topTab, activeTab === 'solicitudes' && styles.topTabActive]}
-          onPress={() => setActiveTab('solicitudes')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.topTabText, { color: activeTab === 'solicitudes' ? textPrimary : textMuted }]}>
-            Solicitudes
-          </Text>
-          {activeTab === 'solicitudes' && <View style={[styles.topTabIndicator, { backgroundColor: textPrimary }]} />}
-        </TouchableOpacity>
+      <View style={styles.tabBarWrap}>
+        <View style={[styles.tabPill, { backgroundColor: inputBg }]}>
+          <TouchableOpacity
+            style={[styles.tabPillItem, activeTab === 'inicio' && { backgroundColor: accent }]}
+            onPress={() => setActiveTab('inicio')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabPillText, { color: activeTab === 'inicio' ? accentInverse : textMuted }]}>Inicio</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabPillItem, activeTab === 'solicitudes' && { backgroundColor: accent }]}
+            onPress={() => setActiveTab('solicitudes')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabPillText, { color: activeTab === 'solicitudes' ? accentInverse : textMuted }]}>Solicitudes</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
 
       {/* Inicio tab */}
       <View style={{ flex: 1, display: activeTab === 'inicio' ? 'flex' : 'none' }}>
@@ -625,6 +627,7 @@ const HomeScreen = ({ navigation }) => {
           />
         }
       >
+        {renderTop()}
 
         {/* Banner viaje en curso */}
         {activeTrip && (
@@ -816,7 +819,15 @@ const HomeScreen = ({ navigation }) => {
 
       {/* Solicitudes tab */}
       <View style={{ flex: 1, display: activeTab === 'solicitudes' ? 'flex' : 'none' }}>
-        <ScrollView contentContainerStyle={styles.solicitudesScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
+          }
+        >
+          {renderTop()}
+          <View style={styles.solicitudesCards}>
           <TouchableOpacity
             style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
             onPress={() => navigation.navigate('CreateTripRequest')}
@@ -861,6 +872,22 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('MyApplications')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="car-outline" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Viajes que ofrecí</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes donde te postulaste como conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
 
@@ -1039,7 +1066,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 14,
     paddingBottom: 10,
-    position: 'relative',
   },
   logo: {
     width: 40,
@@ -1199,33 +1225,30 @@ const styles = StyleSheet.create({
     textDecorationStyle: 'solid',
   },
 
-  // Top tab bar
-  topTabBar: {
+  // Tab pill
+  tabBarWrap: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 16,
+  },
+  tabPill: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    paddingHorizontal: 20,
+    borderRadius: 12,
+    padding: 4,
   },
-  topTab: {
-    paddingVertical: 12,
-    marginRight: 24,
-    position: 'relative',
+  tabPillItem: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: 'center',
   },
-  topTabActive: {},
-  topTabText: {
-    fontSize: 15,
+  tabPillText: {
+    fontSize: 14,
     fontWeight: '600',
-  },
-  topTabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderRadius: 2,
   },
 
   // Solicitudes hub
-  solicitudesScroll: {
+  solicitudesCards: {
     padding: 16,
     gap: 12,
   },
