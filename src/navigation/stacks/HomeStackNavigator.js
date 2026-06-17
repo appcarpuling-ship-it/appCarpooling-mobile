@@ -16,6 +16,7 @@ import CreateTripGoogleMaps from '../../screens/main/trip/CreateTripGoogleMaps';
 import MyTripRequestsScreen from '../../screens/main/home/MyTripRequestsScreen';
 import OpenTripRequestsScreen from '../../screens/main/home/OpenTripRequestsScreen';
 import MyApplicationsScreen from '../../screens/main/home/MyApplicationsScreen';
+import ApplicationDetailScreen from '../../screens/main/home/ApplicationDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -26,6 +27,7 @@ const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        cardStyle: { backgroundColor: isDarkMode ? '#161616' : '#F9FAFB' },
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
@@ -113,6 +115,11 @@ const HomeStackNavigator = () => {
         name="MyApplications"
         component={MyApplicationsScreen}
         options={{ title: 'Viajes que ofrecí' }}
+      />
+      <Stack.Screen
+        name="ApplicationDetail"
+        component={ApplicationDetailScreen}
+        options={{ title: 'Conductor' }}
       />
     </Stack.Navigator>
   );

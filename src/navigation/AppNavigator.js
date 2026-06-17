@@ -20,6 +20,7 @@ import TripDetails from '../screens/main/common/TripDetails';
 import TripRequestDetailScreen from '../screens/main/home/TripRequestDetailScreen';
 import TripRequestDetailsScreen from '../screens/main/home/TripRequestDetailsScreen';
 import TripMapScreen from '../screens/main/trip/TripMapScreen';
+import ApplicationDetailScreen from '../screens/main/home/ApplicationDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -104,6 +105,24 @@ const AppNavigator = () => {
             name="TripMap"
             component={TripMapScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ApplicationDetail"
+            component={ApplicationDetailScreen}
+            options={{
+              headerShown: true,
+              title: 'Conductor',
+              headerStyle: {
+                backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+                elevation: 0,
+                shadowOpacity: 0,
+                borderBottomWidth: 1,
+                borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
+              },
+              headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
+              headerTitleStyle: { fontWeight: '600', fontSize: 18 },
+              headerBackTitleVisible: false,
+            }}
           />
           <Stack.Screen
             name="TripDetails"

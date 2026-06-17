@@ -159,4 +159,5 @@ export const ENDPOINTS = {
   APPLY_TO_TRIP_REQUEST: (id) => `/trip-requests/${id}/apply`,
   ACCEPT_TRIP_REQUEST_APPLICATION: (id, appId) => `/trip-requests/${id}/accept/${appId}`,
   CANCEL_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
+  CANCEL_TRIP_REQUEST_APPLICATION: (id) => `/trip-requests/${id}/apply`,
 };

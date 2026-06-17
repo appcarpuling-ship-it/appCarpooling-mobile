@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Image, Linking, Modal, RefreshControl
+  ActivityIndicator, Image, Modal, RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,8 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { get_withauth, buildImageUri } from '../../../services/apiService';
 import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } from '../../../services/tripRequestService';
+import { confirmFromCallback } from '../../../services/seatReservationService';
+import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
 
 const STATUS_MAP = {
@@ -47,6 +49,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [applying,       setApplying]       = useState(false);
   const [canApply,       setCanApply]       = useState(canApplyParam ?? false);
   const [alreadyApplied, setAlreadyApplied] = useState(alreadyAppliedParam ?? false);
+  const [checkoutModal,  setCheckoutModal]  = useState({ visible: false, paymentUrl: null });
 
   const load = async (isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
@@ -103,8 +106,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         [{ text: 'Agregar vehículo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Vehicles' }) }]
       );
     }
-    if (vehicles.length === 1) confirmApply(vehicles[0]._id);
-    else setVehicleModal(true);
+    setVehicleModal(true);
   };
 
   const confirmApply = async (vehicleId) => {
@@ -139,16 +141,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               if (res.success) {
                 const paymentUrl = res.data?.payment?.url;
                 if (paymentUrl) {
-                  showAlert(
-                    '¡Conductor aceptado!',
-                    `El total es $${res.data?.totalAmount?.toLocaleString()}. Completá el pago para confirmar.`,
-                    [
-                      { text: 'Pagar ahora', onPress: () => Linking.openURL(paymentUrl) },
-                      { text: 'Después', style: 'cancel' }
-                    ]
-                  );
+                  setCheckoutModal({ visible: true, paymentUrl });
+                } else {
+                  load();
                 }
-                load();
               }
             } catch (err) {
               showAlert('Error', err.message);
@@ -329,7 +325,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               </Text>
             ) : (
               request.applications.map((app) => (
-                <View key={app._id} style={[styles.passengerRow, { borderBottomColor: divider }]}>
+                <TouchableOpacity
+                  key={app._id}
+                  style={[styles.passengerRow, { borderBottomColor: divider }]}
+                  onPress={() => navigation.navigate('ApplicationDetail', { app, requestId })}
+                  activeOpacity={0.75}
+                >
                   {app.driverSnapshot?.avatar ? (
                     <Image source={{ uri: buildImageUri(app.driverSnapshot.avatar) }} style={styles.passengerAvatar} />
                   ) : (
@@ -357,19 +358,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#FEE2E2' }}>
                       <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
                     </View>
-                  ) : app.status === 'pending' && (
-                    <TouchableOpacity
-                      style={[styles.chatBtn, { backgroundColor: accent }, accepting === app._id && { opacity: 0.6 }]}
-                      onPress={() => handleAccept(app._id)}
-                      disabled={!!accepting}
-                    >
-                      {accepting === app._id
-                        ? <ActivityIndicator size="small" color={accentInverse} />
-                        : <Text style={{ color: accentInverse, fontSize: 12, fontWeight: '700' }}>Elegir</Text>
-                      }
-                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
                   )}
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -392,7 +384,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               </Text>
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: '#F59E0B' }]}
-                onPress={() => Linking.openURL(request.paymentData.paymentUrl)}
+                onPress={() => setCheckoutModal({ visible: true, paymentUrl: request.paymentData.paymentUrl })}
                 activeOpacity={0.85}
               >
                 <Text style={[styles.footerBtnText, { color: '#FFFFFF' }]}>Ir al pago</Text>
@@ -458,6 +450,27 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
       </ScrollView>
 
+      {/* Checkout WebView */}
+      <CheckoutWebView
+        visible={checkoutModal.visible}
+        paymentUrl={checkoutModal.paymentUrl}
+        onClose={() => { setCheckoutModal({ visible: false, paymentUrl: null }); load(); }}
+        onPaymentSuccess={async ({ externalReference }) => {
+          try {
+            await confirmFromCallback(externalReference || requestId, 'approved');
+          } catch (e) {
+            console.warn('confirmFromCallback:', e?.message);
+          }
+          setCheckoutModal({ visible: false, paymentUrl: null });
+          load();
+        }}
+        onPaymentError={() => {
+          setCheckoutModal({ visible: false, paymentUrl: null });
+          load();
+        }}
+        reservationId={requestId}
+      />
+
       {/* Vehicle selection modal */}
       {isDriver && (
         <Modal visible={vehicleModal} transparent animationType="slide" onRequestClose={() => setVehicleModal(false)}>
@@ -465,20 +478,34 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
               <Text style={[styles.modalTitle, { color: textPrimary }]}>¿Con qué vehículo te postulás?</Text>
               <ScrollView>
-                {vehicles.map(v => (
-                  <TouchableOpacity
-                    key={v._id}
-                    style={[styles.vehicleItem, { borderColor: divider }]}
-                    onPress={() => confirmApply(v._id)}
-                  >
-                    <Ionicons name="car-outline" size={20} color={textMuted} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.vehicleName, { color: textPrimary }]}>{v.brand} {v.model} {v.year}</Text>
-                      <Text style={{ color: textMuted, fontSize: 12 }}>{v.color} · {v.licensePlate}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
-                  </TouchableOpacity>
-                ))}
+                {vehicles.map(v => {
+                    const insufficient = v.capacity < (request?.seatsNeeded || 1);
+                    return (
+                      <TouchableOpacity
+                        key={v._id}
+                        style={[styles.vehicleItem, { borderColor: divider, opacity: insufficient ? 0.5 : 1 }]}
+                        onPress={() => {
+                          if (insufficient) {
+                            showAlert('Capacidad insuficiente', `Este vehículo tiene ${v.capacity} asiento${v.capacity === 1 ? '' : 's'} y el viaje necesita ${request.seatsNeeded}.`);
+                          } else {
+                            confirmApply(v._id);
+                          }
+                        }}
+                      >
+                        <Ionicons name="car-outline" size={20} color={textMuted} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.vehicleName, { color: textPrimary }]}>{v.brand} {v.model} {v.year}</Text>
+                          <Text style={{ color: textMuted, fontSize: 12 }}>{v.color} · {v.licensePlate}</Text>
+                          {insufficient && (
+                            <Text style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
+                              Capacidad insuficiente ({v.capacity} de {request.seatsNeeded} requeridos)
+                            </Text>
+                          )}
+                        </View>
+                        {!insufficient && <Ionicons name="chevron-forward" size={16} color={textMuted} />}
+                      </TouchableOpacity>
+                    );
+                  })}
               </ScrollView>
               <TouchableOpacity
                 style={[styles.modalCancelBtn, { borderColor: divider }]}

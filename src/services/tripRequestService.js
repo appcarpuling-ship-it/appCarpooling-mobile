@@ -21,3 +21,6 @@ export const acceptTripRequestApplication = (requestId, applicationId) =>
 
 export const cancelTripRequest = (requestId) =>
   delete_withauth(ENDPOINTS.CANCEL_TRIP_REQUEST(requestId));
+
+export const cancelTripRequestApplication = (requestId) =>
+  delete_withauth(ENDPOINTS.CANCEL_TRIP_REQUEST_APPLICATION(requestId));

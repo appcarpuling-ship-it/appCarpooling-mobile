@@ -335,9 +335,9 @@ const TripDetailScreen = ({ route, navigation }) => {
           }
         }
 
-        if (paymentUrl || qrDataUrl) {
-          setPaymentModalData({ paymentUrl, qrDataUrl, amount });
-          setPaymentModalVisible(true);
+        if (paymentUrl) {
+          setCheckoutWebViewUrl(paymentUrl);
+          setCheckoutWebViewVisible(true);
         } else {
           showAlert('Ocurrió algo', 'No se puede realizar el pago. Contacta al soporte.');
         }

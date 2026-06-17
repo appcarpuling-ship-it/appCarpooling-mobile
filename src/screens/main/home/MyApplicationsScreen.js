@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
-import { getMyApplications } from '../../../services/tripRequestService';
+import { getMyApplications, cancelTripRequestApplication } from '../../../services/tripRequestService';
 
 const APP_STATUS = {
   pending:  { label: 'Pendiente',  color: '#F59E0B' },
@@ -31,6 +31,7 @@ const MyApplicationsScreen = ({ navigation }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState(null);
 
   const load = async (isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
@@ -49,6 +50,31 @@ const MyApplicationsScreen = ({ navigation }) => {
   const onRefresh = () => load(true);
 
   useFocusEffect(useCallback(() => { load(); }, []));
+
+  const handleCancel = (requestId) => {
+    showAlert(
+      'Cancelar postulación',
+      '¿Estás seguro? Perderás tu lugar en esta solicitud.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Cancelar postulación',
+          style: 'destructive',
+          onPress: async () => {
+            setCancelling(requestId);
+            try {
+              const res = await cancelTripRequestApplication(requestId);
+              if (res.success) load();
+            } catch (err) {
+              showAlert('Error', err.message);
+            } finally {
+              setCancelling(null);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const formatDate = (date) =>
     new Date(date).toLocaleDateString('es-AR', {
@@ -122,6 +148,21 @@ const MyApplicationsScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
+
+        {item.myApplication?.status === 'pending' && (
+          <View style={[styles.cancelRow, { borderTopColor: divider }]}>
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation(); handleCancel(item._id); }}
+              disabled={cancelling === item._id}
+              style={styles.cancelBtn}
+            >
+              {cancelling === item._id
+                ? <ActivityIndicator size="small" color="#EF4444" />
+                : <Text style={styles.cancelBtnText}>Retirar postulación</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -175,6 +216,9 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 12 },
   acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  cancelRow: { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, alignItems: 'flex-end' },
+  cancelBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  cancelBtnText: { color: '#EF4444', fontSize: 12, fontWeight: '600' },
 });
 
 export default MyApplicationsScreen;

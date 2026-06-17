@@ -139,7 +139,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
               <Text style={[styles.seatsNum, { color: textPrimary }]}>{seatsNeeded}</Text>
               <TouchableOpacity
                 style={[styles.seatsBtn, { borderColor: border }]}
-                onPress={() => setSeatsNeeded(s => Math.min(4, s + 1))}
+                onPress={() => setSeatsNeeded(s => Math.min(10, s + 1))}
               >
                 <Ionicons name="add" size={20} color={textPrimary} />
               </TouchableOpacity>

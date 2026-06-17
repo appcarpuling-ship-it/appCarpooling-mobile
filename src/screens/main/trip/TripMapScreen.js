@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -44,6 +45,7 @@ const TripMapScreen = ({ route, navigation }) => {
 
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStop, setSelectedStop] = useState(null);
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
@@ -138,9 +140,14 @@ const TripMapScreen = ({ route, navigation }) => {
         )}
 
         {stops.map((stop, i) => (
-          <Marker key={`stop-${i}`} coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+          <Marker
+            key={`stop-${i}`}
+            coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            onPress={() => setSelectedStop(selectedStop?.index === i ? null : { index: i, address: stop.address || stop.city || `Parada ${i + 1}` })}
+          >
             <View style={styles.waypointMarker}>
-              <Ionicons name="ellipse" size={8} color="#FFFFFF" />
+              <Text style={styles.waypointNumber}>{i + 1}</Text>
             </View>
           </Marker>
         ))}
@@ -175,6 +182,17 @@ const TripMapScreen = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={22} color={textPrimary} />
         </TouchableOpacity>
       </View>
+
+      {selectedStop && (
+        <TouchableOpacity
+          style={[styles.stopTooltip, { backgroundColor: cardBg }]}
+          onPress={() => setSelectedStop(null)}
+          activeOpacity={0.9}
+        >
+          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>Parada {selectedStop.index + 1}</Text>
+          <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
+        </TouchableOpacity>
+      )}
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -218,7 +236,23 @@ const styles = StyleSheet.create({
   originMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
-  waypointMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  waypointMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  waypointNumber: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  stopTooltip: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  stopTooltipLabel: { fontSize: 11, fontWeight: '600', opacity: 0.5, marginBottom: 4 },
+  stopTooltipAddress: { fontSize: 14, fontWeight: '600' },
 });
 
 export default TripMapScreen;

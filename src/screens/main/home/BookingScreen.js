@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,15 @@ import {
   Dimensions,
   Image,
   FlatList,
+  Modal,
+  TextInput,
+  Platform,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -22,8 +28,10 @@ import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
-import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
+import * as Location from 'expo-location';
+
+const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -91,7 +99,23 @@ const BookingScreen = ({ route, navigation }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [pickupLocation, setPickupLocation] = useState(null);
-  const pickupRef = useRef(null);
+  const [pickupMapVisible, setPickupMapVisible] = useState(false);
+  const [pickupSearch, setPickupSearch] = useState('');
+  const [pickupSearchResults, setPickupSearchResults] = useState([]);
+  const [pickupRegion, setPickupRegion] = useState(null);
+  const [pickupPinCoords, setPickupPinCoords] = useState(null);
+  const [pickupResolving, setPickupResolving] = useState(false);
+  const pickupMapRef = useRef(null);
+  const pickupSearchDebounce = useRef(null);
+  const [pickupSearchVisible, setPickupSearchVisible] = useState(false);
+  const [pickupPinAddress, setPickupPinAddress] = useState('');
+  const pickupOverlayOpacity = useRef(new Animated.Value(0)).current;
+  const pickupOverlayY = useRef(new Animated.Value(16)).current;
+  const pickupIdleTimer = useRef(null);
+  const pickupGeocodeId = useRef(0);
+  const pickupMapReady = useRef(false);
+  const [pickupMapSelectionMode, setPickupMapSelectionMode] = useState(false);
+  const pickupMapSelectionModeRef = useRef(false);
   const [modalMessage, setModalMessage] = useState('');
   const [priceData, setPriceData] = useState(null);
   const [seats, setSeats] = useState(1);
@@ -172,6 +196,20 @@ const BookingScreen = ({ route, navigation }) => {
   }, [maxSelectableSeats]);
 
   useEffect(() => {
+    const autoDetectPickup = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const addr = await reverseGeocodePickup(coords);
+        if (addr) setPickupLocation({ address: addr, coordinates: coords });
+      } catch {}
+    };
+    autoDetectPickup();
+  }, []);
+
+  useEffect(() => {
     if (!trip) return;
     if (!existingReservation) {
       const free = tripRemainingSeats(trip);
@@ -221,6 +259,111 @@ const BookingScreen = ({ route, navigation }) => {
     );
   }
 
+  const searchPickupPlaces = useCallback((text) => {
+    if (pickupSearchDebounce.current) clearTimeout(pickupSearchDebounce.current);
+    if (!text || text.length < 3) { setPickupSearchResults([]); return; }
+    pickupSearchDebounce.current = setTimeout(async () => {
+      try {
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${GOOGLE_MAPS_API_KEY}&language=es&components=country:ar`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.predictions) setPickupSearchResults(data.predictions.slice(0, 5));
+      } catch {}
+    }, 400);
+  }, []);
+
+  const gotoUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') throw new Error('denied');
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      setPickupPinCoords(coords);
+      setPickupRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      pickupGeocodeId.current++;
+      const thisId = pickupGeocodeId.current;
+      const addr = await reverseGeocodePickup(coords);
+      if (pickupGeocodeId.current === thisId) setPickupPinAddress(addr || '');
+    } catch {
+      const origin = trip?.origin?.coordinates;
+      const fallback = origin || { latitude: -34.6037, longitude: -58.3816 };
+      setPickupPinCoords(fallback);
+      setPickupRegion({ ...fallback, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+    }
+  };
+
+  const openPickupSearch = () => {
+    setPickupSearchVisible(true);
+    pickupOverlayOpacity.setValue(0);
+    pickupOverlayY.setValue(16);
+    Animated.parallel([
+      Animated.timing(pickupOverlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(pickupOverlayY, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closePickupSearch = () => {
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(pickupOverlayOpacity, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(pickupOverlayY, { toValue: 12, duration: 150, useNativeDriver: true }),
+    ]).start(() => {
+      setPickupSearchVisible(false);
+      setPickupSearch('');
+      setPickupSearchResults([]);
+    });
+  };
+
+  const selectPickupFromSearch = async (prediction) => {
+    closePickupSearch();
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${prediction.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=geometry,formatted_address`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.result?.geometry?.location) {
+        const coords = { latitude: data.result.geometry.location.lat, longitude: data.result.geometry.location.lng };
+        pickupGeocodeId.current++;  // cancel any in-flight geocode from map dragging
+        if (pickupIdleTimer.current) { clearTimeout(pickupIdleTimer.current); pickupIdleTimer.current = null; }
+        setPickupPinCoords(coords);
+        setPickupPinAddress(prediction.description);
+        const region = { ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+        setPickupRegion(region);
+        pickupMapRef.current?.animateToRegion(region, 500);
+      }
+    } catch {}
+  };
+
+  const reverseGeocodePickup = async (coords) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.results && data.results[0]) {
+        return data.results[0].formatted_address;
+      }
+    } catch {}
+    return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+  };
+
+  const confirmPickupLocation = async () => {
+    if (!pickupPinCoords) return;
+    let address = pickupPinAddress;
+    if (!address) {
+      setPickupResolving(true);
+      address = await reverseGeocodePickup(pickupPinCoords);
+      setPickupResolving(false);
+    }
+    setPickupLocation({ address, coordinates: pickupPinCoords });
+    setPickupMapVisible(false);
+    setPickupSearchVisible(false);
+    setPickupMapSelectionMode(false);
+    pickupMapSelectionModeRef.current = false;
+    setPickupSearch('');
+    setPickupSearchResults([]);
+    setPickupPinAddress('');
+    if (pickupIdleTimer.current) { clearTimeout(pickupIdleTimer.current); pickupIdleTimer.current = null; }
+  };
+
   const handleCreateReservation = async () => {
     if (tripRemainingSeats(trip) <= 0 || !priceData) return;
     setLoading(true);
@@ -251,14 +394,15 @@ const BookingScreen = ({ route, navigation }) => {
   const displayPrice = priceData?.pricing?.finalPrice || priceData?.pricing?.totalPrice;
 
   return (
-    <View style={[styles.container, { backgroundColor: bg, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       <Animated.View
-        style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+        style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], backgroundColor: bg }]}
       >
         <ScrollView
-          style={styles.scroll}
+          style={[styles.scroll, { backgroundColor: bg }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
         >
           {/* Trip Summary */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -510,66 +654,225 @@ const BookingScreen = ({ route, navigation }) => {
           )}
 
           {/* Pickup Location */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Punto de recogida</Text>
-            <Text style={[styles.notesText, { color: textMuted, marginBottom: 12 }]}>
-              Opcional. Indicá dónde querés que el conductor te pase a buscar.
-            </Text>
-            <View style={[styles.pickupInputWrap, { backgroundColor: dark ? '#2A2A2A' : '#F5F5F5', borderColor: divider }]}>
-              <Ionicons name="location-outline" size={16} color={textMuted} style={{ marginLeft: 12 }} />
-              <SafePlacesAutocomplete
-                inputRef={pickupRef}
-                placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
-                apiKey={getGoogleMapsApiKey()}
-                onPress={(prediction, details) => {
-                  if (!details) return;
-                  let city = '';
-                  if (details.address_components) {
-                    const locality = details.address_components.find(c => c.types.includes('locality'));
-                    const level2 = details.address_components.find(c => c.types.includes('administrative_area_level_2'));
-                    city = locality?.long_name || level2?.long_name || '';
-                  }
-                  const coords = details.geometry?.location
-                    ? { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng }
-                    : undefined;
-                  setPickupLocation({
-                    address: details.formatted_address || prediction.description,
-                    city,
-                    ...(coords && { coordinates: coords })
-                  });
-                }}
-                styles={{
-                  container: { flex: 1 },
-                  textInput: {
-                    color: textPrimary,
-                    fontSize: 14,
-                    backgroundColor: 'transparent',
-                    paddingVertical: 10,
-                  },
-                }}
-              />
-              {pickupLocation && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setPickupLocation(null);
-                    pickupRef.current?.setAddressText('');
-                  }}
-                  style={{ paddingHorizontal: 12 }}
-                  activeOpacity={0.7}
-                >
+          <TouchableOpacity
+            style={[styles.card, styles.pickupRow, { backgroundColor: cardBg, borderColor: divider }]}
+            onPress={() => {
+              setPickupSearch('');
+              setPickupPinAddress(pickupLocation?.address || '');
+              setPickupMapSelectionMode(false);
+              pickupMapSelectionModeRef.current = false;
+              pickupMapReady.current = false;
+              setPickupMapVisible(true);
+              if (pickupLocation?.coordinates) {
+                setPickupPinCoords(pickupLocation.coordinates);
+                setPickupRegion({ ...pickupLocation.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+              } else {
+                setPickupRegion(null);
+                setPickupPinCoords(null);
+                gotoUserLocation();
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.pickupIconWrap, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+              <Ionicons name="location-outline" size={18} color={textMuted} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
+              <Text style={[styles.pickupValue, { color: pickupLocation ? textPrimary : textMuted }]} numberOfLines={1}>
+                {pickupLocation ? pickupLocation.address : 'Agregar punto de recogida'}
+              </Text>
+            </View>
+            {pickupLocation
+              ? <TouchableOpacity onPress={(e) => { e.stopPropagation(); setPickupLocation(null); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close-circle" size={18} color={textMuted} />
                 </TouchableOpacity>
+              : <Ionicons name="chevron-forward" size={16} color={textMuted} />
+            }
+          </TouchableOpacity>
+
+          {/* Pickup Map Modal */}
+          <Modal
+            visible={pickupMapVisible}
+            animationType="slide"
+            onRequestClose={() => { setPickupMapVisible(false); setPickupSearchVisible(false); setPickupMapSelectionMode(false); pickupMapSelectionModeRef.current = false; if (pickupIdleTimer.current) clearTimeout(pickupIdleTimer.current); }}
+          >
+            <View style={{ flex: 1 }}>
+              {/* Map — solo monta cuando tenemos región */}
+              {pickupRegion ? (
+                <MapView
+                  ref={pickupMapRef}
+                  provider={PROVIDER_GOOGLE}
+                  style={StyleSheet.absoluteFill}
+                  initialRegion={pickupRegion}
+                  onRegionChangeComplete={(r, details = {}) => {
+                    if (!pickupMapSelectionModeRef.current) return;
+                    if (details.isGesture === false) return;
+                    const coords = { latitude: r.latitude, longitude: r.longitude };
+                    setPickupPinCoords(coords);
+                    if (pickupIdleTimer.current) clearTimeout(pickupIdleTimer.current);
+                    setPickupPinAddress('');
+                    const reqId = ++pickupGeocodeId.current;
+                    pickupIdleTimer.current = setTimeout(async () => {
+                      const addr = await reverseGeocodePickup(coords);
+                      if (pickupGeocodeId.current === reqId) setPickupPinAddress(addr || '');
+                    }, 800);
+                  }}
+                  showsUserLocation={false}
+                  showsMyLocationButton={false}
+                >
+                  {/* Marker fijo en la ubicación confirmada (fuera de modo selección) */}
+                  {pickupPinCoords && !pickupMapSelectionMode && (
+                    <Marker coordinate={pickupPinCoords} anchor={{ x: 0.5, y: 1 }}>
+                      <View style={pickupStyles.markerDot} />
+                    </Marker>
+                  )}
+                </MapView>
+              ) : (
+                <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: cardBg }]}>
+                  <ActivityIndicator size="large" color={textPrimary} />
+                </View>
+              )}
+
+              {/* Center pin — solo en modo selección manual */}
+              {!pickupSearchVisible && pickupMapSelectionMode && (
+                <View style={pickupStyles.centerPin} pointerEvents="none">
+                  <Ionicons name="location" size={20} color="#1F2937" />
+                </View>
+              )}
+
+              {/* Banner de modo selección */}
+              {!pickupSearchVisible && pickupMapSelectionMode && (
+                <View style={[pickupStyles.selectionBanner, { top: insets.top + 60 }]}>
+                  <Text style={pickupStyles.selectionText}>Mové el mapa para seleccionar</Text>
+                  <TouchableOpacity onPress={() => {
+                    setPickupMapSelectionMode(false);
+                    pickupMapSelectionModeRef.current = false;
+                  }} style={{ marginLeft: 12 }}>
+                    <Text style={pickupStyles.selectionCancel}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Floating back button */}
+              {!pickupSearchVisible && (
+                <View style={[pickupStyles.topBar, { paddingTop: insets.top }]}>
+                  <TouchableOpacity
+                    style={[pickupStyles.circleBtn, { backgroundColor: cardBg }]}
+                    onPress={() => { setPickupMapVisible(false); if (pickupIdleTimer.current) clearTimeout(pickupIdleTimer.current); }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="arrow-back" size={22} color={textPrimary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Bottom mini sheet */}
+              {!pickupSearchVisible && (
+                <View style={[pickupStyles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, 16) }]}>
+                  <View style={pickupStyles.handleContainer}>
+                    <View style={[pickupStyles.handle, { backgroundColor: dark ? '#2E2E2E' : '#E8E8E8' }]} />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[pickupStyles.addressRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                    onPress={openPickupSearch}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="location-outline" size={18} color={textMuted} />
+                    <Text style={[pickupStyles.addressText, { color: pickupPinAddress ? textPrimary : textMuted }]} numberOfLines={2}>
+                      {pickupPinAddress || 'Mové el mapa o buscá una dirección'}
+                    </Text>
+                    <Ionicons name="search" size={16} color={textMuted} />
+                  </TouchableOpacity>
+
+                  <View style={pickupStyles.sheetActions}>
+                    <TouchableOpacity
+                      style={[pickupStyles.confirmBtn, { backgroundColor: dark ? '#FFFFFF' : '#000000' }, (pickupResolving || !pickupPinCoords) && { opacity: 0.6 }]}
+                      onPress={confirmPickupLocation}
+                      disabled={pickupResolving || !pickupPinCoords}
+                      activeOpacity={0.85}
+                    >
+                      {pickupResolving
+                        ? <ActivityIndicator color={dark ? '#000000' : '#FFFFFF'} />
+                        : <Text style={[pickupStyles.confirmBtnText, { color: dark ? '#000000' : '#FFFFFF' }]}>Confirmar punto de recogida</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Search overlay (Uber style) */}
+              {pickupSearchVisible && (
+                <Animated.View style={[pickupStyles.searchOverlay, { backgroundColor: cardBg, opacity: pickupOverlayOpacity, transform: [{ translateY: pickupOverlayY }] }]}>
+                  <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+                    <View style={[pickupStyles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}>
+                      <TouchableOpacity onPress={closePickupSearch} style={pickupStyles.searchBackBtn} activeOpacity={0.7}>
+                        <Ionicons name="arrow-back" size={22} color={textPrimary} />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={[pickupStyles.searchTextInput, { color: textPrimary }]}
+                        placeholder="Buscar dirección..."
+                        placeholderTextColor={textMuted}
+                        value={pickupSearch}
+                        onChangeText={(t) => { setPickupSearch(t); searchPickupPlaces(t); }}
+                        autoFocus
+                        autoCorrect={false}
+                      />
+                      {pickupSearch.length > 0 && (
+                        <TouchableOpacity onPress={() => { setPickupSearch(''); setPickupSearchResults([]); }} style={{ padding: 8 }}>
+                          <Ionicons name="close" size={18} color={textMuted} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <ScrollView
+                      style={[pickupStyles.results, { borderTopColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode="on-drag"
+                      showsVerticalScrollIndicator={false}
+                    >
+                      <TouchableOpacity
+                        style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                        onPress={() => {
+                          closePickupSearch();
+                          setPickupMapSelectionMode(true);
+                          pickupMapSelectionModeRef.current = true;
+                        }}
+                        activeOpacity={0.6}
+                      >
+                        <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                          <Ionicons name="map-outline" size={16} color={textPrimary} />
+                        </View>
+                        <Text style={[pickupStyles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
+                      </TouchableOpacity>
+
+                      {pickupSearchResults.map((item) => (
+                        <TouchableOpacity
+                          key={item.place_id}
+                          style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                          onPress={() => selectPickupFromSearch(item)}
+                          activeOpacity={0.6}
+                        >
+                          <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                            <Ionicons name="location-sharp" size={16} color={textPrimary} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[pickupStyles.resultMain, { color: textPrimary }]} numberOfLines={1}>
+                              {item.structured_formatting?.main_text || item.description}
+                            </Text>
+                            <Text style={[pickupStyles.resultSub, { color: textMuted }]} numberOfLines={1}>
+                              {item.structured_formatting?.secondary_text || ''}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </KeyboardAvoidingView>
+                </Animated.View>
               )}
             </View>
-            {pickupLocation && (
-              <View style={[styles.pickupConfirmed, { backgroundColor: dark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.06)' }]}>
-                <Ionicons name="checkmark-circle" size={14} color={successColor} />
-                <Text style={[styles.pickupConfirmedText, { color: successColor }]} numberOfLines={1}>
-                  {pickupLocation.address}
-                </Text>
-              </View>
-            )}
-          </View>
+          </Modal>
 
           {/* Footer */}
           <TouchableOpacity
@@ -997,25 +1300,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  pickupInputWrap: {
+  pickupRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'visible',
+    gap: 12,
+    paddingVertical: 14,
   },
-  pickupConfirmed: {
-    flexDirection: 'row',
+  pickupIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
   },
-  pickupConfirmedText: {
-    fontSize: 12,
-    flex: 1,
+  pickupLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 3,
+  },
+  pickupValue: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   confirmBtn: {
@@ -1035,6 +1342,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+});
+
+const pickupStyles = StyleSheet.create({
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  circleBtn: {
+    marginLeft: 16, marginTop: 8,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
+  },
+  centerPin: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -31,
+    marginLeft: -22,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniSheet: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10,
+  },
+  handleContainer: { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
+  handle: { width: 36, height: 4, borderRadius: 2 },
+  addressRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 16,
+    gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 56,
+  },
+  addressText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  sheetActions: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
+  confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  confirmBtnText: { fontSize: 16, fontWeight: '700' },
+  searchOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
+  },
+  searchHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth, gap: 8,
+  },
+  searchBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  searchTextInput: { flex: 1, height: 44, fontSize: 15, fontWeight: '500' },
+  results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
+  resultRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 16,
+    gap: 12, borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultSub: { fontSize: 12, marginTop: 2 },
+  markerDot: {
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF',
+  },
+  selectionBanner: {
+    position: 'absolute', left: 16, right: 16,
+    backgroundColor: '#1F2937', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    zIndex: 50,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
+  },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
+  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
 });
 
 export default BookingScreen;
