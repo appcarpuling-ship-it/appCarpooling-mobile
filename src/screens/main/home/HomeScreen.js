@@ -34,6 +34,7 @@ import { useColors } from '../../../hooks/useColors';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -159,12 +160,15 @@ const HomeScreen = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState('inicio');
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [activeTrip, setActiveTrip] = useState(null);
-  const [activeTripRole, setActiveTripRole] = useState(null); // 'driver' | 'passenger'
+  const [activeTripRole, setActiveTripRole] = useState(null);
+  const [openRequests, setOpenRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadRecentTrips();
     loadBannerSections();
+    loadOpenRequests();
     if (isAuthenticated) loadActiveTrip();
   }, []);
 
@@ -182,7 +186,10 @@ const HomeScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (isAuthenticated) loadActiveTrip();
+      if (isAuthenticated) {
+        loadActiveTrip();
+        loadOpenRequests();
+      }
       return () => {
         setShowNotificationsModal(false);
       };
@@ -253,10 +260,32 @@ const HomeScreen = ({ navigation, route }) => {
     }
   };
 
+  const loadOpenRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      const [openRes, myRes] = await Promise.allSettled([
+        getOpenTripRequests(),
+        isAuthenticated ? getMyTripRequests() : Promise.resolve({ success: false }),
+      ]);
+      const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
+      const mine = myRes.status === 'fulfilled' && myRes.value?.success ? myRes.value.data : [];
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const activeMine = mine.filter(r => !['cancelled', 'expired'].includes(r.status) && new Date(r.departureDate) >= today);
+      const merged = [...open];
+      activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });
+      merged.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
+      setOpenRequests(merged.slice(0, 3));
+    } catch {}
+    finally { setLoadingRequests(false); }
+  };
+
   const onRefresh = () => {
     loadRecentTrips(true);
     loadBannerSections();
-    if (isAuthenticated) loadActiveTrip();
+    if (isAuthenticated) {
+      loadActiveTrip();
+      loadOpenRequests();
+    }
   };
 
   const handleDateChange = (event, date) => {
@@ -425,6 +454,75 @@ const HomeScreen = ({ navigation, route }) => {
         )}
       </View>
     </TouchableOpacity>
+    );
+  };
+
+  const renderRequestCard = (req) => {
+    const totalApps = req.applications?.length || 0;
+    return (
+      <TouchableOpacity
+        key={req._id}
+        style={[styles.tripCard, { backgroundColor: cardBg }]}
+        onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', { requestId: req._id, mode: 'passenger' })}
+        activeOpacity={0.7}
+      >
+        {/* Header row */}
+        <View style={styles.tripDriverRow}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <Ionicons name="person-outline" size={18} color={textMuted} />
+          </View>
+          <View style={styles.driverInfo}>
+            <Text style={[styles.driverName, { color: textPrimary }]}>
+              {req.origin?.city} → {req.destination?.city}
+            </Text>
+            <Text style={[styles.tripDateTime, { color: textMuted }]}>
+              {new Date(req.departureDate).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {'  '}{req.departureTime || ''}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
+        </View>
+
+        <View style={[styles.tripInnerDivider, { backgroundColor: divider }]} />
+
+        {/* Route */}
+        <View style={styles.tripRouteRow}>
+          <View style={styles.routeColumn}>
+            <View style={[styles.routeDot, { borderColor: accent }]} />
+            <View style={[styles.routeLineVertical, { backgroundColor: tripRouteLine }]} />
+            <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
+          </View>
+          <View style={styles.tripInfoColumn}>
+            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {req.origin?.address || req.origin?.city}
+            </Text>
+            <View style={{ height: 14 }} />
+            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {req.destination?.address || req.destination?.city}
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
+          <View style={styles.tripFooterItem}>
+            <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
+            <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
+              ${req.pricePerSeat?.toLocaleString('es-AR')} por asiento
+            </Text>
+          </View>
+          {totalApps > 0 && (
+            <View style={styles.tripFooterItem}>
+              <Ionicons name="people-outline" size={13} color={tripRouteMuted} />
+              <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
+                {totalApps} postulacion{totalApps !== 1 ? 'es' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -888,6 +986,41 @@ const HomeScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
           </View>
+
+          {/* Próximas solicitudes */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: textPrimary }]}>Próximas solicitudes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('OpenTripRequests')}>
+                <Text style={[styles.sectionLink, { color: textMuted }]}>Ver todas</Text>
+              </TouchableOpacity>
+            </View>
+            {loadingRequests ? (
+              <ActivityIndicator size="small" color={textMuted} style={{ marginVertical: 16 }} />
+            ) : openRequests.length === 0 ? (
+              <View style={[styles.reqEmptySmall, { backgroundColor: cardBg }]}>
+                <Text style={[styles.reqEmptySmallText, { color: textMuted }]}>No hay solicitudes abiertas</Text>
+              </View>
+            ) : (
+              openRequests.map(req => renderRequestCard(req))
+            )}
+          </View>
+
+          {/* Banner sections */}
+          {bannerSections.map((section) =>
+            section.banners.length > 0 ? (
+              <View key={section.sectionTitle} style={styles.bannerSection}>
+                <Text style={[styles.bannerSectionTitle, { color: textPrimary }]}>{section.sectionTitle}</Text>
+                <BannerCarousel
+                  banners={section.banners}
+                  dotColor={accent}
+                  dotInactiveColor={borderColor}
+                  onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
+                />
+              </View>
+            ) : null
+          )}
+
         </ScrollView>
       </View>
 
@@ -1275,6 +1408,64 @@ const styles = StyleSheet.create({
   hubCardSub: {
     fontSize: 12,
     lineHeight: 17,
+  },
+
+  // Request cards (solicitudes tab)
+  reqEmptySmall: {
+    borderRadius: 12,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  reqEmptySmallText: {
+    fontSize: 13,
+  },
+  reqCard: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  reqCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  reqRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  reqCity: {
+    fontSize: 14,
+    fontWeight: '600',
+    maxWidth: 90,
+  },
+  reqStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  reqStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  reqMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  reqMetaText: {
+    fontSize: 12,
+  },
+  reqMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
   },
 
   // Banners
