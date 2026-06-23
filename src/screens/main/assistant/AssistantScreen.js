@@ -218,7 +218,7 @@ export default function AssistantScreen() {
         apiService.post(ENDPOINTS.BOT_MESSAGE, { nodeId }),
         isInitial
           ? Promise.resolve()
-          : new Promise((resolve) => setTimeout(resolve, 4000 + Math.random() * 1000)),
+          : new Promise((resolve) => setTimeout(resolve, 700 + Math.random() * 200)),
       ]);
       const { message, options } = res.data.data;
       const botId = nextId();
