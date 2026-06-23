@@ -21,7 +21,7 @@ import { useColors } from '../../hooks/useColors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
-import { ARGENTINA_PROVINCES } from '../../constants/provinces';
+import { ARGENTINA_PROVINCES, getCitiesForProvince } from '../../constants/provinces';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
 import { get_public } from '../../services/apiService';
@@ -227,8 +227,19 @@ const RegisterScreen = ({ navigation }) => {
               No podrás cambiar el sexo después del registro.
             </Text>
             <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
-            <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => setValue('province', value)} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
-            <FormInput label="Ciudad" placeholder="Ingresá tu ciudad" leftIcon="location-outline" autoCapitalize="words" required {...getFieldProps('city')} />
+            <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => { setValue('province', value); setValue('city', ''); }} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
+            <FormPicker
+              label="Ciudad"
+              placeholder={values.province ? 'Seleccioná tu ciudad' : 'Primero seleccioná una provincia'}
+              leftIcon="location-outline"
+              required
+              searchable
+              value={values.city}
+              onSelect={(value) => setValue('city', value)}
+              error={touched.city ? errors.city : null}
+              options={getCitiesForProvince(values.province)}
+              disabled={!values.province}
+            />
           </>
         );
       case 3:

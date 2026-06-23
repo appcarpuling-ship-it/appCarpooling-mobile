@@ -144,8 +144,6 @@ const VerificationScreen = ({ route, navigation }) => {
               keyboardType="numeric"
               maxLength={6}
               autoComplete="one-time-code"
-              textAlign="center"
-              letterSpacing={10}
             />
           </View>
 
@@ -190,8 +188,8 @@ const styles = StyleSheet.create({
   title:      { fontSize: 26, fontWeight: '700', marginBottom: 8 },
   subtitle:   { fontSize: 14, marginBottom: 4 },
   email:      { fontSize: 15, fontWeight: '600' },
-  card:       { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginBottom: 16, overflow: 'hidden' },
-  codeInput:  { height: 72, fontSize: 28, fontWeight: '700' },
+  card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
+  codeInput:  { height: 72, fontSize: 32, fontWeight: '700', textAlign: 'center', letterSpacing: 12 },
   btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   btnText:    { fontSize: 16, fontWeight: '700' },
   resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
