@@ -129,7 +129,7 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) 
 };
 
 const HomeScreen = ({ navigation, route }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   useTheme();
   const { showAlert } = useAlert();
@@ -210,7 +210,12 @@ const HomeScreen = ({ navigation, route }) => {
     try {
       const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 40 });
       if (response.success && Array.isArray(response.data)) {
-        const upcoming = response.data.filter(tripQualifiesForHomeUpcomingStrip);
+        const userId = user?._id || user?.id;
+        const upcoming = response.data.filter(t => {
+          if (!tripQualifiesForHomeUpcomingStrip(t)) return false;
+          const driverId = t.driver?._id || t.driver;
+          return !userId || String(driverId) !== String(userId);
+        });
         const sortedTrips = [...upcoming].sort((a, b) => {
           const dateA = new Date(`${a.departureDate}T${a.departureTime || '00:00'}`);
           const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`);
@@ -507,12 +512,12 @@ const HomeScreen = ({ navigation, route }) => {
 
         {/* Footer */}
         <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
-          <View style={styles.tripFooterItem}>
+          {/* <View style={styles.tripFooterItem}>
             <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
             <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
               ${req.pricePerSeat?.toLocaleString('es-AR')} por asiento
             </Text>
-          </View>
+          </View> */}
           {totalApps > 0 && (
             <View style={styles.tripFooterItem}>
               <Ionicons name="people-outline" size={13} color={tripRouteMuted} />
@@ -925,6 +930,30 @@ const HomeScreen = ({ navigation, route }) => {
           }
         >
           {renderTop()}
+
+          {/* Banner viaje en curso */}
+          {activeTrip && (
+            <View style={styles.activeTripWrapper}>
+              <TouchableOpacity
+                style={styles.activeTripBanner}
+                onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+                activeOpacity={0.88}
+              >
+                <View style={styles.activeTripLeft}>
+                  <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.activeTripLabel}>Viaje en curso</Text>
+                    <Text style={styles.activeTripDest} numberOfLines={1}>
+                      En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+              <Animated.View pointerEvents="none" style={[styles.activeTripRing, { opacity: pulseDot }]} />
+            </View>
+          )}
+
           <View style={styles.solicitudesCards}>
           <TouchableOpacity
             style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}

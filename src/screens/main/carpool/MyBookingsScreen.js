@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,6 +30,7 @@ const MyBookingsScreen = ({ navigation }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
   const fetchingRef = useRef(false);
+  const pulseDot = useRef(new Animated.Value(1)).current;
 
   const bg = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
@@ -41,6 +43,19 @@ const MyBookingsScreen = ({ navigation }) => {
     setupTripCancellationListener();
     return () => cleanupListeners();
   }, []);
+
+  useEffect(() => {
+    const hasActive = bookings.some(b => b.trip?.status === 'started');
+    if (!hasActive) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseDot, { toValue: 0.25, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseDot, { toValue: 1,    duration: 900, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [bookings]);
 
   useFocusEffect(
     useCallback(() => {
@@ -163,6 +178,8 @@ const MyBookingsScreen = ({ navigation }) => {
     if (rs === 'reserved')         return 2;
     if (rs === 'rejected')         return 3;
     if (rs === 'cancelled')        return 4;
+    // viaje en curso tiene prioridad máxima
+    if (item.trip?.status === 'started') return 0;
     // sin seatReservation, usar booking.status
     switch (item.status) {
       case 'pending':   return 1;
@@ -187,49 +204,69 @@ const MyBookingsScreen = ({ navigation }) => {
     const { color, label } = getStatusConfig(item);
     const driver = item.trip.driver;
     const seats = item.seats || item.seatsBooked || 1;
+    const isActive = item.trip?.status === 'started';
+    const activeBg      = isDarkMode ? '#111111' : '#FFFFFF';
+    const activeBorder  = isActive ? '#F59E0B' : border;
+    const activeTxt     = isActive ? (isDarkMode ? '#FFFFFF' : textPrimary) : textPrimary;
+    const activeMuted   = isActive ? (isDarkMode ? 'rgba(255,255,255,0.5)' : textSecondary) : textSecondary;
+    const activeDivider = isActive ? (isDarkMode ? '#333333' : divider) : divider;
+    const activeLabelColor = isDarkMode ? 'rgba(255,255,255,0.6)' : '#B45309';
 
     return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}
-        onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
-        activeOpacity={0.7}
-      >
-        {/* Status */}
-        <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
-          <View style={[styles.statusDot, { backgroundColor: color }]} />
-          <Text style={[styles.statusText, { color }]}>{label}</Text>
-        </View>
+      <View style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={[
+            styles.card,
+            isActive
+              ? { backgroundColor: activeBg, borderColor: activeBorder, borderWidth: 1, shadowOpacity: 0.15, elevation: 4 }
+              : { backgroundColor: cardBg, borderColor: border },
+          ]}
+          onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
+          activeOpacity={0.7}
+        >
+          {/* Status */}
+          {isActive ? (
+            <View style={[styles.activeHeader, { borderBottomColor: activeDivider }]}>
+              <Animated.View style={[styles.activePulseDot, { opacity: pulseDot }]} />
+              <Text style={[styles.activeLabel, { color: activeLabelColor }]}>Viaje en curso</Text>
+            </View>
+          ) : (
+            <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
+              <View style={[styles.statusDot, { backgroundColor: color }]} />
+              <Text style={[styles.statusText, { color }]}>{label}</Text>
+            </View>
+          )}
 
         {/* Route */}
         <View style={styles.route}>
           <View style={styles.routeRow}>
-            <View style={[styles.routeDotOutline, { borderColor: textPrimary }]} />
-            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+            <View style={[styles.routeDotOutline, { borderColor: activeTxt }]} />
+            <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
               {formatAddress(item.trip?.origin)}
             </Text>
           </View>
-          <View style={[styles.routeConnector, { backgroundColor: isDarkMode ? '#444' : '#D0D0D0' }]} />
+          <View style={[styles.routeConnector, { backgroundColor: activeDivider }]} />
           <View style={styles.routeRow}>
-            <View style={[styles.routeDotFilled, { backgroundColor: textPrimary }]} />
-            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+            <View style={[styles.routeDotFilled, { backgroundColor: activeTxt }]} />
+            <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
               {formatAddress(item.trip?.destination)}
             </Text>
           </View>
         </View>
 
         {/* Meta */}
-        <View style={[styles.meta, { borderTopColor: divider, borderBottomColor: divider }]}>
+        <View style={[styles.meta, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={14} color={textSecondary} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(item.trip?.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={14} color={activeMuted} />
+            <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.trip?.departureDate)}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={14} color={textSecondary} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{item.trip?.departureTime}</Text>
+            <Ionicons name="time-outline" size={14} color={activeMuted} />
+            <Text style={[styles.metaText, { color: activeMuted }]}>{item.trip?.departureTime}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={14} color={textSecondary} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>
+            <Ionicons name="person-outline" size={14} color={activeMuted} />
+            <Text style={[styles.metaText, { color: activeMuted }]}>
               {seats} asiento{seats !== 1 ? 's' : ''}
             </Text>
           </View>
@@ -240,17 +277,17 @@ const MyBookingsScreen = ({ navigation }) => {
           {driver.avatar ? (
             <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#333' : '#EFEFEF' }]}>
-              <Text style={[styles.avatarInitials, { color: textPrimary }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: isActive ? (isDarkMode ? '#333' : '#FEF3C7') : (isDarkMode ? '#333' : '#EFEFEF') }]}>
+              <Text style={[styles.avatarInitials, { color: activeTxt }]}>
                 {driver.firstName[0]}{driver.lastName[0]}
               </Text>
             </View>
           )}
           <View style={styles.driverInfo}>
-            <Text style={[styles.driverName, { color: textPrimary }]}>{driver.firstName} {driver.lastName}</Text>
-            <Text style={[styles.driverLabel, { color: textSecondary }]}>Conductor</Text>
+            <Text style={[styles.driverName, { color: activeTxt }]}>{driver.firstName} {driver.lastName}</Text>
+            <Text style={[styles.driverLabel, { color: activeMuted }]}>Conductor</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#555' : '#CCC'} />
+          <Ionicons name="chevron-forward" size={18} color={isActive ? (isDarkMode ? 'rgba(255,255,255,0.3)' : '#D97706') : (isDarkMode ? '#555' : '#CCC')} />
         </View>
 
         {/* Actions */}
@@ -258,23 +295,27 @@ const MyBookingsScreen = ({ navigation }) => {
           <View style={styles.actions}>
             {canPay(item) && (
               <TouchableOpacity
-                style={[styles.btnPrimary, { backgroundColor: textPrimary }]}
+                style={[styles.btnPrimary, { backgroundColor: isActive ? '#FFFFFF' : textPrimary }]}
                 onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id, openPayment: true })}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.btnPrimaryText, { color: isDarkMode ? '#000' : '#FFF' }]}>Ir a pagar</Text>
+                <Text style={[styles.btnPrimaryText, { color: isActive ? '#000' : (isDarkMode ? '#000' : '#FFF') }]}>Ir a pagar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor: isDarkMode ? '#666666' : '#888888' }]}
+              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : '#D97706') : (isDarkMode ? '#666666' : '#888888') }]}
               onPress={() => handleCancelBooking(item._id)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.btnSecondaryText, { color: textPrimary }]}>Cancelar reserva</Text>
+              <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
             </TouchableOpacity>
           </View>
         )}
-      </TouchableOpacity>
+        </TouchableOpacity>
+        {isActive && (
+          <Animated.View pointerEvents="none" style={[styles.activeRing, { opacity: pulseDot }]} />
+        )}
+      </View>
     );
   };
 
@@ -343,11 +384,40 @@ const styles = StyleSheet.create({
   },
   listFooterText: { fontSize: 13 },
 
+  cardWrapper: {
+    marginBottom: 12,
+  },
   card: {
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 12,
     overflow: 'hidden',
+  },
+  activeRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 12,
+    borderWidth: 0.8,
+    borderColor: '#F59E0B',
+  },
+  activeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  activePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
+  },
+  activeLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   statusBadge: {

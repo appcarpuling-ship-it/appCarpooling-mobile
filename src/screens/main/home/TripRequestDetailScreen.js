@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
-import { get_withauth, buildImageUri } from '../../../services/apiService';
+import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
@@ -92,6 +92,28 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           onPress: async () => {
             try { await cancelTripRequest(requestId); navigation.goBack(); }
             catch (err) { showAlert('Error', err.message); }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCancelTrip = () => {
+    showAlert(
+      'Cancelar viaje',
+      '¿Estás seguro? El viaje será eliminado y el pasajero será notificado. La solicitud volverá a estar abierta.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar', style: 'destructive',
+          onPress: async () => {
+            try {
+              const tripId = request?.createdTrip?._id || request?.createdTrip;
+              await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
+              navigation.goBack();
+            } catch (err) {
+              showAlert('Error', err.message);
+            }
           }
         }
       ]
@@ -255,13 +277,20 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Precio */}
-        <View style={[styles.costBanner, { backgroundColor: cardBg, borderColor: divider }]}>
+        {/* Precio — solo visible para el pasajero */}
+        {isPassenger && <View style={[styles.costBanner, { backgroundColor: cardBg, borderColor: divider }]}>
           <View style={styles.costBannerLeft}>
             <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Precio a pagar</Text>
+            {request.seatsNeeded > 1 && (
+              <Text style={[styles.costBannerSub, { color: textMuted }]}>
+                ${request.pricePerSeat?.toLocaleString()} × {request.seatsNeeded} asientos
+              </Text>
+            )}
           </View>
-          <Text style={[styles.costBannerValue, { color: textPrimary }]}>${request.pricePerSeat?.toLocaleString()}</Text>
-        </View>
+          <Text style={[styles.costBannerValue, { color: textPrimary }]}>
+            ${((request.pricePerSeat || 0) * (request.seatsNeeded || 1)).toLocaleString()}
+          </Text>
+        </View>}
 
         {/* Passenger info (driver mode) */}
         {isDriver && passenger && (
@@ -412,9 +441,22 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
+          {/* Cancelar viaje (driver, paid) */}
+          {isDriver && request.status === 'paid' && (
+            <View style={[styles.footerRow, { marginTop: 10 }]}>
+              <TouchableOpacity
+                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                onPress={handleCancelTrip}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
-            alreadyApplied ? (
+            alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
               <View style={[styles.statusFooter, { backgroundColor: dark ? '#0D2B1A' : '#F0FDF4' }]}>
                 <Ionicons name="checkmark-circle" size={17} color="#22C55E" />
                 <Text style={[styles.statusFooterText, { color: '#22C55E' }]}>Ya te postulaste a este viaje</Text>
@@ -434,7 +476,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* Cancelar (passenger) */}
-          {isPassenger && ['open', 'awaiting_payment'].includes(request.status) && (
+          {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
                 style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
@@ -583,7 +625,7 @@ const styles = StyleSheet.create({
   chatBtn:                   { width: 60, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 
   // Footer
-  footer:           { padding: 20, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 8, gap: 4 },
+  footer:           { padding: 16, paddingTop: 12, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 4, gap: 4 },
   footerRow:        { flexDirection: 'row', gap: 10 },
   footerBtn:        { borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
   footerBtnText:    { fontSize: 15, fontWeight: '700' },

@@ -88,6 +88,11 @@ function navigateToMySeatReservations(navigation, useMainStack) {
   }
 }
 
+function navigateToTripRequestDetail(navigation, requestId, mode = 'passenger') {
+  if (!requestId) return;
+  navigation.navigate('TripRequestDetail', { requestId, mode });
+}
+
 function navigateToProfile(navigation, useMainStack) {
   const params = { screen: 'Profile' };
   if (useMainStack) {
@@ -198,6 +203,12 @@ export function navigateFromNotification(navigation, notification, options = {})
     }
     if (path === 'trip-requests') {
       navigateToOpenTripRequests(navigation, useMainStack);
+      return;
+    }
+    if (path.startsWith('trip-requests/')) {
+      const id = parts[1];
+      const mode = parts[2] === 'driver' ? 'driver' : 'passenger';
+      if (id) navigateToTripRequestDetail(navigation, id, mode);
       return;
     }
     if (path === 'profile' || path === 'security') {

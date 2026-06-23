@@ -10,11 +10,11 @@ import { useAlert } from '../../../context/AlertContext';
 import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequestService';
 
 const STATUS_LABELS = {
-  open:             { label: 'Abierta',        color: '#22C55E' },
+  open: { label: 'Abierta', color: '#22C55E' },
   awaiting_payment: { label: 'Pago pendiente', color: '#F59E0B' },
-  paid:             { label: 'Confirmada',      color: '#3B82F6' },
-  cancelled:        { label: 'Cancelada',       color: '#EF4444' },
-  expired:          { label: 'Vencida',         color: '#9CA3AF' }
+  paid: { label: 'Confirmada', color: '#3B82F6' },
+  cancelled: { label: 'Cancelada', color: '#EF4444' },
+  expired: { label: 'Vencida', color: '#9CA3AF' }
 };
 
 const isUpcoming = (req) => {
@@ -30,19 +30,19 @@ const MyTripRequestsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
-  const bg          = dark ? '#161616' : '#F9FAFB';
-  const cardBg      = dark ? '#1F1F1F' : '#FFFFFF';
-  const border      = dark ? '#333333' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF'  : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
-  const accent      = dark ? '#FFFFFF'  : '#1F2937';
+  const bg = dark ? '#161616' : '#F9FAFB';
+  const cardBg = dark ? '#1F1F1F' : '#FFFFFF';
+  const border = dark ? '#333333' : '#E5E7EB';
+  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
+  const textMuted = dark ? '#9CA3AF' : '#6B7280';
+  const accent = dark ? '#FFFFFF' : '#1F2937';
   const accentInverse = dark ? '#000000' : '#FFFFFF';
-  const divider     = dark ? '#2A2A2A'  : '#F3F4F6';
+  const divider = dark ? '#2A2A2A' : '#F3F4F6';
 
-  const [requests,   setRequests]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab,  setActiveTab]  = useState('upcoming');
+  const [activeTab, setActiveTab] = useState('upcoming');
 
   const load = async (isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
@@ -73,7 +73,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const statusInfo = STATUS_LABELS[item.status] || { label: item.status, color: textMuted };
     const pendingApps = item.applications?.filter(a => a.status === 'pending').length || 0;
-    const totalApps   = item.applications?.length || 0;
+    const totalApps = item.applications?.length || 0;
 
     return (
       <TouchableOpacity
@@ -98,10 +98,10 @@ const MyTripRequestsScreen = ({ navigation }) => {
             <Ionicons name="calendar-outline" size={13} color={textMuted} />
             <Text style={[styles.metaText, { color: textMuted }]}>{formatDate(item.departureDate)} {item.departureTime}</Text>
           </View>
-          <View style={styles.metaItem}>
+          {/* <View style={styles.metaItem}>
             <Ionicons name="cash-outline" size={13} color={textMuted} />
             <Text style={[styles.metaText, { color: textMuted }]}>${item.pricePerSeat?.toLocaleString()} por asiento</Text>
-          </View>
+          </View> */}
         </View>
 
         {item.status === 'open' && (
@@ -175,14 +175,14 @@ const MyTripRequestsScreen = ({ navigation }) => {
               <Text style={[styles.emptyText, { color: textMuted }]}>
                 {activeTab === 'upcoming' ? 'No tenés solicitudes próximas' : 'No tenés solicitudes pasadas'}
               </Text>
-              {activeTab === 'upcoming' && (
+              {/* {activeTab === 'upcoming' && (
                 <TouchableOpacity
                   style={[styles.createBtn, { backgroundColor: accent }]}
                   onPress={() => navigation.navigate('CreateTripRequest')}
                 >
                   <Text style={[styles.createBtnText, { color: accentInverse }]}>Publicar solicitud</Text>
                 </TouchableOpacity>
-              )}
+              )} */}
             </View>
           }
         />
@@ -192,29 +192,29 @@ const MyTripRequestsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container:   { flex: 1 },
-  center:      { justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
-  centerFlex:  { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
-  emptyText:   { fontSize: 15 },
-  createBtn:   { marginTop: 8, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
+  container: { flex: 1 },
+  center: { justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
+  centerFlex: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
+  emptyText: { fontSize: 15 },
+  createBtn: { marginTop: 8, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
   createBtnText: { fontWeight: '700', fontSize: 14 },
 
   // Tabs
   tabsContainer: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
-  tab:           { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabText:       { fontSize: 14, fontWeight: '600' },
+  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText: { fontSize: 14, fontWeight: '600' },
 
-  list:       { padding: 16, gap: 12 },
-  card:       { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
+  list: { padding: 16, gap: 12 },
+  card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  routeRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8 },
-  city:       { fontSize: 14, fontWeight: '600', flex: 1 },
-  statusBadge:{ borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8 },
+  city: { fontSize: 14, fontWeight: '600', flex: 1 },
+  statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 11, fontWeight: '600' },
-  meta:       { borderTopWidth: 1, paddingTop: 8, gap: 5 },
-  metaItem:   { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText:   { fontSize: 12 },
-  appsRow:    { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingTop: 8 },
+  meta: { borderTopWidth: 1, paddingTop: 8, gap: 5 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontSize: 12 },
+  appsRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingTop: 8 },
 });
 
 export default MyTripRequestsScreen;

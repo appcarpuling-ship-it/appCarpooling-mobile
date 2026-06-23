@@ -10,11 +10,12 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
-import { get_public } from '../../../services/apiService';
+import { get_public, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
@@ -66,6 +67,8 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
+  const [activeTrip, setActiveTrip] = useState(null);
+  const pulseDot = useRef(new Animated.Value(1)).current;
 
   const bg = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
@@ -81,8 +84,21 @@ const CarpoolingsScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadBanners();
+      loadActiveTrip();
     }, [])
   );
+
+  useEffect(() => {
+    if (!activeTrip) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseDot, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseDot, { toValue: 1,   duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [activeTrip]);
 
   useEffect(() => {
     if (banners.length > 1) {
@@ -96,6 +112,25 @@ const CarpoolingsScreen = ({ navigation }) => {
     }
     return () => clearInterval(bannerAutoScrollTimer.current);
   }, [banners]);
+
+  const loadActiveTrip = async () => {
+    try {
+      const [driverRes, passengerRes] = await Promise.allSettled([
+        get_withauth(ENDPOINTS.MY_TRIPS_DRIVER),
+        get_withauth(ENDPOINTS.MY_TRIPS_PASSENGER),
+      ]);
+      let found = null;
+      if (driverRes.status === 'fulfilled' && driverRes.value?.success) {
+        found = (driverRes.value.data || []).find(t => t.status === 'started') || null;
+      }
+      if (!found && passengerRes.status === 'fulfilled' && passengerRes.value?.success) {
+        found = (passengerRes.value.data || []).find(t => t.status === 'started') || null;
+      }
+      setActiveTrip(found);
+    } catch {
+      // banner es opcional
+    }
+  };
 
   const loadBanners = async () => {
     try {
@@ -286,6 +321,26 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
   dot: { width: 6, height: 6, borderRadius: 3, marginHorizontal: 3 },
   dotActive: { width: 18 },
+
+  activeTripWrapper: { marginHorizontal: 24, marginTop: 16, marginBottom: 4 },
+  activeTripRing: { ...StyleSheet.absoluteFillObject, borderRadius: 16, borderWidth: 0.8, borderColor: '#F59E0B' },
+  activeTripBanner: {
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  activeTripLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  activeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
+  activeTripLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  activeTripDest: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
 });
 
 export default CarpoolingsScreen;

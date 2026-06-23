@@ -23,6 +23,7 @@ export function tripRemainingSeats(trip) {
  * Devuelve la capacidad total del vehículo para el viaje.
  */
 export function tripSeatCapacity(trip) {
+  if (trip?.tripCapacity != null) return Math.max(0, Number(trip.tripCapacity));
   return Math.max(0, Number(trip?.availableSeats ?? 0));
 }
 

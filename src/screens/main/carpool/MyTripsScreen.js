@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Modal,
   TextInput,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -32,6 +33,7 @@ const MyTripsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab]   = useState('upcoming');
   const fetchingRef = useRef(false);
+  const pulseDot = useRef(new Animated.Value(1)).current;
   const [startingTripId, setStartingTripId] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
   const [completingTripId, setCompletingTripId] = useState(null);
@@ -43,6 +45,19 @@ const MyTripsScreen = ({ navigation }) => {
   useEffect(() => {
     loadMyTrips(1, true);
   }, []);
+
+  useEffect(() => {
+    const hasActive = trips.some(t => t.status === 'started');
+    if (!hasActive) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseDot, { toValue: 0.25, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseDot, { toValue: 1,    duration: 900, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [trips]);
 
   useFocusEffect(
     useCallback(() => {
@@ -244,106 +259,123 @@ const MyTripsScreen = ({ navigation }) => {
     const divider       = isDarkMode ? '#2A2A2A' : '#F0F0F0';
     const accent        = textPrimary;
     const accentInv     = isDarkMode ? '#000000' : '#FFFFFF';
+    const isActive      = item.status === 'started';
+
+    const activeTxt   = isActive ? '#FFFFFF' : textPrimary;
+    const activeMuted = isActive ? 'rgba(255,255,255,0.5)' : textMuted;
+    const activeDivider = isActive ? '#333333' : divider;
 
     return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: cardBg }]}
-        onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
-        activeOpacity={0.7}
-      >
-        {/* Cabecera: estado arriba, luego ruta */}
-        <View style={styles.cardHeader}>
-          <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
-            <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
-          </View>
-          <View style={styles.routeBlock}>
-            <View style={styles.routeDots}>
-              <View style={[styles.dotOrigin, { borderColor: accent }]} />
-              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
-              <View style={[styles.dotDest, { backgroundColor: accent }]} />
-            </View>
-            <View style={styles.routeLabels}>
-              <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
-                {formatAddress(item.origin)}
-              </Text>
-              <Text style={[styles.cityText, { color: textPrimary, marginTop: 10 }]} numberOfLines={1}>
-                {formatAddress(item.destination)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Meta row */}
-        <View style={[styles.metaRow, { borderTopColor: divider, borderBottomColor: divider }]}>
-          <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>{formatDate(item.departureDate)}</Text>
-          </View>
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>{item.departureTime}</Text>
-          </View>
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="people-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              {freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
-            </Text>
-          </View>
-          {activeTab === 'upcoming' && item.bookingsCount > 0 && (
-            <>
-              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={13} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{item.bookingsCount} pendiente{item.bookingsCount !== 1 ? 's' : ''}</Text>
+      <View style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={[styles.card, isActive ? styles.cardActive : { backgroundColor: cardBg }]}
+          onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item._id })}
+          activeOpacity={0.7}
+        >
+          {/* Cabecera: estado arriba, luego ruta */}
+          <View style={styles.cardHeader}>
+            {isActive ? (
+              <View style={styles.activeHeader}>
+                <Animated.View style={[styles.activePulseDot, { opacity: pulseDot }]} />
+                <Text style={styles.activeLabel}>Viaje en curso</Text>
               </View>
-            </>
-          )}
-        </View>
-
-        {/* Botones — solo viajes activos o en curso */}
-        {item.status === 'active' && (
-          <View style={styles.footerRow}>
-            <TouchableOpacity
-              style={[styles.footerBtn, { backgroundColor: accent }]}
-              onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
-            >
-              <Text style={[styles.footerBtnText, { color: accentInv }]}>Ver reservas</Text>
-              {item.bookingsCount > 0 && (
-                <View style={[styles.footerBadge, { backgroundColor: accentInv }]}>
-                  <Text style={[styles.footerBadgeText, { color: accent }]}>{item.bookingsCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {isTripToday(item.departureDate) && (
-              <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: divider }]}
-                onPress={() => handleStartTrip(item._id)}
-                disabled={startingTripId === item._id}
-              >
-                <Ionicons name="play-circle-outline" size={15} color={textPrimary} />
-                <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>
-                  {startingTripId === item._id ? 'Iniciando…' : 'Iniciar'}
+            ) : (
+              <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+                <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
+              </View>
+            )}
+            <View style={styles.routeBlock}>
+              <View style={styles.routeDots}>
+                <View style={[styles.dotOrigin, { borderColor: activeTxt }]} />
+                <View style={[styles.routeConnector, { backgroundColor: activeDivider }]} />
+                <View style={[styles.dotDest, { backgroundColor: activeTxt }]} />
+              </View>
+              <View style={styles.routeLabels}>
+                <Text style={[styles.cityText, { color: activeTxt }]} numberOfLines={1}>
+                  {formatAddress(item.origin)}
                 </Text>
-              </TouchableOpacity>
+                <Text style={[styles.cityText, { color: activeTxt, marginTop: 10 }]} numberOfLines={1}>
+                  {formatAddress(item.destination)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Meta row */}
+          <View style={[styles.metaRow, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.departureDate)}</Text>
+            </View>
+            <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>{item.departureTime}</Text>
+            </View>
+            <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
+            <View style={styles.metaItem}>
+              <Ionicons name="people-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>
+                {freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
+              </Text>
+            </View>
+            {activeTab === 'upcoming' && item.bookingsCount > 0 && (
+              <>
+                <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={13} color={activeMuted} />
+                  <Text style={[styles.metaText, { color: activeMuted }]}>{item.bookingsCount} pendiente{item.bookingsCount !== 1 ? 's' : ''}</Text>
+                </View>
+              </>
             )}
           </View>
-        )}
 
-        {item.status === 'started' && (
-          <View style={styles.footerRow}>
-            <TouchableOpacity
-              style={[styles.footerBtn, { backgroundColor: accent, flex: 1 }]}
-              onPress={() => handleCompleteTrip(item._id)}
-            >
-              <Ionicons name="checkmark-circle-outline" size={15} color={accentInv} />
-              <Text style={[styles.footerBtnText, { color: accentInv }]}>Completar viaje</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Botones — solo viajes activos o en curso */}
+          {item.status === 'active' && (
+            <View style={styles.footerRow}>
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: accent }]}
+                onPress={() => navigation.navigate('TripRequests', { tripId: item._id })}
+              >
+                <Text style={[styles.footerBtnText, { color: accentInv }]}>Ver reservas</Text>
+                {item.bookingsCount > 0 && (
+                  <View style={[styles.footerBadge, { backgroundColor: accentInv }]}>
+                    <Text style={[styles.footerBadgeText, { color: accent }]}>{item.bookingsCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {isTripToday(item.departureDate) && (
+                <TouchableOpacity
+                  style={[styles.footerBtnOutline, { borderColor: divider }]}
+                  onPress={() => handleStartTrip(item._id)}
+                  disabled={startingTripId === item._id}
+                >
+                  <Ionicons name="play-circle-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>
+                    {startingTripId === item._id ? 'Iniciando…' : 'Iniciar'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {item.status === 'started' && (
+            <View style={styles.footerRow}>
+              <TouchableOpacity
+                style={[styles.footerBtn, { backgroundColor: '#FFFFFF', flex: 1 }]}
+                onPress={() => handleCompleteTrip(item._id)}
+              >
+                <Ionicons name="checkmark-circle-outline" size={15} color="#000000" />
+                <Text style={[styles.footerBtnText, { color: '#000000' }]}>Completar viaje</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+        {isActive && (
+          <Animated.View pointerEvents="none" style={[styles.activeRing, { opacity: pulseDot }]} />
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -520,6 +552,7 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, gap: 12 },
 
   // Card
+  cardWrapper: { marginBottom: 0 },
   card: {
     borderRadius: 14,
     overflow: 'hidden',
@@ -528,6 +561,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
+  },
+  cardActive: {
+    backgroundColor: '#111111',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  activeRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+    borderWidth: 0.8,
+    borderColor: '#F59E0B',
+  },
+  activeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
+  },
+  activeLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // Cabecera: estado encima de la ruta
