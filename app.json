@@ -87,6 +87,14 @@
       "expo-updates",
       "expo-apple-authentication",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.1063777674242-9fj1tai8hti9cmvnhk095jlnj8qe5008"

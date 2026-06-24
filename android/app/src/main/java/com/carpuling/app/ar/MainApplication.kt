@@ -1,4 +1,4 @@
-package com.carpooling.app
+package com.carpuling.app.ar
 
 import android.app.Application
 import android.content.res.Configuration

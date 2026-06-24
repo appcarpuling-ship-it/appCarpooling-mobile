@@ -1,4 +1,4 @@
-package com.carpooling.app
+package com.carpuling.app.ar
 
 import android.os.Build
 import android.os.Bundle
