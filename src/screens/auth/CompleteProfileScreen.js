@@ -12,7 +12,7 @@ import { useColors } from '../../hooks/useColors';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
-import { ARGENTINA_PROVINCES } from '../../constants/provinces';
+import LocationPickerField from '../../components/forms/LocationPickerField';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
 import { put_withauth_formdata } from '../../services/apiService';
@@ -177,8 +177,14 @@ const CompleteProfileScreen = () => {
           />
           <Text style={{ fontSize: 12, color: textMuted, marginTop: -10, marginBottom: 8 }}>No podrás cambiar el sexo después.</Text>
           <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
-          <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(v) => setValue('province', v)} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
-          <FormInput label="Ciudad" placeholder="Ingresá tu ciudad" leftIcon="location-outline" autoCapitalize="words" required {...getFieldProps('city')} />
+          <LocationPickerField
+            province={values.province}
+            city={values.city}
+            onProvinceChange={(v) => { setValue('province', v); setValue('city', ''); setFieldTouched('province', true); }}
+            onCityChange={(v) => { setValue('city', v); setFieldTouched('city', true); }}
+            provinceError={touched.province ? errors.province : null}
+            cityError={touched.city ? errors.city : null}
+          />
         </>
       );
       case 2: return (

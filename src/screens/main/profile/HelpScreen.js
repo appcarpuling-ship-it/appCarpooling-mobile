@@ -60,6 +60,16 @@ const HelpScreen = () => {
       question: '¿Es seguro usar la aplicación?',
       answer: 'Verificamos la información de los usuarios y fomentamos un sistema de calificaciones. Siempre revisá el perfil y las reseñas antes de viajar.',
     },
+    {
+      id: 9,
+      question: '¿Qué son las solicitudes de viaje?',
+      answer: 'Si no encontrás un viaje publicado, podés crear una solicitud indicando a dónde querés ir. Los conductores se postulan (hasta 5), vos elegís uno y, al completar el pago, el viaje queda confirmado en "Mis reservas". Las gestionás desde la pestaña "Solicitudes" del inicio.',
+    },
+    {
+      id: 10,
+      question: '¿Cómo me postulo a una solicitud como conductor?',
+      answer: 'Entrá a la pestaña "Solicitudes" → "Ver solicitudes abiertas", abrí un pedido de un pasajero y tocá "Ofrecer viaje" con tu vehículo (necesitás tener uno cargado). Si el pasajero te elige y paga, el viaje se crea automáticamente y aparece en tu agenda.',
+    },
   ];
 
   const contactItems = [

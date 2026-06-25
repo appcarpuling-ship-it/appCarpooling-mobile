@@ -21,7 +21,7 @@ import { useColors } from '../../hooks/useColors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
-import { ARGENTINA_PROVINCES, getCitiesForProvince } from '../../constants/provinces';
+import LocationPickerField from '../../components/forms/LocationPickerField';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
 import { get_public } from '../../services/apiService';
@@ -227,18 +227,13 @@ const RegisterScreen = ({ navigation }) => {
               No podrás cambiar el sexo después del registro.
             </Text>
             <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
-            <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => { setValue('province', value); setValue('city', ''); }} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
-            <FormPicker
-              label="Ciudad"
-              placeholder={values.province ? 'Seleccioná tu ciudad' : 'Primero seleccioná una provincia'}
-              leftIcon="location-outline"
-              required
-              searchable
-              value={values.city}
-              onSelect={(value) => setValue('city', value)}
-              error={touched.city ? errors.city : null}
-              options={getCitiesForProvince(values.province)}
-              disabled={!values.province}
+            <LocationPickerField
+              province={values.province}
+              city={values.city}
+              onProvinceChange={(value) => { setValue('province', value); setValue('city', ''); setFieldTouched('province', true); }}
+              onCityChange={(value) => { setValue('city', value); setFieldTouched('city', true); }}
+              provinceError={touched.province ? errors.province : null}
+              cityError={touched.city ? errors.city : null}
             />
           </>
         );

@@ -29,6 +29,13 @@ const STEPS = [
     tabNav: { tab: 'HomeTab', screen: 'Home' },
   },
   {
+    key: 'requests',
+    icon: 'megaphone',
+    title: 'Solicitudes de viaje',
+    body: 'Si no encontrás un viaje, pedilo. En la pestaña «Solicitudes» del inicio publicás a dónde querés ir y los conductores se postulan; elegís uno y, al pagar, el viaje queda confirmado. Si manejás, ahí también podés ofrecer tus viajes.',
+    tabNav: { tab: 'HomeTab', screen: 'Home' },
+  },
+  {
     key: 'carpool',
     icon: 'car',
     title: 'Viajes compartidos',

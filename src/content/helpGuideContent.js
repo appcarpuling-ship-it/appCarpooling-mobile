@@ -41,6 +41,12 @@ export const HELP_GUIDE_CATALOG = [
     listSubtitle: 'Aceptar o rechazar quien quiere subirse a tu viaje',
   },
   {
+    id: 'trip_request_flow',
+    listIcon: 'megaphone-outline',
+    listTitle: 'Solicitudes de viaje',
+    listSubtitle: 'Pedí un viaje y que los conductores se postulen (o postulate vos)',
+  },
+  {
     id: 'chats',
     listIcon: 'chatbubbles-outline',
     listTitle: 'Mensajes y coordinación',
@@ -249,6 +255,47 @@ const GUIDES = {
         title: 'Coordinar',
         body: 'Después de aceptar, es común coordinar por «» el punto exacto de encuentro u horario fino. Cuanto más claro, mejor experiencia para todos.',
         nav: { main: { tab: 'CarpoolingsTab', screen: 'TripRequests' } },
+      },
+    ],
+  },
+
+  trip_request_flow: {
+    id: 'trip_request_flow',
+    steps: [
+      {
+        key: 'trf1',
+        icon: 'megaphone-outline',
+        title: '¿Qué es una solicitud de viaje?',
+        body: 'Además de buscar viajes ya publicados, podés pedir uno. Como pasajero publicás a dónde querés ir y los conductores se postulan para llevarte. Todo esto vive en la pestaña «Solicitudes» del inicio.',
+        nav: { main: { tab: 'HomeTab', screen: 'Home' } },
+      },
+      {
+        key: 'trf2',
+        icon: 'add-circle-outline',
+        title: 'Publicar una solicitud',
+        body: 'Tocá «Publicar solicitud». Indicá origen, destino, fecha, hora y cuántos asientos necesitás. El precio se calcula automáticamente según la distancia. Tu solicitud queda abierta 48 horas para que los conductores la vean.',
+        nav: { main: { tab: 'HomeTab', screen: 'CreateTripRequest', params: { mode: 'request' } } },
+      },
+      {
+        key: 'trf3',
+        icon: 'list-outline',
+        title: 'Elegí conductor en «Mis solicitudes»',
+        body: 'En «Mis solicitudes» ves los conductores que se postularon (hasta 5), con su vehículo y calificación. Cuando elegís uno, el resto queda rechazado y se genera el pago. Al pagar, el viaje se crea y aparece en «Mis reservas».',
+        nav: { main: { tab: 'HomeTab', screen: 'MyTripRequests' } },
+      },
+      {
+        key: 'trf4',
+        icon: 'search-outline',
+        title: 'Como conductor: solicitudes abiertas',
+        body: 'Si manejás, entrá a «Ver solicitudes abiertas» para explorar los pedidos de los pasajeros. Abrí uno y tocá «Ofrecer viaje» para postularte con tu vehículo (necesitás tener uno cargado). Hay un máximo de 5 postulaciones por solicitud.',
+        nav: { main: { tab: 'HomeTab', screen: 'OpenTripRequests' } },
+      },
+      {
+        key: 'trf5',
+        icon: 'car-outline',
+        title: 'Seguí tus postulaciones',
+        body: 'En «Viajes que ofrecí» ves las solicitudes donde te postulaste y su estado: pendiente, aceptada o rechazada. Si el pasajero te elige y completa el pago, el viaje se crea automáticamente y aparece en tu agenda.',
+        nav: { main: { tab: 'HomeTab', screen: 'MyApplications' } },
       },
     ],
   },
