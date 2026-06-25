@@ -90,7 +90,10 @@
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static"
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true },
+              { "name": "RecaptchaInterop", "modular_headers": true }
+            ]
           }
         }
       ],
