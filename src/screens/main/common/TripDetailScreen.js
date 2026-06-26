@@ -234,7 +234,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const loadTripDetail = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_TRIP(tripId));
+      const response = await get_withauth(ENDPOINTS.GET_TRIP(tripId));
       if (response.success) {
         setTrip(response.data);
         const userId = user?._id || user?.id;
