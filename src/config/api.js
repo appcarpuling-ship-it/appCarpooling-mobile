@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const PRODUCTION_DEFAULT = 'https://appcarpuling.cloud/api';
+const PRODUCTION_DEFAULT = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 function resolveApiBaseUrl() {
   const fromExtra = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -44,7 +44,7 @@ if (__DEV__) {
     Platform.OS,
     API_BASE_URL
   );
-  if (API_BASE_URL.includes('appcarpuling.cloud')) {
+  if (API_BASE_URL.includes('appcarpooling.onrender.com')) {
     console.warn(
       '[API_CONFIG] Estás en dev pero la API apunta a producción. ' +
         'Para túnel local: EXPO_PUBLIC_API_BASE_URL en mobile/.env y `npx expo start -c`. ' +
@@ -70,6 +70,8 @@ export function tunnelExtraHeaders() {
 export const ENDPOINTS = {
   // Auth
   LOGIN: '/auth/login',
+  GOOGLE_AUTH: '/auth/google',
+  APPLE_AUTH: '/auth/apple',
   REGISTER: '/auth/register',
   VERIFY_EMAIL: '/auth/verify-email',
   RESEND_VERIFICATION: '/auth/resend-code',
@@ -84,6 +86,8 @@ export const ENDPOINTS = {
   GET_USER_VEHICLES: (id) => `/users/${id}/vehicles`,
   REPORT_USER: (id) => `/users/${id}/report`,
   BLOCK_USER: (id) => `/users/${id}/block`,
+  UNBLOCK_USER: (id) => `/users/${id}/block`,
+  GET_BLOCKED_USERS: '/users/blocked',
   UPDATE_USER: (id) => `/users/${id}`,
 
   // Trips
@@ -136,7 +140,8 @@ export const ENDPOINTS = {
   MY_SEAT_RESERVATIONS: '/seat-reservations/my-reservations',
 
   // Banners
-  GET_BANNERS_BY_PACKAGE: (packageId) => `/banners/package/${packageId}`,
+  GET_BANNER_SECTIONS: '/banners/sections',
+  GET_BANNERS_BY_SECTION: (sectionTitle) => `/banners/section/${encodeURIComponent(sectionTitle)}`,
   REGISTER_BANNER_VIEW: (id) => `/banners/${id}/register-view`,
   REGISTER_BANNER_CLICK: (id) => `/banners/${id}/register-click`,
 
@@ -145,4 +150,14 @@ export const ENDPOINTS = {
 
   // Bot assistant
   BOT_MESSAGE: '/bot/message',
+
+  // Trip Requests (solicitudes de viaje de pasajeros)
+  TRIP_REQUESTS: '/trip-requests',
+  MY_TRIP_REQUESTS: '/trip-requests/my',
+  MY_TRIP_REQUEST_APPLICATIONS: '/trip-requests/my-applications',
+  GET_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
+  APPLY_TO_TRIP_REQUEST: (id) => `/trip-requests/${id}/apply`,
+  ACCEPT_TRIP_REQUEST_APPLICATION: (id, appId) => `/trip-requests/${id}/accept/${appId}`,
+  CANCEL_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
+  CANCEL_TRIP_REQUEST_APPLICATION: (id) => `/trip-requests/${id}/apply`,
 };

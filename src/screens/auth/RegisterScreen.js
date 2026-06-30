@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,10 +21,11 @@ import { useColors } from '../../hooks/useColors';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
-import { ARGENTINA_PROVINCES } from '../../constants/provinces';
+import LocationPickerField from '../../components/forms/LocationPickerField';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
 import { get_public } from '../../services/apiService';
+import * as ScreenCapture from 'expo-screen-capture';
 
 const STEPS = [
   { title: 'Sobre vos',       subtitle: 'Contanos quién sos',                              fields: ['firstName', 'lastName'] },
@@ -34,6 +35,11 @@ const STEPS = [
 ];
 
 const RegisterScreen = ({ navigation }) => {
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => { ScreenCapture.allowScreenCaptureAsync(); };
+  }, []);
+
   const { getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
 
@@ -221,15 +227,21 @@ const RegisterScreen = ({ navigation }) => {
               No podrás cambiar el sexo después del registro.
             </Text>
             <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
-            <FormPicker label="Provincia" placeholder="Seleccioná tu provincia" leftIcon="map-outline" required value={values.province} onSelect={(value) => setValue('province', value)} error={touched.province ? errors.province : null} options={ARGENTINA_PROVINCES} />
-            <FormInput label="Ciudad" placeholder="Ingresá tu ciudad" leftIcon="location-outline" autoCapitalize="words" required {...getFieldProps('city')} />
+            <LocationPickerField
+              province={values.province}
+              city={values.city}
+              onProvinceChange={(value) => { setValue('province', value); setValue('city', ''); setFieldTouched('province', true); }}
+              onCityChange={(value) => { setValue('city', value); setFieldTouched('city', true); }}
+              provinceError={touched.province ? errors.province : null}
+              cityError={touched.city ? errors.city : null}
+            />
           </>
         );
       case 3:
         return (
           <>
             <FormInput label="Biografía" placeholder="Contanos sobre vos (opcional)" leftIcon="document-text-outline" multiline numberOfLines={3} maxLength={500} helper="Máximo 500 caracteres" {...getFieldProps('bio')} />
-            <FormInput label="Código promocional" placeholder="Ej: JP1234 (opcional)" leftIcon="gift-outline" value={values.referralCode} onChangeText={handleReferralCodeChange} autoCapitalize="characters" maxLength={8} helper="Si tenés un código de un amigo, ingresalo para obtener 20% de descuento" />
+            <FormInput label="Código promocional" placeholder="Ej: JP1234 (opcional)" leftIcon="gift-outline" value={values.referralCode} onChangeText={handleReferralCodeChange} autoCapitalize="characters" maxLength={6} helper="Si tenés un código de un amigo, ingresalo para obtener 20% de descuento" />
             {(validatingReferral || referralMessage) && (
               <View style={{ marginTop: -8, marginBottom: 16 }}>
                 {validatingReferral
@@ -284,7 +296,7 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} accessible={false}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* Top nav */}
@@ -307,24 +319,24 @@ const RegisterScreen = ({ navigation }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Paso 0: título + avatar en fila para alinear texto con la foto */}
           {currentStep === 0 ? (
-            <Animated.View style={[styles.stepHeroRow, { opacity: stepAnim, marginBottom: 24 }]}>
-              <TouchableOpacity style={styles.avatarHeroTouch} onPress={pickImage} activeOpacity={0.85}>
+            <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
+              <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
+              <Text style={[styles.stepSubtitle, { color: textMuted, marginBottom: 28 }]}>{STEPS[0].subtitle}</Text>
+              <TouchableOpacity onPress={pickImage} activeOpacity={0.85} style={styles.avatarCenter}>
                 {avatarUri
-                  ? <Image source={{ uri: avatarUri }} style={[styles.avatarHero, { borderColor: border }]} />
-                  : <View style={[styles.avatarHeroPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-                      <Ionicons name="camera" size={24} color={textMuted} />
+                  ? <Image source={{ uri: avatarUri }} style={[styles.avatarLarge, { borderColor: border }]} />
+                  : <View style={[styles.avatarPlaceholderLarge, { backgroundColor: cardBg, borderColor: border }]}>
+                      <Ionicons name="camera-outline" size={40} color={textMuted} />
                     </View>
                 }
+                <View style={[styles.cameraBadge, { backgroundColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' }]}>
+                  <Ionicons name="camera" size={14} color={textPrimary} />
+                </View>
               </TouchableOpacity>
-              <View style={styles.stepHeroTextCol}>
-                <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
-                <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[0].subtitle}</Text>
-                <Text style={[styles.avatarCaption, { color: textPrimary, fontWeight: '600' }]}>
-                  {avatarUri ? '✓ Foto cargada' : '📷 Tocá para agregar tu foto'}
-                </Text>
-              </View>
+              <Text style={[styles.avatarHint, { color: avatarUri ? textPrimary : textMuted }]}>
+                {avatarUri ? 'Foto cargada' : 'Tocá para agregar tu foto'}
+              </Text>
             </Animated.View>
           ) : (
             <Animated.View style={{ opacity: stepAnim, marginBottom: 28 }}>
@@ -387,33 +399,11 @@ const styles = StyleSheet.create({
   dot:          { height: 8, borderRadius: 4 },
   stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
   scrollContent:{ paddingHorizontal: 24, paddingBottom: 16 },
-  stepHeroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarHeroTouch: { marginRight: 16 },
-  avatarHero: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-  },
-  avatarHeroPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepHeroTextCol: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  avatarCaption: {
-    fontSize: 12,
-    marginTop: 6,
-  },
+  avatarCenter:          { alignSelf: 'center', position: 'relative', marginBottom: 12 },
+  avatarLarge:           { width: 130, height: 130, borderRadius: 65, borderWidth: 2 },
+  avatarPlaceholderLarge: { width: 130, height: 130, borderRadius: 65, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
+  cameraBadge:           { position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  avatarHint:            { textAlign: 'center', fontSize: 13, marginBottom: 28, fontWeight: '500' },
   stepTitle:    { fontSize: 26, fontWeight: '700', marginBottom: 6 },
   stepSubtitle: { fontSize: 14 },
   btnContainer: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },

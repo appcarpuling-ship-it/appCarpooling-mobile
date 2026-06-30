@@ -119,6 +119,15 @@ export const put_withauth = async (endpoint, formData = {}) => {
   }
 };
 
+export const patch_withauth = async (endpoint, formData = {}) => {
+  try {
+    const response = await api.patch(endpoint, formData);
+    return response.data;
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
 /**
  * DELETE request con autenticaci?n
  * @param {string} endpoint - Endpoint de la API
@@ -192,12 +201,14 @@ export const post_public = async (endpoint, formData = {}) => {
  */
 export const post_withauth_formdata = async (endpoint, formData) => {
   try {
-    const response = await api.post(endpoint, formData, {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.post(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
       headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...getNativeClientHeaders(false),
-        'Content-Type': 'multipart/form-data',
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
+        ...tunnelExtraHeaders(),
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });
@@ -207,20 +218,16 @@ export const post_withauth_formdata = async (endpoint, formData) => {
   }
 };
 
-/**
- * PUT request con autenticaci?n y FormData (para archivos)
- * @param {string} endpoint - Endpoint de la API
- * @param {FormData} formData - FormData con archivos
- * @returns {Promise} - Promesa con la respuesta
- */
 export const put_withauth_formdata = async (endpoint, formData) => {
   try {
-    const response = await api.put(endpoint, formData, {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.put(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
       headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...getNativeClientHeaders(false),
-        'Content-Type': 'multipart/form-data',
         'X-Platform': 'mobile',
         'X-Client-Platform': 'mobile',
+        ...tunnelExtraHeaders(),
       },
       timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
     });

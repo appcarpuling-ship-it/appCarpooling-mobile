@@ -48,6 +48,7 @@ const MainTabNavigator = () => {
   return (
     <>
     <Tab.Navigator
+      id="MainTabs"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
@@ -123,7 +124,14 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeStackNavigator}
-        options={{ tabBarLabel: 'Inicio' }}
+        options={({ route }) => {
+          const focused = getFocusedRouteNameFromRoute(route) ?? 'Home';
+          const hideTabBar = ['CreateTripRequest', 'TripMap'].includes(focused);
+          return {
+            tabBarLabel: 'Inicio',
+            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
+          };
+        }}
       />
       <Tab.Screen
         name="CarpoolingsTab"

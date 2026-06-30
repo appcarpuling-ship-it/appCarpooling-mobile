@@ -8,6 +8,9 @@ jobs:
   ota:
     if: contains(github.event.head_commit.message, 'prod.ota:')
     runs-on: ubuntu-latest
+    env:
+      CI: 1
+      EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -15,7 +18,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - uses: expo/expo-github-action@v8
         with:
@@ -25,7 +28,6 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-
       - name: Extraer mensaje del OTA
         id: msg
         run: |
@@ -34,5 +36,4 @@ jobs:
           echo "value=$MSG" >> $GITHUB_OUTPUT
 
       - name: Publicar OTA → production
-        run: eas update --channel production --message "${{ steps.msg.outputs.value }}" --non-interactive
-
+        run: eas update --channel production --message "${{ steps.msg.outputs.value }}"

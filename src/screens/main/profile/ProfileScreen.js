@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -60,6 +61,7 @@ const ProfileScreen = () => {
     setThemeMode(current === 'light' ? 'dark' : 'light');
   };
 
+  const [refreshing, setRefreshing] = useState(false);
   const [avatarImageLoading, setAvatarImageLoading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const avatarLoaderTimeoutRef = useRef(null);
@@ -96,6 +98,12 @@ const ProfileScreen = () => {
     }, [refreshUser])
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshUser();
+    setRefreshing(false);
+  };
+
   const clearAvatarLoaderTimeout = () => {
     avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
     avatarLoaderTimeoutRef.current = null;
@@ -105,20 +113,29 @@ const ProfileScreen = () => {
     {
       title: 'Perfil',
       items: [
-        { id: 1, title: 'Editar Perfil',  icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, title: 'Mis Vehículos',  icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+        { id: 1, title: 'Editar Perfil',  subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
+        { id: 2, title: 'Mis Vehículos',  subtitle: 'Administrá tus vehículos',        icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+      ],
+    },
+    {
+      title: 'Privacidad',
+      items: [
+        { id: 10, title: 'Usuarios bloqueados', subtitle: 'Administrá quién tenés bloqueado', icon: 'ban-outline', onPress: () => navigation.navigate('BlockedUsers') },
       ],
     },
     {
       title: 'Información',
       items: [
-        { id: 4, title: 'Términos y Condiciones', icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
-        { id: 5, title: 'Ayuda',                  icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
-        { id: 9, title: 'Mostrar introducción',   icon: 'book-outline',            onPress: () => resetTutorial() },
+        { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
+        { id: 11, title: 'Política de Privacidad', subtitle: 'Cómo usamos tus datos personales',  icon: 'shield-outline',        onPress: () => navigation.navigate('Privacy') },
+        { id: 12, title: 'Cookies',                subtitle: 'Información sobre almacenamiento', icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
+        { id: 5,  title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
+        { id: 9, title: 'Mostrar introducción',   subtitle: 'Volvé a ver el tutorial de la app', icon: 'book-outline',          onPress: () => resetTutorial() },
         {
           id: 6,
-          title: isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
-          icon:  isDarkMode ? 'sunny-outline'   : 'moon-outline',
+          title:    isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
+          subtitle: isDarkMode ? 'Activar modo día' : 'Activar modo noche',
+          icon:     isDarkMode ? 'sunny-outline'   : 'moon-outline',
           onPress: handleThemeToggle,
         },
       ],
@@ -140,7 +157,7 @@ const ProfileScreen = () => {
     {
       title: 'Sesión',
       items: [
-        { id: 7, title: 'Cerrar Sesión', icon: 'log-out-outline', onPress: handleLogout, danger: true },
+        { id: 7, title: 'Cerrar Sesión', subtitle: 'Salí de tu cuenta', icon: 'log-out-outline', onPress: handleLogout, danger: true },
       ],
     },
   ];
@@ -166,7 +183,11 @@ const ProfileScreen = () => {
         </Pressable>
       </Modal>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textPrimary]} />}
+      >
 
         {/* Header */}
         <View style={styles.header}>
@@ -265,7 +286,7 @@ const ProfileScreen = () => {
                         {item.title}
                       </Text>
                       {item.subtitle ? (
-                        <Text style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
+                        <Text numberOfLines={1} style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
                           {item.subtitle}
                         </Text>
                       ) : null}

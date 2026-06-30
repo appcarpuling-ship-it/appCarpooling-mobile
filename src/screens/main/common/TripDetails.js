@@ -100,6 +100,11 @@ const TripDetails = ({ navigation, route }) => {
             return;
         }
 
+        if (selectedVehicle?.capacity && parseInt(availableSeats) > selectedVehicle.capacity) {
+            showAlert('Asientos inválidos', `El vehículo seleccionado tiene capacidad para ${selectedVehicle.capacity} pasajeros.`);
+            return;
+        }
+
         setLoading(true);
         try {
             const tripData = {
@@ -130,6 +135,8 @@ const TripDetails = ({ navigation, route }) => {
                         }),
                     },
                 ], 'success');
+            } else {
+                showAlert('Ocurrió algo', response.message || 'No pudimos crear el viaje en este momento.', [], 'error');
             }
         } catch (error) {
             showAlert('Ocurrió algo', error.message || 'No pudimos crear el viaje en este momento.', [], 'error');
@@ -183,14 +190,14 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Vehículo */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>VEHÍCULO</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>VEHÍCULO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
                                 style={styles.selectRow}
                                 onPress={() => setShowVehicleModal(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="car-outline" size={19} color={textMuted} />
+                                <Ionicons name="car-outline" size={19} color={textPrimary} />
                                 <Text style={[
                                     styles.selectText,
                                     { color: formData.vehicle ? textPrimary : textMuted },
@@ -199,65 +206,91 @@ const TripDetails = ({ navigation, route }) => {
                                         ? `${selectedVehicle.brand} ${selectedVehicle.model}`
                                         : 'Seleccionar vehículo'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
 
                             {selectedVehicle && (
                                 <View style={[styles.vehicleExtra, { borderTopColor: divider }]}>
                                     <Text style={[styles.vehiclePlate, { color: textMuted }]}>
                                         {selectedVehicle.licensePlate}
+                                        {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
                                     </Text>
-                                    {selectedVehicle.features && (
-                                        <View style={styles.chips}>
-                                            {selectedVehicle.features.ac      && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>A/C</Text></View>}
-                                            {selectedVehicle.features.music   && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>Música</Text></View>}
-                                            {selectedVehicle.features.luggage && <View style={[styles.chip, { backgroundColor: divider }]}><Text style={[styles.chipText, { color: textPrimary }]}>Equipaje</Text></View>}
-                                        </View>
-                                    )}
+                                    <Text style={[styles.chipText, { color: textMuted, marginBottom: 4 }]}>Características</Text>
+                                    {(() => {
+                                        const f = selectedVehicle.features || {};
+                                        const activeFeatures = [
+                                            f.ac      && { label: 'A/C',      icon: 'snow-outline' },
+                                            f.music   && { label: 'Música',   icon: 'musical-notes-outline' },
+                                            f.luggage && { label: 'Equipaje', icon: 'bag-handle-outline' },
+                                            f.pets    && { label: 'Mascotas', icon: 'paw-outline' },
+                                        ].filter(Boolean);
+                                        return activeFeatures.length > 0 ? (
+                                            <View style={styles.chips}>
+                                                {activeFeatures.map(feat => (
+                                                    <View key={feat.label} style={[styles.chip, { backgroundColor: divider, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                                                        <Ionicons name={feat.icon} size={12} color={textPrimary} />
+                                                        <Text style={[styles.chipText, { color: textPrimary }]}>{feat.label}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        ) : (
+                                            <Text style={[styles.chipText, { color: textMuted }]}>Sin características registradas</Text>
+                                        );
+                                    })()}
                                 </View>
                             )}
                         </View>
 
                         {/* Fecha y hora */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>FECHA Y HORA DE SALIDA</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
                                 style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
                                 onPress={() => setShowDatePicker(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="calendar-outline" size={19} color={textMuted} />
+                                <Ionicons name="calendar-outline" size={19} color={textPrimary} />
                                 <Text style={[styles.selectText, { color: formData.departureDate ? textPrimary : textMuted }]}>
                                     {formData.departureDate ? formatDateDisplay(formData.departureDate) : 'Seleccionar fecha'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.selectRow}
                                 onPress={() => setShowTimePicker(true)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="time-outline" size={19} color={textMuted} />
+                                <Ionicons name="time-outline" size={19} color={textPrimary} />
                                 <Text style={[styles.selectText, { color: formData.departureTime ? textPrimary : textMuted }]}>
                                     {formData.departureTime ? formatTimeDisplay(formData.departureTime) : 'Seleccionar hora'}
                                 </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
                         </View>
 
                         {/* Detalles */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>DETALLES</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>DETALLES</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}>
-                                <Ionicons name="people-outline" size={19} color={textMuted} />
+                                <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder="Asientos disponibles *"
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
-                                    onChangeText={v => handleChange('availableSeats', v)}
+                                    onChangeText={v => {
+                                        const num = parseInt(v);
+                                        const cap = selectedVehicle?.capacity;
+                                        if (cap && num > cap) return;
+                                        handleChange('availableSeats', v);
+                                    }}
                                     keyboardType="numeric"
                                 />
+                                {selectedVehicle?.capacity && (
+                                    <Text style={[styles.capacityHint, { color: textMuted }]}>
+                                        máx {selectedVehicle.capacity}
+                                    </Text>
+                                )}
                             </View>
                             {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                                 <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
@@ -275,7 +308,7 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Preferencias */}
-                        <Text style={[styles.sectionLabel, { color: textMuted }]}>PREFERENCIAS</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>PREFERENCIAS</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             {preferences.map((p, index) => (
                                 <TouchableOpacity
@@ -541,6 +574,10 @@ const styles = StyleSheet.create({
     textArea: {
         minHeight: 72,
         paddingTop: 0,
+    },
+    capacityHint: {
+        fontSize: 12,
+        fontWeight: '500',
     },
 
     // Preferences

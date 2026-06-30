@@ -13,6 +13,7 @@ import {
   TextInput,
   Dimensions,
   Platform,
+  RefreshControl,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -147,6 +148,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [showCostModal, setShowCostModal] = useState(false);
   const [actualCost, setActualCost] = useState('');
   const [driverPay, setDriverPay] = useState('');
+  const [submittingComplete, setSubmittingComplete] = useState(false);
+  const [costError, setCostError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -221,16 +225,16 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const loadBanners = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('enterprise'), { isActive: true });
+      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'trip_detail' });
       if (response.success && Array.isArray(response.data)) {
-        setBanners(response.data.filter(b => b.isActive));
+        setBanners(response.data.flatMap(s => s.banners || []));
       }
     } catch (_) {}
   };
 
   const loadTripDetail = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_TRIP(tripId));
+      const response = await get_withauth(ENDPOINTS.GET_TRIP(tripId));
       if (response.success) {
         setTrip(response.data);
         const userId = user?._id || user?.id;
@@ -331,9 +335,9 @@ const TripDetailScreen = ({ route, navigation }) => {
           }
         }
 
-        if (paymentUrl || qrDataUrl) {
-          setPaymentModalData({ paymentUrl, qrDataUrl, amount });
-          setPaymentModalVisible(true);
+        if (paymentUrl) {
+          setCheckoutWebViewUrl(paymentUrl);
+          setCheckoutWebViewVisible(true);
         } else {
           showAlert('Ocurrió algo', 'No se puede realizar el pago. Contacta al soporte.');
         }
@@ -420,7 +424,7 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (!driverId) { showAlert('Ocurrió algo', 'No se encontraron datos del conductor'); return; }
     setChatLoading(true);
     try {
-      const response = await post_withauth('/chat/conversation', { participantId: driverId });
+      const response = await post_withauth('/chat/conversation', { participantId: driverId, tripId: trip._id });
       if (response?.success) {
         const conversation = response.data?.conversation || response.data;
         const otherUser =
@@ -531,18 +535,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const submitCompleteTrip = async () => {
     const cost = parseFloat(actualCost);
     if (!actualCost || isNaN(cost) || cost <= 0) {
-      showAlert('Ocurrió algo', 'Ingresa un costo valido mayor a 0');
+      setCostError('Ingresá un costo válido mayor a 0');
       return;
     }
+    setCostError('');
     const pay = parseFloat(driverPay) || 0;
+    setSubmittingComplete(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost, driverPay: pay });
       if (response.success) {
-        setShowCostModal(false);
-        const total = cost + pay;
-        showAlert('Viaje Completado', pay > 0
-          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
-          : `Costo final: $${formatNumber(cost)}`);
         if (response.data) {
           const updatedTrip = response.data.trip || response.data;
           const actualCostVal = updatedTrip?.actualCost ?? response.data.actualCost ?? cost;
@@ -551,11 +552,18 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
         await loadTripDetail();
         await refreshUser();
+        setShowCostModal(false);
+        const total = cost + pay;
+        showAlert('Viaje Completado', pay > 0
+          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
+          : `Costo final: $${formatNumber(cost)}`);
       } else {
-        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
+        setCostError(response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
+      setCostError(error.message || 'Error al completar el viaje');
+    } finally {
+      setSubmittingComplete(false);
     }
   };
 
@@ -584,15 +592,30 @@ const TripDetailScreen = ({ route, navigation }) => {
   );
 
   const statusMap = {
-    started: { color: colors.info, label: 'En curso' },
-    completed: { color: colors.success, label: 'Finalizado' },
-    cancelled: { color: colors.error, label: 'Cancelado' },
+    active:    { color: dark ? '#34D399' : '#10B981', label: 'Activo' },
+    started:   { color: dark ? '#FBBF24' : '#F59E0B', label: 'En curso' },
+    completed: { color: dark ? '#60A5FA' : '#3B82F6', label: 'Finalizado' },
+    cancelled: { color: dark ? '#F87171' : '#EF4444', label: 'Cancelado' },
   };
   const statusCfg = statusMap[trip.status];
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadTripDetail();
+              setRefreshing(false);
+            }}
+            tintColor={textMuted}
+            colors={[textMuted]}
+          />
+        }
+      >
         {statusCfg && (
           <View style={styles.statusRow}>
             <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
@@ -651,45 +674,42 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Ver trayecto en mapa */}
+        {(trip.origin?.coordinates?.latitude || trip.destination?.coordinates?.latitude) && (
+          <TouchableOpacity
+            style={[styles.mapBtn, { borderColor: dark ? '#2E2E2E' : '#E5E7EB' }]}
+            onPress={() => navigation.navigate('TripMap', { trip })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="map-outline" size={18} color={textPrimary} />
+            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
+            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Date / time / seats */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{formatDate(trip.departureDate)}</Text>
+            <Ionicons name="calendar-outline" size={16} color={dark ? textPrimary : colors.info} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(trip.departureDate)}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>{trip.departureTime}</Text>
+            <Ionicons name="time-outline" size={16} color={dark ? textPrimary : colors.accentOrange} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>{trip.departureTime}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textSecondary }]}>
+            <Ionicons name="person-outline" size={16} color={dark ? textPrimary : colors.accentGreen} />
+            <Text style={[styles.metaText, { color: textPrimary }]}>
               {tripFreeSeats}/{tripSeatCap} libres
             </Text>
           </View>
         </View>
 
-        {/* Estimated cost card */}
-        {/* {Number(trip.estimatedCost) > 0 && trip.status === 'active' && (
-          <View style={[styles.priceCard, { backgroundColor: cardBg }]}>
-            <View style={styles.priceCardLeft}>
-              <Text style={[styles.priceCardLabel, { color: textMuted }]}>Costo estimado</Text>
-              <Text style={[styles.priceCardValue, { color: textPrimary }]}>
-                ${formatNumber(trip.estimatedCost)}
-              </Text>
-            </View>
-            <View style={[styles.priceCardIcon, { backgroundColor: dark ? '#2A2A2A' : '#EFEFEF' }]}>
-              <Ionicons name="cash-outline" size={22} color={textSecondary} />
-            </View>
-          </View>
-        )} */}
-
-
         {/* Driver */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>Conductor</Text>
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor</Text>
           <View style={styles.driverRow}>
             {(() => {
               const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
@@ -724,7 +744,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section, { borderBottomColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
+              <Text style={[styles.sectionLabel, { color: textPrimary }]}>Vehículo</Text>
               {vehiclePaths.length > 0 ? (
                 <ScrollView
                   horizontal
@@ -748,7 +768,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </ScrollView>
               ) : (
                 <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg, marginBottom: 12 }]}>
-                  <Ionicons name="car-outline" size={32} color={textMuted} />
+                  <Ionicons name="car-outline" size={32} color={colors.primary} />
                 </View>
               )}
               <View style={styles.vehicleInfoBlock}>
@@ -767,30 +787,30 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Features */}
         {trip.vehicle?.features && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Caracteristicas</Text>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
             <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="snow-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Aire</Text>
+                  <Ionicons name="snow-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Aire</Text>
                 </View>
               )}
               {trip.vehicle.features.music && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="musical-notes-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Musica</Text>
+                  <Ionicons name="musical-notes-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Musica</Text>
                 </View>
               )}
               {trip.vehicle.features.pets && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="paw-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Mascotas</Text>
+                  <Ionicons name="paw-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Mascotas</Text>
                 </View>
               )}
               {trip.vehicle.features.luggage && (
                 <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="bag-handle-outline" size={15} color={textSecondary} />
-                  <Text style={[styles.featureChipText, { color: textSecondary }]}>Equipaje</Text>
+                  <Ionicons name="bag-handle-outline" size={15} color={textPrimary} />
+                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Equipaje</Text>
                 </View>
               )}
             </View>
@@ -799,7 +819,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Rules */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <Text style={[styles.sectionLabel, { color: textMuted }]}>Reglas</Text>
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Preferencias</Text>
           <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
               <Ionicons
@@ -807,8 +827,8 @@ const TripDetailScreen = ({ route, navigation }) => {
                 size={18}
                 color={trip.rules?.smokingAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: textSecondary }]}>
-                {trip.rules?.smokingAllowed ? 'Se puede fumar' : 'No fumar'}
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
+                {trip.rules?.smokingAllowed ? 'Fumar permitido' : 'No se permite fumar'}
               </Text>
             </View>
             <View style={styles.ruleItem}>
@@ -817,38 +837,43 @@ const TripDetailScreen = ({ route, navigation }) => {
                 size={18}
                 color={trip.rules?.petsAllowed ? colors.success : colors.error}
               />
-              <Text style={[styles.ruleText, { color: textSecondary }]}>
-                {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'Sin mascotas'}
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
+                {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'No se permiten mascotas'}
               </Text>
             </View>
-            {trip.womenOnly && (
-              <View style={styles.ruleItem}>
-                <Ionicons name="woman" size={18} color={textSecondary} />
-                <Text style={[styles.ruleText, { color: textSecondary }]}>
-                  Solo mujeres (pasajeras)
-                </Text>
-              </View>
-            )}
+            <View style={styles.ruleItem}>
+              <Ionicons
+                name={trip.rules?.largeLuggageAllowed ? 'checkmark-circle' : 'close-circle'}
+                size={18}
+                color={trip.rules?.largeLuggageAllowed ? colors.success : colors.error}
+              />
+              <Text style={[styles.ruleText, { color: textPrimary }]}>
+                {trip.rules?.largeLuggageAllowed ? 'Equipaje grande permitido' : 'Sin equipaje grande'}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Notes */}
         {trip.notes && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Notas</Text>
-            <Text style={[styles.notesText, { color: textSecondary }]}>{trip.notes}</Text>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Notas</Text>
+            <Text style={[styles.notesText, { color: textPrimary }]}>{trip.notes}</Text>
           </View>
         )}
 
         {/* Passengers (driver only) */}
-        {isOwnTrip && passengers.length > 0 && (
+        {isOwnTrip && (
           <View style={[styles.section, { borderBottomColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>
-              Pasajeros ({passengers.length})
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>
+              Pasajeros confirmados ({passengers.length})
             </Text>
-            {passengers.map((booking) => {
+            {passengers.length === 0 ? (
+              <Text style={{ fontSize: 13, color: textMuted }}>Sin pasajeros confirmados aún</Text>
+            ) : passengers.map((booking) => {
               const p = booking.passenger;
               const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
+              const paid = booking.seatReservation?.reservationStatus === 'reserved';
               return (
                 <TouchableOpacity
                   key={booking._id}
@@ -869,9 +894,19 @@ const TripDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {p?.firstName} {p?.lastName}
                     </Text>
-                    <Text style={[styles.passengerSeats, { color: textMuted }]}>
-                      {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                      <Text style={[styles.passengerSeats, { color: textMuted }]}>
+                        {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
+                      </Text>
+                      <View style={{
+                        paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
+                        backgroundColor: paid ? (colors.success + '20') : (colors.accentOrange + '20'),
+                      }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: paid ? colors.success : colors.accentOrange }}>
+                          {paid ? 'Pagó' : 'Confirmado'}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                   <TouchableOpacity
                     style={[styles.chatBtn, { backgroundColor: cardBg }]}
@@ -889,7 +924,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Banners */}
         {banners.length > 0 && (
           <View style={styles.bannersSection}>
-            <Text style={[styles.sectionLabel, { color: textMuted, paddingHorizontal: 20, marginBottom: 14 }]}>
+            <Text style={[styles.sectionLabel, { color: textPrimary, paddingHorizontal: 20, marginBottom: 14 }]}>
               Destacados
             </Text>
             <BannerCarousel banners={banners} onPress={(item) => setBannerModal({ visible: true, banner: item })} />
@@ -899,40 +934,59 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Footer — driver */}
         {isOwnTrip && (trip.status === 'active' || trip.status === 'started' || trip.status === 'pending') && (
           <View style={[styles.footer, { borderTopColor: divider }]}>
-            {(trip.status === 'active' || trip.status === 'pending') && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: dark ? '#2E2E2E' : '#F3F4F6', borderWidth: 1, borderColor: dark ? '#404040' : '#E5E7EB' }]}
-                onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
-              >
-                <Text style={[styles.footerBtnText, { color: dark ? '#FFFFFF' : '#000000' }]}>Editar viaje</Text>
-              </TouchableOpacity>
+            {trip.status === 'active' && (
+              <>
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: accent }]}
+                  onPress={handleStartTrip}
+                  disabled={startingTrip}
+                >
+                  {startingTrip
+                    ? <ActivityIndicator size="small" color={accentInverse} />
+                    : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Iniciar viaje</Text>
+                  }
+                </TouchableOpacity>
+                <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }]}
+                    onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    onPress={handleCancelTrip}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
-            {trip.status === 'active' && trip.occupiedSeats > 0 && (
+            {trip.status === 'pending' && (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }]}
-                onPress={handleStartTrip}
-                disabled={startingTrip}
+                onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
               >
-                <Text style={[styles.footerBtnText, { color: accentInverse }]}>
-                  {startingTrip ? 'Iniciando...' : 'Iniciar viaje'}
-                </Text>
+                <Text style={[styles.footerBtnText, { color: accentInverse }]}>Editar viaje</Text>
               </TouchableOpacity>
             )}
             {trip.status === 'started' && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: accent }]}
-                onPress={handleCompleteTrip}
-              >
-                <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
-              </TouchableOpacity>
-            )}
-            {trip.status === 'active' && (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: dark ? '#3D1A1A' : '#FEE2E2', marginTop: 8 }]}
-                onPress={handleCancelTrip}
-              >
-                <Text style={[styles.footerBtnText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: accent }]}
+                  onPress={handleCompleteTrip}
+                >
+                  <Text style={[styles.footerBtnText, { color: accentInverse }]}>Completar viaje</Text>
+                </TouchableOpacity>
+                <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    onPress={handleCancelTrip}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
           </View>
         )}
@@ -1113,20 +1167,21 @@ const TripDetailScreen = ({ route, navigation }) => {
       </Modal>
 
       {/* Cost Modal */}
-      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => setShowCostModal(false)}>
+      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => { if (!submittingComplete) setShowCostModal(false); }}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: bg }]}>
             <Text style={[styles.modalTitle, { color: textPrimary }]}>Completar viaje</Text>
             <Text style={[styles.modalSub, { color: textMuted }]}>Costo real del viaje</Text>
             <TextInput
-              style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg }]}
+              style={[styles.modalInput, { borderColor: costError ? '#EF4444' : divider, color: textPrimary, backgroundColor: cardBg }]}
               placeholder="Ej: 1500"
               placeholderTextColor={textMuted}
               keyboardType="decimal-pad"
               value={actualCost}
-              onChangeText={setActualCost}
+              onChangeText={v => { setActualCost(v); if (costError) setCostError(''); }}
               autoFocus
             />
+            {costError ? <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 6 }}>{costError}</Text> : null}
             <Text style={[styles.modalSub, { color: textMuted }]}>Tu contribucion extra (opcional)</Text>
             <TextInput
               style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg, marginTop: 6 }]}
@@ -1138,16 +1193,21 @@ const TripDetailScreen = ({ route, navigation }) => {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalBtnSecondary, { borderColor: divider }]}
-                onPress={() => setShowCostModal(false)}
+                style={[styles.modalBtnSecondary, { borderColor: divider, opacity: submittingComplete ? 0.5 : 1 }]}
+                onPress={() => { if (!submittingComplete) setShowCostModal(false); }}
+                disabled={submittingComplete}
               >
                 <Text style={[styles.modalBtnSecondaryText, { color: textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: accent }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: accent, opacity: submittingComplete ? 0.7 : 1 }]}
                 onPress={submitCompleteTrip}
+                disabled={submittingComplete}
               >
-                <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
+                {submittingComplete
+                  ? <ActivityIndicator size="small" color={accentInverse} />
+                  : <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
+                }
               </TouchableOpacity>
             </View>
           </View>
@@ -1338,18 +1398,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
 
+  mapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  mapBtnText: { flex: 1, fontSize: 14, fontWeight: '500' },
+
   // Footer
   footer: {
     padding: 20,
     paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: 8,
+    gap: 4,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   footerBtn: {
     height: 52, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
+    flexDirection: 'row', gap: 6,
   },
   footerBtnText: { fontSize: 16, fontWeight: '600' },
+  footerBtnOutline: {
+    height: 52, borderRadius: 12,
+    borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center',
+    flexDirection: 'row', gap: 6,
+  },
+  footerBtnOutlineText: { fontSize: 15, fontWeight: '600' },
+  cancelLink: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  cancelLinkText: { fontSize: 14, fontWeight: '500' },
   statusFooter: {
     flexDirection: 'row',
     alignItems: 'center',

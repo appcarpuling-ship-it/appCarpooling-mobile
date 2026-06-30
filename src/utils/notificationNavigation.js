@@ -26,6 +26,15 @@ function navigateToTripRequests(navigation, tripId, useMainStack) {
   }
 }
 
+function navigateToOpenTripRequests(navigation, useMainStack) {
+  const params = { screen: 'OpenTripRequests' };
+  if (useMainStack) {
+    navigation.navigate('Main', { screen: 'HomeTab', params });
+  } else {
+    navigation.navigate('HomeTab', params);
+  }
+}
+
 function navigateToCreateReview(navigation, tripId, useMainStack) {
   if (!tripId) return;
   const params = { screen: 'CreateReviewFromTrip', params: { tripId } };
@@ -77,6 +86,11 @@ function navigateToMySeatReservations(navigation, useMainStack) {
   } else {
     navigation.navigate('CarpoolingsTab', params);
   }
+}
+
+function navigateToTripRequestDetail(navigation, requestId, mode = 'passenger') {
+  if (!requestId) return;
+  navigation.navigate('TripRequestDetail', { requestId, mode });
 }
 
 function navigateToProfile(navigation, useMainStack) {
@@ -187,6 +201,16 @@ export function navigateFromNotification(navigation, notification, options = {})
       navigateToMySeatReservations(navigation, useMainStack);
       return;
     }
+    if (path === 'trip-requests') {
+      navigateToOpenTripRequests(navigation, useMainStack);
+      return;
+    }
+    if (path.startsWith('trip-requests/')) {
+      const id = parts[1];
+      const mode = parts[2] === 'driver' ? 'driver' : 'passenger';
+      if (id) navigateToTripRequestDetail(navigation, id, mode);
+      return;
+    }
     if (path === 'profile' || path === 'security') {
       navigateToProfile(navigation, useMainStack);
       return;
@@ -224,5 +248,9 @@ export function navigateFromNotification(navigation, notification, options = {})
   }
   if (notification.type === 'new_message') {
     navigateToChats(navigation, useMainStack);
+    return;
+  }
+  if (notification.type === 'new_trip_request_from_city') {
+    navigateToOpenTripRequests(navigation, useMainStack);
   }
 }

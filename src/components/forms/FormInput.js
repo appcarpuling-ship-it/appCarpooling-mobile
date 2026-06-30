@@ -211,23 +211,17 @@ const FormInput = ({
       {/* Error Message */}
       {error && (
         <View style={styles.errorContainer}>
-          <Ionicons
-            name="alert-circle"
-            size={14}
-            color={isDarkMode ? '#EF4444' : '#DC2626'}
-          />
+          {Platform.OS !== 'web' && (
+            <Ionicons name="alert-circle" size={14} color={isDarkMode ? '#EF4444' : '#DC2626'} />
+          )}
           <Text style={[styles.errorText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>{error}</Text>
         </View>
       )}
 
       {/* Success Indicator */}
-      {!error && value && isFocused && (
+      {Platform.OS !== 'web' && !error && value && isFocused && (
         <View style={styles.successContainer}>
-          <Ionicons
-            name="checkmark-circle"
-            size={14}
-            color={isDarkMode ? '#10B981' : '#059669'}
-          />
+          <Ionicons name="checkmark-circle" size={14} color={isDarkMode ? '#10B981' : '#059669'} />
           <Text style={[styles.successText, { color: isDarkMode ? '#10B981' : '#059669' }]}>Válido</Text>
         </View>
       )}

@@ -15,6 +15,7 @@ import TripRequestsScreen from '../../screens/main/carpool/TripRequestsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
+import TripMapScreen from '../../screens/main/trip/TripMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -102,6 +103,11 @@ const CarpoolingsStackNavigator = () => {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Stack.Screen
+        name="TripMap"
+        component={TripMapScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

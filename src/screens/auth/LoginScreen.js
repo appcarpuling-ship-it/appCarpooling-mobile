@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,18 +12,25 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
+import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+
+const GOOGLE_START_URL = 'https://appcarpooling.onrender.com/api/auth/google/start';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
   const { getCurrentThemeMode } = useColors();
 
@@ -38,7 +45,47 @@ const LoginScreen = ({ navigation }) => {
     ? require('../../../assets/logo/192x192-white.png')
     : require('../../../assets/logo/192x192-black.png');
 
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => { ScreenCapture.allowScreenCaptureAsync(); };
+  }, []);
+
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const otaId = Updates.updateId ? Updates.updateId.replace(/-/g, '').slice(0, 8) : null;
+  const versionLabel = otaId ? `v${version} - ${otaId}` : `v${version}`;
+
+  const handleGoogleLogin = async () => {
+    setSsoLoading('google');
+    try {
+      const redirectUrl = Linking.createURL('auth/google');
+      const startUrl = `${GOOGLE_START_URL}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUrl);
+
+      if (result.type === 'success') {
+        const params = new URLSearchParams(result.url.split('?')[1] || '');
+        const token = params.get('token');
+        const error = params.get('error');
+        if (token) {
+          const loginResult = await loginWithJwt(token);
+          if (!loginResult.success) showAlert('Error con Google', loginResult.message || 'No se pudo iniciar sesión.');
+        } else if (error !== 'cancelled') {
+          showAlert('Error con Google', 'No se pudo completar el inicio de sesión.');
+        }
+      }
+    } catch (e) {
+      showAlert('Error con Google', e.message || 'Error inesperado.');
+    }
+    setSsoLoading(null);
+  };
+
+  const handleAppleLogin = async () => {
+    setSsoLoading('apple');
+    const result = await loginWithApple();
+    setSsoLoading(null);
+    if (!result.success && !result.cancelled) {
+      showAlert('Error con Apple', result.message || 'No se pudo iniciar sesión con Apple.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -64,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* Header */}
           <View style={styles.header}>
@@ -118,6 +165,44 @@ const LoginScreen = ({ navigation }) => {
             }
           </TouchableOpacity>
 
+          {/* Divider SSO */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+            <Text style={[styles.dividerLabel, { color: textMuted }]}>o continuá con</Text>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+          </View>
+
+          {/* SSO icons */}
+          <View style={styles.ssoRow}>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.6 }]}
+                onPress={handleGoogleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'google'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="google" size={22} color="#DB4437" />
+                }
+              </TouchableOpacity>
+            )}
+
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'apple' && { opacity: 0.6 }]}
+                onPress={handleAppleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'apple'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                }
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* Forgot password */}
           <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={[styles.linkText, { color: textMuted }]}>¿Olvidaste tu contraseña?</Text>
@@ -131,7 +216,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.version, { color: textMuted }]}>v{version}</Text>
+          <Text style={[styles.version, { color: textMuted }]}>{versionLabel}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -158,6 +243,11 @@ const styles = StyleSheet.create({
   registerText:  { fontSize: 14 },
   registerLink:  { fontSize: 14, fontWeight: '600' },
   version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
+  divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
+  ssoRow:        { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12 },
+  ssoIconBtn:    { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default LoginScreen;

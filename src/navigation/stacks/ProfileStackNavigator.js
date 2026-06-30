@@ -7,6 +7,8 @@ import { useColors } from '../../hooks/useColors';
 import ProfileScreen from '../../screens/main/profile/ProfileScreen';
 import EditProfileScreen from '../../screens/main/profile/EditProfileScreen';
 import TermsScreen from '../../screens/main/profile/TermsScreen';
+import PrivacyScreen from '../../screens/main/profile/PrivacyScreen';
+import CookiesScreen from '../../screens/main/profile/CookiesScreen';
 import HelpScreen from '../../screens/main/profile/HelpScreen';
 import NotificationsScreen from '../../screens/main/profile/NotificationsScreen';
 import VehiclesScreen from '../../screens/main/profile/VehiclesScreen';
@@ -14,6 +16,7 @@ import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import ReferralScreen from '../../screens/main/profile/ReferralScreen';
+import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 
 const Stack = createStackNavigator();
 
@@ -82,6 +85,16 @@ const ProfileStackNavigator = () => {
         options={{ title: 'Términos y Condiciones' }}
       />
       <Stack.Screen
+        name="Privacy"
+        component={PrivacyScreen}
+        options={{ title: 'Política de Privacidad' }}
+      />
+      <Stack.Screen
+        name="Cookies"
+        component={CookiesScreen}
+        options={{ title: 'Cookies' }}
+      />
+      <Stack.Screen
         name="Help"
         component={HelpScreen}
         options={{ title: 'Ayuda' }}
@@ -95,6 +108,11 @@ const ProfileStackNavigator = () => {
         name="CreateReview"
         component={CreateReviewScreen}
         options={{ title: 'Crear Reseña' }}
+      />
+      <Stack.Screen
+        name="BlockedUsers"
+        component={BlockedUsersScreen}
+        options={{ title: 'Usuarios bloqueados' }}
       />
     </Stack.Navigator>
   );

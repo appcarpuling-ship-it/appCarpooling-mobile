@@ -21,6 +21,8 @@ const ConfirmationModal = ({
   const messageColor    = isDarkMode ? '#9CA3AF'  : '#6B7280';
   const borderColor     = isDarkMode ? '#404040'  : '#E5E7EB';
   const destructive     = type === 'error';
+  // Botón principal lleno cuando es la única acción (sin cancelar)
+  const filledConfirm   = !showCancel && !destructive;
 
   const handleConfirm = () => { onConfirm?.(); onClose(); };
   const handleCancel  = () => { onCancel?.();  onClose(); };
@@ -51,11 +53,25 @@ const ConfirmationModal = ({
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  style={[styles.button, { borderColor: destructive ? '#EF4444' : borderColor }]}
+                  style={[
+                    styles.button,
+                    destructive
+                      ? { borderColor: '#EF4444' }
+                      : filledConfirm
+                        ? { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000', borderColor: 'transparent' }
+                        : { borderColor },
+                  ]}
                   onPress={handleConfirm}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.buttonText, { color: destructive ? '#EF4444' : titleColor }]}>
+                  <Text style={[
+                    styles.buttonText,
+                    destructive
+                      ? { color: '#EF4444' }
+                      : filledConfirm
+                        ? { color: isDarkMode ? '#000000' : '#FFFFFF' }
+                        : { color: titleColor },
+                  ]}>
                     {confirmText}
                   </Text>
                 </TouchableOpacity>

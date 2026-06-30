@@ -8,6 +8,9 @@ jobs:
   ota:
     if: contains(github.event.head_commit.message, 'dev.ota:')
     runs-on: ubuntu-latest
+    env:
+      CI: 1
+      EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,4 +36,4 @@ jobs:
           echo "value=$MSG" >> $GITHUB_OUTPUT
 
       - name: Publicar OTA → development
-        run: eas update --channel development --message "${{ steps.msg.outputs.value }}" --non-interactive
+        run: eas update --channel development --message "${{ steps.msg.outputs.value }}"

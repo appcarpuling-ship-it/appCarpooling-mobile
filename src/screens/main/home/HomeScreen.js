@@ -10,18 +10,22 @@ import {
   FlatList,
   RefreshControl,
   Modal,
+  KeyboardAvoidingView,
   Platform,
   Dimensions,
   Image,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { get_public, buildImageUri } from '../../../services/apiService';
+import { get_public, get_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
+import { PROVINCE_IMAGES } from '../../../constants/provinceImages';
+import { getDepartmentsForProvince } from '../../../constants/departmentImages';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -30,6 +34,7 @@ import { useColors } from '../../../hooks/useColors';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -123,8 +128,8 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) 
   );
 };
 
-const HomeScreen = ({ navigation }) => {
-  const { isAuthenticated } = useAuth();
+const HomeScreen = ({ navigation, route }) => {
+  const { isAuthenticated, user } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   useTheme();
   const { showAlert } = useAlert();
@@ -137,35 +142,64 @@ const HomeScreen = ({ navigation }) => {
     : require('../../../../assets/logo/192x192-black.png');
 
   const [origin, setOrigin] = useState('');
+  const [originCity, setOriginCity] = useState('');
   const [destination, setDestination] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
   const [recentTrips, setRecentTrips] = useState([]);
-  const [bannersEnterprise, setBannersEnterprise] = useState([]);
-  const [bannersVip, setBannersVip] = useState([]);
-  const [bannersPremium, setBannersPremium] = useState([]);
+  const [bannerSections, setBannerSections] = useState([]); // [{sectionTitle, banners}]
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
+  const [originStep, setOriginStep] = useState('province');
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [destinationStep, setDestinationStep] = useState('province');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('inicio');
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
+  const [activeTrip, setActiveTrip] = useState(null);
+  const [activeTripRole, setActiveTripRole] = useState(null);
+  const [openRequests, setOpenRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const pulseDot = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadRecentTrips();
-    loadBannersEnterprise();
-    loadBannersVip();
-    loadBannersPremium();
+    loadBannerSections();
+    loadOpenRequests();
+    if (isAuthenticated) loadActiveTrip();
   }, []);
+
+  useEffect(() => {
+    if (!activeTrip) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseDot, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseDot, { toValue: 1,   duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [activeTrip]);
 
   useFocusEffect(
     useCallback(() => {
+      if (isAuthenticated) {
+        loadActiveTrip();
+        loadOpenRequests();
+      }
       return () => {
         setShowNotificationsModal(false);
       };
-    }, [])
+    }, [isAuthenticated])
   );
+
+  useEffect(() => {
+    const tab = route.params?.openTab;
+    if (tab) setActiveTab(tab);
+  }, [route.params?.openTab]);
 
   const loadRecentTrips = async (isRefreshing = false) => {
     if (isRefreshing) {
@@ -176,13 +210,18 @@ const HomeScreen = ({ navigation }) => {
     try {
       const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 40 });
       if (response.success && Array.isArray(response.data)) {
-        const upcoming = response.data.filter(tripQualifiesForHomeUpcomingStrip);
+        const userId = user?._id || user?.id;
+        const upcoming = response.data.filter(t => {
+          if (!tripQualifiesForHomeUpcomingStrip(t)) return false;
+          const driverId = t.driver?._id || t.driver;
+          return !userId || String(driverId) !== String(userId);
+        });
         const sortedTrips = [...upcoming].sort((a, b) => {
           const dateA = new Date(`${a.departureDate}T${a.departureTime || '00:00'}`);
           const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`);
           return dateA - dateB;
         });
-        setRecentTrips(sortedTrips.slice(0, 5));
+        setRecentTrips(sortedTrips.slice(0, 3));
       }
     } catch (error) {
       console.error('Error loading trips:', error);
@@ -192,59 +231,80 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const loadBannersEnterprise = async () => {
+  const loadActiveTrip = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('enterprise'), { isActive: true });
-      if (response.success && Array.isArray(response.data)) {
-        setBannersEnterprise(response.data.filter(b => b.isActive));
+      const [driverRes, passengerRes] = await Promise.allSettled([
+        get_withauth(ENDPOINTS.MY_TRIPS_DRIVER),
+        get_withauth(ENDPOINTS.MY_TRIPS_PASSENGER),
+      ]);
+      let found = null;
+      let role = null;
+      if (driverRes.status === 'fulfilled' && driverRes.value?.success) {
+        const started = (driverRes.value.data || []).find(t => t.status === 'started');
+        if (started) { found = started; role = 'driver'; }
       }
-    } catch (error) {
-      console.error('Error loading bannersEnterprise:', error);
+      if (!found && passengerRes.status === 'fulfilled' && passengerRes.value?.success) {
+        const started = (passengerRes.value.data || []).find(t => t.status === 'started');
+        if (started) { found = started; role = 'passenger'; }
+      }
+      setActiveTrip(found || null);
+      setActiveTripRole(found ? role : null);
+    } catch {
+      // no-op: banner is optional
     }
   };
 
-  const loadBannersVip = async () => {
+  const loadBannerSections = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('vip'), { isActive: true });
+      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS);
       if (response.success && Array.isArray(response.data)) {
-        setBannersVip(response.data.filter(b => b.isActive));
+        setBannerSections(response.data);
       }
     } catch (error) {
-      console.error('Error loading bannersVip:', error);
+      console.error('Error loading banner sections:', error);
     }
   };
 
-  const loadBannersPremium = async () => {
+  const loadOpenRequests = async () => {
+    setLoadingRequests(true);
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNERS_BY_PACKAGE('premium'), { isActive: true });
-      if (response.success && Array.isArray(response.data)) {
-        setBannersPremium(response.data.filter(b => b.isActive));
-      }
-    } catch (error) {
-      console.error('Error loading bannersPremium:', error);
-    }
+      const [openRes, myRes] = await Promise.allSettled([
+        getOpenTripRequests(),
+        isAuthenticated ? getMyTripRequests() : Promise.resolve({ success: false }),
+      ]);
+      const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
+      const mine = myRes.status === 'fulfilled' && myRes.value?.success ? myRes.value.data : [];
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const activeMine = mine.filter(r => !['cancelled', 'expired'].includes(r.status) && new Date(r.departureDate) >= today);
+      const merged = [...open];
+      activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });
+      merged.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
+      setOpenRequests(merged.slice(0, 3));
+    } catch {}
+    finally { setLoadingRequests(false); }
   };
 
   const onRefresh = () => {
     loadRecentTrips(true);
-    loadBannersEnterprise();
-    loadBannersVip();
-    loadBannersPremium();
+    loadBannerSections();
+    if (isAuthenticated) {
+      loadActiveTrip();
+      loadOpenRequests();
+    }
   };
 
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
-    }
-    if (date) {
-      setSelectedDate(date);
+      if (event.type === 'set' && date) {
+        setSelectedDate(date);
+      }
+    } else {
+      if (date) setSelectedDate(date);
     }
   };
 
   const handleDatePickerOpen = () => {
-    if (!selectedDate) {
-      setSelectedDate(new Date());
-    }
     setShowDatePicker(true);
   };
 
@@ -264,7 +324,9 @@ const HomeScreen = ({ navigation }) => {
     }
     navigation.navigate('SearchResults', {
       origin,
+      originCity,
       destination,
+      destinationCity,
       date: selectedDate,
       seats: selectedSeats,
     });
@@ -272,7 +334,9 @@ const HomeScreen = ({ navigation }) => {
 
   const clearFilters = () => {
     setOrigin('');
+    setOriginCity('');
     setDestination('');
+    setDestinationCity('');
     setSelectedDate(null);
     setSelectedSeats('');
   };
@@ -285,10 +349,13 @@ const HomeScreen = ({ navigation }) => {
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
-    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ').trim();
     const city = location.city || location.name || '';
-    if (raw) return raw;
-    return city;
+    const province = location.province || '';
+    let result = raw || city;
+    if (city && result && !result.includes(city)) result += `, ${city}`;
+    if (province && !result.includes(province)) result += `, ${province}`;
+    return result;
   };
 
   // Dynamic colors
@@ -361,12 +428,12 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.tripInfoColumn}>
           <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
             {formatAddress(trip.origin) || trip.origin?.city}
           </Text>
           <View style={{ height: 14 }} />
           <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
             {formatAddress(trip.destination) || trip.destination?.city}
           </Text>
         </View>
@@ -395,50 +462,266 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const renderProvincePicker = (visible, onClose, selected, onSelect, title) => (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
-            <Text style={[styles.pickerTitle, { color: textPrimary }]}>{title}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={22} color={textSecondary} />
-            </TouchableOpacity>
+  const renderRequestCard = (req) => {
+    const totalApps = req.applications?.length || 0;
+    return (
+      <TouchableOpacity
+        key={req._id}
+        style={[styles.tripCard, { backgroundColor: cardBg }]}
+        onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', { requestId: req._id, mode: 'passenger' })}
+        activeOpacity={0.7}
+      >
+        {/* Header row */}
+        <View style={styles.tripDriverRow}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <Ionicons name="person-outline" size={18} color={textMuted} />
           </View>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {ARGENTINA_PROVINCES.map((province) => (
-              <TouchableOpacity
-                key={province}
-                onPress={() => { onSelect(province); onClose(); }}
-                style={[
-                  styles.provinceOption,
-                  { borderBottomColor: divider },
-                  selected === province && { backgroundColor: dark ? '#222' : '#F5F5F5' },
-                ]}
-              >
-                <Text style={[
-                  styles.provinceOptionText,
-                  { color: selected === province ? textPrimary : textSecondary },
-                  selected === province && { fontWeight: '600' },
-                ]}>
-                  {province}
-                </Text>
-                {selected === province && (
-                  <Ionicons name="checkmark" size={18} color={accent} />
-                )}
+          <View style={styles.driverInfo}>
+            <Text style={[styles.driverName, { color: textPrimary }]}>
+              {req.origin?.city} → {req.destination?.city}
+            </Text>
+            <Text style={[styles.tripDateTime, { color: textMuted }]}>
+              {new Date(req.departureDate).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {'  '}{req.departureTime || ''}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
+        </View>
+
+        <View style={[styles.tripInnerDivider, { backgroundColor: divider }]} />
+
+        {/* Route */}
+        <View style={styles.tripRouteRow}>
+          <View style={styles.routeColumn}>
+            <View style={[styles.routeDot, { borderColor: accent }]} />
+            <View style={[styles.routeLineVertical, { backgroundColor: tripRouteLine }]} />
+            <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
+          </View>
+          <View style={styles.tripInfoColumn}>
+            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {req.origin?.address || req.origin?.city}
+            </Text>
+            <View style={{ height: 14 }} />
+            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {req.destination?.address || req.destination?.city}
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
+          {/* <View style={styles.tripFooterItem}>
+            <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
+            <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
+              ${req.pricePerSeat?.toLocaleString('es-AR')} por asiento
+            </Text>
+          </View> */}
+          {totalApps > 0 && (
+            <View style={styles.tripFooterItem}>
+              <Ionicons name="people-outline" size={13} color={tripRouteMuted} />
+              <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
+                {totalApps} postulacion{totalApps !== 1 ? 'es' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderLocationPicker = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
+    const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
+    const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
+    const depts = getDepartmentsForProvince(selectedProvince);
+
+    const handleProvinceSelect = (p) => {
+      onProvinceSelect(p);
+      onStepChange('loading');
+      setTimeout(() => onStepChange('department'), 2000);
+    };
+
+    const handleClose = () => {
+      onClose();
+      setTimeout(() => onStepChange('province'), 300);
+    };
+
+    const title = step === 'province' ? provinceTitle : step === 'loading' ? selectedProvince : `${selectedProvince}`;
+
+    return (
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
+              {step === 'department' && (
+                <TouchableOpacity
+                  onPress={() => onStepChange('province')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{ marginRight: 10 }}
+                >
+                  <Ionicons name="arrow-back" size={22} color={textSecondary} />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
+              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color={textSecondary} />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+
+            {(step === 'province' || step === 'loading') && (
+              <FlatList
+                data={provinces}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={provinces.length}
+                maxToRenderPerBatch={provinces.length}
+                windowSize={5}
+                renderItem={({ item }) => {
+                  const isSelected = selectedProvince === item.key;
+                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
+                        width: ITEM_SIZE,
+                        backgroundColor: cardBackground,
+                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
+                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowRadius: 8,
+                        elevation: isSelected ? 4 : 0,
+                      }]}
+                      onPress={() => handleProvinceSelect(item.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+            {step === 'loading' && (
+              <View style={styles.pickerLoadingOverlay}>
+                <ActivityIndicator size="large" color={accent} />
+              </View>
+            )}
+
+            {step === 'department' && (
+              <FlatList
+                data={depts}
+                keyExtractor={(item) => item.key}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={depts.length}
+                maxToRenderPerBatch={depts.length}
+                windowSize={5}
+                ListHeaderComponent={
+                  <TouchableOpacity
+                    style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor: dark ? '#333333' : '#E5E7EB' }]}
+                    onPress={() => { onDeptSelect(''); handleClose(); }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="grid-outline" size={28} color={textSecondary} style={{ marginBottom: 6 }} />
+                    <Text style={[styles.provinceGridLabel, { color: textSecondary }]}>Todos los departamentos</Text>
+                  </TouchableOpacity>
+                }
+                renderItem={({ item }) => {
+                  const isSelected = selectedDept === item.label;
+                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
+                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
+                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.provinceGridItem, {
+                        width: ITEM_SIZE,
+                        backgroundColor: cardBackground,
+                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
+                        shadowOpacity: isSelected ? 0.15 : 0,
+                        shadowRadius: 8,
+                        elevation: isSelected ? 4 : 0,
+                      }]}
+                      onPress={() => { onDeptSelect(item.label); handleClose(); }}
+                      activeOpacity={0.75}
+                    >
+                      <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
+                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderTop = () => (
+    <>
+      <View style={styles.header}>
+        <Image source={LOGO_SOURCE} style={styles.logo} />
+        <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
+        {isAuthenticated && (
+          <TouchableOpacity
+            onPress={() => setShowNotificationsModal(true)}
+            style={[styles.notifBtn, { backgroundColor: inputBg }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={20} color={textPrimary} />
+            {unreadCount > 0 && (
+              <View style={[styles.notifBadge, { borderColor: bg }]}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+      <View style={styles.tabBarWrap}>
+        <View style={[styles.tabPill, { backgroundColor: inputBg }]}>
+          <TouchableOpacity
+            style={[styles.tabPillItem, activeTab === 'inicio' && { backgroundColor: accent }]}
+            onPress={() => setActiveTab('inicio')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabPillText, { color: activeTab === 'inicio' ? accentInverse : textMuted }]}>Inicio</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabPillItem, activeTab === 'solicitudes' && { backgroundColor: accent }]}
+            onPress={() => setActiveTab('solicitudes')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabPillText, { color: activeTab === 'solicitudes' ? accentInverse : textMuted }]}>Solicitudes</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </>
   );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
+
+      {/* Inicio tab */}
+      <View style={{ flex: 1, display: activeTab === 'inicio' ? 'flex' : 'none' }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -447,46 +730,58 @@ const HomeScreen = ({ navigation }) => {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Image source={LOGO_SOURCE} style={styles.logo} />
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
-          <Text style={[styles.headerSub, { color: textMuted }]}>Viaja inteligente</Text>
-          {isAuthenticated && (
+        {renderTop()}
+
+        {/* Banner viaje en curso */}
+        {activeTrip && (
+          <View style={styles.activeTripWrapper}>
             <TouchableOpacity
-              onPress={() => setShowNotificationsModal(true)}
-              style={[styles.notifBtn, { backgroundColor: inputBg }]}
-              activeOpacity={0.7}
+              style={styles.activeTripBanner}
+              onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+              activeOpacity={0.88}
             >
-              <Ionicons name="notifications-outline" size={20} color={textPrimary} />
-              {unreadCount > 0 && (
-                <View style={[styles.notifBadge, { borderColor: bg }]}>
-                  <Text style={styles.notifBadgeText}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
+              <View style={styles.activeTripLeft}>
+                <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.activeTripLabel}>
+                    {activeTripRole === 'driver' ? 'Viaje en curso' : 'Viaje en curso'}
+                  </Text>
+                  <Text style={styles.activeTripDest} numberOfLines={1}>
+                    En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
                   </Text>
                 </View>
-              )}
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
-          )}
-        </View>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.activeTripRing, { opacity: pulseDot }]}
+            />
+          </View>
+        )}
 
         {/* Search block */}
         <View style={[styles.searchBlock, { backgroundColor: inputBg }]}>
           {/* Origin */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => setShowOriginPicker(true)}
+            onPress={() => { setOriginStep(origin ? 'department' : 'province'); setShowOriginPicker(true); }}
+            onLongPress={() => { setOriginStep('province'); setShowOriginPicker(true); }}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
               <View style={[styles.dotOutline, { borderColor: accent }]} />
             </View>
-            <Text style={[
-              styles.searchRowText,
-              { color: origin ? textPrimary : searchFieldEmpty },
-            ]}>
-              {origin || 'Origen'}
-            </Text>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Origen</Text>
+              {!origin ? (
+                <Text style={[styles.searchRowValue, { color: searchFieldEmpty }]}>Provincia · Ciudad</Text>
+              ) : !originCity ? (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{origin} · Todas las ciudades</Text>
+              ) : (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{originCity}, {origin}</Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <View style={[styles.searchDivider, { backgroundColor: divider }]}>
@@ -496,18 +791,23 @@ const HomeScreen = ({ navigation }) => {
           {/* Destination */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => setShowDestinationPicker(true)}
+            onPress={() => { setDestinationStep(destination ? 'department' : 'province'); setShowDestinationPicker(true); }}
+            onLongPress={() => { setDestinationStep('province'); setShowDestinationPicker(true); }}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
               <View style={[styles.dotFilled, { backgroundColor: accent }]} />
             </View>
-            <Text style={[
-              styles.searchRowText,
-              { color: destination ? textPrimary : searchFieldEmpty },
-            ]}>
-              {destination || 'Destino'}
-            </Text>
+            <View style={styles.searchRowContent}>
+              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Destino</Text>
+              {!destination ? (
+                <Text style={[styles.searchRowValue, { color: searchFieldEmpty }]}>Provincia · Ciudad</Text>
+              ) : !destinationCity ? (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{destination} · Todas las ciudades</Text>
+              ) : (
+                <Text style={[styles.searchRowValue, { color: textPrimary }]}>{destinationCity}, {destination}</Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />
@@ -569,24 +869,12 @@ const HomeScreen = ({ navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Restablecer búsqueda y limpiar filtros"
             >
-              <Text style={[styles.clearFiltersLinkText, { color: textMuted }]}>
+              <Text style={[styles.clearFiltersLinkText, { color: '#EF4444' }]}>
                 Restablecer búsqueda
               </Text>
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Banner Enterprise */}
-        {bannersEnterprise.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersEnterprise}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
-        )}
 
         {/* Upcoming trips */}
         <View style={styles.section}>
@@ -612,34 +900,184 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Banner VIP */}
-        {bannersVip.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersVip}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
-        )}
-
-        {/* Banner Premium */}
-        {bannersPremium.length > 0 && (
-          <View style={styles.bannerSection}>
-            <BannerCarousel
-              banners={bannersPremium}
-              dotColor={accent}
-              dotInactiveColor={borderColor}
-              onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-            />
-          </View>
+        {/* Banner sections (dynamic) */}
+        {bannerSections.map((section) =>
+          section.banners.length > 0 ? (
+            <View key={section.sectionTitle} style={styles.bannerSection}>
+              <Text style={[styles.bannerSectionTitle, { color: textPrimary }]}>
+                {section.sectionTitle}
+              </Text>
+              <BannerCarousel
+                banners={section.banners}
+                dotColor={accent}
+                dotInactiveColor={borderColor}
+                onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+              />
+            </View>
+          ) : null
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
+      </View>
 
-      {/* Province Pickers */}
-      {renderProvincePicker(showOriginPicker, () => setShowOriginPicker(false), origin, setOrigin, 'Origen')}
-      {renderProvincePicker(showDestinationPicker, () => setShowDestinationPicker(false), destination, setDestination, 'Destino')}
+      {/* Solicitudes tab */}
+      <View style={{ flex: 1, display: activeTab === 'solicitudes' ? 'flex' : 'none' }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
+          }
+        >
+          {renderTop()}
+
+          {/* Banner viaje en curso */}
+          {activeTrip && (
+            <View style={styles.activeTripWrapper}>
+              <TouchableOpacity
+                style={styles.activeTripBanner}
+                onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+                activeOpacity={0.88}
+              >
+                <View style={styles.activeTripLeft}>
+                  <Animated.View style={[styles.activeDot, { opacity: pulseDot }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.activeTripLabel}>Viaje en curso</Text>
+                    <Text style={styles.activeTripDest} numberOfLines={1}>
+                      En camino a {activeTrip.destination?.city || activeTrip.destination?.address || '—'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+              <Animated.View pointerEvents="none" style={[styles.activeTripRing, { opacity: pulseDot }]} />
+            </View>
+          )}
+
+          <View style={styles.solicitudesCards}>
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('CreateTripRequest')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: accent }]}>
+              <Ionicons name="add" size={22} color={accentInverse} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Publicar solicitud</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Indicá a dónde querés ir y los conductores se postulan</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('MyTripRequests')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="list" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis solicitudes</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes que publicaste y elegí conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('OpenTripRequests')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="search" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Ver solicitudes abiertas</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Explorá pedidos de pasajeros y postulate como conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
+            onPress={() => navigation.navigate('MyApplications')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
+              <Ionicons name="car-outline" size={22} color={textPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Viajes que ofrecí</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes donde te postulaste como conductor</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={textMuted} />
+          </TouchableOpacity>
+          </View>
+
+          {/* Próximas solicitudes */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: textPrimary }]}>Próximas solicitudes</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('OpenTripRequests')}>
+                <Text style={[styles.sectionLink, { color: textMuted }]}>Ver todas</Text>
+              </TouchableOpacity>
+            </View>
+            {loadingRequests ? (
+              <ActivityIndicator size="small" color={textMuted} style={{ marginVertical: 16 }} />
+            ) : openRequests.length === 0 ? (
+              <View style={[styles.reqEmptySmall, { backgroundColor: cardBg }]}>
+                <Text style={[styles.reqEmptySmallText, { color: textMuted }]}>No hay solicitudes abiertas</Text>
+              </View>
+            ) : (
+              openRequests.map(req => renderRequestCard(req))
+            )}
+          </View>
+
+          {/* Banner sections */}
+          {bannerSections.map((section) =>
+            section.banners.length > 0 ? (
+              <View key={section.sectionTitle} style={styles.bannerSection}>
+                <Text style={[styles.bannerSectionTitle, { color: textPrimary }]}>{section.sectionTitle}</Text>
+                <BannerCarousel
+                  banners={section.banners}
+                  dotColor={accent}
+                  dotInactiveColor={borderColor}
+                  onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
+                />
+              </View>
+            ) : null
+          )}
+
+        </ScrollView>
+      </View>
+
+      {/* Province & City Pickers */}
+      {renderLocationPicker(
+        showOriginPicker,
+        () => setShowOriginPicker(false),
+        originStep,
+        setOriginStep,
+        origin,
+        (p) => { setOrigin(p); setOriginCity(''); },
+        originCity,
+        setOriginCity,
+        'Provincia de origen',
+        'Departamento de origen',
+      )}
+      {renderLocationPicker(
+        showDestinationPicker,
+        () => setShowDestinationPicker(false),
+        destinationStep,
+        setDestinationStep,
+        destination,
+        (p) => { setDestination(p); setDestinationCity(''); },
+        destinationCity,
+        setDestinationCity,
+        'Provincia de destino',
+        'Departamento de destino',
+      )}
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -654,7 +1092,7 @@ const HomeScreen = ({ navigation }) => {
                       <Ionicons name="close" size={22} color={textSecondary} />
                     </TouchableOpacity>
                   </View>
-                  <View style={{ padding: 16 }}>
+                  <View style={{ padding: 16, alignItems: 'center' }}>
                     <DateTimePicker
                       value={selectedDate || new Date()}
                       mode="date"
@@ -662,6 +1100,7 @@ const HomeScreen = ({ navigation }) => {
                       onChange={handleDateChange}
                       minimumDate={new Date()}
                       textColor={textPrimary}
+                      themeVariant={dark ? 'dark' : 'light'}
                     />
                   </View>
                   <View style={[styles.datePickerActions, { borderTopColor: divider }]}>
@@ -733,13 +1172,62 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
+  // Active trip banner
+  activeTripWrapper: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+  },
+  activeTripRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
+    borderWidth: 0.8,
+    borderColor: '#F59E0B',
+  },
+  activeTripBanner: {
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  activeTripLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  activeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22C55E',
+  },
+  activeTripLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  activeTripDest: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   // Header
   header: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 24,
-    position: 'relative',
+    paddingTop: 14,
+    paddingBottom: 10,
   },
   logo: {
     width: 40,
@@ -899,9 +1387,125 @@ const styles = StyleSheet.create({
     textDecorationStyle: 'solid',
   },
 
+  // Tab pill
+  tabBarWrap: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 16,
+  },
+  tabPill: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+  },
+  tabPillItem: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  tabPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Solicitudes hub
+  solicitudesCards: {
+    padding: 16,
+    gap: 12,
+  },
+  hubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+  },
+  hubIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hubCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  hubCardSub: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
+  // Request cards (solicitudes tab)
+  reqEmptySmall: {
+    borderRadius: 12,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  reqEmptySmallText: {
+    fontSize: 13,
+  },
+  reqCard: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  reqCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  reqRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  reqCity: {
+    fontSize: 14,
+    fontWeight: '600',
+    maxWidth: 90,
+  },
+  reqStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  reqStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  reqMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  reqMetaText: {
+    fontSize: 12,
+  },
+  reqMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+  },
+
   // Banners
   bannerSection: {
     marginTop: 28,
+  },
+  bannerSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+    paddingHorizontal: 24,
   },
   bannerListContent: {
     paddingHorizontal: 24,
@@ -1084,10 +1688,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pickerContainer: {
-    borderRadius: 16,
-    width: '88%',
-    maxHeight: '75%',
+    borderRadius: 20,
+    width: '96%',
+    maxHeight: '90%',
     overflow: 'hidden',
+  },
+  pickerLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
   },
   pickerHeader: {
     flexDirection: 'row',
@@ -1111,6 +1722,49 @@ const styles = StyleSheet.create({
   },
   provinceOptionText: {
     fontSize: 15,
+  },
+  deptAllItem: {
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  provinceGridItem: {
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+  },
+  provinceGridImage: {
+    width: 96,
+    height: 96,
+    marginBottom: 10,
+  },
+  provinceGridAllIcon: {
+    width: 96,
+    height: 96,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  provinceGridLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  provinceGridCheck: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   datePickerActions: {
     flexDirection: 'row',

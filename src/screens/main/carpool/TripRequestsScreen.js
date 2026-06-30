@@ -350,16 +350,21 @@ const TripRequestsScreen = ({ route }) => {
       );
     }
 
-    const o = fmtAddress(selectedTrip.origin?.address, selectedTrip.origin?.city);
-    const d = fmtAddress(selectedTrip.destination?.address, selectedTrip.destination?.city);
+    const fmtFull = (loc) => {
+      const addr = fmtAddress(loc?.address, loc?.city);
+      const cityProv = [loc?.city, loc?.province].filter(Boolean).join(', ');
+      return [addr, cityProv].filter(Boolean).join(', ');
+    };
+    const o = fmtFull(selectedTrip.origin);
+    const d = fmtFull(selectedTrip.destination);
     return (
       <View style={styles.tripContextEmbedded}>
         <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
         <Text style={[styles.tripContextLine, { color: textPrimary }]} numberOfLines={2}>
-          {o || selectedTrip.origin?.city || 'Origen'}{' '}
+          {o || 'Origen'}{' '}
           <Text style={{ color: textMuted }}>→</Text>
           {' '}
-          {d || selectedTrip.destination?.city || 'Destino'}
+          {d || 'Destino'}
         </Text>
         <View style={styles.tripContextMetaRow}>
           <Ionicons name="calendar-outline" size={14} color={textMuted} />
@@ -445,7 +450,11 @@ const TripRequestsScreen = ({ route }) => {
 
     return (
       <View>
-        <View style={styles.passengerRow}>
+        <TouchableOpacity
+          style={styles.passengerRow}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('UserProfile', { userId: item.passenger._id, tripId: selectedTripId })}
+        >
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
@@ -468,7 +477,7 @@ const TripRequestsScreen = ({ route }) => {
           {amount != null && (
             <Text style={[styles.amountText, { color: textPrimary }]}>{fmtCurrency(amount)}</Text>
           )}
-        </View>
+        </TouchableOpacity>
 
         <View style={[styles.metaRow, { borderTopColor: divider }]}>
           <View style={styles.metaItem}>
@@ -489,6 +498,16 @@ const TripRequestsScreen = ({ route }) => {
           <Text style={[styles.messageText, { color: textMuted, borderTopColor: divider }]} numberOfLines={3}>
             "{item.message}"
           </Text>
+        )}
+
+        {item.seatReservation?.pickupLocation?.address && (
+          <View style={[styles.pickupRow, { borderTopColor: divider }]}>
+            <Ionicons name="location-outline" size={13} color={textMuted} style={{ marginTop: 1 }} />
+            <Text style={[styles.pickupText, { color: textMuted }]} numberOfLines={2}>
+              <Text style={{ fontWeight: '600' }}>Punto de recogida: </Text>
+              {item.seatReservation.pickupLocation.address}
+            </Text>
+          </View>
         )}
 
         {item.status === 'rejected' && item.rejectionReason && (
@@ -842,6 +861,20 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaHint: { flexShrink: 1 },
   metaText:  { fontSize: 13 },
+
+  pickupRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  pickupText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
 
   messageText: {
     fontSize: 13,

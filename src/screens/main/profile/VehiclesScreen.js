@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,16 @@ import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
-import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
+import { Image } from 'react-native';
+
+const TYPE_LABELS = {
+  sedan: 'Sedán',
+  suv: 'SUV',
+  hatchback: 'Hatchback',
+  van: 'Van',
+  pickup: 'Pickup',
+  otro: 'Otro',
+};
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
@@ -23,12 +32,13 @@ const VehiclesScreen = () => {
   const { getCurrentThemeMode } = useColors();
 
   const isDarkMode = getCurrentThemeMode() === 'dark';
-  const bg      = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg  = isDarkMode ? '#222222' : '#FFFFFF';
-  const border  = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const bg         = isDarkMode ? '#161616' : '#F0F2F5';
+  const cardBg     = isDarkMode ? '#1E1E1E' : '#FFFFFF';
+  const border     = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary   = isDarkMode ? '#FFFFFF' : '#111827';
+  const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const chipBg        = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const [vehicles, setVehicles] = useState([]);
   const [page, setPage] = useState(1);
@@ -64,7 +74,7 @@ const VehiclesScreen = () => {
         setVehicles([]);
         setHasMore(false);
       }
-    } catch (error) {
+    } catch {
       showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos');
       if (reset || pageNum === 1) setVehicles([]);
     } finally {
@@ -118,75 +128,102 @@ const VehiclesScreen = () => {
   };
 
   const renderItem = ({ item }) => {
-    const photoUrl = item.photos?.length > 0 ? buildImageUri(item.photos[0]) : null;
+    const photoUrl = item.photos?.length > 0
+      ? buildImageUri(item.photos[0])
+      : item.photo && !item.photo.includes('picsum') ? buildImageUri(item.photo) : null;
+
+    const typeLabel = TYPE_LABELS[item.type] || item.type;
+
+    const chips = [
+      item.capacity ? `${item.capacity} asientos` : null,
+      item.color || null,
+      item.year ? String(item.year) : null,
+      typeLabel || null,
+    ].filter(Boolean);
+
+    const featureIcons = [
+      item.features?.ac      && { name: 'snow-outline',     label: 'AC' },
+      item.features?.music   && { name: 'musical-notes-outline', label: 'Música' },
+      item.features?.pets    && { name: 'paw-outline',       label: 'Mascotas' },
+      item.features?.luggage && { name: 'briefcase-outline', label: 'Equipaje' },
+    ].filter(Boolean);
 
     return (
       <TouchableOpacity
         style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}
         onPress={() => navigation.navigate('VehicleForm', { vehicle: item })}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
-        {photoUrl ? (
-          <RemoteImageWithLoader
-            uri={photoUrl}
-            style={styles.photo}
-            isDarkMode={isDarkMode}
-            spinnerColor={textPrimary}
-          />
-        ) : (
-          <View style={[styles.photoPlaceholder, { backgroundColor: divider }]}>
-            <Ionicons name="car-sport-outline" size={28} color={textMuted} />
-          </View>
-        )}
+        {/* Image */}
+        <View style={[styles.imageWrapper, { backgroundColor: isDarkMode ? '#2A2A2A' : '#F3F4F6' }]}>
+          {photoUrl ? (
+            <Image
+              source={{ uri: photoUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="car-sport-outline" size={48} color={textMuted} />
+            </View>
+          )}
 
-        <View style={styles.info}>
-          <Text style={[styles.vehicleName, { color: textPrimary }]}>
-            {item.brand} {item.model}
-          </Text>
 
-          <View style={styles.metaRow}>
-            {item.year ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="calendar-outline" size={13} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{item.year}</Text>
-              </View>
-            ) : null}
-            {item.color ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="color-palette-outline" size={13} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{item.color}</Text>
-              </View>
-            ) : null}
-            {item.capacity ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="people-outline" size={13} color={textMuted} />
-                <Text style={[styles.metaText, { color: textMuted }]}>{item.capacity} pas.</Text>
-              </View>
-            ) : null}
-          </View>
-
-          <View style={[styles.plateBadge, { backgroundColor: divider }]}>
-            <Text style={[styles.plateText, { color: textPrimary }]}>
-              {item.licensePlate || item.plate}
-            </Text>
-          </View>
         </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: divider }]}
-            onPress={(e) => { e.stopPropagation(); navigation.navigate('VehicleForm', { vehicle: item }); }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="create-outline" size={18} color={textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: isDarkMode ? '#3D1A1A' : '#FEE2E2' }]}
-            onPress={(e) => { e.stopPropagation(); handleDelete(item._id); }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={18} color={isDarkMode ? '#F87171' : '#DC2626'} />
-          </TouchableOpacity>
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Name + plate */}
+          <View style={styles.titleRow}>
+            <Text style={[styles.vehicleName, { color: textPrimary }]} numberOfLines={1}>
+              {item.year} {item.brand} {item.model}
+            </Text>
+            <Text style={[styles.plate, { color: textSecondary }]}>
+              {item.licensePlate}
+            </Text>
+          </View>
+
+          {/* Chips */}
+          <View style={styles.chipsRow}>
+            {chips.map((chip) => (
+              <View key={chip} style={[styles.chip, { backgroundColor: chipBg }]}>
+                <Text style={[styles.chipText, { color: textSecondary }]}>{chip}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Feature icons */}
+          {featureIcons.length > 0 && (
+            <View style={styles.featuresRow}>
+              {featureIcons.map((f) => (
+                <View key={f.name} style={styles.featureItem}>
+                  <Ionicons name={f.name} size={13} color={textMuted} />
+                  <Text style={[styles.featureText, { color: textMuted }]}>{f.label}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Acciones */}
+          <View style={[styles.actionsRow, { borderTopColor: border }]}>
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: border }]}
+              onPress={(e) => { e.stopPropagation(); navigation.navigate('VehicleForm', { vehicle: item }); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={16} color={textPrimary} />
+              <Text style={[styles.actionBtnText, { color: textPrimary }]}>Editar</Text>
+            </TouchableOpacity>
+            <View style={[styles.actionDivider, { backgroundColor: border }]} />
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: border }]}
+              onPress={(e) => { e.stopPropagation(); handleDelete(item._id); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={16} color={isDarkMode ? '#F87171' : '#DC2626'} />
+              <Text style={[styles.actionBtnText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -213,8 +250,7 @@ const VehiclesScreen = () => {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.listFooter}>
-                <ActivityIndicator size="small" color={textPrimary} />
-                <Text style={[styles.listFooterText, { color: textMuted }]}>Cargando más…</Text>
+                <ActivityIndicator size="small" color={textMuted} />
               </View>
             ) : null
           }
@@ -240,11 +276,11 @@ const VehiclesScreen = () => {
       )}
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+        style={[styles.fab, { backgroundColor: isDarkMode ? '#FFFFFF' : '#111827' }]}
         onPress={() => navigation.navigate('VehicleForm')}
         activeOpacity={0.85}
       >
-        <Ionicons name="add" size={28} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+        <Ionicons name="add" size={28} color={isDarkMode ? '#111827' : '#FFFFFF'} />
       </TouchableOpacity>
     </View>
   );
@@ -254,78 +290,108 @@ const styles = StyleSheet.create({
   container:   { flex: 1 },
   center:      { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { padding: 16, paddingBottom: 100 },
-  listFooter: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  listFooterText: { fontSize: 13 },
+  listFooter:  { paddingVertical: 20, alignItems: 'center' },
 
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  photo: {
-    width: 72,
-    height: 72,
-    borderRadius: 10,
+
+  // Image
+  imageWrapper: {
+    width: '100%',
+    height: 190,
+    position: 'relative',
   },
-  photoPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 10,
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 190,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  info: {
-    flex: 1,
-    gap: 6,
+
+  // Content
+  content: {
+    padding: 14,
+    gap: 10,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   vehicleName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+    flex: 1,
   },
-  metaRow: {
+  plate: {
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+  },
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 6,
   },
-  metaItem: {
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  featuresRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  metaText: {
-    fontSize: 13,
+  featureText: {
+    fontSize: 12,
   },
-  plateBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  plateText: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-
-  actions: {
-    gap: 8,
+  actionsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    marginTop: 4,
   },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  actionDivider: {
+    width: 1,
+    marginVertical: 8,
   },
 
+  // Empty
   empty: {
     flex: 1,
     justifyContent: 'center',
@@ -342,14 +408,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyTitle:    { fontSize: 17, fontWeight: '600' },
+  emptySubtitle: { fontSize: 14, textAlign: 'center' },
 
   fab: {
     position: 'absolute',
@@ -360,6 +420,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
 });
 

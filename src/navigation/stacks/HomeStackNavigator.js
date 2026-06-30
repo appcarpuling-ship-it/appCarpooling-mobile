@@ -11,6 +11,12 @@ import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
 import BookingScreen from '../../screens/main/home/BookingScreen';
 import AllTripsScreen from '../../screens/main/home/AllTripsScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
+import TripMapScreen from '../../screens/main/trip/TripMapScreen';
+import CreateTripGoogleMaps from '../../screens/main/trip/CreateTripGoogleMaps';
+import MyTripRequestsScreen from '../../screens/main/home/MyTripRequestsScreen';
+import OpenTripRequestsScreen from '../../screens/main/home/OpenTripRequestsScreen';
+import MyApplicationsScreen from '../../screens/main/home/MyApplicationsScreen';
+import ApplicationDetailScreen from '../../screens/main/home/ApplicationDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +27,7 @@ const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        cardStyle: { backgroundColor: isDarkMode ? '#161616' : '#F9FAFB' },
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
@@ -82,6 +89,37 @@ const HomeStackNavigator = () => {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Stack.Screen
+        name="TripMap"
+        component={TripMapScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateTripRequest"
+        component={CreateTripGoogleMaps}
+        options={{ headerShown: false }}
+        initialParams={{ mode: 'request' }}
+      />
+      <Stack.Screen
+        name="MyTripRequests"
+        component={MyTripRequestsScreen}
+        options={{ title: 'Mis solicitudes' }}
+      />
+      <Stack.Screen
+        name="OpenTripRequests"
+        component={OpenTripRequestsScreen}
+        options={{ title: 'Solicitudes abiertas' }}
+      />
+      <Stack.Screen
+        name="MyApplications"
+        component={MyApplicationsScreen}
+        options={{ title: 'Viajes que ofrecí' }}
+      />
+      <Stack.Screen
+        name="ApplicationDetail"
+        component={ApplicationDetailScreen}
+        options={{ title: 'Conductor' }}
       />
     </Stack.Navigator>
   );

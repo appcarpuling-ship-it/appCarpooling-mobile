@@ -72,7 +72,7 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
           resizeMode="contain"
         />
 
-        <Animated.Text
+        {/* <Animated.Text
           style={[
             styles.wordmark,
             {
@@ -83,7 +83,7 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
           ]}
         >
           {TITLE}
-        </Animated.Text>
+        </Animated.Text> */}
       </View>
     </Animated.View>
   );

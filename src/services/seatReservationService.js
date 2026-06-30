@@ -38,14 +38,15 @@ export const calculateReservationPrice = async (tripId, seatsBooked = 1) => {
  */
 export const createSeatReservation = async (data) => {
   try {
-    const response = await post_withauth(
-      ENDPOINTS.SEAT_RESERVATIONS,
-      {
-        tripId: data.tripId,
-        seatsBooked: data.seatsBooked,
-        message: data.message || ''
-      }
-    );
+    const body = {
+      tripId: data.tripId,
+      seatsBooked: data.seatsBooked,
+      message: data.message || ''
+    };
+    if (data.pickupLocation?.address) {
+      body.pickupLocation = data.pickupLocation;
+    }
+    const response = await post_withauth(ENDPOINTS.SEAT_RESERVATIONS, body);
     return response;
   } catch (error) {
     console.error('Error creando reserva de asiento:', error);

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const divider = dark ? '#2A2A2A' : '#ECECEC';
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
+  const chipBg = dark ? '#1C1C1C' : '#F3F4F6';
 
   const [reservations, setReservations] = useState([]);
   const [page, setPage] = useState(1);
@@ -119,12 +120,18 @@ const MySeatReservationsScreen = ({ navigation }) => {
     ]);
   };
 
-
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
 
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+  const formatAddress = (location) => {
+    if (!location) return '';
+    const parts = [location.address || location.street, location.city || location.province]
+      .filter(Boolean);
+    return parts.join(', ') || location.name || '';
+  };
 
   const getTimeRemaining = (expiresAt) => {
     if (!expiresAt) return null;
@@ -138,35 +145,19 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const getPill = (item) => {
     const ts = item.trip?.status;
     const rs = item.seatReservation?.reservationStatus;
-    // Estados del viaje primero (misma paleta que Mis viajes / MyTripsScreen)
-    if (ts === 'cancelled') {
-      return { c: dark ? '#F87171' : '#EF4444', t: 'Viaje cancelado' };
-    }
-    if (ts === 'completed') {
-      return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Viaje finalizado' };
-    }
-    if (ts === 'started') {
-      return { c: dark ? '#FBBF24' : '#F59E0B', t: 'En curso' };
-    }
+    if (ts === 'cancelled') return { c: dark ? '#F87171' : '#EF4444', t: 'Viaje cancelado' };
+    if (ts === 'completed') return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Viaje finalizado' };
+    if (ts === 'started')   return { c: dark ? '#FBBF24' : '#F59E0B', t: 'En curso' };
     switch (rs) {
-      case 'pending_approval':
-        return { c: dark ? '#FBBF24' : '#F59E0B', t: 'Pendiente de aprobación' };
-      case 'pending_payment':
-        return { c: dark ? '#FB923C' : '#EA580C', t: 'Pendiente de pago' };
-      case 'payment_failed':
-        return { c: dark ? '#F87171' : '#DC2626', t: 'Pago fallido' };
-      case 'reserved':
-        return { c: dark ? '#34D399' : '#10B981', t: 'Confirmada' };
-      case 'trip_completed':
-        return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Completada' };
-      case 'expired':
-        return { c: textMuted, t: 'Vencida' };
-      case 'rejected':
-        return { c: dark ? '#F87171' : '#EF4444', t: 'Rechazada' };
-      case 'cancelled':
-        return { c: dark ? '#F87171' : '#EF4444', t: 'Cancelada' };
-      default:
-        return { c: textMuted, t: '—' };
+      case 'pending_approval': return { c: dark ? '#FBBF24' : '#F59E0B', t: 'Pendiente de aprobación' };
+      case 'pending_payment':  return { c: dark ? '#FB923C' : '#EA580C', t: 'Pendiente de pago' };
+      case 'payment_failed':   return { c: dark ? '#F87171' : '#DC2626', t: 'Pago fallido' };
+      case 'reserved':         return { c: dark ? '#34D399' : '#10B981', t: 'Confirmada' };
+      case 'trip_completed':   return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Completada' };
+      case 'expired':          return { c: textMuted, t: 'Vencida' };
+      case 'rejected':         return { c: dark ? '#F87171' : '#EF4444', t: 'Rechazada' };
+      case 'cancelled':        return { c: dark ? '#F87171' : '#EF4444', t: 'Cancelada' };
+      default:                 return { c: textMuted, t: '—' };
     }
   };
 
@@ -226,6 +217,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
     const pill = getPill(item);
     const rs = item.seatReservation?.reservationStatus;
     const timeLeft = item.seatReservation?.expiresAt ? getTimeRemaining(item.seatReservation.expiresAt) : null;
+    const seats = item.booking?.seatsBooked || 1;
 
     return (
       <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -233,33 +225,83 @@ const MySeatReservationsScreen = ({ navigation }) => {
           activeOpacity={0.85}
           onPress={() => item.trip?.id && navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip.id })}
         >
-          <View style={styles.cardTop}>
-            <View style={[styles.statusPill, { backgroundColor: pill.c + '22' }]}>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={[styles.statusPill, { backgroundColor: pill.c + '20' }]}>
+              <View style={[styles.statusDot, { backgroundColor: pill.c }]} />
               <Text style={[styles.statusPillText, { color: pill.c }]}>{pill.t}</Text>
             </View>
-            <View style={styles.routeBlock}>
-              <Text style={[styles.addr, { color: textPrimary }]} numberOfLines={2}>
-                {item.trip?.from || 'Origen'}
-              </Text>
-              <Text style={[styles.addr, { color: textPrimary, marginTop: 6 }]} numberOfLines={2}>
-                {item.trip?.to || 'Destino'}
-              </Text>
+            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </View>
+
+          {/* Route */}
+          <View style={styles.routeRow}>
+            <View style={styles.routeLine}>
+              <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
+              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
+              <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
+            </View>
+            <View style={styles.routeLabels}>
+              <View style={styles.addrBlock}>
+                <Text style={[styles.addrMain, { color: textPrimary }]}>
+                  {item.trip?.origin?.address || item.trip?.from || 'Origen'}
+                </Text>
+                {(item.trip?.origin?.city || item.trip?.origin?.province) && (
+                  <Text style={[styles.addrSub, { color: textMuted }]}>
+                    {[item.trip.origin.city, item.trip.origin.province].filter(Boolean).join(', ')}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.addrBlock}>
+                <Text style={[styles.addrMain, { color: textPrimary }]}>
+                  {item.trip?.destination?.address || item.trip?.to || 'Destino'}
+                </Text>
+                {(item.trip?.destination?.city || item.trip?.destination?.province) && (
+                  <Text style={[styles.addrSub, { color: textMuted }]}>
+                    {[item.trip.destination.city, item.trip.destination.province].filter(Boolean).join(', ')}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
 
-          <Text style={[styles.meta, { color: textMuted }]}>
-            {formatDate(item.trip?.date || item.trip?.departureDate)}
-            {item.trip?.time ? ` · ${item.trip.time}` : ''}
-            {` · ${item.booking?.seatsBooked || 1} asiento${(item.booking?.seatsBooked || 1) > 1 ? 's' : ''}`}
-          </Text>
+          {/* Meta */}
+          <View style={styles.metaRow}>
+            <View style={[styles.metaChip, { backgroundColor: chipBg }]}>
+              <Ionicons name="calendar-outline" size={12} color={textMuted} />
+              <Text style={[styles.metaText, { color: textMuted }]}>
+                {formatDate(item.trip?.date || item.trip?.departureDate)}
+              </Text>
+            </View>
+            {item.trip?.time && (
+              <View style={[styles.metaChip, { backgroundColor: chipBg }]}>
+                <Ionicons name="time-outline" size={12} color={textMuted} />
+                <Text style={[styles.metaText, { color: textMuted }]}>{item.trip.time}</Text>
+              </View>
+            )}
+            <View style={[styles.metaChip, { backgroundColor: chipBg }]}>
+              <Ionicons name="person-outline" size={12} color={textMuted} />
+              <Text style={[styles.metaText, { color: textMuted }]}>
+                {seats} {seats > 1 ? 'asientos' : 'asiento'}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
 
+        {/* Actions */}
         {rs === 'pending_payment' && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
-            <Text style={[styles.payLine, { color: textPrimary }]}>
-              {formatCurrency(item.seatReservation?.reservationAmount || 0)}
-              {timeLeft ? <Text style={{ color: textMuted }}> · {timeLeft}</Text> : null}
-            </Text>
+            <View style={[styles.priceBox, { backgroundColor: chipBg }]}>
+              <Text style={[styles.price, { color: textPrimary }]}>
+                {formatCurrency(item.seatReservation?.reservationAmount || 0)}
+              </Text>
+              {timeLeft && (
+                <View style={[styles.timerBadge, { backgroundColor: pill.c + '1A' }]}>
+                  <Ionicons name="time-outline" size={12} color={pill.c} />
+                  <Text style={[styles.timerText, { color: pill.c }]}>{timeLeft}</Text>
+                </View>
+              )}
+            </View>
             <RebillPaymentOptions
               paymentUrl={item.seatReservation?.reservationPayment?.paymentUrl || item.seatReservation?.paymentUrl}
               qrDataUrl={item.seatReservation?.reservationPayment?.qrDataUrl}
@@ -267,17 +309,24 @@ const MySeatReservationsScreen = ({ navigation }) => {
               formatCurrency={formatCurrency}
               onCheckoutPress={handleOpenCheckout}
             />
-            <TouchableOpacity onPress={() => handleCancelReservation(item)} hitSlop={{ top: 8, bottom: 8 }}>
-              <Text style={[styles.linkMuted, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+            <TouchableOpacity
+              style={[styles.cancelBtn, { borderColor: (colors.error || '#DC2626') + '50' }]}
+              onPress={() => handleCancelReservation(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar reserva</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {rs === 'pending_approval' && (
           <View style={[styles.actions, styles.rowBetween, { borderTopColor: divider }]}>
-            <Text style={[styles.hint, { color: textMuted }]}>Esperando al conductor</Text>
-            <TouchableOpacity onPress={() => handleCancelReservation(item)}>
-              <Text style={[styles.linkMuted, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+            <View style={[styles.metaChip, { backgroundColor: chipBg }]}>
+              <Ionicons name="hourglass-outline" size={13} color={textMuted} />
+              <Text style={[styles.metaText, { color: textMuted }]}>Esperando al conductor</Text>
+            </View>
+            <TouchableOpacity onPress={() => handleCancelReservation(item)} hitSlop={{ top: 8, bottom: 8 }}>
+              <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -294,7 +343,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
                 : (
                   <>
                     <Ionicons name="chatbubble-outline" size={16} color={textPrimary} />
-                    <Text style={[styles.btnGhostText, { color: textPrimary }]}>Mensaje</Text>
+                    <Text style={[styles.btnGhostText, { color: textPrimary }]}>Mensaje al conductor</Text>
                   </>
                 )}
             </TouchableOpacity>
@@ -303,9 +352,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
         {(rs === 'rejected' || rs === 'cancelled') && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
-            <Text style={[styles.hint, { color: textMuted }]}>
-              {rs === 'rejected' ? 'Rechazada por el conductor' : 'Reserva cancelada'}
-            </Text>
+            <View style={[styles.metaChip, { backgroundColor: pill.c + '20', alignSelf: 'flex-start' }]}>
+              {rs === 'rejected' && <Ionicons name="close-circle-outline" size={13} color={pill.c} />}
+              <Text style={[styles.metaText, { color: pill.c }]}>
+                {rs === 'rejected' ? 'Rechazada por el conductor' : 'Reserva cancelada'}
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -314,14 +366,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: bg }]}>
+      <View style={[styles.centered, { backgroundColor: chipBg }]}>
         <ActivityIndicator size="small" color={textMuted} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <View style={[styles.container, { backgroundColor: chipBg }]}>
       {reservations.length > 0 ? (
         <FlatList
           data={sortedData}
@@ -344,9 +396,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.centered}>
-          <Ionicons name="calendar-outline" size={36} color={textMuted} />
+          <Ionicons name="calendar-outline" size={40} color={textMuted} />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin reservas</Text>
-          <Text style={[styles.emptySub, { color: textMuted }]}>Buscá un viaje y reservá</Text>
+          <Text style={[styles.emptySub, { color: textMuted }]}>Buscá un viaje y reservá tu asiento</Text>
         </View>
       )}
 
@@ -362,42 +414,55 @@ const MySeatReservationsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, padding: 28 },
-  list: { padding: 16, paddingBottom: 28, gap: 10 },
+  container:      { flex: 1 },
+  centered:       { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, padding: 28 },
+  list:           { padding: 16, paddingBottom: 32, gap: 12 },
+
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  cardTop: { flexDirection: 'column', alignItems: 'stretch', gap: 12 },
-  routeBlock: { minWidth: 0 },
-  addr: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
-  statusPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  statusPillText: { fontSize: 11, fontWeight: '600' },
-  meta: { fontSize: 12, marginTop: 10 },
-  actions: { marginTop: 12, paddingTop: 12, gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  payLine: { fontSize: 15, fontWeight: '600' },
-  hint: { fontSize: 12 },
-  linkMuted: { fontSize: 13, fontWeight: '500' },
-  btnGhost: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  btnGhostText: { fontSize: 14, fontWeight: '500' },
-  emptyTitle: { fontSize: 16, fontWeight: '600' },
-  emptySub: { fontSize: 13, textAlign: 'center' },
+
+  cardHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  statusPill:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  statusDot:      { width: 6, height: 6, borderRadius: 3 },
+  statusPillText: { fontSize: 11, fontWeight: '700' },
+
+  routeRow:       { flexDirection: 'row', marginBottom: 14 },
+  routeLine:      { alignItems: 'center', width: 18, marginRight: 12, paddingTop: 2 },
+  dotOrigin:      { width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
+  routeConnector: { width: 2, flex: 1, minHeight: 16, marginVertical: 4 },
+  dotDest:        { width: 10, height: 10, borderRadius: 5 },
+  routeLabels:    { flex: 1, gap: 14 },
+  addrBlock:      {},
+  addrMain:       { fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  addrSub:        { fontSize: 12, lineHeight: 17, marginTop: 1 },
+
+  metaRow:        { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  metaChip:       { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  metaText:       { fontSize: 12 },
+
+  actions:        { marginTop: 14, paddingTop: 14, gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  rowBetween:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+
+  priceBox:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  price:          { fontSize: 20, fontWeight: '700' },
+  timerBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  timerText:      { fontSize: 12, fontWeight: '600' },
+
+  cancelBtn:      { alignSelf: 'stretch', paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
+  cancelText:     { fontSize: 14, fontWeight: '600' },
+
+  btnGhost:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  btnGhostText:   { fontSize: 14, fontWeight: '500' },
+  emptyTitle:     { fontSize: 16, fontWeight: '600' },
+  emptySub:       { fontSize: 13, textAlign: 'center' },
 });
 
 export default MySeatReservationsScreen;

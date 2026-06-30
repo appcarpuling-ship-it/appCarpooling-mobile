@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -114,9 +115,13 @@ const VerificationScreen = ({ route, navigation }) => {
   const isReady = verificationCode.length === 6;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }, Platform.OS === 'web' && { minHeight: '100vh' }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* Icon */}
           <View style={styles.header}>
@@ -139,8 +144,6 @@ const VerificationScreen = ({ route, navigation }) => {
               keyboardType="numeric"
               maxLength={6}
               autoComplete="one-time-code"
-              textAlign="center"
-              letterSpacing={10}
             />
           </View>
 
@@ -171,7 +174,7 @@ const VerificationScreen = ({ route, navigation }) => {
               }
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -179,14 +182,14 @@ const VerificationScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container:  { flex: 1 },
-  content:    { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  content:    { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
   header:     { alignItems: 'center', marginBottom: 32 },
   iconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   title:      { fontSize: 26, fontWeight: '700', marginBottom: 8 },
   subtitle:   { fontSize: 14, marginBottom: 4 },
   email:      { fontSize: 15, fontWeight: '600' },
-  card:       { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginBottom: 16, overflow: 'hidden' },
-  codeInput:  { height: 72, fontSize: 28, fontWeight: '700' },
+  card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
+  codeInput:  { height: 72, fontSize: 32, fontWeight: '700', textAlign: 'center', letterSpacing: 12 },
   btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   btnText:    { fontSize: 16, fontWeight: '700' },
   resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },

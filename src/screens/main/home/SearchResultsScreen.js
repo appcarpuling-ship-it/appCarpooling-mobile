@@ -1,589 +1,386 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Animated,
   FlatList,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { get_public } from '../../../services/apiService';
+import { get_public, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
+import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
+import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
-import { typography } from '../../../theme/typography';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
+const SORT_OPTIONS = ['price', 'time'];
+
 const SearchResultsScreen = ({ route, navigation }) => {
-  const { colors, gradients, createColorArray, getCurrentThemeMode } = useColors();
+  const { colors } = useColors();
+  const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
-  const { origin, destination } = route.params || {};
+  const insets = useSafeAreaInsets();
+
+  const { origin, originCity, destination, destinationCity } = route.params || {};
+
+  const originLabel = originCity || origin || '?';
+  const destinationLabel = destinationCity || destination || '?';
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortingLoading, setSortingLoading] = useState(false);
-  const [sortBy, setSortBy] = useState('price'); // price, time, rating
+  const [sortBy, setSortBy] = useState('price');
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const cardBg = isDarkMode ? '#292929' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#404040' : '#E5E7EB';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
+  const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
 
-  const dynamicStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-    },
-    backButton: {
-      padding: spacing.sm,
-      marginRight: spacing.md,
-    },
-    headerTitle: {
-      fontSize: fontSize.xl,
-      fontWeight: fontWeight.bold,
-      color: colors.textPrimary,
-      flex: 1,
-    },
-    searchSummary: {
-      fontSize: fontSize.sm,
-      color: colors.textSecondary,
-      marginBottom: spacing.sm,
-    },
-    searchRoute: {
-      fontSize: fontSize.md,
-      fontWeight: fontWeight.semiBold,
-      color: colors.textPrimary,
-    },
-    controlsRow: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      marginTop: spacing.md,
-    },
-    sortButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    sortButtonText: {
-      fontSize: fontSize.sm,
-      color: colors.textPrimary,
-      fontWeight: fontWeight.medium,
-      marginLeft: spacing.xs,
-    },
-    contentContainer: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.sm,
-    },
-    tripCard: {
-      marginHorizontal: spacing.md,
-      marginVertical: spacing.sm,
-      borderRadius: borderRadius.lg,
-      padding: spacing.lg,
-      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.cardBackground,
-      borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    tripCardHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-      paddingBottom: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    driverAvatar: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: colors.messagePrimary,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.md,
-    },
-    avatarText: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.bold,
-      color: '#FFF',
-    },
-    driverDetailsContainer: {
-      flex: 1,
-    },
-    driverName: {
-      fontSize: fontSize.md,
-      fontWeight: fontWeight.semiBold,
-      color: colors.textPrimary,
-      marginBottom: spacing.xs,
-    },
-    ratingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    starsContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginRight: spacing.xs,
-    },
-    ratingText: {
-      fontSize: fontSize.xs,
-      color: colors.textTertiary,
-    },
-    priceTag: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    priceValue: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.bold,
-      color: '#FFF',
-    },
-    priceLabel: {
-      fontSize: fontSize.xs,
-      color: '#FFF',
-      opacity: 0.9,
-    },
-    routeSection: {
-      marginBottom: spacing.md,
-      paddingVertical: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    routePoint: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: spacing.sm,
-    },
-    routeTextContainer: {
-      flex: 1,
-      marginLeft: spacing.sm,
-    },
-    routeCity: {
-      fontSize: fontSize.md,
-      fontWeight: fontWeight.semiBold,
-      color: colors.textPrimary,
-    },
-    routeAddress: {
-      fontSize: fontSize.xs,
-      color: colors.textTertiary,
-      marginTop: 2,
-    },
-    routeLine: {
-      height: 16,
-      width: 2,
-      backgroundColor: colors.border,
-      marginLeft: 8,
-      marginVertical: spacing.xs,
-    },
-    detailsSection: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginBottom: spacing.md,
-      paddingBottom: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    detailItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      width: '48%',
-      marginBottom: spacing.sm,
-    },
-    detailText: {
-      fontSize: fontSize.sm,
-      color: colors.textSecondary,
-      marginLeft: spacing.xs,
-    },
-    preferencesSection: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginBottom: spacing.md,
-      paddingBottom: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    preferenceBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.sm,
-      backgroundColor: getCurrentThemeMode() === 'dark' ? '#292929' : colors.surface,
-      marginRight: spacing.sm,
-      marginBottom: spacing.sm,
-    },
-    preferenceText: {
-      fontSize: fontSize.xs,
-      color: colors.textSecondary,
-      fontWeight: fontWeight.medium,
-      marginLeft: spacing.xs,
-    },
-    selectButton: {
-      backgroundColor: colors.textMuted,
-      borderRadius: borderRadius.md,
-      overflow: 'hidden',
-    },
-    selectButtonContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: spacing.md,
-    },
-    selectButtonText: {
-      fontSize: fontSize.md,
-      fontWeight: fontWeight.semiBold,
-      color: '#FFF',
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-    },
-    emptyText: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.semiBold,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginTop: spacing.md,
-    },
-    emptySubtext: {
-      fontSize: fontSize.sm,
-      color: colors.textTertiary,
-      textAlign: 'center',
-      marginTop: spacing.sm,
-    },
-  });
-
-  useEffect(() => {
-    loadSearchResults();
-    startAnimations();
-  }, []);
-
-  useEffect(() => {
-    if (trips.length > 0) {
-      loadSearchResults();
-    }
-  }, [sortBy]);
-
-  const startAnimations = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const loadSearchResults = async () => {
+  const loadResults = useCallback(async (sort) => {
     try {
       setLoading(true);
       const params = {};
-      
-      if (origin?.trim()) {
-        params.originProvince = origin.trim();
-      }
-      
-      if (destination?.trim()) {
-        params.destinationProvince = destination.trim();
-      }
+      if (origin?.trim())          params.originProvince      = origin.trim();
+      if (originCity?.trim())      params.originCity          = originCity.trim();
+      if (destination?.trim())     params.destinationProvince = destination.trim();
+      if (destinationCity?.trim()) params.destinationCity     = destinationCity.trim();
 
       const response = await get_public(ENDPOINTS.SEARCH_TRIPS, params);
-      
+
       if (response.success) {
-        let sortedTrips = [...response.data];
-        
-        // Aplicar ordenamiento
-        if (sortBy === 'price') {
-          sortedTrips.sort((a, b) => a.pricePerSeat - b.pricePerSeat);
-        } else if (sortBy === 'time') {
-          sortedTrips.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+        let data = [...(response.data || [])];
+        if (sort === 'price') {
+          data.sort((a, b) => (a.pricePerSeat ?? 0) - (b.pricePerSeat ?? 0));
+        } else if (sort === 'time') {
+          data.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
         }
-        
-        setTrips(sortedTrips);
+        setTrips(data);
       }
-    } catch (error) {
-      console.error('Error loading search results:', error);
+    } catch {
       showAlert('Ocurrió algo', 'No se pudieron cargar los viajes');
     } finally {
       setLoading(false);
     }
+  }, [origin, originCity, destination, destinationCity]);
+
+  useEffect(() => { loadResults(sortBy); }, []);
+
+  const handleSort = () => {
+    const next = sortBy === 'price' ? 'time' : 'price';
+    setSortBy(next);
+    const sorted = [...trips];
+    if (next === 'price') {
+      sorted.sort((a, b) => (a.pricePerSeat ?? 0) - (b.pricePerSeat ?? 0));
+    } else {
+      sorted.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+    }
+    setTrips(sorted);
   };
 
-  const renderStars = (rating) => {
-    return (
-      <View style={dynamicStyles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Ionicons
-            key={star}
-            name={star <= Math.floor(rating || 0) ? 'star' : 'star-outline'}
-            size={14}
-            color={colors.accentOrange}
-            style={{ marginRight: 2 }}
-          />
-        ))}
-      </View>
-    );
+  const formatAddress = (loc) => {
+    if (!loc) return '';
+    let raw = (loc.street || loc.address || '').replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    const city = loc.city || '';
+    const province = loc.province || '';
+    let addr = raw || city;
+    if (province && addr && !addr.includes(province)) addr += `, ${province}`;
+    else if (province && !addr) addr = province;
+    return addr;
   };
 
-  const renderTripCard = ({ item: trip }) => {
-    const free = tripRemainingSeats(trip);
+  const renderTrip = useCallback(({ item }) => {
+    const driver = item.driver || {};
+    const freeSeats = tripRemainingSeats(item);
+    const originAddr = formatAddress(item.origin);
+    const destAddr = formatAddress(item.destination);
+
     return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
-    >
-      <View style={dynamicStyles.tripCard}>
-        {/* Header con Conductor */}
-        <View style={dynamicStyles.tripCardHeader}>
-          <View style={dynamicStyles.driverAvatar}>
-            <Text style={dynamicStyles.avatarText}>
-              {trip.driver?.firstName?.[0]}{trip.driver?.lastName?.[0]}
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}
+        onPress={() => navigation.navigate('TripDetail', { tripId: item._id })}
+        activeOpacity={0.7}
+      >
+        {/* Precio */}
+        <View style={styles.cardInner}>
+          <View style={styles.routeRow}>
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {originAddr}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={textSecondary} style={styles.arrow} />
+            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+              {destAddr}
             </Text>
           </View>
 
-          <View style={dynamicStyles.driverDetailsContainer}>
-            <Text style={dynamicStyles.driverName}>
-              {trip.driver?.firstName} {trip.driver?.lastName}
-            </Text>
-            <View style={dynamicStyles.ratingRow}>
-              {renderStars(trip.driver?.rating)}
-              <Text style={dynamicStyles.ratingText}>
-                {trip.driver?.rating?.toFixed(1) || 'N/A'} • {trip.driver?.reviews || 0} reseñas
-              </Text>
-            </View>
-          </View>
-
-       
-        </View>
-
-        {/* Ruta */}
-        <View style={dynamicStyles.routeSection}>
-          <View style={dynamicStyles.routePoint}>
-            <Ionicons name="radio-button-on" size={18} color={colors.messagePrimary} />
-            <View style={dynamicStyles.routeTextContainer}>
-              <Text style={dynamicStyles.routeCity} numberOfLines={1}>
-                {trip.origin?.city}
-              </Text>
-              <Text style={dynamicStyles.routeAddress} numberOfLines={1}>
-                {trip.origin?.address}
-              </Text>
-            </View>
-          </View>
-
-          <View style={dynamicStyles.routeLine} />
-
-          <View style={dynamicStyles.routePoint}>
-            <Ionicons name="location" size={18} color={colors.messagePrimary} />
-            <View style={dynamicStyles.routeTextContainer}>
-              <Text style={dynamicStyles.routeCity} numberOfLines={1}>
-                {trip.destination?.city}
-              </Text>
-              <Text style={dynamicStyles.routeAddress} numberOfLines={1}>
-                {trip.destination?.address}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Detalles */}
-        <View style={dynamicStyles.detailsSection}>
-          <View style={dynamicStyles.detailItem}>
-            <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-            <Text style={dynamicStyles.detailText}>
-              {new Date(trip.departureDate).toLocaleDateString('es-ES')}
-            </Text>
-          </View>
-
-          <View style={dynamicStyles.detailItem}>
-            <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-            <Text style={dynamicStyles.detailText}>{trip.departureTime}</Text>
-          </View>
-
-          <View style={dynamicStyles.detailItem}>
-            <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
-            <Text style={dynamicStyles.detailText}>
-              {free === 0
-                ? 'Sin cupos'
-                : `${free} ${free === 1 ? 'asiento libre' : 'asientos libres'}`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Preferencias */}
-        {(trip.allowSmoking || trip.allowPets) && (
-          <View style={dynamicStyles.preferencesSection}>
-            {trip.allowSmoking && (
-              <View style={dynamicStyles.preferenceBadge}>
-                <Ionicons name="flame-outline" size={12} color={colors.messagePrimary} />
-                <Text style={dynamicStyles.preferenceText}>Permitido fumar</Text>
+          {/* Driver */}
+          <View style={styles.driverRow}>
+            {driver.avatar ? (
+              <Image
+                source={{ uri: buildImageUri(driver.avatar) }}
+                style={[styles.avatar, { borderColor: cardBorder }]}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                <Text style={[styles.avatarInitials, { color: isDarkMode ? '#1F2937' : '#FFFFFF' }]}>
+                  {driver.firstName?.[0]}{driver.lastName?.[0]}
+                </Text>
               </View>
             )}
-            {trip.allowPets && (
-              <View style={dynamicStyles.preferenceBadge}>
-                <Ionicons name="paw-outline" size={12} color={colors.messagePrimary} />
-                <Text style={dynamicStyles.preferenceText}>Mascotas OK</Text>
-              </View>
-            )}
+            <Text style={[styles.driverName, { color: textSecondary }]} numberOfLines={1}>
+              {driver.firstName} {driver.lastName}
+            </Text>
           </View>
-        )}
 
-        {/* Botón de Acción */}
-        <TouchableOpacity
-          style={dynamicStyles.selectButton}
-          onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
-        >
-          <View style={dynamicStyles.selectButtonContent}>
-            <Text style={dynamicStyles.selectButtonText}>Ver Detalles</Text>
-            <Ionicons name="arrow-forward" size={16} color="#FFF" style={{ marginLeft: spacing.xs }} />
+          {/* Meta */}
+          <View style={[styles.metaRow, { borderTopColor: cardBorder }]}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={13} color={textMuted} />
+              <Text style={[styles.metaText, { color: textMuted }]}>
+                {item.departureDate
+                  ? new Date(item.departureDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                  : 'Sin fecha'}
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={13} color={textMuted} />
+              <Text style={[styles.metaText, { color: textMuted }]}>
+                {item.departureTime || 'Sin hora'}
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="people-outline" size={13} color={textMuted} />
+              <Text style={[styles.metaText, { color: freeSeats === 0 ? colors.error : textMuted }]}>
+                {freeSeats === 0 ? 'Completo' : `${freeSeats} libre${freeSeats !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
           </View>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-    );
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={dynamicStyles.container}>
-        <View style={dynamicStyles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.messagePrimary} />
-          <Text style={dynamicStyles.emptyText}>Buscando viajes...</Text>
         </View>
-      </SafeAreaView>
+      </TouchableOpacity>
     );
-  }
+  }, [isDarkMode, navigation, cardBg, cardBorder, textPrimary, textSecondary, textMuted]);
 
   return (
-    <SafeAreaView style={dynamicStyles.container} edges={['top']}>
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        {/* Header */}
-        <Animated.View
-          style={[
-            dynamicStyles.header,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#F7F8FA' }]}>
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 8,
+            backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF',
+            borderBottomColor: cardBorder,
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="chevron-back" size={24} color={textPrimary} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <View style={styles.routeSummary}>
+            <Text style={[styles.routeLabel, { color: textPrimary }]} numberOfLines={1}>
+              {originLabel}
+            </Text>
+            <Ionicons name="arrow-forward" size={14} color={textSecondary} style={{ marginHorizontal: 4 }} />
+            <Text style={[styles.routeLabel, { color: textPrimary }]} numberOfLines={1}>
+              {destinationLabel}
+            </Text>
+          </View>
+          {!loading && (
+            <Text style={[styles.resultCount, { color: textMuted }]}>
+              {trips.length} {trips.length === 1 ? 'viaje encontrado' : 'viajes encontrados'}
+            </Text>
+          )}
+        </View>
+
+        <TouchableOpacity
+          onPress={handleSort}
+          style={[styles.sortBtn, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6', borderColor: cardBorder }]}
         >
-          <View style={dynamicStyles.headerTop}>
-            <TouchableOpacity
-              style={dynamicStyles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <Text style={dynamicStyles.headerTitle}>Resultados</Text>
-            <Text style={dynamicStyles.searchSummary}>
-              {trips.length} viaje{trips.length !== 1 ? 's' : ''} encontrado{trips.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-
-          <Text style={dynamicStyles.searchRoute}>
-            {origin} → {destination}
+          <Ionicons name="swap-vertical" size={14} color={textSecondary} />
+          <Text style={[styles.sortText, { color: textSecondary }]}>
+            {sortBy === 'price' ? 'Precio' : 'Hora'}
           </Text>
-
-          <View style={dynamicStyles.controlsRow}>
-            <TouchableOpacity
-              style={dynamicStyles.sortButton}
-              onPress={() => {
-                setSortingLoading(true);
-                let newSort = 'price';
-                if (sortBy === 'price') {
-                  newSort = 'time';
-                } else if (sortBy === 'time') {
-                  newSort = 'rating';
-                }
-                setSortBy(newSort);
-                setTimeout(() => setSortingLoading(false), 1500);
-              }}
-            >
-              <Ionicons name="swap-vertical" size={16} color={colors.messagePrimary} />
-              <Text style={dynamicStyles.sortButtonText}>
-                {sortBy === 'price' ? 'Precio' : sortBy === 'time' ? 'Hora' : 'Calificación'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Content */}
-        {trips.length > 0 ? (
-          <>
-            {sortingLoading && (
-              <View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.background,
-                zIndex: 999,
-              }}>
-                <ActivityIndicator size="large" color={colors.messagePrimary} />
-              </View>
-            )}
-            <FlatList
-              data={trips}
-              renderItem={renderTripCard}
-              keyExtractor={(item) => item._id}
-              contentContainerStyle={dynamicStyles.contentContainer}
-              scrollIndicatorInsets={{ right: 1 }}
-              showsVerticalScrollIndicator={true}
-            />
-          </>
-        ) : (
-          <View style={dynamicStyles.emptyContainer}>
-            <Ionicons name="search-outline" size={64} color={colors.textTertiary} />
-            <Text style={dynamicStyles.emptyText}>No se encontraron viajes</Text>
-            <Text style={dynamicStyles.emptySubtext}>
-              Intenta con otras ciudades o fechas
-            </Text>
-          </View>
-        )}
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      {/* Content */}
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={textPrimary} />
+          <Text style={[styles.loadingText, { color: textMuted }]}>Buscando viajes...</Text>
+        </View>
+      ) : trips.length === 0 ? (
+        <View style={styles.centered}>
+          <Ionicons name="search-outline" size={56} color={textMuted} />
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin resultados</Text>
+          <Text style={[styles.emptySubtitle, { color: textMuted }]}>
+            No hay viajes de {originLabel} a {destinationLabel}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.tryAgainBtn, { backgroundColor: textPrimary }]}
+          >
+            <Text style={[styles.tryAgainText, { color: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+              Modificar búsqueda
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={trips}
+          renderItem={renderTrip}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    gap: 10,
+  },
+  backBtn: { padding: 2 },
+  headerCenter: { flex: 1 },
+  routeSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  resultCount: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  sortText: { fontSize: 12, fontWeight: '500' },
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: 10,
+  },
+  card: {
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardInner: { padding: spacing.md },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  routeText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    lineHeight: 18,
+  },
+  arrow: { marginTop: 1, flexShrink: 0 },
+  price: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: '#10B981',
+    flexShrink: 0,
+    marginLeft: 2,
+  },
+  driverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.sm,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  avatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  driverName: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: fontSize.xs,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 32,
+  },
+  loadingText: { fontSize: 14, marginTop: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', marginTop: 4 },
+  emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  tryAgainBtn: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  tryAgainText: { fontSize: 14, fontWeight: '600' },
+});
 
 export default SearchResultsScreen;
