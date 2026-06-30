@@ -1,141 +1,140 @@
-// Colores para modo claro
+// Colores para modo claro — fondo levemente grisáceo para que las cards (blancas) sobresalgan
 export const lightColors = {
-  // Backgrounds - LIGHT MODE
-  background: '#FFFFFF',
-  surface: '#F8F9FA',
+  // Backgrounds
+  background: '#F6F6F8',       // page bg: cool-gray muy sutil
+  surface: '#FFFFFF',          // cards / sheets: blanco puro
   surfaceElevated: '#FFFFFF',
-  surfaceHover: '#F1F3F4',
+  surfaceHover: '#EFEFEF',
+  surfaceSubtle: '#F0F0F4',    // secciones recesadas
 
-  // Primary colors - Black and gray tones
-  primary: '#1F2937', // Black
-  primaryDark: '#111827',
-  primaryLight: '#374151',
-  primaryVariant: '#111827',
+  // Primary (negro profundo, no puro)
+  primary: '#0D0D0D',
+  primaryDark: '#000000',
+  primaryLight: '#2A2A2A',
+  primaryVariant: '#1A1A1A',
 
-  // Accent colors
-  accent: '#111827', // Black
+  // Accent
+  accent: '#0D0D0D',
   accentGreen: '#10B981',
   accentOrange: '#F59E0B',
   accentRed: '#EF4444',
 
-  // Text colors - BLACK FOR LIGHT MODE
-  textPrimary: '#000000',
-  textSecondary: '#374151',
-  textTertiary: '#6B7280',
-  textMuted: '#9CA3AF',
+  // Text — jerarquía clara y neutral
+  textPrimary: '#0A0A0A',
+  textSecondary: '#3D3D3D',
+  textTertiary: '#717171',
+  textMuted: '#ADADAD',
 
-  // Borders & Dividers - LIGHT
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
+  // Borders & Dividers
+  border: '#E2E2E2',
+  borderLight: '#EEEEEE',
 
-  // Status colors
+  // Status
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
 
-  // Message colors - LIGHT MODE
-  messagePrimary: '#3B82F6', // Blue for user messages
-  messageSecondary: '#2563EB', // Darker blue for gradient
+  // Messages
+  messagePrimary: '#3B82F6',
+  messageSecondary: '#2563EB',
 
-  // Input colors - LIGHT MODE
+  // Inputs
   inputBackground: '#FFFFFF',
-  inputBorder: '#D1D5DB',
-  inputBorderFocus: '#1F2937',
-  placeholder: '#6B7280',
+  inputBorder: '#D5D5D5',
+  inputBorderFocus: '#0A0A0A',
+  placeholder: '#ADADAD',
 
-  // Card colors - LIGHT MODE
+  // Cards
   cardBackground: '#FFFFFF',
-  cardBorder: '#E5E7EB',
+  cardBorder: '#E2E2E2',
 
-  // Overlay - LIGHT MODE
-  overlay: 'rgba(255, 255, 255, 0.95)',
-  overlayLight: 'rgba(0, 0, 0, 0.1)',
-
-  // Shadow - LIGHT MODE
-  shadow: 'rgba(0, 0, 0, 0.1)',
+  // Overlays / Shadows
+  overlay: 'rgba(255, 255, 255, 0.96)',
+  overlayLight: 'rgba(0, 0, 0, 0.08)',
+  shadow: 'rgba(0, 0, 0, 0.06)',
+  shadowMd: 'rgba(0, 0, 0, 0.10)',
+  shadowLg: 'rgba(0, 0, 0, 0.15)',
 };
 
-// Colores para modo oscuro
+// Colores para modo oscuro — negro profundo con capas neutrales (sin tinte azul/morado)
 export const darkColors = {
-  // Backgrounds - DARK MODE
-  background: '#161616',
-  surface: '#292929',
-  surfaceElevated: '#374151',
-  surfaceHover: '#4B5563',
+  // Backgrounds
+  background: '#111111',       // fondo muy oscuro
+  surface: '#1C1C1C',          // cards: ligeramente más claro
+  surfaceElevated: '#242424',  // cards elevadas
+  surfaceHover: '#2A2A2A',
+  surfaceSubtle: '#161616',    // secciones recesadas
 
-  // Primary colors - Light gray and white tones for dark mode
-  primary: '#F9FAFB', // Almost white
+  // Primary (blanco suave, no brillante)
+  primary: '#F2F2F2',
   primaryDark: '#FFFFFF',
-  primaryLight: '#E5E7EB',
-  primaryVariant: '#E5E7EB',
+  primaryLight: '#D8D8D8',
+  primaryVariant: '#E0E0E0',
 
-  // Accent colors
-  accent: '#F9FAFB', // Almost white
-  accentGreen: '#34D399', // Lighter green for dark mode
-  accentOrange: '#FBBF24', // Lighter orange for dark mode  
-  accentRed: '#F87171', // Lighter red for dark mode
+  // Accent
+  accent: '#F2F2F2',
+  accentGreen: '#34D399',
+  accentOrange: '#FBBF24',
+  accentRed: '#F87171',
 
-  // Text colors - WHITE FOR DARK MODE
-  textPrimary: '#FFFFFF',
-  textSecondary: '#E5E7EB',
-  textTertiary: '#D1D5DB',
-  textMuted: '#9CA3AF',
+  // Text — jerarquía clara
+  textPrimary: '#F5F5F5',
+  textSecondary: '#CCCCCC',
+  textTertiary: '#8A8A8A',
+  textMuted: '#555555',
 
-  // Borders & Dividers - DARK
-  border: '#374151',
-  borderLight: '#4B5563',
+  // Borders & Dividers
+  border: '#2A2A2A',
+  borderLight: '#1E1E1E',
 
-  // Status colors - slightly lighter for dark mode
+  // Status
   success: '#34D399',
   warning: '#FBBF24',
   error: '#F87171',
   info: '#60A5FA',
 
-  // Message colors - DARK MODE  
-  messagePrimary: '#60A5FA', // Light blue for user messages
-  messageSecondary: '#3B82F6', // Blue for gradient
+  // Messages
+  messagePrimary: '#60A5FA',
+  messageSecondary: '#3B82F6',
 
-  // Input colors - DARK MODE
-  inputBackground: '#374151',
-  inputBorder: '#4B5563',
-  inputBorderFocus: '#F9FAFB',
-  placeholder: '#9CA3AF',
+  // Inputs
+  inputBackground: '#1C1C1C',
+  inputBorder: '#333333',
+  inputBorderFocus: '#F5F5F5',
+  placeholder: '#666666',
 
-  // Card colors - DARK MODE
-  cardBackground: '#1E1E1E',
-  cardBorder: '#374151',
+  // Cards
+  cardBackground: '#1C1C1C',
+  cardBorder: '#2A2A2A',
 
-  // Overlay - DARK MODE
-  overlay: 'rgba(17, 24, 39, 0.95)',
-  overlayLight: 'rgba(255, 255, 255, 0.1)',
-
-  // Shadow - DARK MODE
-  shadow: 'rgba(0, 0, 0, 0.3)',
+  // Overlays / Shadows
+  overlay: 'rgba(17, 17, 17, 0.96)',
+  overlayLight: 'rgba(255, 255, 255, 0.08)',
+  shadow: 'rgba(0, 0, 0, 0.40)',
+  shadowMd: 'rgba(0, 0, 0, 0.55)',
+  shadowLg: 'rgba(0, 0, 0, 0.70)',
 };
 
-// Mantener retrocompatibilidad
 export const colors = lightColors;
 
-// Gradientes para modo claro
+// Gradientes — mantenidos por retro-compatibilidad (no usar en pantallas nuevas)
 export const lightGradients = {
   primary: ['#1F2937', '#111827'],
   primaryVertical: ['#1F2937', '#111827'],
   accent: ['#1F2937', '#111827'],
-  light: ['#F8F9FA', '#FFFFFF'], // LIGHT MODE GRADIENT
-  card: ['#FFFFFF', '#F8F9FA'], // LIGHT CARD GRADIENT
+  light: ['#F8F9FA', '#FFFFFF'],
+  card: ['#FFFFFF', '#F8F9FA'],
 };
 
-// Gradientes para modo oscuro
 export const darkGradients = {
   primary: ['#F9FAFB', '#E5E7EB'],
-  primaryVertical: ['#F9FAFB', '#FFFFFF'],  
+  primaryVertical: ['#F9FAFB', '#FFFFFF'],
   accent: ['#F9FAFB', '#E5E7EB'],
-  light: ['#1F2937', '#111827'], // DARK MODE GRADIENT
-  card: ['#1F2937', '#374151'], // DARK CARD GRADIENT
+  light: ['#1F2937', '#111827'],
+  card: ['#1F2937', '#374151'],
 };
 
-// Mantener retrocompatibilidad
 export const gradients = lightGradients;
 
 export const spacing = {
@@ -148,6 +147,7 @@ export const spacing = {
 };
 
 export const borderRadius = {
+  xs: 6,
   sm: 8,
   md: 12,
   lg: 16,
@@ -177,8 +177,6 @@ export const fontWeight = {
   extraBold: '800',
 };
 
-// Font families - Re-exported from typography.js to avoid duplication
-// Import directly from typography.js where needed in components
 export const fontFamily = {
   thin: 'Sora_100Thin',
   extraLight: 'Sora_200ExtraLight',
@@ -188,36 +186,26 @@ export const fontFamily = {
   semiBold: 'Sora_600SemiBold',
   bold: 'Sora_700Bold',
   extraBold: 'Sora_800ExtraBold',
+  normal: 'Sora_400Regular',
+  primary: 'Sora_500Medium',
+  heading: 'Sora_700Bold',
 };
 
-// Typography configuration will be imported directly where needed
-// to avoid circular dependency issues
+export const getColors = (isDark = false) => isDark ? darkColors : lightColors;
+export const getGradients = (isDark = false) => isDark ? darkGradients : lightGradients;
 
-// Helper function to get colors by theme
-export const getColors = (isDark = false) => {
-  return isDark ? darkColors : lightColors;
-};
-
-// Helper function to get gradients by theme  
-export const getGradients = (isDark = false) => {
-  return isDark ? darkGradients : lightGradients;
-};
-
-// Helper function to ensure colors are available
 export const safeColors = {
   ...colors,
-  // Ensure we have fallbacks if something goes wrong
-  primary: colors.primary || '#6366F1',
-  background: colors.background || '#FFFFFF',
-  surface: colors.surface || '#F8F9FA',
-  textPrimary: colors.textPrimary || '#000000',
+  primary: colors.primary || '#0D0D0D',
+  background: colors.background || '#F6F6F8',
+  surface: colors.surface || '#FFFFFF',
+  textPrimary: colors.textPrimary || '#0A0A0A',
 };
 
-// Safe array creator for React Native components that expect color arrays
 export const createColorArray = (...colorValues) => {
   return (Array.isArray(colorValues) ? colorValues : []).map(color => {
     if (typeof color === 'string') return color;
     if (color && typeof color === 'object' && color.primary) return color.primary;
-    return '#6366F1'; // fallback color
+    return '#0D0D0D';
   }).filter(Boolean);
 };

@@ -1,7 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -21,25 +20,22 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+import SoraText from '../../components/SoraText';
+import { SF, textStyles, shadows } from '../../theme/tokens';
 
 const GOOGLE_START_URL = 'https://appcarpooling.onrender.com/api/auth/google/start';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
+  const [loading, setLoading]   = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+
   const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
-
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const { colors, isDarkMode, getCurrentThemeMode } = useColors();
 
   const LOGO_SOURCE = isDarkMode
     ? require('../../../assets/logo/192x192-white.png')
@@ -52,7 +48,7 @@ const LoginScreen = ({ navigation }) => {
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const otaId = Updates.updateId ? Updates.updateId.replace(/-/g, '').slice(0, 8) : null;
-  const versionLabel = otaId ? `v${version} - ${otaId}` : `v${version}`;
+  const versionLabel = otaId ? `v${version} · ${otaId}` : `v${version}`;
 
   const handleGoogleLogin = async () => {
     setSsoLoading('google');
@@ -60,14 +56,13 @@ const LoginScreen = ({ navigation }) => {
       const redirectUrl = Linking.createURL('auth/google');
       const startUrl = `${GOOGLE_START_URL}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
       const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUrl);
-
       if (result.type === 'success') {
         const params = new URLSearchParams(result.url.split('?')[1] || '');
         const token = params.get('token');
         const error = params.get('error');
         if (token) {
-          const loginResult = await loginWithJwt(token);
-          if (!loginResult.success) showAlert('Error con Google', loginResult.message || 'No se pudo iniciar sesión.');
+          const r = await loginWithJwt(token);
+          if (!r.success) showAlert('Error con Google', r.message || 'No se pudo iniciar sesión.');
         } else if (error !== 'cancelled') {
           showAlert('Error con Google', 'No se pudo completar el inicio de sesión.');
         }
@@ -89,7 +84,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      showAlert('Ocurrió algo', 'Por favor completa todos los campos');
+      showAlert('Ocurrió algo', 'Por favor completá todos los campos');
       return;
     }
     setLoading(true);
@@ -97,9 +92,8 @@ const LoginScreen = ({ navigation }) => {
     setLoading(false);
     if (!result.success) {
       if (result.requiresVerification) {
-        const verificationEmail = (result.email || email).trim();
         navigation.replace('Verification', {
-          email: verificationEmail,
+          email: (result.email || email).trim(),
           sendCodeOnMount: true,
         });
       } else {
@@ -108,115 +102,198 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+  const inputBorderColor = (field) => {
+    if (focusedField === field) return colors.textPrimary;
+    return colors.border;
+  };
 
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Header */}
           <View style={styles.header}>
             <Image source={LOGO_SOURCE} style={styles.logo} />
-            <Text style={[styles.title, { color: textPrimary }]}>Carpuling</Text>
-            <Text style={[styles.subtitle, { color: textMuted }]}>Viajá inteligente, ahorrá más</Text>
+            <SoraText style={[styles.brand, { color: colors.textPrimary }]}>
+              Carpuling
+            </SoraText>
+            <SoraText style={[styles.tagline, { color: colors.textMuted }]}>
+              Viajá inteligente, ahorrá más
+            </SoraText>
           </View>
 
           {/* Form card */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={[styles.inputRow, { borderBottomColor: border }]}>
-              <Ionicons name="mail-outline" size={18} color={textMuted} style={styles.inputIcon} />
+          <View style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              ...(isDarkMode ? {} : shadows.sm),
+            },
+          ]}>
+            {/* Email */}
+            <View style={[
+              styles.inputRow,
+              {
+                borderBottomColor: colors.borderLight,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+              },
+            ]}>
+              <Ionicons
+                name="mail-outline"
+                size={17}
+                color={focusedField === 'email' ? colors.textPrimary : colors.textMuted}
+                style={styles.inputIcon}
+              />
               <TextInput
-                style={[styles.input, { color: textPrimary }]}
+                style={[styles.input, { color: colors.textPrimary, fontFamily: SF.regular }]}
                 placeholder="Email"
-                placeholderTextColor={textMuted}
+                placeholderTextColor={colors.placeholder}
                 value={email}
                 onChangeText={setEmail}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                selectionColor={colors.info}
               />
             </View>
+
+            {/* Contraseña */}
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={18} color={textMuted} style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={17}
+                color={focusedField === 'password' ? colors.textPrimary : colors.textMuted}
+                style={styles.inputIcon}
+              />
               <TextInput
-                style={[styles.input, { color: textPrimary }]}
+                style={[styles.input, { color: colors.textPrimary, fontFamily: SF.regular }]}
                 placeholder="Contraseña"
-                placeholderTextColor={textMuted}
+                placeholderTextColor={colors.placeholder}
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
+                selectionColor={colors.info}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color={textMuted} />
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={17}
+                  color={colors.textMuted}
+                />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Login button */}
+          {/* Botón principal */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            style={[
+              styles.btn,
+              { backgroundColor: colors.textPrimary },
+              loading && styles.btnDisabled,
+            ]}
             onPress={handleLogin}
             disabled={loading}
-            activeOpacity={0.85}
+            activeOpacity={0.8}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Iniciar Sesión</Text>
+              ? <ActivityIndicator color={colors.background} />
+              : <SoraText style={[styles.btnText, { color: colors.background }]}>
+                  Iniciar Sesión
+                </SoraText>
             }
           </TouchableOpacity>
 
-          {/* Divider SSO */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: border }]} />
-            <Text style={[styles.dividerLabel, { color: textMuted }]}>o continuá con</Text>
-            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+          {/* Divisor SSO */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <SoraText style={[styles.dividerLabel, { color: colors.textMuted }]}>
+              o continuá con
+            </SoraText>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
-          {/* SSO icons */}
+          {/* SSO */}
           <View style={styles.ssoRow}>
             {Platform.OS !== 'web' && (
               <TouchableOpacity
-                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.6 }]}
+                style={[
+                  styles.ssoBtn,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                    ...(isDarkMode ? {} : shadows.sm),
+                  },
+                  ssoLoading === 'google' && styles.btnDisabled,
+                ]}
                 onPress={handleGoogleLogin}
                 disabled={!!ssoLoading}
-                activeOpacity={0.85}
+                activeOpacity={0.8}
               >
                 {ssoLoading === 'google'
-                  ? <ActivityIndicator color={textMuted} size="small" />
-                  : <FontAwesome name="google" size={22} color="#DB4437" />
+                  ? <ActivityIndicator color={colors.textMuted} size="small" />
+                  : <FontAwesome name="google" size={20} color="#DB4437" />
                 }
               </TouchableOpacity>
             )}
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'apple' && { opacity: 0.6 }]}
+                style={[
+                  styles.ssoBtn,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                    ...(isDarkMode ? {} : shadows.sm),
+                  },
+                  ssoLoading === 'apple' && styles.btnDisabled,
+                ]}
                 onPress={handleAppleLogin}
                 disabled={!!ssoLoading}
-                activeOpacity={0.85}
+                activeOpacity={0.8}
               >
                 {ssoLoading === 'apple'
-                  ? <ActivityIndicator color={textMuted} size="small" />
-                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                  ? <ActivityIndicator color={colors.textMuted} size="small" />
+                  : <FontAwesome name="apple" size={22} color={colors.textPrimary} />
                 }
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Forgot password */}
-          <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={[styles.linkText, { color: textMuted }]}>¿Olvidaste tu contraseña?</Text>
+          {/* ¿Olvidaste tu contraseña? */}
+          <TouchableOpacity
+            style={styles.linkBtn}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <SoraText style={[styles.linkText, { color: colors.textTertiary }]}>
+              ¿Olvidaste tu contraseña?
+            </SoraText>
           </TouchableOpacity>
 
-          {/* Register */}
+          {/* Registro */}
           <View style={styles.registerRow}>
-            <Text style={[styles.registerText, { color: textMuted }]}>¿No tenés cuenta? </Text>
+            <SoraText style={[styles.registerText, { color: colors.textMuted }]}>
+              ¿No tenés cuenta?{' '}
+            </SoraText>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={[styles.registerLink, { color: textPrimary }]}>Registrate</Text>
+              <SoraText style={[styles.registerLink, { color: colors.textPrimary }]}>
+                Registrate
+              </SoraText>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.version, { color: textMuted }]}>{versionLabel}</Text>
+          <SoraText style={[styles.version, { color: colors.textMuted }]}>
+            {versionLabel}
+          </SoraText>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -224,30 +301,106 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container:     { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-  header:        { alignItems: 'center', marginBottom: 40 },
-  logo:          { width: 64, height: 64, resizeMode: 'contain', marginBottom: 16 },
-  title:         { fontSize: 28, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
-  subtitle:      { fontSize: 15 },
-  card:          { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
-  inputRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
-  inputIcon:     { marginRight: 10 },
-  input:         { flex: 1, height: 52, fontSize: 15 },
-  eyeBtn:        { padding: 8 },
-  btn:           { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  btnText:       { fontSize: 16, fontWeight: '700' },
-  linkBtn:       { alignItems: 'center', paddingVertical: 12 },
-  linkText:      { fontSize: 14 },
-  registerRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
-  registerText:  { fontSize: 14 },
-  registerLink:  { fontSize: 14, fontWeight: '600' },
-  version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
-  divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
-  dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
-  dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
-  ssoRow:        { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12 },
-  ssoIconBtn:    { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+  },
+
+  // Header
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 60,
+    height: 60,
+    resizeMode: 'contain',
+    marginBottom: 18,
+  },
+  brand: {
+    ...textStyles.h1,
+    marginBottom: 6,
+  },
+  tagline: {
+    ...textStyles.body,
+  },
+
+  // Card del form
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  inputIcon: { marginRight: 10 },
+  input: {
+    flex: 1,
+    height: 54,
+    fontSize: 15,
+  },
+  eyeBtn: { padding: 8 },
+
+  // Botón principal
+  btn: {
+    borderRadius: 14,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  btnDisabled: { opacity: 0.55 },
+  btnText: { ...textStyles.button },
+
+  // Divisor SSO
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerLabel: { ...textStyles.bodySm },
+
+  // SSO
+  ssoRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 14,
+    marginBottom: 8,
+  },
+  ssoBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Links
+  linkBtn: { alignItems: 'center', paddingVertical: 14 },
+  linkText: { ...textStyles.body },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  registerText: { ...textStyles.body },
+  registerLink: { ...textStyles.label },
+  version: {
+    ...textStyles.caption,
+    textAlign: 'center',
+    marginTop: 36,
+  },
 });
 
 export default LoginScreen;

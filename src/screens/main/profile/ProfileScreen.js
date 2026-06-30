@@ -1,7 +1,6 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // eslint-disable-line
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -16,84 +15,44 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { buildImageUri } from '../../../services/apiService';
-import useColors from '../../../hooks/useColors';
+import { useColors } from '../../../hooks/useColors';
 import { useTutorial } from '../../../context/TutorialContext';
+import SoraText from '../../../components/SoraText';
+import { SF, textStyles, shadows } from '../../../theme/tokens';
 
-/** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
+/** Evitar refetch infinito al cambiar de tab */
 const PROFILE_REFRESH_GAP_MS = 10000;
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
-  const lastProfileFetchAtRef = useRef(0);
-  const { getCurrentThemeMode, setThemeMode } = useColors();
+  const lastFetchRef = useRef(0);
+  const { colors, isDarkMode, getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const sectionMenuTitleColor = isDarkMode ? textMuted : '#000000';
-
-  const handleLogout = () => {
-    showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar Sesión',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await logout();
-          } catch (error) {
-            showAlert('Ocurrió algo', 'No se pudo cerrar sesión. Intenta nuevamente.');
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleThemeToggle = () => {
-    const current = getCurrentThemeMode();
-    setThemeMode(current === 'light' ? 'dark' : 'light');
-  };
-
   const [refreshing, setRefreshing] = useState(false);
-  const [avatarImageLoading, setAvatarImageLoading] = useState(false);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
-  const avatarLoaderTimeoutRef = useRef(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(false);
+  const timerRef = useRef(null);
 
-  const avatarUri = user?.avatar ? buildImageUri(user.avatar) : null;
+  const avatarUri    = user?.avatar ? buildImageUri(user.avatar) : null;
+  const avatarSource = useMemo(() => (avatarUri ? { uri: avatarUri } : null), [avatarUri]);
+  const initials     = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
 
-  const avatarSource = useMemo(
-    () => (avatarUri ? { uri: avatarUri } : null),
-    [avatarUri]
-  );
-
-  /** Un solo ciclo por URI; sin `onLoadStart` (en RN suele repetir sin emparejar con `onLoad` y deja el spinner fijo). */
   useEffect(() => {
-    avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
-    if (!avatarUri) {
-      setAvatarImageLoading(false);
-      return undefined;
-    }
-    setAvatarImageLoading(true);
-    avatarLoaderTimeoutRef.current = setTimeout(() => setAvatarImageLoading(false), 12000);
-    return () => {
-      avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
-    };
+    timerRef.current && clearTimeout(timerRef.current);
+    if (!avatarUri) { setAvatarLoading(false); return; }
+    setAvatarLoading(true);
+    timerRef.current = setTimeout(() => setAvatarLoading(false), 12000);
+    return () => { timerRef.current && clearTimeout(timerRef.current); };
   }, [avatarUri]);
 
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
-      if (now - lastProfileFetchAtRef.current < PROFILE_REFRESH_GAP_MS) {
-        return;
-      }
-      lastProfileFetchAtRef.current = now;
+      if (now - lastFetchRef.current < PROFILE_REFRESH_GAP_MS) return;
+      lastFetchRef.current = now;
       refreshUser();
     }, [refreshUser])
   );
@@ -104,17 +63,33 @@ const ProfileScreen = () => {
     setRefreshing(false);
   };
 
-  const clearAvatarLoaderTimeout = () => {
-    avatarLoaderTimeoutRef.current && clearTimeout(avatarLoaderTimeoutRef.current);
-    avatarLoaderTimeoutRef.current = null;
+  const clearTimer = () => { timerRef.current && clearTimeout(timerRef.current); timerRef.current = null; };
+
+  const handleLogout = () => {
+    showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          try { await logout(); }
+          catch { showAlert('Ocurrió algo', 'No se pudo cerrar sesión. Intentá nuevamente.'); }
+        },
+      },
+    ]);
+  };
+
+  const handleThemeToggle = () => {
+    const current = getCurrentThemeMode();
+    setThemeMode(current === 'light' ? 'dark' : 'light');
   };
 
   const menuSections = [
     {
       title: 'Perfil',
       items: [
-        { id: 1, title: 'Editar Perfil',  subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, title: 'Mis Vehículos',  subtitle: 'Administrá tus vehículos',        icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+        { id: 1, title: 'Editar Perfil',   subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline',  onPress: () => navigation.navigate('EditProfile') },
+        { id: 2, title: 'Mis Vehículos',   subtitle: 'Administrá tus vehículos',        icon: 'car-outline',     onPress: () => navigation.navigate('Vehicles') },
       ],
     },
     {
@@ -126,17 +101,17 @@ const ProfileScreen = () => {
     {
       title: 'Información',
       items: [
-        { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
-        { id: 11, title: 'Política de Privacidad', subtitle: 'Cómo usamos tus datos personales',  icon: 'shield-outline',        onPress: () => navigation.navigate('Privacy') },
-        { id: 12, title: 'Cookies',                subtitle: 'Información sobre almacenamiento', icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
-        { id: 5,  title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
-        { id: 9, title: 'Mostrar introducción',   subtitle: 'Volvé a ver el tutorial de la app', icon: 'book-outline',          onPress: () => resetTutorial() },
+        { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline',     onPress: () => navigation.navigate('Terms') },
+        { id: 11, title: 'Política de Privacidad',  subtitle: 'Cómo usamos tus datos personales',   icon: 'shield-outline',            onPress: () => navigation.navigate('Privacy') },
+        { id: 12, title: 'Cookies',                 subtitle: 'Información sobre almacenamiento',   icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
+        { id: 5,  title: 'Ayuda',                   subtitle: 'Resolvé tus dudas frecuentes',       icon: 'help-circle-outline',       onPress: () => navigation.navigate('Help') },
+        { id: 9,  title: 'Mostrar introducción',    subtitle: 'Volvé a ver el tutorial de la app',  icon: 'book-outline',              onPress: () => resetTutorial() },
         {
           id: 6,
           title:    isDarkMode ? 'Cambiar a Claro' : 'Cambiar a Oscuro',
           subtitle: isDarkMode ? 'Activar modo día' : 'Activar modo noche',
           icon:     isDarkMode ? 'sunny-outline'   : 'moon-outline',
-          onPress: handleThemeToggle,
+          onPress:  handleThemeToggle,
         },
       ],
     },
@@ -150,6 +125,7 @@ const ProfileScreen = () => {
             ? `${user.discountPercentage}% de descuento disponible`
             : 'Invitá amigos y ganá descuentos',
           icon: 'gift-outline',
+          accent: (user?.discountPercentage ?? 0) > 0,
           onPress: () => navigation.navigate('ReferralScreen'),
         },
       ],
@@ -162,214 +138,217 @@ const ProfileScreen = () => {
     },
   ];
 
-  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
-
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Modal preview avatar */}
       <Modal
-        visible={avatarPreviewVisible}
+        visible={avatarPreview}
         transparent
         animationType="fade"
-        onRequestClose={() => setAvatarPreviewVisible(false)}
+        onRequestClose={() => setAvatarPreview(false)}
       >
         <Pressable
-          style={[styles.avatarModalBackdrop, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.88)' }]}
-          onPress={() => setAvatarPreviewVisible(false)}
+          style={[styles.modalBg, { backgroundColor: 'rgba(0,0,0,0.90)' }]}
+          onPress={() => setAvatarPreview(false)}
         >
-          {avatarSource ? (
-            <Image source={avatarSource} style={styles.avatarModalImage} resizeMode="contain" />
-          ) : null}
-          {/* <Text style={styles.avatarModalHint}>Tocá fuera para cerrar</Text> */}
+          {avatarSource && (
+            <Image source={avatarSource} style={styles.modalImg} resizeMode="contain" />
+          )}
         </Pressable>
       </Modal>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textPrimary]} />}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.textMuted}
+            colors={[colors.textPrimary]}
+          />
+        }
       >
-
-        {/* Header */}
+        {/* Header con avatar */}
         <View style={styles.header}>
           {authLoading && !user ? (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-              <ActivityIndicator size="large" color={textMuted} />
+            <View style={[styles.avatarShell, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ActivityIndicator size="large" color={colors.textMuted} />
             </View>
           ) : avatarSource ? (
             <TouchableOpacity
-              onPress={() => setAvatarPreviewVisible(true)}
+              onPress={() => setAvatarPreview(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Ver foto de perfil en grande"
             >
-              <View style={styles.avatarImageWrap}>
+              <View style={styles.avatarWrap}>
                 <Image
                   key={avatarUri}
                   source={avatarSource}
-                  style={styles.avatarImage}
-                  onLoadEnd={() => {
-                    clearAvatarLoaderTimeout();
-                    setAvatarImageLoading(false);
-                  }}
-                  onError={() => {
-                    clearAvatarLoaderTimeout();
-                    setAvatarImageLoading(false);
-                  }}
+                  style={styles.avatar}
+                  onLoadEnd={() => { clearTimer(); setAvatarLoading(false); }}
+                  onError={() => { clearTimer(); setAvatarLoading(false); }}
                 />
-                {avatarImageLoading ? (
-                  <View style={[styles.avatarImageLoader, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.65)' }]}>
-                    <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#111827'} />
+                {avatarLoading && (
+                  <View style={[
+                    styles.avatarLoader,
+                    { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.65)' },
+                  ]}>
+                    <ActivityIndicator size="large" color={colors.textPrimary} />
                   </View>
-                ) : null}
+                )}
               </View>
             </TouchableOpacity>
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-              <Text style={[styles.avatarInitials, { color: textPrimary }]}>{initials}</Text>
+            <View style={[styles.avatarShell, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <SoraText style={[styles.initials, { color: colors.textPrimary }]}>{initials}</SoraText>
             </View>
           )}
-          <Text style={[styles.name, { color: textPrimary }]}>
+
+          <SoraText style={[styles.name, { color: colors.textPrimary }]}>
             {user?.firstName} {user?.lastName}
-          </Text>
-          <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
-          {/* {user?.gender ? (
-            <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
-              Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
-            </Text>
-          ) : null} */}
+          </SoraText>
+          <SoraText style={[styles.email, { color: colors.textTertiary }]}>
+            {user?.email}
+          </SoraText>
 
           {(user?.discountPercentage ?? 0) > 0 && (() => {
-            const pct = user.discountPercentage;
+            const pct   = user.discountPercentage;
             const count = Math.round(pct / 20) || 1;
             return (
-              <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
-                <Ionicons name="pricetag" size={13} color="#10B981" />
-                <Text style={[styles.discountText, { color: '#10B981' }]}>
+              <View style={[
+                styles.discountBadge,
+                { backgroundColor: isDarkMode ? 'rgba(52,211,153,0.12)' : 'rgba(16,185,129,0.10)' },
+              ]}>
+                <Ionicons name="pricetag" size={12} color={colors.success} />
+                <SoraText style={[styles.discountText, { color: colors.success }]}>
                   {count} descuento{count !== 1 ? 's' : ''} activo{count !== 1 ? 's' : ''} · {pct}% de ahorro
-                </Text>
+                </SoraText>
               </View>
             );
           })()}
         </View>
 
-        {/* Menu */}
-        <View style={styles.menuContent}>
+        {/* Menú de secciones */}
+        <View style={styles.menuArea}>
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: sectionMenuTitleColor }]}>{section.title}</Text>
-              <View style={[styles.sectionCard, { backgroundColor: cardBg, borderColor: border }]}>
-                {section.items.map((item, index) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.menuItem,
-                      index < section.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
-                    ]}
-                    onPress={item.onPress}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.iconBox,
-                      { backgroundColor: item.danger ? (isDarkMode ? '#3D1A1A' : '#FEE2E2') : divider },
-                    ]}>
-                      <Ionicons
-                        name={item.icon}
-                        size={19}
-                        color={item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary}
-                      />
-                    </View>
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <Text style={[
-                        styles.menuItemText,
-                        { color: item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary },
-                      ]}>
-                        {item.title}
-                      </Text>
-                      {item.subtitle ? (
-                        <Text numberOfLines={1} style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
-                          {item.subtitle}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Ionicons name="chevron-forward" size={17} color={textMuted} />
-                  </TouchableOpacity>
-                ))}
+              <SoraText style={[styles.sectionLabel, { color: colors.textMuted }]}>
+                {section.title}
+              </SoraText>
+              <View style={[
+                styles.sectionCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  ...(isDarkMode ? {} : shadows.sm),
+                },
+              ]}>
+                {section.items.map((item, idx) => {
+                  const isLast    = idx === section.items.length - 1;
+                  const textColor = item.danger
+                    ? colors.error
+                    : item.accent
+                    ? colors.success
+                    : colors.textPrimary;
+                  const iconBg = item.danger
+                    ? (isDarkMode ? 'rgba(239,68,68,0.12)' : 'rgba(220,38,38,0.08)')
+                    : colors.surfaceSubtle;
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.menuItem,
+                        !isLast && {
+                          borderBottomWidth: StyleSheet.hairlineWidth,
+                          borderBottomColor: colors.borderLight,
+                        },
+                      ]}
+                      onPress={item.onPress}
+                      activeOpacity={0.65}
+                    >
+                      <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+                        <Ionicons name={item.icon} size={18} color={textColor} />
+                      </View>
+                      <View style={styles.menuText}>
+                        <SoraText style={[styles.menuTitle, { color: textColor }]}>
+                          {item.title}
+                        </SoraText>
+                        {item.subtitle ? (
+                          <SoraText
+                            numberOfLines={1}
+                            style={[styles.menuSubtitle, {
+                              color: item.accent ? colors.success : colors.textMuted,
+                            }]}
+                          >
+                            {item.subtitle}
+                          </SoraText>
+                        ) : null}
+                      </View>
+                      <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           ))}
         </View>
-
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container:     { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
+  container: { flex: 1 },
+  scroll: { paddingBottom: 48 },
 
   // Header
   header: {
     alignItems: 'center',
-    paddingTop: 48,
+    paddingTop: 52,
     paddingBottom: 28,
     paddingHorizontal: 24,
   },
-  avatarImageWrap: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+  avatarWrap: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  avatarImage: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+  avatar: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
   },
-  avatarImageLoader: {
+  avatarLoader: {
     ...StyleSheet.absoluteFillObject,
+    borderRadius: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 64,
   },
-  avatarModalBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  avatarModalImage: {
-    width: '100%',
-    height: '80%',
-    maxHeight: 520,
-  },
-  avatarModalHint: {
-    marginTop: 20,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  avatarPlaceholder: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+  avatarShell: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  avatarInitials: {
-    fontSize: 46,
-    fontWeight: '700',
+  initials: {
+    fontSize: 40,
+    fontFamily: SF.bold,
     letterSpacing: 1,
   },
   name: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...textStyles.h3,
     marginBottom: 4,
   },
   email: {
-    fontSize: 14,
+    ...textStyles.body,
   },
   discountBadge: {
     flexDirection: 'row',
@@ -377,22 +356,31 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 9999,
     marginTop: 12,
   },
   discountText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...textStyles.labelSm,
   },
 
-  // Menu
-  menuContent: { paddingHorizontal: 16 },
-  section:     { marginBottom: 24 },
+  // Modal
+  modalBg: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalImg: {
+    width: '100%',
+    height: '80%',
+    maxHeight: 520,
+  },
+
+  // Menú
+  menuArea: { paddingHorizontal: 16 },
+  section:  { marginBottom: 24 },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    ...textStyles.tag,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -404,20 +392,24 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 12,
   },
   iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuItemText: {
-    fontSize: 15,
-    fontWeight: '500',
+  menuText: { flex: 1, justifyContent: 'center' },
+  menuTitle: {
+    ...textStyles.label,
+  },
+  menuSubtitle: {
+    ...textStyles.bodySm,
+    marginTop: 2,
   },
 });
 

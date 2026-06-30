@@ -1,58 +1,16 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
-
-// Usar valores directos para evitar problemas de carga
-const SORA_FONTS = {
-  thin: 'Sora_100Thin',
-  extraLight: 'Sora_200ExtraLight',
-  light: 'Sora_300Light',
-  regular: 'Sora_400Regular',
-  medium: 'Sora_500Medium',
-  semiBold: 'Sora_600SemiBold',
-  bold: 'Sora_700Bold',
-  extraBold: 'Sora_800ExtraBold',
-};
-
-
-// Safe colors fallback to prevent 'colors is not defined' errors
-const safeColors = (() => {
-  try {
-    const { colors } = require('./src/theme/colors');
-    return colors;
-  } catch {
-    try {
-      const { colors } = require('../theme/colors');
-      return colors;
-    } catch {
-      try {
-        const { colors } = require('../../theme/colors');
-        return colors;
-      } catch {
-        return {
-          background: '#FFFFFF', surface: '#F8F9FA', surfaceElevated: '#FFFFFF',
-          textPrimary: '#000000', textSecondary: '#374151', textTertiary: '#6B7280',
-          textMuted: '#9CA3AF', primary: '#6366F1', primaryDark: '#4F46E5',
-          accent: '#A855F7', accentGreen: '#10B981', accentOrange: '#F59E0B',
-          accentRed: '#EF4444', success: '#10B981', warning: '#F59E0B',
-          error: '#EF4444', info: '#3B82F6', inputBackground: '#FFFFFF',
-          inputBorder: '#D1D5DB', borderLight: '#F3F4F6', border: '#E5E7EB'
-        };
-      }
-    }
-  }
-})();
+import SoraText from '../SoraText';
+import { SF, textStyles } from '../../theme/tokens';
+import { spacing, borderRadius, fontSize } from '../../theme/colors';
 
 const FormInput = ({
   label,
@@ -83,94 +41,74 @@ const FormInput = ({
   const [showPassword, setShowPassword] = useState(false);
   const { isDarkMode } = useTheme();
 
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
+  // Colores inline alineados con el nuevo sistema
+  const bg       = isDarkMode ? '#1C1C1C' : '#FFFFFF';
+  const border   = error
+    ? (isDarkMode ? '#F87171' : '#DC2626')
+    : isFocused
+    ? (isDarkMode ? '#F5F5F5' : '#0A0A0A')
+    : (isDarkMode ? '#333333' : '#D5D5D5');
+  const iconColor = error
+    ? (isDarkMode ? '#F87171' : '#DC2626')
+    : isFocused
+    ? (isDarkMode ? '#F5F5F5' : '#0A0A0A')
+    : (isDarkMode ? '#666666' : '#ADADAD');
+  const textColor   = isDarkMode ? '#F5F5F5' : '#0A0A0A';
+  const labelColor  = isDarkMode ? '#8A8A8A' : '#717171';
+  const helperColor = isDarkMode ? '#666666' : '#ADADAD';
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (onBlur) {
-      onBlur();
-    }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const getBorderColor = () => {
-    if (error) return isDarkMode ? '#EF4444' : '#DC2626';
-    if (isFocused) return isDarkMode ? '#FFFFFF' : '#000000';
-    return isDarkMode ? '#404040' : '#E5E7EB';
-  };
-
-  const getIconColor = () => {
-    if (error) return isDarkMode ? '#EF4444' : '#DC2626';
-    if (isFocused) return isDarkMode ? '#FFFFFF' : '#000000';
-    return isDarkMode ? '#9CA3AF' : '#6B7280';
-  };
-
-  const actualSecureTextEntry = showPasswordToggle ? !showPassword : secureTextEntry;
+  const actualSecure = showPasswordToggle ? !showPassword : secureTextEntry;
 
   return (
     <View style={[styles.container, style]}>
-      {/* Label */}
       {label && (
-        <View style={styles.labelContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+        <View style={styles.labelRow}>
+          <SoraText style={[styles.label, { color: labelColor }]}>
             {label}
-            {required && <Text style={[styles.required, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}> *</Text>}
-          </Text>
-          {maxLength && value && (
-            <Text style={[
-              styles.characterCount,
-              { color: value.length > maxLength * 0.9 ? (isDarkMode ? '#F59E0B' : '#D97706') : (isDarkMode ? '#9CA3AF' : '#6B7280') }
-            ]}>
+            {required && <SoraText style={{ color: isDarkMode ? '#F87171' : '#DC2626' }}> *</SoraText>}
+          </SoraText>
+          {maxLength && value ? (
+            <SoraText style={[styles.charCount, {
+              color: value.length > maxLength * 0.9
+                ? (isDarkMode ? '#FBBF24' : '#D97706')
+                : helperColor,
+            }]}>
               {value.length}/{maxLength}
-            </Text>
-          )}
+            </SoraText>
+          ) : null}
         </View>
       )}
 
-      {/* Input Container */}
       <View style={[
-        styles.inputContainer,
+        styles.inputWrap,
         {
-          backgroundColor: isDarkMode ? '#292929' : '#F8F9FA',
-          borderColor: getBorderColor(),
-          borderWidth: error ? 2 : 1,
+          backgroundColor: bg,
+          borderColor: border,
+          borderWidth: error || isFocused ? 2 : 1,
         },
-        !editable && styles.inputDisabled,
-        multiline && styles.multilineContainer,
+        !editable && styles.disabled,
+        multiline && styles.multiline,
       ]}>
-        {/* Left Icon */}
         {leftIcon && (
-          <View style={[styles.leftIconContainer, multiline && styles.leftIconContainerMultiline]}>
-            <Ionicons
-              name={leftIcon}
-              size={20}
-              color={getIconColor()}
-            />
+          <View style={[styles.leftIcon, multiline && styles.leftIconMultiline]}>
+            <Ionicons name={leftIcon} size={19} color={iconColor} />
           </View>
         )}
 
-        {/* Text Input */}
         <TextInput
           style={[
-            styles.textInput,
-            { color: isDarkMode ? '#FFFFFF' : '#1F2937' },
+            styles.input,
+            { color: textColor, fontFamily: SF.regular },
+            multiline && styles.inputMultiline,
             inputStyle,
-            multiline && styles.multilineInput,
-            leftIcon && styles.textInputWithLeftIcon,
-            (rightIcon || showPasswordToggle) && styles.textInputWithRightIcon,
           ]}
           value={value}
           onChangeText={onChangeText}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => { setIsFocused(false); onBlur?.(); }}
           placeholder={placeholder}
-          placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
-          secureTextEntry={actualSecureTextEntry}
+          placeholderTextColor={isDarkMode ? '#555555' : '#ADADAD'}
+          secureTextEntry={actualSecure}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
@@ -178,51 +116,38 @@ const FormInput = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           maxLength={maxLength}
-          selectionColor={isDarkMode ? '#3B82F6' : '#6366F1'}
+          selectionColor={isDarkMode ? '#60A5FA' : '#3B82F6'}
           {...(multiline && Platform.OS === 'android' ? { includeFontPadding: false } : {})}
           {...props}
         />
 
-        {/* Right Icon or Password Toggle */}
         {(showPasswordToggle || rightIcon) && (
           <TouchableOpacity
-            style={styles.rightIconContainer}
-            onPress={showPasswordToggle ? togglePasswordVisibility : onRightIconPress}
+            style={styles.rightIcon}
+            onPress={showPasswordToggle ? () => setShowPassword(!showPassword) : onRightIconPress}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={
-                showPasswordToggle
-                  ? (showPassword ? 'eye-outline' : 'eye-off-outline')
-                  : rightIcon
-              }
-              size={20}
-              color={getIconColor()}
+              name={showPasswordToggle
+                ? (showPassword ? 'eye-outline' : 'eye-off-outline')
+                : rightIcon}
+              size={19}
+              color={iconColor}
             />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Helper Text */}
       {helper && !error && (
-        <Text style={[styles.helper, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>{helper}</Text>
+        <SoraText style={[styles.helper, { color: helperColor }]}>{helper}</SoraText>
       )}
 
-      {/* Error Message */}
       {error && (
-        <View style={styles.errorContainer}>
-          {Platform.OS !== 'web' && (
-            <Ionicons name="alert-circle" size={14} color={isDarkMode ? '#EF4444' : '#DC2626'} />
-          )}
-          <Text style={[styles.errorText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>{error}</Text>
-        </View>
-      )}
-
-      {/* Success Indicator */}
-      {Platform.OS !== 'web' && !error && value && isFocused && (
-        <View style={styles.successContainer}>
-          <Ionicons name="checkmark-circle" size={14} color={isDarkMode ? '#10B981' : '#059669'} />
-          <Text style={[styles.successText, { color: isDarkMode ? '#10B981' : '#059669' }]}>Válido</Text>
+        <View style={styles.errorRow}>
+          <Ionicons name="alert-circle" size={13} color={isDarkMode ? '#F87171' : '#DC2626'} />
+          <SoraText style={[styles.errorText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>
+            {error}
+          </SoraText>
         </View>
       )}
     </View>
@@ -230,107 +155,50 @@ const FormInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.md,
-  },
-  labelContainer: {
+  container: { marginBottom: spacing.md },
+  labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
-  label: {
-    fontSize: fontSize.sm,
-    fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semibold,
-    color: safeColors.textSecondary,
-  },
-  required: {
-    color: safeColors.error || '#EF4444',
-    fontSize: fontSize.sm,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
-  },
-  characterCount: {
-    fontSize: fontSize.xs,
-    fontFamily: SORA_FONTS.medium,
-    fontWeight: fontWeight.medium,
-  },
-  inputContainer: {
+  label:     { ...textStyles.labelSm },
+  charCount: { ...textStyles.caption },
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: safeColors.surface,
-    borderRadius: borderRadius.md,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
-    minHeight: 48,
+    minHeight: 52,
   },
-  multilineContainer: {
+  multiline: {
     paddingVertical: spacing.sm,
     alignItems: 'flex-start',
   },
-  inputDisabled: {
-    backgroundColor: safeColors.surfaceDisabled || safeColors.surface,
-    opacity: 0.6,
+  disabled: { opacity: 0.5 },
+  leftIcon: { marginRight: spacing.sm },
+  leftIconMultiline: {
+    paddingTop: Platform.select({ ios: 2, android: 0, default: 0 }),
   },
-  leftIconContainer: {
-    marginRight: spacing.sm,
-  },
-  /** Alinea el icono con la primera línea del texto (multiline tiene padding vertical en el input). */
-  leftIconContainerMultiline: {
-    paddingTop: spacing.sm + Platform.select({ ios: 1, android: 0, default: 0 }),
-  },
-  rightIconContainer: {
-    marginLeft: spacing.sm,
-    padding: spacing.xs,
-  },
-  textInput: {
+  rightIcon: { marginLeft: spacing.sm, padding: 2 },
+  input: {
     flex: 1,
-    fontSize: fontSize.md,
-    fontFamily: SORA_FONTS.regular,
-    color: safeColors.textPrimary,
+    fontSize: 15,
     paddingVertical: spacing.sm,
   },
-  textInputWithLeftIcon: {
-    marginLeft: 0,
-  },
-  textInputWithRightIcon: {
-    marginRight: 0,
-  },
-  multilineInput: {
+  inputMultiline: {
     textAlignVertical: 'top',
     minHeight: 80,
   },
-  helper: {
-    fontSize: fontSize.xs,
-    fontFamily: SORA_FONTS.regular,
-    color: safeColors.textTertiary,
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
-  },
-  errorContainer: {
+  helper: { ...textStyles.caption, marginTop: 5, marginLeft: 2 },
+  errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
+    gap: 4,
+    marginTop: 5,
+    marginLeft: 2,
   },
-  errorText: {
-    fontSize: fontSize.xs,
-    fontFamily: SORA_FONTS.regular,
-    color: safeColors.error || '#EF4444',
-    marginLeft: spacing.xs,
-    flex: 1,
-  },
-  successContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
-  },
-  successText: {
-    fontSize: fontSize.xs,
-    color: safeColors.success || '#10B981',
-    marginLeft: spacing.xs,
-  },
+  errorText: { ...textStyles.caption, flex: 1 },
 });
 
 export default FormInput;
