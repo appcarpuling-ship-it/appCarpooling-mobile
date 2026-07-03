@@ -46,7 +46,7 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
       },
-      "buildNumber": "4"
+      "buildNumber": "7"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -91,8 +91,14 @@
         {
           "ios": {
             "extraPods": [
-              { "name": "GoogleUtilities", "modular_headers": true },
-              { "name": "RecaptchaInterop", "modular_headers": true }
+              {
+                "name": "GoogleUtilities",
+                "modular_headers": true
+              },
+              {
+                "name": "RecaptchaInterop",
+                "modular_headers": true
+              }
             ]
           }
         }

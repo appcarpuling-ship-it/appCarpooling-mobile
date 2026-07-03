@@ -34,6 +34,8 @@ import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
+import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 
 const BANNER_SCROLL_SPEED = 30;
 
@@ -146,10 +148,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showCostModal, setShowCostModal] = useState(false);
-  const [actualCost, setActualCost] = useState('');
-  const [driverPay, setDriverPay] = useState('');
   const [submittingComplete, setSubmittingComplete] = useState(false);
-  const [costError, setCostError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -527,41 +526,27 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleCompleteTrip = () => {
-    setActualCost('');
-    setDriverPay('');
     setShowCostModal(true);
   };
 
-  const submitCompleteTrip = async () => {
-    const cost = parseFloat(actualCost);
-    if (!actualCost || isNaN(cost) || cost <= 0) {
-      setCostError('Ingresá un costo válido mayor a 0');
-      return;
-    }
-    setCostError('');
-    const pay = parseFloat(driverPay) || 0;
+  const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
     setSubmittingComplete(true);
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { actualCost: cost, driverPay: pay });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { costBreakdown, driverPay });
       if (response.success) {
-        if (response.data) {
-          const updatedTrip = response.data.trip || response.data;
-          const actualCostVal = updatedTrip?.actualCost ?? response.data.actualCost ?? cost;
-          const driverPayVal = updatedTrip?.driverPay ?? response.data.driverPay ?? pay;
-          setTrip(prev => prev ? { ...prev, ...updatedTrip, actualCost: actualCostVal, driverPay: driverPayVal, status: 'completed' } : prev);
+        const updatedTrip = response.data?.trip || response.data;
+        if (updatedTrip) {
+          setTrip(prev => prev ? { ...prev, ...updatedTrip, status: 'completed' } : prev);
         }
         await loadTripDetail();
         await refreshUser();
         setShowCostModal(false);
-        const total = cost + pay;
-        showAlert('Viaje Completado', pay > 0
-          ? `Costo: $${formatNumber(cost)} + Tu paga: $${formatNumber(pay)} = $${formatNumber(total)}`
-          : `Costo final: $${formatNumber(cost)}`);
+        showAlert('Viaje Completado', `Costo final: $${formatNumber(updatedTrip?.actualCost)}`);
       } else {
-        setCostError(response.message || 'No se pudo completar el viaje');
+        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
       }
     } catch (error) {
-      setCostError(error.message || 'Error al completar el viaje');
+      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
     } finally {
       setSubmittingComplete(false);
     }
@@ -622,6 +607,12 @@ const TripDetailScreen = ({ route, navigation }) => {
               <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
               <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
             </View>
+          </View>
+        )}
+
+        {trip.status === 'completed' && (
+          <View style={[styles.section, { borderBottomColor: divider }]}>
+            <TripCostBreakdown trip={trip} />
           </View>
         )}
 
@@ -1167,52 +1158,12 @@ const TripDetailScreen = ({ route, navigation }) => {
       </Modal>
 
       {/* Cost Modal */}
-      <Modal visible={showCostModal} transparent animationType="fade" onRequestClose={() => { if (!submittingComplete) setShowCostModal(false); }}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: bg }]}>
-            <Text style={[styles.modalTitle, { color: textPrimary }]}>Completar viaje</Text>
-            <Text style={[styles.modalSub, { color: textMuted }]}>Costo real del viaje</Text>
-            <TextInput
-              style={[styles.modalInput, { borderColor: costError ? '#EF4444' : divider, color: textPrimary, backgroundColor: cardBg }]}
-              placeholder="Ej: 1500"
-              placeholderTextColor={textMuted}
-              keyboardType="decimal-pad"
-              value={actualCost}
-              onChangeText={v => { setActualCost(v); if (costError) setCostError(''); }}
-              autoFocus
-            />
-            {costError ? <Text style={{ color: '#EF4444', fontSize: 12, marginBottom: 6 }}>{costError}</Text> : null}
-            <Text style={[styles.modalSub, { color: textMuted }]}>Tu contribucion extra (opcional)</Text>
-            <TextInput
-              style={[styles.modalInput, { borderColor: divider, color: textPrimary, backgroundColor: cardBg, marginTop: 6 }]}
-              placeholder={actualCost ? `Ej: ${Math.round(parseFloat(actualCost) * 0.15)}` : 'Ej: 500'}
-              placeholderTextColor={textMuted}
-              keyboardType="decimal-pad"
-              value={driverPay}
-              onChangeText={setDriverPay}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalBtnSecondary, { borderColor: divider, opacity: submittingComplete ? 0.5 : 1 }]}
-                onPress={() => { if (!submittingComplete) setShowCostModal(false); }}
-                disabled={submittingComplete}
-              >
-                <Text style={[styles.modalBtnSecondaryText, { color: textSecondary }]}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: accent, opacity: submittingComplete ? 0.7 : 1 }]}
-                onPress={submitCompleteTrip}
-                disabled={submittingComplete}
-              >
-                {submittingComplete
-                  ? <ActivityIndicator size="small" color={accentInverse} />
-                  : <Text style={[styles.modalBtnPrimaryText, { color: accentInverse }]}>Completar</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <CompleteTripCostModal
+        visible={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        onSubmit={submitCompleteTrip}
+        submitting={submittingComplete}
+      />
 
     </View>
   );
@@ -1484,29 +1435,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   imageFullscreen: { width: '100%', height: '80%' },
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center', alignItems: 'center', padding: 24,
-  },
-  modalCard: { borderRadius: 16, padding: 24, width: '100%', maxWidth: 400 },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
-  modalSub: { fontSize: 13, marginBottom: 12 },
-  modalInput: {
-    borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 17, marginBottom: 16,
-  },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  modalBtnSecondary: {
-    flex: 1, height: 48, borderRadius: 10,
-    borderWidth: 1, justifyContent: 'center', alignItems: 'center',
-  },
-  modalBtnSecondaryText: { fontSize: 15, fontWeight: '500' },
-  modalBtnPrimary: {
-    flex: 1, height: 48, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  modalBtnPrimaryText: { fontSize: 15, fontWeight: '600' },
 
   // Header
   header: {
