@@ -83,7 +83,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
       const mine = myRes.status  === 'fulfilled' && myRes.value?.success  ? myRes.value.data  : [];
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const activeMine = mine.filter(r =>
-        !['cancelled', 'expired'].includes(r.status) && new Date(r.departureDate) >= today
+        r.status === 'open' && new Date(r.departureDate) >= today
       );
       const merged = [...open];
       activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });
@@ -278,7 +278,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
       ? `${passenger.firstName}${passenger.lastName ? ` ${passenger.lastName}` : ''}`
       : 'Pasajero';
     const initials  = `${passenger.firstName?.[0] || ''}${passenger.lastName?.[0] || ''}` || '?';
-    const totalApps = item.applications?.length || 0;
+    const totalApps = item.applicationCount ?? item.applications?.length ?? 0;
     const isOwn     = passenger._id === user?._id;
 
     const totalPrice = (item.pricePerSeat || 0) * (item.seatsNeeded || 1);
@@ -344,7 +344,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
               {item.seatsNeeded} asiento{item.seatsNeeded !== 1 ? 's' : ''}
             </Text>
           </View>
-          {totalPrice > 0 && (
+          {isOwn && totalPrice > 0 && (
             <View style={styles.footerItem}>
               <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
               <Text style={[styles.footerText, { color: tripRouteMuted }]}>

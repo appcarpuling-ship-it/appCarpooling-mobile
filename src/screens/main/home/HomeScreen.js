@@ -275,7 +275,7 @@ const HomeScreen = ({ navigation, route }) => {
       const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
       const mine = myRes.status === 'fulfilled' && myRes.value?.success ? myRes.value.data : [];
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const activeMine = mine.filter(r => !['cancelled', 'expired'].includes(r.status) && new Date(r.departureDate) >= today);
+      const activeMine = mine.filter(r => r.status === 'open' && new Date(r.departureDate) >= today);
       const merged = [...open];
       activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });
       merged.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
@@ -463,12 +463,12 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const renderRequestCard = (req) => {
-    const totalApps = req.applications?.length || 0;
+    const totalApps = req.applicationCount ?? req.applications?.length ?? 0;
     return (
       <TouchableOpacity
         key={req._id}
         style={[styles.tripCard, { backgroundColor: cardBg }]}
-        onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', { requestId: req._id, mode: 'passenger' })}
+        onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', { requestId: req._id })}
         activeOpacity={0.7}
       >
         {/* Header row */}

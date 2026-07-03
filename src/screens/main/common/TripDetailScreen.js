@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { isTripToday } from '../../../utils/tripDateUtils';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
 import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservation } from '../../../services/seatReservationService';
@@ -151,6 +152,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [submittingComplete, setSubmittingComplete] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
+  const [cancellingTrip, setCancellingTrip] = useState(false);
+  const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
   const [banners, setBanners] = useState([]);
@@ -398,7 +401,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            setPaymentLoading(true);
+            setCancellingReservation(true);
             await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
             setUserBooking(null);
             await checkUserBooking();
@@ -411,7 +414,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               'No se pudo cancelar';
             showAlert('Ocurrió algo', msg);
           } finally {
-            setPaymentLoading(false);
+            setCancellingReservation(false);
           }
         },
       },
@@ -501,6 +504,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         text: 'Sí, cancelar',
         style: 'destructive',
         onPress: async () => {
+          setCancellingTrip(true);
           try {
             const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
             if (response.success) {
@@ -519,6 +523,8 @@ const TripDetailScreen = ({ route, navigation }) => {
             }
           } catch (error) {
             showAlert('Ocurrió algo', error.message || 'Error al cancelar el viaje');
+          } finally {
+            setCancellingTrip(false);
           }
         },
       },
@@ -526,6 +532,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleCompleteTrip = () => {
+    if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
     setShowCostModal(true);
   };
 
@@ -927,39 +934,50 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={[styles.footer, { borderTopColor: divider }]}>
             {trip.status === 'active' && (
               <>
-                <TouchableOpacity
-                  style={[styles.footerBtn, { backgroundColor: accent }]}
-                  onPress={handleStartTrip}
-                  disabled={startingTrip}
-                >
-                  {startingTrip
-                    ? <ActivityIndicator size="small" color={accentInverse} />
-                    : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Iniciar viaje</Text>
-                  }
-                </TouchableOpacity>
+                {isTripToday(trip.departureDate) && (
+                  <TouchableOpacity
+                    style={[styles.footerBtn, { backgroundColor: accent }]}
+                    onPress={handleStartTrip}
+                    disabled={startingTrip}
+                  >
+                    {startingTrip
+                      ? <ActivityIndicator size="small" color={accentInverse} />
+                      : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Iniciar viaje</Text>
+                    }
+                  </TouchableOpacity>
+                )}
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  {/* Editar: oculto temporalmente
                   <TouchableOpacity
                     style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }]}
                     onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
                   >
                     <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Editar</Text>
                   </TouchableOpacity>
+                  */}
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
+                    disabled={cancellingTrip}
                   >
-                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                    {cancellingTrip
+                      ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                    }
                   </TouchableOpacity>
                 </View>
               </>
             )}
             {trip.status === 'pending' && (
+              /* Editar viaje: oculto temporalmente
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }]}
                 onPress={() => navigation.navigate('EditTrip', { tripId: trip._id })}
               >
                 <Text style={[styles.footerBtnText, { color: accentInverse }]}>Editar viaje</Text>
               </TouchableOpacity>
+              */
+              null
             )}
             {trip.status === 'started' && (
               <>
@@ -971,10 +989,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
+                    disabled={cancellingTrip}
                   >
-                    <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                    {cancellingTrip
+                      ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                    }
                   </TouchableOpacity>
                 </View>
               </>
@@ -1004,8 +1026,11 @@ const TripDetailScreen = ({ route, navigation }) => {
                       <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
                       <Text style={[styles.pendingLabel, { color: colors.warning }]}>Pago pendiente</Text>
                     </View>
-                    <TouchableOpacity onPress={handleCancelPendingReservation}>
-                      <Text style={[styles.cancelLink, { color: colors.error }]}>Cancelar</Text>
+                    <TouchableOpacity onPress={handleCancelPendingReservation} disabled={cancellingReservation}>
+                      {cancellingReservation
+                        ? <ActivityIndicator size="small" color={colors.error} />
+                        : <Text style={[styles.cancelLink, { color: colors.error }]}>Cancelar</Text>
+                      }
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useColors } from '../../hooks/useColors';
 
 const num = (v) => parseFloat(v) || 0;
@@ -44,33 +44,38 @@ const CompleteTripCostModal = ({ visible, onClose, onSubmit, submitting }) => {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Completar viaje</Text>
           <Text style={[styles.subtitle, { color: colors.textTertiary }]}>Desglosá el costo final del viaje</Text>
 
-          {fields.map(f => (
-            <View key={f.key} style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{f.label}</Text>
-              <TextInput
-                style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
-                placeholder={f.placeholder}
-                placeholderTextColor={colors.placeholder}
-                keyboardType="decimal-pad"
-                value={f.value}
-                onChangeText={(v) => { f.set(v); if (error) setError(''); }}
-              />
-            </View>
-          ))}
+          <ScrollView keyboardShouldPersistTaps="handled" style={styles.fieldsScroll}>
+            {fields.map(f => (
+              <View key={f.key} style={styles.field}>
+                <Text style={[styles.label, { color: colors.textTertiary }]}>{f.label}</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
+                  placeholder={f.placeholder}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="decimal-pad"
+                  value={f.value}
+                  onChangeText={(v) => { f.set(v); if (error) setError(''); }}
+                />
+              </View>
+            ))}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {total > 0 && (
-            <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
-              <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: colors.textPrimary }]}>${formatMoney(total)}</Text>
-            </View>
-          )}
+            {total > 0 && (
+              <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+                <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total</Text>
+                <Text style={[styles.totalValue, { color: colors.textPrimary }]}>${formatMoney(total)}</Text>
+              </View>
+            )}
+          </ScrollView>
 
           <View style={styles.actions}>
             <TouchableOpacity
@@ -92,7 +97,7 @@ const CompleteTripCostModal = ({ visible, onClose, onSubmit, submitting }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -109,6 +114,10 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     padding: 20,
+    maxHeight: '90%',
+  },
+  fieldsScroll: {
+    maxHeight: 340,
   },
   title: {
     fontSize: 17,

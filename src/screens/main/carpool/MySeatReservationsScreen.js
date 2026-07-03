@@ -39,6 +39,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
+  const [cancellingId, setCancellingId] = useState(null);
   const fetchingRef = useRef(false);
 
   useEffect(() => {
@@ -108,12 +109,15 @@ const MySeatReservationsScreen = ({ navigation }) => {
         text: 'Sí',
         style: 'destructive',
         onPress: async () => {
+          setCancellingId(seatReservationId);
           try {
             await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
             showAlert('Reserva Cancelada', 'Tu reserva fue cancelada correctamente.', [], 'success');
             await loadReservations(1, true, { force: true });
           } catch (error) {
             showAlert('Ocurrió algo', error?.response?.data?.message || error.message || 'No se pudo cancelar.', [], 'error');
+          } finally {
+            setCancellingId(null);
           }
         },
       },
@@ -313,8 +317,12 @@ const MySeatReservationsScreen = ({ navigation }) => {
               style={[styles.cancelBtn, { borderColor: (colors.error || '#DC2626') + '50' }]}
               onPress={() => handleCancelReservation(item)}
               activeOpacity={0.7}
+              disabled={cancellingId === item.seatReservation?._id}
             >
-              <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar reserva</Text>
+              {cancellingId === item.seatReservation?._id
+                ? <ActivityIndicator size="small" color={colors.error || '#DC2626'} />
+                : <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar reserva</Text>
+              }
             </TouchableOpacity>
           </View>
         )}
@@ -325,8 +333,15 @@ const MySeatReservationsScreen = ({ navigation }) => {
               <Ionicons name="hourglass-outline" size={13} color={textMuted} />
               <Text style={[styles.metaText, { color: textMuted }]}>Esperando al conductor</Text>
             </View>
-            <TouchableOpacity onPress={() => handleCancelReservation(item)} hitSlop={{ top: 8, bottom: 8 }}>
-              <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+            <TouchableOpacity
+              onPress={() => handleCancelReservation(item)}
+              hitSlop={{ top: 8, bottom: 8 }}
+              disabled={cancellingId === item.seatReservation?._id}
+            >
+              {cancellingId === item.seatReservation?._id
+                ? <ActivityIndicator size="small" color={colors.error || '#DC2626'} />
+                : <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+              }
             </TouchableOpacity>
           </View>
         )}

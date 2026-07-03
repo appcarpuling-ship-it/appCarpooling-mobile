@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useAuth } from '../../../context/AuthContext';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
@@ -23,11 +24,10 @@ const STATUS_MAP = {
 };
 
 const TripRequestDetailScreen = ({ route, navigation }) => {
-  const { requestId, mode, canApply: canApplyParam, alreadyApplied: alreadyAppliedParam } = route.params || {};
-  const isPassenger = mode === 'passenger';
-  const isDriver    = mode === 'driver';
+  const { requestId, canApply: canApplyParam, alreadyApplied: alreadyAppliedParam } = route.params || {};
 
   const { isDarkMode } = useTheme();
+  const { user } = useAuth();
   const { showAlert }  = useAlert();
 
   const dark        = isDarkMode;
@@ -50,6 +50,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [canApply,       setCanApply]       = useState(canApplyParam ?? false);
   const [alreadyApplied, setAlreadyApplied] = useState(alreadyAppliedParam ?? false);
   const [checkoutModal,  setCheckoutModal]  = useState({ visible: false, paymentUrl: null });
+  const [cancelling,     setCancelling]     = useState(false);
+
+  const isPassenger = request ? request.isPassenger : false;
+  const isDriver    = request ? !request.isPassenger : false;
+
+  const loadVehicles = async () => {
+    try {
+      const res = await get_withauth(ENDPOINTS.MY_VEHICLES);
+      if (res.success) setVehicles(res.data || []);
+    } catch { /* no-op */ }
+  };
 
   const load = async (isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
@@ -60,6 +71,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         setRequest(res.data);
         if (res.data.canApply       !== undefined) setCanApply(res.data.canApply);
         if (res.data.alreadyApplied !== undefined) setAlreadyApplied(res.data.alreadyApplied);
+        if (!res.data.isPassenger) loadVehicles();
       }
     } catch (err) {
       showAlert('Error', err.message);
@@ -69,17 +81,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const loadVehicles = async () => {
-    if (!isDriver) return;
-    try {
-      const res = await get_withauth(ENDPOINTS.MY_VEHICLES);
-      if (res.success) setVehicles(res.data || []);
-    } catch { /* no-op */ }
-  };
+  useFocusEffect(useCallback(() => { load(); }, [requestId]));
 
-  useFocusEffect(useCallback(() => { load(); loadVehicles(); }, [requestId]));
-
-  const onRefresh = () => { load(true); loadVehicles(); };
+  const onRefresh = () => { load(true); };
 
   const handleCancel = () => {
     showAlert(
@@ -90,8 +94,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         {
           text: 'Sí, cancelar', style: 'destructive',
           onPress: async () => {
-            try { await cancelTripRequest(requestId); navigation.goBack(); }
-            catch (err) { showAlert('Error', err.message); }
+            setCancelling(true);
+            try {
+              await cancelTripRequest(requestId);
+              showAlert('Solicitud cancelada', 'Tu solicitud fue cancelada.', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+              ]);
+            } catch (err) {
+              showAlert('Error', err.message);
+            } finally {
+              setCancelling(false);
+            }
           }
         }
       ]
@@ -107,12 +120,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         {
           text: 'Sí, cancelar', style: 'destructive',
           onPress: async () => {
+            setCancelling(true);
             try {
               const tripId = request?.createdTrip?._id || request?.createdTrip;
               await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-              navigation.goBack();
+              showAlert('Viaje cancelado', 'El viaje fue cancelado y el pasajero fue notificado.', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+              ]);
             } catch (err) {
               showAlert('Error', err.message);
+            } finally {
+              setCancelling(false);
             }
           }
         }
@@ -201,6 +219,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const statusCfg   = STATUS_MAP[request.status] || { label: request.status, color: textMuted };
   const acceptedApp = request.applications?.find(a => a.status === 'accepted');
   const passenger   = request.passenger;
+  const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -422,7 +441,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* Esperando pago (driver) */}
-          {isDriver && request.status === 'awaiting_payment' && (
+          {isAcceptedDriver && request.status === 'awaiting_payment' && (
             <View style={[styles.statusFooter, { backgroundColor: '#DBEAFE' }]}>
               <Ionicons name="hourglass-outline" size={17} color="#2563EB" />
               <Text style={[styles.statusFooterText, { color: '#2563EB' }]}>
@@ -432,7 +451,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* Confirmado */}
-          {request.status === 'paid' && (
+          {(isPassenger || isAcceptedDriver) && request.status === 'paid' && (
             <View style={[styles.statusFooter, { backgroundColor: '#DCFCE7' }]}>
               <Ionicons name="checkmark-circle" size={17} color="#16A34A" />
               <Text style={[styles.statusFooterText, { color: '#16A34A' }]}>
@@ -441,15 +460,19 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Cancelar viaje (driver, paid) */}
-          {isDriver && request.status === 'paid' && (
+          {/* Cancelar viaje (driver aceptado, paid) */}
+          {isAcceptedDriver && request.status === 'paid' && (
             <View style={[styles.footerRow, { marginTop: 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancelTrip}
                 activeOpacity={0.7}
+                disabled={cancelling}
               >
-                <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
+                {cancelling
+                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
+                }
               </TouchableOpacity>
             </View>
           )}
@@ -479,11 +502,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }]}
+                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
+                disabled={cancelling}
               >
-                <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar solicitud</Text>
+                {cancelling
+                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar solicitud</Text>
+                }
               </TouchableOpacity>
             </View>
           )}

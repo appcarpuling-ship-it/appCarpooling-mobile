@@ -29,6 +29,7 @@ const MyBookingsScreen = ({ navigation }) => {
   const [loading, setLoading]         = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
   const fetchingRef = useRef(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
@@ -127,6 +128,7 @@ const MyBookingsScreen = ({ navigation }) => {
         text: 'Sí, cancelar',
         style: 'destructive',
         onPress: async () => {
+          setCancellingId(bookingId);
           try {
             const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
             if (!response.success) {
@@ -140,6 +142,8 @@ const MyBookingsScreen = ({ navigation }) => {
             await loadMyBookings(1, true, { force: true });
           } catch (error) {
             showAlert('Ocurrió algo', error.message || 'No se pudo cancelar.');
+          } finally {
+            setCancellingId(null);
           }
         },
       },
@@ -306,8 +310,12 @@ const MyBookingsScreen = ({ navigation }) => {
               style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : '#D97706') : (isDarkMode ? '#666666' : '#888888') }]}
               onPress={() => handleCancelBooking(item._id)}
               activeOpacity={0.7}
+              disabled={cancellingId === item._id}
             >
-              <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
+              {cancellingId === item._id
+                ? <ActivityIndicator size="small" color={activeTxt} />
+                : <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
+              }
             </TouchableOpacity>
           </View>
         )}

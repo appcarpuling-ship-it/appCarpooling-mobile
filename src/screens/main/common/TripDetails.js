@@ -10,6 +10,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Modal,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -158,6 +160,7 @@ const TripDetails = ({ navigation, route }) => {
         <>
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom', 'left', 'right']}>
                 <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
                         style={styles.flex}
                         contentContainerStyle={styles.scroll}
@@ -358,6 +361,7 @@ const TripDetails = ({ navigation, route }) => {
                         </TouchableOpacity>
 
                     </ScrollView>
+                    </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
 
                 {/* Modal vehículo */}

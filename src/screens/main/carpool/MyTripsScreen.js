@@ -18,6 +18,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { isTripToday } from '../../../utils/tripDateUtils';
 import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
 
 const MyTripsScreen = ({ navigation }) => {
@@ -189,18 +190,6 @@ const MyTripsScreen = ({ navigation }) => {
     const date = new Date(dateString);
     const options = { weekday: 'short', day: 'numeric', month: 'short' };
     return date.toLocaleDateString('es-ES', options);
-  };
-
-  // Devuelve true si la fecha del viaje es hoy (comparando solo año/mes/día)
-  const isTripToday = (departureDate) => {
-    if (!departureDate) return false;
-    const today = new Date();
-    const trip  = new Date(departureDate);
-    return (
-      trip.getFullYear() === today.getFullYear() &&
-      trip.getMonth()    === today.getMonth()    &&
-      trip.getDate()     === today.getDate()
-    );
   };
 
   const getFilteredTrips = () => {
