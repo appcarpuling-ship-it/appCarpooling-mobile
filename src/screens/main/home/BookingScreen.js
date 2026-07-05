@@ -30,6 +30,7 @@ import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import * as Location from 'expo-location';
+import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 
 const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
@@ -47,7 +48,8 @@ const BookingScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { colors, getCurrentThemeMode } = useColors();
   const { user } = useAuth();
-  
+  const frequentAddresses = useFrequentAddresses();
+
   const dark = getCurrentThemeMode() === 'dark';
   const bg = colors.background;
   
@@ -333,13 +335,27 @@ const BookingScreen = ({ route, navigation }) => {
     } catch {}
   };
 
+  // Dirección frecuente: ya tenemos coordinates guardadas, sin llamar a Place Details de nuevo.
+  const selectFrequentPickup = (addr) => {
+    closePickupSearch();
+    if (!addr.coordinates?.latitude) return;
+    const coords = { latitude: addr.coordinates.latitude, longitude: addr.coordinates.longitude };
+    pickupGeocodeId.current++;
+    if (pickupIdleTimer.current) { clearTimeout(pickupIdleTimer.current); pickupIdleTimer.current = null; }
+    setPickupPinCoords(coords);
+    setPickupPinAddress(addr.address);
+    const region = { ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+    setPickupRegion(region);
+    pickupMapRef.current?.animateToRegion(region, 500);
+  };
+
   const reverseGeocodePickup = async (coords) => {
     try {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.results && data.results[0]) {
-        return data.results[0].formatted_address;
+        return cleanAddress(data.results[0].formatted_address) || data.results[0].formatted_address;
       }
     } catch {}
     return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
@@ -846,6 +862,30 @@ const BookingScreen = ({ route, navigation }) => {
                         </View>
                         <Text style={[pickupStyles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
                       </TouchableOpacity>
+
+                      {pickupSearch.length === 0 && pickupSearchResults.length === 0 && frequentAddresses.length > 0 && (
+                        <>
+                          <Text style={[pickupStyles.resultSub, { color: textMuted, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, textTransform: 'uppercase', fontWeight: '600', fontSize: 11 }]}>
+                            Direcciones frecuentes
+                          </Text>
+                          {frequentAddresses.map((addr, i) => (
+                            <TouchableOpacity
+                              key={`freq-${i}`}
+                              style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                              onPress={() => selectFrequentPickup(addr)}
+                              activeOpacity={0.6}
+                            >
+                              <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                                <Ionicons name="time-outline" size={16} color={textPrimary} />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[pickupStyles.resultMain, { color: textPrimary }]} numberOfLines={1}>{addr.address}</Text>
+                                {!!addr.city && <Text style={[pickupStyles.resultSub, { color: textMuted }]} numberOfLines={1}>{addr.city}</Text>}
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </>
+                      )}
 
                       {pickupSearchResults.map((item) => (
                         <TouchableOpacity

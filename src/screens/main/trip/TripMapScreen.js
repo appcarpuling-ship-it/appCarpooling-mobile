@@ -10,9 +10,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { useColors } from '../../../hooks/useColors';
+import { useAuth } from '../../../context/AuthContext';
+import socketService from '../../../services/socketService';
+
+/** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
+const DRIVER_LOCATION_INTERVAL_MS = 8000;
+const DRIVER_LOCATION_DISTANCE_M = 25;
 
 const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
@@ -36,8 +43,10 @@ const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
   const insets = useSafeAreaInsets();
   const { getCurrentThemeMode } = useColors();
+  const { user } = useAuth();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
+  const locationWatchRef = useRef(null);
 
   const isDark = getCurrentThemeMode() === 'dark';
   const cardBg = isDark ? '#1E1E1E' : '#FFFFFF';
@@ -46,6 +55,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStop, setSelectedStop] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
@@ -53,11 +63,60 @@ const TripMapScreen = ({ route, navigation }) => {
     .filter(s => s?.coordinates?.latitude && s?.coordinates?.longitude)
     .sort((a, b) => a.order - b.order);
 
+  const userId = user?._id || user?.id;
+  const driverId = trip?.driver?._id || trip?.driver?.id;
+  const isDriver = Boolean(userId && driverId && String(userId) === String(driverId));
+  const isTripStarted = trip?.status === 'started';
+
   useEffect(() => {
     isMounted.current = true;
     fetchRoute();
     return () => { isMounted.current = false; };
   }, []);
+
+  // Ubicación en vivo del conductor: se comparte por socket (sin costo de API), no por polling ni geocodificación.
+  useEffect(() => {
+    if (!trip?._id || !isTripStarted) return;
+
+    if (isDriver) {
+      let cancelled = false;
+      (async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || cancelled) return;
+        locationWatchRef.current = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: DRIVER_LOCATION_INTERVAL_MS,
+            distanceInterval: DRIVER_LOCATION_DISTANCE_M,
+          },
+          (loc) => {
+            socketService.sendTripLocationUpdate(trip._id, {
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              heading: loc.coords.heading,
+            });
+          }
+        );
+      })();
+      return () => {
+        cancelled = true;
+        locationWatchRef.current?.remove?.();
+        locationWatchRef.current = null;
+      };
+    }
+
+    // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
+    socketService.joinTripTracking(trip._id);
+    socketService.onTripLocation((data) => {
+      if (data?.tripId === trip._id) {
+        setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
+      }
+    });
+    return () => {
+      socketService.leaveTripTracking(trip._id);
+      socketService.removeListener('trip:location');
+    };
+  }, [trip?._id, isTripStarted, isDriver]);
 
   const fetchRoute = async () => {
     if (!originCoords?.latitude || !destCoords?.latitude) {
@@ -127,10 +186,23 @@ const TripMapScreen = ({ route, navigation }) => {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={initialRegion}
-        showsUserLocation={false}
-        showsMyLocationButton={false}
+        showsUserLocation
+        showsMyLocationButton
         paddingAdjustmentBehavior="never"
       >
+        {!isDriver && driverLocation?.latitude && (
+          <Marker
+            coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={driverLocation.heading || 0}
+            flat
+          >
+            <View style={styles.driverMarker}>
+              <Ionicons name="navigate" size={16} color="#FFFFFF" />
+            </View>
+          </Marker>
+        )}
+
         {originCoords?.latitude && (
           Platform.OS === 'android'
             ? <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
@@ -237,6 +309,7 @@ const styles = StyleSheet.create({
   destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
   waypointMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  driverMarker: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   waypointNumber: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
   stopTooltip: {
     position: 'absolute',

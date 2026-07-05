@@ -237,6 +237,40 @@ class SocketService {
   }
 
   /**
+   * Unirse/salir del seguimiento de ubicación en vivo de un viaje
+   */
+  joinTripTracking(tripId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('trip:track:join', tripId);
+    }
+  }
+
+  leaveTripTracking(tripId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('trip:track:leave', tripId);
+    }
+  }
+
+  /**
+   * El conductor reporta su posición GPS (solo coordenadas, sin llamadas a APIs de mapas)
+   */
+  sendTripLocationUpdate(tripId, { latitude, longitude, heading }) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('trip:location:update', { tripId, latitude, longitude, heading });
+    }
+  }
+
+  onTripLocation(callback) {
+    if (this.socket && this.listeners.has('trip:location')) {
+      this.socket.off('trip:location', this.listeners.get('trip:location'));
+    }
+    this.listeners.set('trip:location', callback);
+    if (this.socket) {
+      this.socket.on('trip:location', callback);
+    }
+  }
+
+  /**
    * Remover listener específico
    */
   removeListener(event) {

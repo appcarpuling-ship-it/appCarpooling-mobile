@@ -25,6 +25,7 @@ import * as Location from 'expo-location';
 import { get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
+import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
 
 const { width, height } = Dimensions.get('window');
@@ -55,6 +56,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const { getCurrentThemeMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
+  const frequentAddresses = useFrequentAddresses();
   const mapRef = useRef(null);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
@@ -479,6 +481,33 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       else if (field === 'destination') handleDestinationSelect({ description: item.description }, data.result);
       else if (field?.startsWith('waypoint-')) handleWaypointSelect({ description: item.description }, data.result, parseInt(field.split('-')[1]));
     });
+  };
+
+  // Dirección frecuente: ya tenemos address/city/province/coordinates guardados, sin llamar a Place Details de nuevo.
+  const handleSelectFrequent = (addr) => {
+    const field = activeAutocomplete;
+    closeSearch();
+    const coords = addr.coordinates?.latitude != null
+      ? { latitude: addr.coordinates.latitude, longitude: addr.coordinates.longitude }
+      : null;
+    const locationData = { address: addr.address, city: addr.city || '', province: addr.province || '', country: addr.country || 'Argentina', coordinates: coords };
+    const text = [addr.address, addr.city, addr.province].filter(Boolean).join(', ');
+
+    if (field === 'origin') {
+      setOriginMarker(coords);
+      setFormData(prev => ({ ...prev, origin: locationData }));
+      if (originInputRef.current?.setAddressText) { try { originInputRef.current.setAddressText(text); } catch {} }
+      if (coords && mapRef.current) setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion({ ...coords, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }, 300);
+    } else if (field === 'destination') {
+      setDestinationMarker(coords);
+      setFormData(prev => ({ ...prev, destination: locationData }));
+      if (destinationInputRef.current?.setAddressText) { try { destinationInputRef.current.setAddressText(text); } catch {} }
+    } else if (field?.startsWith('waypoint-')) {
+      const idx = parseInt(field.split('-')[1], 10);
+      setWaypointMarkers(prev => { const n = [...prev]; n[idx] = coords; return n; });
+      setFormData(prev => { const n = [...prev.waypoints]; n[idx] = { ...locationData, order: idx + 1 }; return { ...prev, waypoints: n }; });
+      if (waypointInputRefs.current[idx]?.current?.setAddressText) { try { waypointInputRefs.current[idx].current.setAddressText(text); } catch {} }
+    }
   };
 
   const addWaypoint = () => {
@@ -966,6 +995,30 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
               </View>
               <Text style={[styles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
             </TouchableOpacity>
+
+            {autocompleteResults.length === 0 && frequentAddresses.length > 0 && (
+              <>
+                <Text style={[styles.resultSub, { color: textMuted, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, textTransform: 'uppercase', fontWeight: '600', fontSize: 11 }]}>
+                  Direcciones frecuentes
+                </Text>
+                {frequentAddresses.map((addr, i) => (
+                  <TouchableOpacity
+                    key={`freq-${i}`}
+                    style={[styles.resultRow, { borderBottomColor: divider }]}
+                    onPress={() => handleSelectFrequent(addr)}
+                    activeOpacity={0.6}
+                  >
+                    <View style={[styles.resultIcon, { backgroundColor: iconBg }]}>
+                      <Ionicons name="time-outline" size={16} color={textPrimary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.resultMain, { color: textPrimary }]} numberOfLines={1}>{addr.address}</Text>
+                      {!!addr.city && <Text style={[styles.resultSub, { color: textMuted }]} numberOfLines={1}>{addr.city}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
 
             {autocompleteResults.map((item) => (
               <TouchableOpacity

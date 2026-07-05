@@ -89,6 +89,7 @@ export const ENDPOINTS = {
   UNBLOCK_USER: (id) => `/users/${id}/block`,
   GET_BLOCKED_USERS: '/users/blocked',
   UPDATE_USER: (id) => `/users/${id}`,
+  FREQUENT_ADDRESSES: '/users/frequent-addresses',
 
   // Trips
   GET_TRIPS: '/trips',
