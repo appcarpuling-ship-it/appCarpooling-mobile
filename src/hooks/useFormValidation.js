@@ -245,14 +245,18 @@ export const useFormValidation = (initialValues = {}, validationSchema = {}) => 
     setTouched(prev => ({ ...prev, [fieldName]: isTouched }));
 
     if (isTouched) {
-      // Validar el campo cuando se marca como tocado
-      const error = validateField(fieldName, values[fieldName]);
-      setErrors(prev => ({
-        ...prev,
-        [fieldName]: error
-      }));
+      // Se llama en el mismo handler que setValue (ej: onProvinceChange hace setValue +
+      // setFieldTouched). Ahí `values` del closure todavía tiene el valor ANTERIOR, así que
+      // validar contra eso marcaba "es requerido" un campo recién completado: el usuario veía
+      // su provincia elegida en el select y el error debajo al mismo tiempo.
+      // El updater sí recibe el estado pendiente, con lo que setValue ya dejó aplicado.
+      setValues(current => {
+        const error = validateField(fieldName, current[fieldName], current);
+        setErrors(prev => ({ ...prev, [fieldName]: error }));
+        return current;
+      });
     }
-  }, [values, validateField]);
+  }, [validateField]);
 
   const resetForm = useCallback(() => {
     setValues(initialValues);
