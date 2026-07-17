@@ -24,6 +24,11 @@ import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import * as Location from 'expo-location';
 import { get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import {
+  getDirections as getDirectionsApi,
+  reverseGeocode as reverseGeocodeApi,
+  getPlaceDetails as getPlaceDetailsApi,
+} from '../../../services/mapsService';
 import { useColors } from '../../../hooks/useColors';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
@@ -260,13 +265,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     try {
       const orig = `${originMarker.latitude},${originMarker.longitude}`;
       const dest = `${destinationMarker.latitude},${destinationMarker.longitude}`;
-      let waypointsParam = '';
+      let waypointsParam;
       if (waypointMarkers.length > 0) {
         const coords = waypointMarkers.filter(w => w?.latitude && w?.longitude).map(w => `${w.latitude},${w.longitude}`);
-        if (coords.length > 0) waypointsParam = `&waypoints=${encodeURIComponent(coords.join('|'))}`;
+        if (coords.length > 0) waypointsParam = coords.join('|');
       }
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(orig)}&destination=${encodeURIComponent(dest)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
-      const data = await fetch(url).then(r => r.json());
+      const data = await getDirectionsApi(orig, dest, waypointsParam);
       if (!isMounted.current) return;
       if (data.routes?.length > 0) {
         const route = data.routes[0];
@@ -308,7 +312,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
-      const data = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`).then(r => r.json());
+      const data = await reverseGeocodeApi(latitude, longitude);
       if (data.results?.length > 0) {
         const result = data.results[0];
         let street = '';
@@ -469,9 +473,8 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     const field = activeAutocomplete;
     closeSearch();
     setLoadingMapSelection(true);
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
     Promise.all([
-      fetch(url).then(r => r.json()),
+      getPlaceDetailsApi(item.place_id),
       new Promise(resolve => setTimeout(resolve, 1500)),
     ]).then(([data]) => {
       if (!isMounted.current) return;
@@ -902,7 +905,6 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                   inputRef={originInputRef}
                   placeholder="¿Desde dónde salís?"
                   onPress={handleOriginSelect}
-                  apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={1500}
                   inputType="origin"
                   onFocusChange={(type) => {
@@ -927,8 +929,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                       inputRef={waypointInputRefs.current[i]}
                       placeholder={`Parada ${i + 1}`}
                       onPress={(d, det) => handleWaypointSelect(d, det, i)}
-                      apiKey={GOOGLE_MAPS_API_KEY}
-                      debounce={1500}
+                          debounce={1500}
                       inputType={`waypoint-${i}`}
                       onFocusChange={(type) => {
                         if (type === `waypoint-${i}`) { setActiveAutocomplete(`waypoint-${i}`); setAutocompleteResults(waypointResultsRef.current[i] || []); }
@@ -959,7 +960,6 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                   inputRef={destinationInputRef}
                   placeholder="¿A dónde vas?"
                   onPress={handleDestinationSelect}
-                  apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={1500}
                   inputType="destination"
                   onFocusChange={(type) => {

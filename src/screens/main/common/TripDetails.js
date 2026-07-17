@@ -23,7 +23,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
 
 const TripDetails = ({ navigation, route }) => {
-    const { origin, destination, distance, duration, vehicles } = route.params;
+    const { origin, destination, waypoints, distance, duration, vehicles } = route.params;
     const { showAlert } = useAlert();
     const { getCurrentThemeMode } = useColors();
     const { user } = useAuth();
@@ -113,6 +113,13 @@ const TripDetails = ({ navigation, route }) => {
                 vehicle,
                 origin,
                 destination,
+                intermediateStops: (waypoints || []).map((wp, i) => ({
+                    address: wp.address,
+                    city: wp.city,
+                    province: wp.province,
+                    coordinates: wp.coordinates,
+                    order: wp.order ?? i + 1,
+                })),
                 departureDate: formData.departureDate,
                 departureTime: formData.departureTime,
                 availableSeats: parseInt(availableSeats),

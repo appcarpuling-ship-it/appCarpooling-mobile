@@ -12,16 +12,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
+import { getDirections } from '../../../services/mapsService';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
-
-const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 const decodePolyline = (encoded) => {
   if (!encoded) return [];
@@ -126,13 +124,11 @@ const TripMapScreen = ({ route, navigation }) => {
     try {
       const orig = `${originCoords.latitude},${originCoords.longitude}`;
       const dest = `${destCoords.latitude},${destCoords.longitude}`;
-      let waypointsParam = '';
+      let waypointsParam;
       if (stops.length > 0) {
-        const coords = stops.map(s => `${s.coordinates.latitude},${s.coordinates.longitude}`);
-        waypointsParam = `&waypoints=${encodeURIComponent(coords.join('|'))}`;
+        waypointsParam = stops.map(s => `${s.coordinates.latitude},${s.coordinates.longitude}`).join('|');
       }
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(orig)}&destination=${encodeURIComponent(dest)}${waypointsParam}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
-      const data = await fetch(url).then(r => r.json());
+      const data = await getDirections(orig, dest, waypointsParam);
       if (!isMounted.current) return;
       if (data.routes?.length > 0) {
         const r = data.routes[0];

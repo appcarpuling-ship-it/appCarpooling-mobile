@@ -14,12 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import { get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { getPlaceDetails as getPlaceDetailsApi } from '../../../services/mapsService';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
-
-import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
-
-const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 const CreateTripGoogleMaps = ({ navigation }) => {
   const { colors, isDarkMode } = useColors();
@@ -278,7 +275,6 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   inputRef={originInputRef}
                   placeholder="¿Desde dónde sales?"
                   onPress={handleOriginSelect}
-                  apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={1500}
                   inputType="origin"
                   onFocusChange={(type) => {
@@ -315,7 +311,6 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                         inputRef={waypointInputRefs.current[index]}
                         placeholder={`Parada ${index + 1} (opcional)`}
                         onPress={(data, details) => handleWaypointSelect(data, details, index)}
-                        apiKey={GOOGLE_MAPS_API_KEY}
                         debounce={1500}
                         inputType={`waypoint-${index}`}
                         onFocusChange={(type) => {
@@ -359,7 +354,6 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   inputRef={destinationInputRef}
                   placeholder="¿A dónde vas?"
                   onPress={handleDestinationSelect}
-                  apiKey={GOOGLE_MAPS_API_KEY}
                   debounce={1500}
                   inputType="destination"
                   onFocusChange={(type) => {
@@ -398,9 +392,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   key={item.place_id}
                   style={[styles.resultRow, { borderBottomColor: colors.border }]}
                   onPress={() => {
-                    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=address_components,geometry,formatted_address`;
-                    fetch(detailsUrl)
-                      .then(res => res.json())
+                    getPlaceDetailsApi(item.place_id)
                       .then(data => {
                         if (data?.result) {
                           if (activeAutocomplete === 'origin') handleOriginSelect({ description: item.description }, data.result);

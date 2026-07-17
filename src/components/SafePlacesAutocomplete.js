@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { searchPlaces as searchPlacesApi, getPlaceDetails } from '../services/mapsService';
 
-const SafePlacesAutocomplete = ({ 
-  placeholder, 
-  onPress, 
-  apiKey, 
+const SafePlacesAutocomplete = ({
+  placeholder,
+  onPress,
   inputRef,
   styles: customStyles = {},
   inputType, // 'origin' | 'destination'
@@ -37,14 +37,9 @@ const SafePlacesAutocomplete = ({
 
     setLoading(true);
     try {
-      // ✅ FIX: Usar JSONP o proxy para evitar CORS
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${apiKey}&language=es&components=country:ar`;
-      
       console.log('🔍 Buscando lugares:', text);
-      
-      const response = await fetch(url);
-      const data = await response.json();
 
+      const data = await searchPlacesApi(text);
 
       // ✅ VALIDACIÓN SEGURA
       if (data && Array.isArray(data.predictions) && data.predictions.length > 0) {
@@ -111,13 +106,10 @@ const SafePlacesAutocomplete = ({
     
     // Obtener detalles del lugar
     try {
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${apiKey}&language=es&fields=address_components,geometry,formatted_address`;
-      
       console.log('🔍 Obteniendo detalles del lugar...');
-      
-      const response = await fetch(detailsUrl);
-      const data = await response.json();
-      
+
+      const data = await getPlaceDetails(place.place_id);
+
       console.log('📦 Detalles del lugar:', data);
       
       if (data && data.result) {

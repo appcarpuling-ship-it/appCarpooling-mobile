@@ -91,6 +91,12 @@ export const ENDPOINTS = {
   UPDATE_USER: (id) => `/users/${id}`,
   FREQUENT_ADDRESSES: '/users/frequent-addresses',
 
+  // Maps (proxy backend — evita exponer la API key de Google en el cliente)
+  MAPS_AUTOCOMPLETE: '/maps/autocomplete',
+  MAPS_PLACE_DETAILS: '/maps/place-details',
+  MAPS_DIRECTIONS: '/maps/directions',
+  MAPS_GEOCODE: '/maps/geocode',
+
   // Trips
   GET_TRIPS: '/trips',
   SEARCH_TRIPS: '/trips/search',

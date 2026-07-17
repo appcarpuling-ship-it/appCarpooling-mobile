@@ -28,11 +28,9 @@ import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
-import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import * as Location from 'expo-location';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
-
-const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
+import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../../services/mapsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -266,9 +264,7 @@ const BookingScreen = ({ route, navigation }) => {
     if (!text || text.length < 3) { setPickupSearchResults([]); return; }
     pickupSearchDebounce.current = setTimeout(async () => {
       try {
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${GOOGLE_MAPS_API_KEY}&language=es&components=country:ar`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await searchPlaces(text);
         if (data.predictions) setPickupSearchResults(data.predictions.slice(0, 5));
       } catch {}
     }, 400);
@@ -319,9 +315,7 @@ const BookingScreen = ({ route, navigation }) => {
   const selectPickupFromSearch = async (prediction) => {
     closePickupSearch();
     try {
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${prediction.place_id}&key=${GOOGLE_MAPS_API_KEY}&language=es&fields=geometry,formatted_address`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await getPlaceDetails(prediction.place_id, 'geometry,formatted_address');
       if (data.result?.geometry?.location) {
         const coords = { latitude: data.result.geometry.location.lat, longitude: data.result.geometry.location.lng };
         pickupGeocodeId.current++;  // cancel any in-flight geocode from map dragging
@@ -351,9 +345,7 @@ const BookingScreen = ({ route, navigation }) => {
 
   const reverseGeocodePickup = async (coords) => {
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await reverseGeocode(coords.latitude, coords.longitude);
       if (data.results && data.results[0]) {
         return cleanAddress(data.results[0].formatted_address) || data.results[0].formatted_address;
       }
