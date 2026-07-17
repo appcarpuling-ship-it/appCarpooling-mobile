@@ -39,5 +39,10 @@ jobs:
           MSG="${FULL#dev.ota:}"
           echo "value=$MSG" >> $GITHUB_OUTPUT
 
-      - name: Publicar OTA → development
-        run: eas update --channel development --message "${{ steps.msg.outputs.value }}"
+      # Los dos canales de dev: `development` lo escucha el dev client (perfil development)
+      # y `build` los APK de dev.build.apk (perfil build). Publicar solo a development
+      # dejaba a los APK sin recibir nunca un OTA.
+      - name: Publicar OTA → development y build
+        run: |
+          eas update --channel development --message "${{ steps.msg.outputs.value }}" --non-interactive
+          eas update --channel build --message "${{ steps.msg.outputs.value }}" --non-interactive
