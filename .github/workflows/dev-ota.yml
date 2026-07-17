@@ -2,7 +2,8 @@ name: Mobile · OTA Development
 
 on:
   push:
-    branches: [dev]
+    # Cualquier rama: lo que decide el destino es el mensaje del commit, no la rama.
+    branches: ['**']
 
 jobs:
   ota:
@@ -10,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: 1
-      EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+      # `eas update` bundlea acá en el runner, así que esta var sí se inlinea en el JS.
+      # Literal y no secret: el secret es compartido con los workflows de producción y apunta a prod.
+      EXPO_PUBLIC_API_BASE_URL: https://api.appcarpuling.online/api
+      EXPO_PUBLIC_API_BASE_URL_WEB: https://api.appcarpuling.online/api
     steps:
       - uses: actions/checkout@v4
 
