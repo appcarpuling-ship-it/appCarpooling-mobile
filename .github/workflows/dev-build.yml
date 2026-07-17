@@ -31,5 +31,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Build Dev (Android APK)
-        run: eas build --profile build --platform android
+      - name: Build Dev (Android APK + iOS IPA)
+        # --platform all: antes solo compilaba android. iOS sale como IPA ad-hoc
+        # (distribution: internal en eas.json), o sea que instala unicamente en
+        # dispositivos con el UDID registrado: `eas device:create`.
+        run: eas build --profile build --platform all --non-interactive
