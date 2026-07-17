@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
@@ -24,6 +25,7 @@ import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 const VehicleFormScreen = ({ navigation, route }) => {
   const { getCurrentThemeMode } = useColors();
   const { showAlert } = useAlert();
+  const headerHeight = useHeaderHeight();
 
   const isDarkMode = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
@@ -301,7 +303,15 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+      {/* keyboardVerticalOffset: esta pantalla tiene header nativo del stack, que queda FUERA
+          del KeyboardAvoidingView. En iOS el KAV mide desde su propio marco, así que sin el alto
+          del header le falta ese desplazamiento y el input enfocado termina tapado por el teclado.
+          (El registro no lo sufre porque su nav está adentro del KAV.) */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={headerHeight}
+        style={styles.flex}
+      >
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}

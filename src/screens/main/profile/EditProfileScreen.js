@@ -18,6 +18,7 @@ import { useColors } from '../../../hooks/useColors';
 import { put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
@@ -25,6 +26,7 @@ import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 
 const EditProfileScreen = ({ navigation }) => {
   const { getCurrentThemeMode } = useColors();
+  const headerHeight = useHeaderHeight();
   const isDarkMode = getCurrentThemeMode() === 'dark';
 
   const bg          = isDarkMode ? '#161616' : '#FFFFFF';
@@ -267,7 +269,13 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+      {/* Mismo caso que VehicleForm: header nativo fuera del KAV, así que en iOS hay que
+          descontarle ese alto o el input enfocado queda debajo del teclado. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={headerHeight}
+        style={styles.flex}
+      >
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
