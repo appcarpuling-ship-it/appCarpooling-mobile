@@ -1,6 +1,10 @@
 /**
  * Sustituye via.placeholder.com (a menudo inaccesible) por picsum.photos con semilla estable.
  */
+import { API_CONFIG } from '../config/api';
+
+/** Origen del API sin el sufijo /api: las rutas /uploads cuelgan del host, no del prefijo. */
+const API_ORIGIN = String(API_CONFIG.BASE_URL || '').replace(/\/api\/?$/, '');
 
 function hashString(str) {
   let h = 5381;
@@ -16,7 +20,7 @@ export function sanitizeImageUrl(url) {
   if (!trimmed) return null;
 
   if (trimmed.startsWith('/uploads') || trimmed.startsWith('/api/uploads')) {
-    return `https://appcarpuling.cloud${trimmed.replace('/api', '')}`;
+    return `${API_ORIGIN}${trimmed.replace('/api', '')}`;
   }
 
   if (trimmed.includes('appcarpuling.cloud')) {

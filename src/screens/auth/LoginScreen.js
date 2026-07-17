@@ -21,8 +21,11 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+import { API_CONFIG } from '../../config/api';
 
-const GOOGLE_START_URL = 'https://appcarpooling.onrender.com/api/auth/google/start';
+// Derivado de la API configurada (EXPO_PUBLIC_API_BASE_URL / eas.json), no clavado:
+// antes apuntaba siempre a producción y el SSO de un build dev terminaba en el server equivocado.
+const GOOGLE_START_URL = `${API_CONFIG.BASE_URL}/auth/google/start`;
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
