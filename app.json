@@ -125,6 +125,13 @@
           "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Carpuling necesita acceso a tus fotos para tu foto de perfil y las fotos de tu DNI.",
+          "cameraPermission": "Carpuling necesita la cámara para que puedas sacar la foto de tu perfil y de tu DNI en el momento."
+        }
+      ],
       "expo-web-browser"
     ],
     "scheme": "carpooling",

@@ -19,6 +19,7 @@ import { put_withauth_formdata, buildImageUri } from '../../../services/apiServi
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
+import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 
@@ -75,6 +76,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   const {
     pickImage: pickImageFromGallery,
+    takePhoto,
     showPermissionModal,
     setShowPermissionModal,
     openSettings,
@@ -109,22 +111,30 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const imageAsset = await pickImageFromGallery({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (imageAsset) {
-        const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
-        if (uri) { setAvatarUri(uri); await updateAvatarOnly(uri); }
+  const pickImage = () => {
+    const useSource = async (getAsset) => {
+      try {
+        const imageAsset = await getAsset({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        if (imageAsset) {
+          const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
+          if (uri) { setAvatarUri(uri); await updateAvatarOnly(uri); }
+        }
+      } catch {
+        setModalMessage('No se pudo cargar la imagen');
+        setShowErrorModal(true);
       }
-    } catch {
-      setModalMessage('No se pudo seleccionar la imagen');
-      setShowErrorModal(true);
-    }
+    };
+
+    showAlertAsync('Foto de perfil', '¿De dónde la querés sacar?', [
+      { text: 'Cámara', onPress: () => useSource(takePhoto) },
+      { text: 'Galería', onPress: () => useSource(pickImageFromGallery) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   const uploadDniSide = async (side, imageUri) => {
@@ -233,8 +243,27 @@ const EditProfileScreen = ({ navigation }) => {
     { key: 'lastName',  label: 'Apellido',   placeholder: 'Tu apellido',         keyboard: 'default' },
     { key: 'phone',     label: 'Teléfono',   placeholder: '+54 9 11 1234-5678',  keyboard: 'phone-pad' },
     { key: 'age',       label: 'Edad',       placeholder: '25',                  keyboard: 'numeric', maxLength: 3 },
-    { key: 'city',      label: 'Ciudad',     placeholder: 'Tu ciudad',           keyboard: 'default' },
   ];
+
+  // Va después del selector de Provincia: primero se elige la provincia y después la
+  // ciudad, que es el orden en que uno las piensa (y el mismo que usa el registro).
+  const cityField = { key: 'city', label: 'Ciudad', placeholder: 'Tu ciudad', keyboard: 'default' };
+
+  const renderField = (field) => (
+    <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
+      <Text style={[styles.label, { color: labelTitleColor }]}>{field.label}</Text>
+      <TextInput
+        style={[styles.input, { color: textPrimary }]}
+        value={formData[field.key]}
+        onChangeText={(v) => handleChange(field.key, v)}
+        placeholder={field.placeholder}
+        placeholderTextColor={textMuted}
+        keyboardType={field.keyboard}
+        autoCapitalize={field.autoCapitalize || 'words'}
+        maxLength={field.maxLength}
+      />
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -322,23 +351,9 @@ const EditProfileScreen = ({ navigation }) => {
               <Text style={[styles.label, { color: labelTitleColor }]}>Sexo</Text>
               <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{genderLabel}</Text>
             </View>
-            {fields.map((field) => (
-              <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
-                <Text style={[styles.label, { color: labelTitleColor }]}>{field.label}</Text>
-                <TextInput
-                  style={[styles.input, { color: textPrimary }]}
-                  value={formData[field.key]}
-                  onChangeText={(v) => handleChange(field.key, v)}
-                  placeholder={field.placeholder}
-                  placeholderTextColor={textMuted}
-                  keyboardType={field.keyboard}
-                  autoCapitalize={field.autoCapitalize || 'words'}
-                  maxLength={field.maxLength}
-                />
-              </View>
-            ))}
+            {fields.map(renderField)}
 
-            {/* Provincia */}
+            {/* Provincia — arriba de Ciudad */}
             <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
               <Text style={[styles.label, { color: labelTitleColor }]}>Provincia</Text>
               <TouchableOpacity
@@ -352,6 +367,8 @@ const EditProfileScreen = ({ navigation }) => {
                 <Ionicons name="chevron-forward" size={18} color={textMuted} />
               </TouchableOpacity>
             </View>
+
+            {renderField(cityField)}
 
             {/* Bio */}
             <View style={[styles.inputGroup, { borderBottomColor: 'transparent' }]}>

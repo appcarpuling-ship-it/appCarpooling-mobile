@@ -66,14 +66,29 @@ const RegisterScreen = ({ navigation }) => {
   const [referralMessage, setReferralMessage] = useState('');
   const { register } = useAuth();
 
-  const { pickImage: pickImageFromGallery, showPermissionModal, setShowPermissionModal, openSettings, forceRefreshPermissions } = useGalleryPermissions();
+  const { pickImage: pickImageFromGallery, takePhoto, showPermissionModal, setShowPermissionModal, openSettings, forceRefreshPermissions } = useGalleryPermissions();
 
-  const pickImage = async () => {
-    const imageAsset = await pickImageFromGallery({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (imageAsset) {
+  /** Cámara o galería: sacar la foto en el momento evita tener que guardarla antes (sobre todo el DNI). */
+  const chooseImageSource = (options, onPicked) => {
+    const handle = async (getAsset) => {
+      const imageAsset = await getAsset(options);
+      if (!imageAsset) return;
       const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
-      if (uri) setAvatarUri(uri);
-    }
+      if (uri) onPicked(uri);
+    };
+
+    showAlert('Agregar foto', '¿De dónde la querés sacar?', [
+      { text: 'Cámara', onPress: () => handle(takePhoto) },
+      { text: 'Galería', onPress: () => handle(pickImageFromGallery) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
+  const pickImage = () => {
+    chooseImageSource(
+      { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 },
+      setAvatarUri
+    );
   };
 
   const appendRegisterImage = (formData, fieldName, uri) => {
@@ -86,17 +101,12 @@ const RegisterScreen = ({ navigation }) => {
     formData.append(fieldName, { uri, name, type: `image/${ext}` });
   };
 
-  const pickDniSide = async (side) => {
-    const imageAsset = await pickImageFromGallery({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.85,
-    });
-    if (!imageAsset) return;
-    const uri = imageAsset.uri || imageAsset.assets?.[0]?.uri;
-    if (!uri) return;
-    if (side === 'front') setDniFrontUri(uri);
-    else setDniBackUri(uri);
+  const pickDniSide = (side) => {
+    chooseImageSource(
+      // Sin allowsEditing: recortar el DNI le come datos al OCR de la tarjeta.
+      { mediaTypes: ['images'], allowsEditing: false, quality: 0.85 },
+      (uri) => (side === 'front' ? setDniFrontUri(uri) : setDniBackUri(uri))
+    );
   };
 
   const validateReferralCode = async (code) => {

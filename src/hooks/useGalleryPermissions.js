@@ -227,11 +227,54 @@ export const useGalleryPermissions = () => {
     }
   };
 
+  /**
+   * Saca una foto con la cámara. Permisos aparte de los de galería: los textos que ve
+   * el usuario salen del plugin expo-image-picker en app.json (cameraPermission), así
+   * que esto necesita build nativo nuevo — por OTA no alcanza.
+   */
+  const takePhoto = async (options = {}) => {
+    try {
+      const { status, canAskAgain } = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (status !== 'granted') {
+        // Denegado para siempre: volver a pedirlo no muestra nada, hay que ir a Ajustes.
+        if (!canAskAgain) {
+          showAlertAsync(
+            'Permiso de cámara',
+            'Habilitá la cámara para Carpuling desde los ajustes del teléfono.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Ir a ajustes', onPress: openSettings },
+            ]
+          );
+        } else {
+          showAlertAsync('Permiso de cámara', 'Necesitamos la cámara para sacar la foto.');
+        }
+        return null;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        ...options,
+      });
+
+      return result.canceled ? null : result.assets[0];
+    } catch (error) {
+      console.error('Error sacando foto:', error);
+      showAlertAsync('Error', 'No se pudo abrir la cámara');
+      return null;
+    }
+  };
+
   return {
     permissionStatus,
     showPermissionModal,
     setShowPermissionModal,
     pickImage,
+    takePhoto,
     requestPermission,
     openSettings,
     handlePermissionRequest,
