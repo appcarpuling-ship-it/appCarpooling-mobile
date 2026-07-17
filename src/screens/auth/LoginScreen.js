@@ -65,9 +65,12 @@ const LoginScreen = ({ navigation }) => {
       const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUrl);
 
       if (result.type === 'success') {
-        const params = new URLSearchParams(result.url.split('?')[1] || '');
-        const token = params.get('token');
-        const error = params.get('error');
+        // Linking.parse es el parser canónico de Expo: URLSearchParams de React Native
+        // no decodifica de forma confiable el deep link y devolvía un token corrupto
+        // que el backend rechazaba ("Token inválido o expirado").
+        const { queryParams } = Linking.parse(result.url);
+        const token = queryParams?.token;
+        const error = queryParams?.error;
         if (token) {
           const loginResult = await loginWithJwt(token);
           if (!loginResult.success) showAlert('Error con Google', loginResult.message || 'No se pudo iniciar sesión.');

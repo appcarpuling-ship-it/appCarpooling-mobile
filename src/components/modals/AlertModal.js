@@ -64,7 +64,7 @@ const AlertModal = ({
               {message ? (
                 <Text style={[styles.message, { color: messageColor }]}>{message}</Text>
               ) : null}
-              <View style={styles.buttonsRow}>
+              <View style={[styles.buttonsRow, buttons.length > 2 && styles.buttonsColumn]}>
                 {buttons.map((button, index) => (
                   <TouchableOpacity
                     key={index}
@@ -81,6 +81,7 @@ const AlertModal = ({
                     activeOpacity={0.7}
                   >
                     <Text
+                      numberOfLines={1}
                       style={[
                         styles.buttonText,
                         button.style === 'destructive' && { color: '#FFFFFF' },
@@ -147,6 +148,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     width: '100%',
+  },
+  // Con más de 2 botones no entran en fila (el texto wrapea): se apilan como en el Alert nativo.
+  buttonsColumn: {
+    flexDirection: 'column',
   },
   button: {
     flex: 1,

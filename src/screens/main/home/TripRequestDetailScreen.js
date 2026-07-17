@@ -252,6 +252,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{request.origin.address}</Text>
                 )}
               </View>
+              {(request.intermediateStops || []).map((stop, i) => (
+                <View key={i} style={styles.routeStop}>
+                  <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {i + 1}</Text>
+                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{stop.city || stop.address}</Text>
+                  {stop.address && stop.address !== stop.city && (
+                    <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{stop.address}</Text>
+                  )}
+                </View>
+              ))}
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
                 <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.destination.city}</Text>

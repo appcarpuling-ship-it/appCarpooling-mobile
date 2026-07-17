@@ -109,20 +109,9 @@ const AppNavigator = () => {
           <Stack.Screen
             name="ApplicationDetail"
             component={ApplicationDetailScreen}
-            options={{
-              headerShown: true,
-              title: 'Conductor',
-              headerStyle: {
-                backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
-                elevation: 0,
-                shadowOpacity: 0,
-                borderBottomWidth: 1,
-                borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
-              },
-              headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
-              headerTitleStyle: { fontWeight: '600', fontSize: 18 },
-              headerBackTitleVisible: false,
-            }}
+            // La pantalla dibuja su propio header (flecha + "Detalle del conductor").
+            // El header nativo "Conductor" duplicaba el título; se oculta.
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="TripDetails"

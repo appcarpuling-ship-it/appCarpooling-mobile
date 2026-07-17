@@ -619,7 +619,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
     if (isRequestMode) {
-      navigation.getParent('AppStack')?.navigate('TripRequestDetails', { origin: formData.origin, destination: formData.destination, distanceKm });
+      navigation.getParent('AppStack')?.navigate('TripRequestDetails', {
+        origin: formData.origin,
+        destination: formData.destination,
+        waypoints: formData.waypoints.filter(wp => wp.coordinates !== null),
+        distanceKm,
+      });
       return;
     }
     if (loadingVehicles) { showAlert('Un momento', 'Estamos verificando tus vehículos...'); return; }
