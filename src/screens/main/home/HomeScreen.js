@@ -475,9 +475,13 @@ const HomeScreen = ({ navigation, route }) => {
       >
         {/* Header row */}
         <View style={styles.tripDriverRow}>
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
-            <Ionicons name="person-outline" size={18} color={textMuted} />
-          </View>
+          {req.passenger?.avatar ? (
+            <Image source={{ uri: buildImageUri(req.passenger.avatar) }} style={styles.driverAvatar} />
+          ) : (
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+              <Ionicons name="person-outline" size={18} color={textMuted} />
+            </View>
+          )}
           <View style={styles.driverInfo}>
             <Text style={[styles.driverName, { color: textPrimary }]}>
               {req.origin?.city} → {req.destination?.city}
