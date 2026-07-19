@@ -32,17 +32,24 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # El mensaje va por env, NO interpolado en el script: `${{ }}` lo pega como texto
+      # dentro del bash, asi que backticks o parentesis en el commit lo rompian
+      # (o peor, se ejecutaban). Y solo se toma la primera linea porque GITHUB_OUTPUT
+      # es key=value de una sola linea y un commit con cuerpo lo partia.
       - name: Extraer mensaje del OTA
         id: msg
+        env:
+          FULL: ${{ github.event.head_commit.message }}
         run: |
-          FULL="${{ github.event.head_commit.message }}"
           MSG="${FULL#dev.ota:}"
-          echo "value=$MSG" >> $GITHUB_OUTPUT
+          echo "value=${MSG%%$'\n'*}" >> $GITHUB_OUTPUT
 
       # Los dos canales de dev: `development` lo escucha el dev client (perfil development)
       # y `build` los APK de dev.build.apk (perfil build). Publicar solo a development
       # dejaba a los APK sin recibir nunca un OTA.
       - name: Publicar OTA → development y build
+        env:
+          MSG: ${{ steps.msg.outputs.value }}
         run: |
-          eas update --channel development --message "${{ steps.msg.outputs.value }}" --non-interactive
-          eas update --channel build --message "${{ steps.msg.outputs.value }}" --non-interactive
+          eas update --channel development --message "$MSG" --non-interactive
+          eas update --channel build --message "$MSG" --non-interactive
