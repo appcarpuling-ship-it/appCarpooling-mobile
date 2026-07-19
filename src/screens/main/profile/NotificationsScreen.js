@@ -16,7 +16,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { navigateFromNotification } from '../../../utils/notificationNavigation';
 import { get_withauth } from '../../../services/apiService';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
