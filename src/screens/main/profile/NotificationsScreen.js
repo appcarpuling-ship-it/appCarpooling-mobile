@@ -15,8 +15,7 @@ import { useColors } from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { navigateFromNotification } from '../../../utils/notificationNavigation';
 import { get_withauth } from '../../../services/apiService';
-
-const PAGE_SIZE = 10;
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
@@ -52,7 +51,7 @@ const NotificationsScreen = ({ navigation }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(`/notifications?page=${pageNum}&limit=${PAGE_SIZE}`);
+      const response = await get_withauth(`/notifications?page=${pageNum}&limit=${LIST_PAGE_SIZE}`);
       if (response?.success) {
         const newItems = (response.data || []).filter(isInAppNotification);
         setItems(prev => reset ? newItems : [...prev, ...newItems]);

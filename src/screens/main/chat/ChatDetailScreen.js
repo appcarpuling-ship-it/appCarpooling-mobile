@@ -57,6 +57,12 @@ const ChatDetailScreen = ({ route, navigation }) => {
   
   const { loadUnreadCount, setActiveConversation, clearActiveConversation } = useUnreadMessages();
   const [messages, setMessages] = useState([]);
+  const [hasMoreOlder, setHasMoreOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
+  // scrollToBottom se usa en la carga inicial y al mandar/recibir. NO debe dispararse
+  // cuando se prependean mensajes viejos, o el chat salta al final solo.
+  const didInitialScrollRef = useRef(false);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -287,6 +293,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
       if (response.data.success) {
         setMessages(response.data.data);
+        setHasMoreOlder(response.data.hasMore ?? false);
 
         // Marcar todos los mensajes como leídos cuando se carga el chat
         try {
@@ -305,6 +312,35 @@ const ChatDetailScreen = ({ route, navigation }) => {
       console.error('Error al cargar mensajes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Pagina por cursor (`before` = fecha del mensaje más viejo cargado) en vez de por
+  // offset: si entran mensajes nuevos mientras el usuario sube, un offset le repetiría
+  // o le saltearía mensajes.
+  const loadOlderMessages = async () => {
+    if (loadingOlderRef.current || !hasMoreOlder || messages.length === 0) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    try {
+      const oldest = messages[0];
+      const response = await apiService.get(
+        `/chat/conversation/${conversationId}/messages`,
+        { params: { before: oldest.createdAt, limit: 30 } }
+      );
+      if (response.data.success) {
+        const older = response.data.data || [];
+        setMessages(prev => {
+          const seen = new Set(prev.map(m => m._id));
+          return [...older.filter(m => !seen.has(m._id)), ...prev];
+        });
+        setHasMoreOlder(response.data.hasMore ?? false);
+      }
+    } catch (error) {
+      console.error('Error al cargar mensajes anteriores:', error);
+    } finally {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
     }
   };
 
@@ -461,8 +497,25 @@ const ChatDetailScreen = ({ route, navigation }) => {
           renderItem={renderMessage}
           keyExtractor={(item, index) => item._id || index.toString()}
           contentContainerStyle={styles.messagesList}
-          onContentSizeChange={scrollToBottom}
+          onContentSizeChange={() => {
+            if (!didInitialScrollRef.current) {
+              scrollToBottom();
+              didInitialScrollRef.current = true;
+            }
+          }}
           onLayout={scrollToBottom}
+          onStartReached={loadOlderMessages}
+          onStartReachedThreshold={0.2}
+          // Mantiene la posición visible al prependear: sin esto el contenido salta
+          // hacia arriba cada vez que entra una tanda de mensajes viejos.
+          maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+          ListHeaderComponent={
+            loadingOlder ? (
+              <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={colors.textSecondary} />
+              </View>
+            ) : null
+          }
           showsVerticalScrollIndicator={false}
         />
 

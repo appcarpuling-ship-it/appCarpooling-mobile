@@ -234,8 +234,10 @@ const HomeScreen = ({ navigation, route }) => {
   const loadActiveTrip = async () => {
     try {
       const [driverRes, passengerRes] = await Promise.allSettled([
-        get_withauth(ENDPOINTS.MY_TRIPS_DRIVER),
-        get_withauth(ENDPOINTS.MY_TRIPS_PASSENGER),
+        // status=started en el server: recorrer la primera página no alcanzaba,
+        // el viaje en curso puede quedar detrás de muchos viajes futuros.
+        get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, { status: 'started', limit: 1 }),
+        get_withauth(ENDPOINTS.MY_TRIPS_PASSENGER, { status: 'started', limit: 1 }),
       ]);
       let found = null;
       let role = null;

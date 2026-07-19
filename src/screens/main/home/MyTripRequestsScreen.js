@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, RefreshControl
 } from 'react-native';
@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequestService';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 const STATUS_LABELS = {
   open: { label: 'Abierta', color: '#22C55E' },
@@ -40,31 +41,54 @@ const MyTripRequestsScreen = ({ navigation }) => {
   const divider = dark ? '#2A2A2A' : '#F3F4F6';
 
   const [requests, setRequests] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
+  const fetchingRef = useRef(false);
 
-  const load = async (isRefreshing = false) => {
-    if (isRefreshing) setRefreshing(true);
-    else setLoading(true);
+  // El filtro próximas/pasadas lo hace el backend (`when`): filtrarlo acá dejaba
+  // páginas de 3 items sobre 10 pedidos y trababa el scroll infinito.
+  const load = useCallback(async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      const res = await getMyTripRequests();
-      if (res.success) setRequests(res.data);
+      const res = await getMyTripRequests({ page: pageNum, limit: LIST_PAGE_SIZE, when: activeTab });
+      if (res.success) {
+        setRequests(prev => (reset ? res.data : [...prev, ...res.data]));
+        setPage(pageNum);
+        setHasMore(res.hasMore ?? false);
+      }
     } catch (err) {
       showAlert('Error', err.message);
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
+  }, [activeTab, showAlert]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    load(1, true);
   };
 
-  const onRefresh = () => load(true);
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    load(page + 1, false);
+  };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  // Cambiar de pestaña reinicia la lista: cada una pagina por su cuenta.
+  useFocusEffect(useCallback(() => {
+    setLoading(true);
+    load(1, true);
+  }, [load]));
 
-  const filteredRequests = requests.filter(r =>
-    activeTab === 'upcoming' ? isUpcoming(r) : !isUpcoming(r)
-  );
+  const filteredRequests = requests;
 
   const formatDate = (date) =>
     new Date(date).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -166,8 +190,17 @@ const MyTripRequestsScreen = ({ navigation }) => {
           renderItem={renderItem}
           contentContainerStyle={filteredRequests.length === 0 ? styles.centerFlex : styles.list}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={textMuted} />
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.center}>
