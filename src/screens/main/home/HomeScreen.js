@@ -487,7 +487,9 @@ const HomeScreen = ({ navigation, route }) => {
               {req.origin?.city} → {req.destination?.city}
             </Text>
             <Text style={[styles.tripDateTime, { color: textMuted }]}>
-              {new Date(req.departureDate).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {/* timeZone UTC: es un dia de calendario, sin esto en UTC-3 muestra el dia anterior.
+                  Ojo: la card de VIAJES (arriba) NO lleva esto, ahi departureDate es un instante real. */}
+              {new Date(req.departureDate).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}
               {'  '}{req.departureTime || ''}
             </Text>
           </View>

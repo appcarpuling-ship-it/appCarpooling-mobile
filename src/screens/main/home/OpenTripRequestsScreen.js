@@ -328,8 +328,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           <View style={styles.headerInfo}>
             <Text style={[styles.passengerName, { color: textPrimary }]}>{name}</Text>
             <Text style={[styles.dateText, { color: textMuted }]}>
+              {/* timeZone UTC: es un dia de calendario, sin esto en UTC-3 muestra el dia anterior */}
               {new Date(item.departureDate).toLocaleDateString('es-ES', {
-                weekday: 'short', day: 'numeric', month: 'short',
+                weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
               })}{'  '}{item.departureTime || ''}
             </Text>
           </View>

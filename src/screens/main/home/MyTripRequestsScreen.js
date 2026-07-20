@@ -90,8 +90,10 @@ const MyTripRequestsScreen = ({ navigation }) => {
 
   const filteredRequests = requests;
 
+  // timeZone UTC: departureDate de una solicitud es un dia de calendario guardado como
+  // medianoche UTC. Sin esto, en UTC-3 se muestra el dia anterior.
   const formatDate = (date) =>
-    new Date(date).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
+    new Date(date).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
       .replace(/^(.)/, c => c.toUpperCase());
 
   const renderItem = ({ item }) => {
