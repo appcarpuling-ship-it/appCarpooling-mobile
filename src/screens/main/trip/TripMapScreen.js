@@ -116,8 +116,30 @@ const TripMapScreen = ({ route, navigation }) => {
     };
   }, [trip?._id, isTripStarted, isDriver]);
 
+  const fitTo = (coords) => {
+    if (!coords?.length) return;
+    setTimeout(() => {
+      if (mapRef.current && isMounted.current) {
+        mapRef.current.fitToCoordinates(coords, {
+          edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
+          animated: true,
+        });
+      }
+    }, 400);
+  };
+
+  /** Lo que se pueda encuadrar aunque no haya trayecto: origen, paradas y destino que tengan coords. */
+  const markerCoords = () => [
+    originCoords?.latitude && { latitude: originCoords.latitude, longitude: originCoords.longitude },
+    ...stops.map(s => ({ latitude: s.coordinates.latitude, longitude: s.coordinates.longitude })),
+    destCoords?.latitude && { latitude: destCoords.latitude, longitude: destCoords.longitude },
+  ].filter(Boolean);
+
   const fetchRoute = async () => {
+    // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
+    // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
+      fitTo(markerCoords());
       setLoading(false);
       return;
     }
@@ -139,31 +161,17 @@ const TripMapScreen = ({ route, navigation }) => {
         if (points.length === 0 && r.overview_polyline?.points) points = decodePolyline(r.overview_polyline.points);
         if (points.length > 0) {
           setRouteCoordinates(points);
-          setTimeout(() => {
-            if (mapRef.current && isMounted.current) {
-              mapRef.current.fitToCoordinates(points, {
-                edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
-                animated: true,
-              });
-            }
-          }, 400);
+          fitTo(points);
+        } else {
+          fitTo(markerCoords());
         }
+      } else {
+        // Respuesta sin rutas (ZERO_RESULTS, REQUEST_DENIED…): no lanza excepción, así que
+        // antes se caía por acá en silencio y no dibujaba NI centraba.
+        fitTo(markerCoords());
       }
     } catch (e) {
-      // fallback: fit to markers
-      const allCoords = [
-        originCoords && { latitude: originCoords.latitude, longitude: originCoords.longitude },
-        ...stops.map(s => ({ latitude: s.coordinates.latitude, longitude: s.coordinates.longitude })),
-        destCoords && { latitude: destCoords.latitude, longitude: destCoords.longitude },
-      ].filter(Boolean);
-      if (mapRef.current && isMounted.current && allCoords.length > 0) {
-        setTimeout(() => {
-          mapRef.current?.fitToCoordinates(allCoords, {
-            edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
-            animated: true,
-          });
-        }, 400);
-      }
+      fitTo(markerCoords());
     } finally {
       if (isMounted.current) setLoading(false);
     }
