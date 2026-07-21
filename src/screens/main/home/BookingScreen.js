@@ -977,7 +977,7 @@ const BookingScreen = ({ route, navigation }) => {
         type="error"
         title="Error"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
     </View>

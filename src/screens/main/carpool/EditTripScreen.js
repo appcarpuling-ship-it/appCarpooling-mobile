@@ -564,7 +564,7 @@ const EditTripScreen = ({ navigation, route }) => {
         type="error"
         title="Ocurrió algo"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
     </View>
