@@ -5,9 +5,9 @@ import { useColors } from '../../hooks/useColors';
 
 const formatMoney = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-const ROW_LABELS = { fuel: 'Combustible', food: 'Comida', other: 'Otros', driverPay: 'Extra conductor' };
+const ROW_LABELS = { fuel: 'Combustible', food: 'Comida', other: 'Otros' };
 
-/** Total del viaje completado, tocable para desplegar el desglose (combustible/comida/otros/extra conductor) */
+/** Total del viaje completado, tocable para desplegar el desglose (combustible/comida/otros) */
 const TripCostBreakdown = ({ trip }) => {
   const { colors } = useColors();
   const [open, setOpen] = useState(false);
@@ -21,7 +21,6 @@ const TripCostBreakdown = ({ trip }) => {
         { key: 'fuel', amount: breakdown.fuel || 0 },
         { key: 'food', amount: breakdown.food || 0 },
         { key: 'other', amount: breakdown.other || 0 },
-        { key: 'driverPay', amount: trip.driverPay || 0 },
       ].filter(r => r.amount > 0)
     : [];
 
