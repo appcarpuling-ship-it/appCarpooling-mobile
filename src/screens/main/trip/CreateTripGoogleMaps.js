@@ -259,6 +259,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     }
   };
 
+  // Encuadra origen/destino/paradas cuando no hay trayecto para dibujar (ZERO_RESULTS, error de
+  // red, etc.) — antes esos casos no lanzan excepción y el mapa se quedaba quieto sin avisar nada.
+  const fitToMarkersOnly = () => {
+    const coords = [originMarker, ...waypointMarkers, destinationMarker].filter(m => m?.latitude && m?.longitude);
+    if (coords.length < 2 || !mapRef.current || !isMounted.current) return;
+    setTimeout(() => {
+      if (mapRef.current && isMounted.current) {
+        mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true });
+      }
+    }, 300);
+  };
+
   const getDirections = async () => {
     if (!originMarker || !destinationMarker || !isMounted.current) return;
     setLoadingRoute(true);
@@ -287,9 +299,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           if (mapRef.current && isMounted.current) {
             setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.fitToCoordinates(points, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true }); }, 300);
           }
+        } else {
+          fitToMarkersOnly();
         }
+      } else {
+        // Sin rutas (ZERO_RESULTS, REQUEST_DENIED...): no lanza excepción, así que antes
+        // esto se caía en silencio y el mapa quedaba sin trazado ni encuadre.
+        fitToMarkersOnly();
       }
-    } catch (e) { console.error('Error getting directions:', e); }
+    } catch (e) {
+      console.error('Error getting directions:', e);
+      fitToMarkersOnly();
+    }
     finally { if (isMounted.current) setLoadingRoute(false); }
   };
 
