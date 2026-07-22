@@ -17,8 +17,10 @@ import { ENDPOINTS } from '../../../config/api';
 import { getPlaceDetails as getPlaceDetailsApi } from '../../../services/mapsService';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const CreateTripGoogleMaps = ({ navigation }) => {
+  const ui = useUI();
   const { colors, isDarkMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -408,7 +410,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   }}
                   activeOpacity={0.6}
                 >
-                  <View style={[styles.resultIcon, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6' }]}>
+                  <View style={[styles.resultIcon, { backgroundColor: ui.surface }]}>
                     <Ionicons name="location-sharp" size={16} color={isDarkMode ? '#FFF' : '#292929'} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -429,13 +431,13 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.continueBtn,
-            { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
+            { backgroundColor: ui.invertBg },
             (!formData.origin.coordinates || !formData.destination.coordinates) && { opacity: 0.4 },
           ]}
           onPress={handleContinue}
           activeOpacity={0.8}
         >
-          <Text style={[styles.continueBtnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+          <Text style={[styles.continueBtnText, { color: ui.invertText }]}>
             Confirmar ruta
           </Text>
         </TouchableOpacity>

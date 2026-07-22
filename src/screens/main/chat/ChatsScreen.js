@@ -29,6 +29,7 @@ import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
+import { useUI } from '../../../theme/ui';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -43,6 +44,7 @@ const SORA_FONTS = {
 };
 
 const ChatsScreen = ({ navigation }) => {
+  const ui = useUI();
   const { colors, gradients, createColorArray } = useColors();
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
@@ -449,8 +451,8 @@ const ChatsScreen = ({ navigation }) => {
               )}
               {isUnread && (
                 <View style={[styles.unreadDot, {
-                  backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
-                  borderColor: isDarkMode ? '#161616' : '#FFFFFF'
+                  backgroundColor: ui.invertBg,
+                  borderColor: ui.bg
                 }]} />
               )}
             </View>
@@ -461,14 +463,14 @@ const ChatsScreen = ({ navigation }) => {
                   {otherUser?.firstName} {otherUser?.lastName}
                 </Text>
                 {item.lastMessage && (
-                  <Text style={[styles.time, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>
+                  <Text style={[styles.time, { color: ui.textMuted }]}>
                     {formatTime(item.updatedAt)}
                   </Text>
                 )}
               </View>
 
               {item.trip && (
-                <Text style={[styles.tripInfo, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+                <Text style={[styles.tripInfo, { color: ui.invertBg }]}>
                   {item.trip.origin?.city} → {item.trip.destination?.city}
                 </Text>
               )}
@@ -492,28 +494,28 @@ const ChatsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
-        <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#000000'} />
+      <View style={[styles.centerContainer, { backgroundColor: ui.bg }]}>
+        <ActivityIndicator size="large" color={ui.invertBg} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+    <View style={[styles.container, { backgroundColor: ui.bg }]}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {/* Campo de búsqueda */}
         <View style={styles.searchContainer}>
           <View style={[
             styles.searchInputContainer,
             { 
-              backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
+              backgroundColor: ui.surface,
               borderColor: isDarkMode ? '#404040' : '#E5E7EB'
             }
           ]}>
             <TextInput
               style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
               placeholder="Buscar conversaciones..."
-              placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
+              placeholderTextColor={ui.textMuted}
               value={searchTerm}
               onChangeText={setSearchTerm}
               autoCapitalize="none"
@@ -532,11 +534,11 @@ const ChatsScreen = ({ navigation }) => {
         </View>
 
         {/* Filtros */}
-        <View style={[styles.filterContainer, { backgroundColor: isDarkMode ? '#292929' : '#F3F4F6' }]}>
+        <View style={[styles.filterContainer, { backgroundColor: ui.surface }]}>
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'all' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
+              filter === 'all' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
             ]}
             onPress={() => setFilter('all')}
             activeOpacity={0.7}
@@ -544,7 +546,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'all' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'all' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'all' ? '600' : '500'
               }
             ]}>
@@ -554,7 +556,7 @@ const ChatsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
+              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
             ]}
             onPress={() => setFilter('trips')}
             activeOpacity={0.7}
@@ -562,7 +564,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'trips' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'trips' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'trips' ? '600' : '500'
               }
             ]}>
@@ -572,7 +574,7 @@ const ChatsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.filterButton, 
-              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]
+              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
             ]}
             onPress={() => setFilter('direct')}
             activeOpacity={0.7}
@@ -580,7 +582,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'direct' ? (isDarkMode ? '#000000' : '#FFFFFF') : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'direct' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
                 fontWeight: filter === 'direct' ? '600' : '500'
               }
             ]}>
@@ -597,7 +599,7 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
+                tintColor={ui.invertBg}
               />
             }
           >
@@ -626,7 +628,7 @@ const ChatsScreen = ({ navigation }) => {
             ListFooterComponent={
               loadingMoreConv ? (
                 <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
-                  <ActivityIndicator size="small" color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                  <ActivityIndicator size="small" color={ui.invertBg} />
                   <Text style={{ fontSize: 13, color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>Cargando más…</Text>
                 </View>
               ) : null
@@ -635,7 +637,7 @@ const ChatsScreen = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
+                tintColor={ui.invertBg}
               />
             }
           />
@@ -654,7 +656,7 @@ const ChatsScreen = ({ navigation }) => {
             style={[
               styles.chatActionsSheet,
               {
-                backgroundColor: isDarkMode ? '#292929' : '#FFFFFF',
+                backgroundColor: ui.surface,
                 paddingBottom: Math.max(insets.bottom, spacing.md),
               },
             ]}

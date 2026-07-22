@@ -18,6 +18,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const REPORT_REASONS = [
   { value: 'harassment', label: 'Acoso o amenazas' },
@@ -29,6 +30,7 @@ const REPORT_REASONS = [
 ];
 
 const UserProfileScreen = ({ route, navigation }) => {
+  const ui = useUI();
   const { userId, tripId, conversationId, fromChat, openReport } = route.params || {};
   const { colors, isDarkMode } = useColors();
   const { user, refreshUser } = useAuth();
@@ -289,16 +291,16 @@ const UserProfileScreen = ({ route, navigation }) => {
 
       {!isSelf && !!tripId && (
         <TouchableOpacity
-          style={[styles.chatButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+          style={[styles.chatButton, { backgroundColor: ui.invertBg }]}
           onPress={handleStartChat}
           disabled={chatLoading}
         >
           {chatLoading ? (
-            <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
+            <ActivityIndicator size="small" color={ui.invertText} />
           ) : (
             <>
-              <Ionicons name="chatbubble-outline" size={20} color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              <Text style={[styles.chatButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Enviar mensaje</Text>
+              <Ionicons name="chatbubble-outline" size={20} color={ui.invertText} />
+              <Text style={[styles.chatButtonText, { color: ui.invertText }]}>Enviar mensaje</Text>
             </>
           )}
         </TouchableOpacity>
@@ -401,14 +403,14 @@ const UserProfileScreen = ({ route, navigation }) => {
                 <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: ui.invertBg }]}
                 onPress={submitReport}
                 disabled={reportSubmitting}
               >
                 {reportSubmitting ? (
                   <ActivityIndicator color={isDarkMode ? '#000' : '#FFF'} />
                 ) : (
-                  <Text style={{ color: isDarkMode ? '#000000' : '#FFFFFF', fontWeight: '700' }}>Enviar</Text>
+                  <Text style={{ color: ui.invertText, fontWeight: '700' }}>Enviar</Text>
                 )}
               </TouchableOpacity>
             </View>
