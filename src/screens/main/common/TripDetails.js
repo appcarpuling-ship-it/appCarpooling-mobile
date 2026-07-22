@@ -25,10 +25,9 @@ import { ENDPOINTS } from '../../../config/api';
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, vehicles } = route.params;
     const { showAlert } = useAlert();
-    const { getCurrentThemeMode } = useColors();
+    const { isDarkMode } = useColors();
     const { user } = useAuth();
 
-    const isDarkMode  = getCurrentThemeMode() === 'dark';
     const bg          = isDarkMode ? '#161616' : '#F5F5F5';
     const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
     const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';

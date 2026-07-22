@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import useColors from '../../hooks/useColors';
+import { useUI } from '../../theme/ui';
+import PillButton from '../ui/PillButton';
 import { navigationRef } from '../../navigation/rootNavigation';
 
 const STEPS = [
@@ -71,7 +72,7 @@ const AppTutorialOverlay = ({ onComplete }) => {
   const insets = useSafeAreaInsets();
   const insetTop = insets.top || initialWindowMetrics?.insets.top || 0;
   const insetBottom = insets.bottom || initialWindowMetrics?.insets.bottom || 0;
-  const { colors, fontFamily, isDarkMode } = useColors();
+  const ui = useUI();
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -107,9 +108,13 @@ const AppTutorialOverlay = ({ onComplete }) => {
     setStep((s) => Math.max(0, s - 1));
   }, []);
 
-  const muted = colors.textMuted || (isDarkMode ? '#9CA3AF' : '#6B7280');
-
   const padH = Math.max(20, SCREEN_W * 0.06);
+
+  // El logo del paso de bienvenida se invierte con el tema: sobre fondo claro
+  // el blanco desaparecía.
+  const LOGO = ui.isDarkMode
+    ? require('../../../assets/logo/192x192-white.png')
+    : require('../../../assets/logo/192x192-black.png');
 
   return (
     <Modal
@@ -120,7 +125,7 @@ const AppTutorialOverlay = ({ onComplete }) => {
       presentationStyle="overFullScreen"
       onRequestClose={() => undefined}
     >
-      <View style={[styles.backdrop, { backgroundColor: '#000000' }]}>
+      <View style={[styles.backdrop, { backgroundColor: ui.bg }]}>
         {/* En Modal, SafeAreaView a veces no aplica bien en iOS: insets manuales (Dynamic Island / notch) */}
         <View
           style={[
@@ -133,41 +138,35 @@ const AppTutorialOverlay = ({ onComplete }) => {
           ]}
         >
           <View style={styles.topBar}>
-            <Text
-              style={[styles.stepLabel, { color: muted, fontFamily: fontFamily.medium }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-            >
+            <Text style={[styles.stepLabel, { color: ui.textMuted }]} numberOfLines={1}>
               Paso {step + 1} de {total}
             </Text>
+            <TouchableOpacity
+              onPress={onComplete}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Saltar la guía"
+            >
+              <Text style={[styles.skip, { color: ui.textMuted }]}>Saltar</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.body}>
-            <View
-              style={[
-                styles.iconWrap,
-                {
-                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.2)',
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.35)',
-                },
-              ]}
-            >
+            <View style={[styles.iconWrap, { backgroundColor: ui.surface }]}>
               {current.showLogo ? (
                 <Image
-                  source={require('../../../assets/logo/192x192-white.png')}
+                  source={LOGO}
                   style={styles.logoImage}
                   resizeMode="contain"
                   accessibilityIgnoresInvertColors
                 />
               ) : (
-                <Ionicons name={current.icon} size={48} color="#FFFFFF" />
+                <Ionicons name={current.icon} size={96} color={ui.text} />
               )}
             </View>
-            <Text style={[styles.title, { fontFamily: fontFamily.bold }]}>{current.title}</Text>
-            <Text style={[styles.paragraph, { color: 'rgba(255,255,255,0.88)', fontFamily: fontFamily.regular }]}>
-              {current.body}
-            </Text>
+
+            <Text style={[styles.title, { color: ui.text }]}>{current.title}</Text>
+            <Text style={[styles.paragraph, { color: ui.textMuted }]}>{current.body}</Text>
           </View>
 
           <View style={styles.dots}>
@@ -176,7 +175,7 @@ const AppTutorialOverlay = ({ onComplete }) => {
                 key={s.key}
                 style={[
                   styles.dot,
-                  { backgroundColor: i === step ? '#FFFFFF' : 'rgba(255,255,255,0.28)' },
+                  { backgroundColor: i === step ? ui.text : ui.border },
                   i === step && styles.dotActive,
                 ]}
               />
@@ -184,47 +183,23 @@ const AppTutorialOverlay = ({ onComplete }) => {
           </View>
 
           <View style={styles.footer}>
-            <View style={styles.footerInner}>
-              {step > 0 ? (
-                <View style={styles.footerButtonRow}>
-                  <TouchableOpacity
-                    style={styles.btnGhost}
-                    onPress={goBack}
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel="Volver al paso anterior"
-                  >
-                    <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-                    <Text style={[styles.btnGhostText, { fontFamily: fontFamily.semiBold }]}>Atrás</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.btnPrimary, styles.btnPrimaryInRow]}
-                    onPress={goNext}
-                    activeOpacity={0.9}
-                    accessibilityRole="button"
-                    accessibilityLabel={isLast ? 'Empezar a usar la app' : 'Siguiente paso'}
-                  >
-                    <Text style={[styles.btnPrimaryText, { fontFamily: fontFamily.semiBold }]}>
-                      {isLast ? '¡Empezar!' : 'Siguiente'}
-                    </Text>
-                    {!isLast ? <Ionicons name="arrow-forward" size={18} color="#111827" style={styles.btnIcon} /> : null}
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.btnPrimary}
-                  onPress={goNext}
-                  activeOpacity={0.9}
-                  accessibilityRole="button"
-                  accessibilityLabel={isLast ? 'Empezar a usar la app' : 'Siguiente paso'}
-                >
-                  <Text style={[styles.btnPrimaryText, { fontFamily: fontFamily.semiBold }]}>
-                    {isLast ? '¡Empezar!' : 'Siguiente'}
-                  </Text>
-                  {!isLast ? <Ionicons name="arrow-forward" size={18} color="#111827" style={styles.btnIcon} /> : null}
-                </TouchableOpacity>
-              )}
-            </View>
+            {step > 0 && (
+              <TouchableOpacity
+                style={[styles.back, { backgroundColor: ui.surface }]}
+                onPress={goBack}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Volver al paso anterior"
+              >
+                <Ionicons name="chevron-back" size={20} color={ui.text} />
+              </TouchableOpacity>
+            )}
+            {/* Sin trailingIcon: la flecha del círculo repetía los chevrons. */}
+            <PillButton
+              label={isLast ? '¡Empezar!' : 'Siguiente'}
+              onPress={goNext}
+              style={styles.cta}
+            />
           </View>
         </View>
       </View>
@@ -233,128 +208,24 @@ const AppTutorialOverlay = ({ onComplete }) => {
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
-  topBar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    marginBottom: 4,
-  },
-  stepLabel: {
-    fontSize: 14,
-    letterSpacing: 0.2,
-    textAlign: 'center',
-  },
-  body: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  iconWrap: {
-    alignSelf: 'center',
-    width: 104,
-    height: 104,
-    borderRadius: 28,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 28,
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-  },
-  title: {
-    fontSize: 26,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 14,
-    lineHeight: 32,
-  },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 22,
-    borderRadius: 4,
-  },
-  footer: {
-    paddingTop: 12,
-    alignItems: 'center',
-    width: '100%',
-  },
-  footerInner: {
-    width: '100%',
-    maxWidth: 360,
-    alignSelf: 'center',
-  },
-  footerButtonRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 12,
-    width: '100%',
-  },
-  btnGhost: {
-    flex: 0.95,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.42)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    minHeight: 52,
-    gap: 4,
-  },
-  btnGhostText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    letterSpacing: 0.2,
-  },
-  btnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    width: '100%',
-    minHeight: 52,
-  },
-  btnPrimaryInRow: {
-    flex: 1.25,
-    width: undefined,
-    paddingHorizontal: 20,
-  },
-  btnPrimaryText: {
-    fontSize: 17,
-    color: '#111827',
-  },
-  btnIcon: {
-    marginLeft: 8,
-  },
+  backdrop:   { flex: 1 },
+  safe:       { flex: 1 },
+  topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 },
+  stepLabel:  { fontFamily: 'Sora_500Medium', fontSize: 14, letterSpacing: 0.2 },
+  skip:       { fontFamily: 'Sora_500Medium', fontSize: 15 },
+  body:       { flex: 1, justifyContent: 'center' },
+  // Elástico: el paso de "Solicitudes" tiene un texto largo y con alto fijo
+  // desbordaba en pantallas chicas. El ícono cede el espacio que pide el texto.
+  iconWrap:   { flex: 1, maxHeight: 260, minHeight: 110, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  logoImage:  { width: 96, height: 96 },
+  title:      { fontFamily: 'Sora_800ExtraBold', fontSize: 32, lineHeight: 39, letterSpacing: -1 },
+  paragraph:  { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 23, marginTop: 14 },
+  dots:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
+  dot:        { width: 6, height: 6, borderRadius: 999 },
+  dotActive:  { width: 22 },
+  footer:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  back:       { width: 58, height: 58, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  cta:        { flex: 1 },
 });
 
 export default AppTutorialOverlay;

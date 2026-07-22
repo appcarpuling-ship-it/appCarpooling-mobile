@@ -10,6 +10,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { buildImageUri } from '../../../services/apiService';
@@ -35,8 +36,12 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const tripRouteLine   = dark ? '#333333' : '#374151';
 
   const [requests,   setRequests]   = useState([]);
+  const [page,       setPage]       = useState(1);
+  const [hasMore,    setHasMore]    = useState(true);
   const [loading,    setLoading]    = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const fetchingRef = useRef(false);
 
   // Filters
   const [originProvince,      setOriginProvince]      = useState('');
@@ -61,11 +66,14 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     setSelectedDate(null);
   };
 
-  const load = useCallback(async (isRefreshing = false) => {
-    if (isRefreshing) setRefreshing(true);
-    else setLoading(true);
+  // Solo se pagina la lista de abiertas. Las solicitudes propias activas son pocas
+  // y van mergeadas únicamente en la primera página; en las siguientes se appendea
+  // open y se deduplica por _id, porque una propia puede reaparecer más adelante.
+  const load = useCallback(async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      const filters = {};
+      const filters = { page: pageNum, limit: LIST_PAGE_SIZE };
       if (originCity)      filters.originCity      = originCity;
       if (destinationCity) filters.destinationCity = destinationCity;
       if (selectedDate) {
@@ -75,9 +83,12 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         filters.date = `${y}-${m}-${d}`;
       }
 
+      const wantsMine = reset && isAuthenticated;
       const [openRes, myRes] = await Promise.allSettled([
         getOpenTripRequests(filters),
-        isAuthenticated ? getMyTripRequests() : Promise.resolve({ success: false }),
+        wantsMine
+          ? getMyTripRequests({ when: 'upcoming', limit: LIST_PAGE_SIZE })
+          : Promise.resolve({ success: false }),
       ]);
       const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
       const mine = myRes.status  === 'fulfilled' && myRes.value?.success  ? myRes.value.data  : [];
@@ -88,16 +99,27 @@ const OpenTripRequestsScreen = ({ navigation }) => {
       const merged = [...open];
       activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });
       merged.sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
-      setRequests(merged);
+
+      setRequests(prev => {
+        if (reset) return merged;
+        const seen = new Set(prev.map(r => r._id));
+        return [...prev, ...merged.filter(r => !seen.has(r._id))];
+      });
+      setPage(pageNum);
+      setHasMore(
+        openRes.status === 'fulfilled' ? (openRes.value?.hasMore ?? false) : false
+      );
     } catch (err) {
       showAlert('Error', err.message);
     } finally {
+      fetchingRef.current = false;
+      setLoadingMore(false);
       setLoading(false);
       setRefreshing(false);
     }
   }, [originCity, destinationCity, selectedDate, isAuthenticated]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { setLoading(true); load(1, true); }, [load]));
 
   const handleDateChange = (event, date) => {
     if (Platform.OS === 'android') {
@@ -306,8 +328,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           <View style={styles.headerInfo}>
             <Text style={[styles.passengerName, { color: textPrimary }]}>{name}</Text>
             <Text style={[styles.dateText, { color: textMuted }]}>
+              {/* timeZone UTC: es un dia de calendario, sin esto en UTC-3 muestra el dia anterior */}
               {new Date(item.departureDate).toLocaleDateString('es-ES', {
-                weekday: 'short', day: 'numeric', month: 'short',
+                weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
               })}{'  '}{item.departureTime || ''}
             </Text>
           </View>
@@ -439,8 +462,25 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          onEndReached={() => {
+            if (!hasMore || loadingMore || fetchingRef.current) return;
+            setLoadingMore(true);
+            load(page + 1, false);
+          }}
+          onEndReachedThreshold={0.3}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={textMuted} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); load(1, true); }}
+              tintColor={textMuted}
+            />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={textMuted} />
+              </View>
+            ) : null
           }
         />
       )}

@@ -1114,7 +1114,7 @@ const CreateTripScreen = ({ navigation }) => {
         type="success"
         title="Éxito"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
 
@@ -1125,7 +1125,7 @@ const CreateTripScreen = ({ navigation }) => {
         type="error"
         title="Error"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
     </LinearGradient>

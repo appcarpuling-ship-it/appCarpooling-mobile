@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList,
   ActivityIndicator, RefreshControl
@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyApplications, cancelTripRequestApplication } from '../../../services/tripRequestService';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 const APP_STATUS = {
   pending:  { label: 'Pendiente',  color: '#F59E0B' },
@@ -29,27 +30,46 @@ const MyApplicationsScreen = ({ navigation }) => {
   const divider     = dark ? '#2A2A2A' : '#F3F4F6';
 
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(null);
+  const fetchingRef = useRef(false);
 
-  const load = async (isRefreshing = false) => {
-    if (isRefreshing) setRefreshing(true);
-    else setLoading(true);
+  const load = useCallback(async (pageNum = 1, reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      const res = await getMyApplications();
-      if (res.success) setItems(res.data);
+      const res = await getMyApplications({ page: pageNum, limit: LIST_PAGE_SIZE });
+      if (res.success) {
+        setItems(prev => (reset ? res.data : [...prev, ...res.data]));
+        setPage(pageNum);
+        setHasMore(res.hasMore ?? false);
+      }
     } catch (err) {
       showAlert('Error', err.message);
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
+  }, [showAlert]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    load(1, true);
   };
 
-  const onRefresh = () => load(true);
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    load(page + 1, false);
+  };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(1, true); }, [load]));
 
   const handleCancel = (requestId) => {
     showAlert(
@@ -183,8 +203,17 @@ const MyApplicationsScreen = ({ navigation }) => {
           renderItem={renderItem}
           contentContainerStyle={items.length === 0 ? styles.centerFlex : styles.list}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={textMuted} />
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.center}>

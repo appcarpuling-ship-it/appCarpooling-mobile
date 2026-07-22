@@ -126,9 +126,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
@@ -594,6 +594,11 @@ const TripDetailScreen = ({ route, navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView
+        // Sin style el alto queda sin acotar y en web la rueda no encuentra
+        // contenedor scrolleable. Es el único ScrollView principal de la app
+        // que no lo tenía.
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -1196,6 +1201,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 24 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 15 },
 

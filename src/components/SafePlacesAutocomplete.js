@@ -41,14 +41,22 @@ const SafePlacesAutocomplete = ({
 
       const data = await searchPlacesApi(text);
 
+      // Sin esto, "Jujuy" sugiere primero la PROVINCIA (administrative_area_level_1) y al
+      // elegirla el punto queda en un centroide sin ruta calculable (Directions da
+      // ZERO_RESULTS) — pasó dos veces con el mismo origen/destino. Se filtran provincia/país,
+      // se deja ciudad/localidad/dirección puntual.
+      const predictions = (data?.predictions || []).filter(
+        (p) => !p.types?.includes('administrative_area_level_1') && !p.types?.includes('country')
+      );
+
       // ✅ VALIDACIÓN SEGURA
-      if (data && Array.isArray(data.predictions) && data.predictions.length > 0) {
-        console.log('✅ Se encontraron', data.predictions.length, 'resultados');
-        setResults(data.predictions);
+      if (predictions.length > 0) {
+        console.log('✅ Se encontraron', predictions.length, 'resultados');
+        setResults(predictions);
         setShowResults(true);
         // Notificar al padre si hay callback y este input está activo
         if (onResultsChange) {
-          onResultsChange(data.predictions);
+          onResultsChange(predictions);
         }
       } else {
         console.log('⚠️ No se encontraron resultados');

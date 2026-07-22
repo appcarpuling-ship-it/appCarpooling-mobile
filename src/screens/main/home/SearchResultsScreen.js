@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colo
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 
 const SORT_OPTIONS = ['price', 'time'];
@@ -32,6 +33,10 @@ const SearchResultsScreen = ({ route, navigation }) => {
   const destinationLabel = destinationCity || destination || '?';
 
   const [trips, setTrips] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const fetchingRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('price');
 
@@ -41,10 +46,12 @@ const SearchResultsScreen = ({ route, navigation }) => {
   const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
   const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
 
-  const loadResults = useCallback(async (sort) => {
+  const loadResults = useCallback(async (sort, pageNum = 1, reset = true) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
-      setLoading(true);
-      const params = {};
+      if (reset) setLoading(true);
+      const params = { page: pageNum, limit: LIST_PAGE_SIZE, sort };
       if (origin?.trim())          params.originProvince      = origin.trim();
       if (originCity?.trim())      params.originCity          = originCity.trim();
       if (destination?.trim())     params.destinationProvince = destination.trim();
@@ -53,33 +60,35 @@ const SearchResultsScreen = ({ route, navigation }) => {
       const response = await get_public(ENDPOINTS.SEARCH_TRIPS, params);
 
       if (response.success) {
-        let data = [...(response.data || [])];
-        if (sort === 'price') {
-          data.sort((a, b) => (a.pricePerSeat ?? 0) - (b.pricePerSeat ?? 0));
-        } else if (sort === 'time') {
-          data.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
-        }
-        setTrips(data);
+        // El orden lo resuelve el backend: ordenar acá sobre una página daría
+        // "el más barato de los cargados", no el más barato de la búsqueda.
+        const data = response.data || [];
+        setTrips(prev => (reset ? data : [...prev, ...data]));
+        setPage(pageNum);
+        setHasMore(response.hasMore ?? false);
       }
     } catch {
       showAlert('Ocurrió algo', 'No se pudieron cargar los viajes');
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [origin, originCity, destination, destinationCity]);
 
   useEffect(() => { loadResults(sortBy); }, []);
 
+  // Cambiar el orden vuelve a pedir desde la página 1.
   const handleSort = () => {
     const next = sortBy === 'price' ? 'time' : 'price';
     setSortBy(next);
-    const sorted = [...trips];
-    if (next === 'price') {
-      sorted.sort((a, b) => (a.pricePerSeat ?? 0) - (b.pricePerSeat ?? 0));
-    } else {
-      sorted.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
-    }
-    setTrips(sorted);
+    loadResults(next, 1, true);
+  };
+
+  const onEndReached = () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    setLoadingMore(true);
+    loadResults(sortBy, page + 1, false);
   };
 
   const formatAddress = (loc) => {
@@ -238,6 +247,15 @@ const SearchResultsScreen = ({ route, navigation }) => {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={textMuted} />
+              </View>
+            ) : null
+          }
         />
       )}
     </View>

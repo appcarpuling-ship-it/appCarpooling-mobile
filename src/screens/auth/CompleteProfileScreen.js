@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+import { appendFile } from '../../utils/formDataFile';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
@@ -41,9 +42,8 @@ const isPlaceholder = (name) =>
 const CompleteProfileScreen = () => {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
 
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
@@ -84,12 +84,7 @@ const CompleteProfileScreen = () => {
     else setDniBackUri(uri);
   };
 
-  const appendImage = (fd, field, uri) => {
-    if (!uri) return;
-    const filename = uri.split('/').pop() || `${field}.jpg`;
-    const ext = (/\.(\w+)$/.exec(filename)?.[1] || 'jpeg').replace('jpg', 'jpeg');
-    fd.append(field, { uri, name: filename.includes('.') ? filename : `${filename}.jpg`, type: `image/${ext}` });
-  };
+  const appendImage = (fd, field, uri) => appendFile(fd, field, uri, `${field}.jpg`);
 
   const animateToStep = (next) => {
     Animated.timing(stepAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
@@ -132,7 +127,7 @@ const CompleteProfileScreen = () => {
       fd.append('city',      values.city);
       fd.append('province',  values.province);
       if (values.bio?.trim()) fd.append('bio', values.bio);
-      appendImage(fd, 'avatar', avatarUri);
+      await appendImage(fd, 'avatar', avatarUri);
 
       const profileResult = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (!profileResult.success) {
@@ -144,8 +139,8 @@ const CompleteProfileScreen = () => {
       // 2. Subir DNI si se cargó
       if (dniFrontUri || dniBackUri) {
         const dniFd = new FormData();
-        appendImage(dniFd, 'dniFront', dniFrontUri);
-        appendImage(dniFd, 'dniBack',  dniBackUri);
+        await appendImage(dniFd, 'dniFront', dniFrontUri);
+        await appendImage(dniFd, 'dniBack',  dniBackUri);
         await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, dniFd);
       }
 

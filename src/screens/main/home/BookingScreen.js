@@ -44,11 +44,11 @@ function formatNumber(num) {
 
 const BookingScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
   const { user } = useAuth();
   const frequentAddresses = useFrequentAddresses();
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   
   const cleanAddress = (address, city, province) => {
@@ -977,7 +977,7 @@ const BookingScreen = ({ route, navigation }) => {
         type="error"
         title="Error"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
     </View>

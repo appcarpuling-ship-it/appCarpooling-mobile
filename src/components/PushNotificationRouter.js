@@ -26,12 +26,20 @@ export default function PushNotificationRouter() {
 
     const go = () => {
       if (!navigationRef.isReady()) return false;
+      // isReady() puede dar true mientras todavía está montado el stack sin autenticar:
+      // navegar a 'Main' ahí no hace nada y la notificación se pierde en el Home.
+      if (!navigationRef.getRootState()?.routeNames?.includes('Main')) return false;
       navigateFromNotification(navigationRef, payload, { useMainStack: true });
       return true;
     };
 
     if (!go()) {
-      setTimeout(() => go(), 500);
+      // En frío el árbol autenticado tarda en montarse; un solo reintento a 500ms
+      // se quedaba corto y la notificación dejaba al usuario en Home.
+      let tries = 0;
+      const timer = setInterval(() => {
+        if (go() || ++tries > 40) clearInterval(timer);
+      }, 250);
     }
   }, []);
 

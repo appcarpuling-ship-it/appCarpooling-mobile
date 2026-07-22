@@ -28,12 +28,17 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # Mismo fix que en dev-ota.yml: el mensaje va por env y no interpolado en el
+      # script, y solo la primera linea (GITHUB_OUTPUT no admite multilinea asi).
       - name: Extraer mensaje del OTA
         id: msg
+        env:
+          FULL: ${{ github.event.head_commit.message }}
         run: |
-          FULL="${{ github.event.head_commit.message }}"
           MSG="${FULL#prod.ota:}"
-          echo "value=$MSG" >> $GITHUB_OUTPUT
+          echo "value=${MSG%%$'\n'*}" >> $GITHUB_OUTPUT
 
       - name: Publicar OTA → production
-        run: eas update --channel production --message "${{ steps.msg.outputs.value }}"
+        env:
+          MSG: ${{ steps.msg.outputs.value }}
+        run: eas update --channel production --message "$MSG"

@@ -7,11 +7,11 @@ export const createTripRequest = (data) =>
 export const getOpenTripRequests = (filters = {}) =>
   get_withauth(ENDPOINTS.TRIP_REQUESTS, filters);
 
-export const getMyTripRequests = () =>
-  get_withauth(ENDPOINTS.MY_TRIP_REQUESTS);
+export const getMyTripRequests = (params = {}) =>
+  get_withauth(ENDPOINTS.MY_TRIP_REQUESTS, params);
 
-export const getMyApplications = () =>
-  get_withauth(ENDPOINTS.MY_TRIP_REQUEST_APPLICATIONS);
+export const getMyApplications = (params = {}) =>
+  get_withauth(ENDPOINTS.MY_TRIP_REQUEST_APPLICATIONS, params);
 
 export const applyToTripRequest = (requestId, vehicleId) =>
   post_withauth(ENDPOINTS.APPLY_TO_TRIP_REQUEST(requestId), { vehicleId });

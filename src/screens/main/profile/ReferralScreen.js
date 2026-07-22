@@ -12,21 +12,22 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useAlert } from '../../../context/AlertContext';
 import { get_withauth } from '../../../services/apiService';
-import useColors from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 
 const ReferralScreen = () => {
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
+  const ui = useUI();
 
-  const isDarkMode   = getCurrentThemeMode() === 'dark';
-  const bg           = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg       = isDarkMode ? '#222222' : '#FFFFFF';
-  const border       = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary  = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted    = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider      = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const green        = '#10B981';
-  const greenBg      = isDarkMode ? '#064E3B' : '#D1FAE5';
+  const bg           = ui.bg;
+  const cardBg       = ui.surface;
+  const border       = ui.border;
+  const textPrimary  = ui.text;
+  const textMuted    = ui.textMuted;
+  const divider      = ui.bg;
+  // Lo "activo" (descuento ganado, paso cumplido) se marca invirtiendo el
+  // fondo en vez de con verde.
+  const green        = ui.invertText;
+  const greenBg      = ui.invertBg;
 
   const [referralInfo, setReferralInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -232,29 +233,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   discountCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 104,
+    height: 104,
+    borderRadius: 999,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   discountNum: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 28,
     lineHeight: 30,
   },
   discountSub: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 11,
-    fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 24,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
   headerDesc: {
+    fontFamily: 'Sora_400Regular',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -262,27 +265,26 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 18,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
+    fontSize: 16,
     marginBottom: 14,
   },
 
   // Código
   codeBox: {
-    borderRadius: 10,
+    borderRadius: 18,
     paddingVertical: 18,
     alignItems: 'center',
     marginBottom: 14,
   },
   codeText: {
+    fontFamily: 'Sora_800ExtraBold',
     fontSize: 22,
-    fontWeight: '800',
     letterSpacing: 4,
   },
 
@@ -297,12 +299,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingVertical: 13,
-    borderRadius: 10,
+    height: 52,
+    borderRadius: 999,
   },
   btnPrimaryText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 15,
   },
   btnSecondary: {
     flex: 1,
@@ -310,13 +312,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingVertical: 13,
-    borderRadius: 10,
+    height: 52,
+    borderRadius: 999,
     borderWidth: 1,
   },
   btnSecondaryText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 15,
   },
 
   // Steps
@@ -327,15 +329,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   stepIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepText:  { flex: 1, justifyContent: 'center' },
-  stepTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
-  stepDesc:  { fontSize: 13, lineHeight: 18 },
+  stepTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 14, marginBottom: 3 },
+  stepDesc:  { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18 },
   stepDivider: { height: 1 },
 
   // Referidos
@@ -346,27 +348,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   refAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   refInitial: {
+    fontFamily: 'Sora_700Bold',
     fontSize: 15,
-    fontWeight: '700',
   },
   refInfo:   { flex: 1 },
-  refName:   { fontSize: 14, fontWeight: '600' },
+  refName:   { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
   refDate:   { fontSize: 12, marginTop: 2 },
   refBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
   },
   refBadgeText: {
+    fontFamily: 'Sora_700Bold',
     fontSize: 13,
-    fontWeight: '700',
   },
 });
 

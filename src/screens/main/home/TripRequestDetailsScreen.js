@@ -15,7 +15,7 @@ const formatDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getF
 const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
-  const { origin, destination, distanceKm } = route.params || {};
+  const { origin, destination, distanceKm, waypoints } = route.params || {};
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -75,6 +75,13 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
       await createTripRequest({
         origin:      { address: origin.address, city: origin.city, coordinates: origin.coordinates },
         destination: { address: destination.address, city: destination.city, coordinates: destination.coordinates },
+        intermediateStops: (waypoints || []).map((wp, i) => ({
+          address: wp.address,
+          city: wp.city || wp.province || '',
+          province: wp.province || '',
+          coordinates: wp.coordinates,
+          order: i + 1,
+        })),
         departureDate: departureDate.toISOString(),
         departureTime: formatTime(time),
         seatsNeeded,

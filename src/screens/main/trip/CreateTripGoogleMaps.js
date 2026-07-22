@@ -58,7 +58,7 @@ const cityFromGoogleComponents = (components) => {
 
 const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const isRequestMode = navRoute?.params?.mode === 'request';
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const frequentAddresses = useFrequentAddresses();
@@ -73,7 +73,6 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const lastRegionRef = useRef(region);
   const hasMapGestureForSelectionRef = useRef(false);
 
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
@@ -259,6 +258,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     }
   };
 
+  // Encuadra origen/destino/paradas cuando no hay trayecto para dibujar (ZERO_RESULTS, error de
+  // red, etc.) — antes esos casos no lanzan excepción y el mapa se quedaba quieto sin avisar nada.
+  const fitToMarkersOnly = () => {
+    const coords = [originMarker, ...waypointMarkers, destinationMarker].filter(m => m?.latitude && m?.longitude);
+    if (coords.length < 2 || !mapRef.current || !isMounted.current) return;
+    setTimeout(() => {
+      if (mapRef.current && isMounted.current) {
+        mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true });
+      }
+    }, 300);
+  };
+
   const getDirections = async () => {
     if (!originMarker || !destinationMarker || !isMounted.current) return;
     setLoadingRoute(true);
@@ -287,9 +298,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           if (mapRef.current && isMounted.current) {
             setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.fitToCoordinates(points, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true }); }, 300);
           }
+        } else {
+          fitToMarkersOnly();
         }
+      } else {
+        // Sin rutas (ZERO_RESULTS, REQUEST_DENIED...): no lanza excepción, así que antes
+        // esto se caía en silencio y el mapa quedaba sin trazado ni encuadre.
+        fitToMarkersOnly();
       }
-    } catch (e) { console.error('Error getting directions:', e); }
+    } catch (e) {
+      console.error('Error getting directions:', e);
+      fitToMarkersOnly();
+    }
     finally { if (isMounted.current) setLoadingRoute(false); }
   };
 
@@ -619,7 +639,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
     if (isRequestMode) {
-      navigation.getParent('AppStack')?.navigate('TripRequestDetails', { origin: formData.origin, destination: formData.destination, distanceKm });
+      navigation.getParent('AppStack')?.navigate('TripRequestDetails', {
+        origin: formData.origin,
+        destination: formData.destination,
+        waypoints: formData.waypoints.filter(wp => wp.coordinates !== null),
+        distanceKm,
+      });
       return;
     }
     if (loadingVehicles) { showAlert('Un momento', 'Estamos verificando tus vehículos...'); return; }

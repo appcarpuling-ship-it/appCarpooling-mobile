@@ -12,33 +12,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { get_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { Image } from 'react-native';
 
+// Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
+// tipo se muestra con dos nombres distintos según la pantalla.
 const TYPE_LABELS = {
   sedan: 'Sedán',
   suv: 'SUV',
-  hatchback: 'Hatchback',
-  van: 'Van',
-  pickup: 'Pickup',
+  hatchback: 'Compacto',
+  van: 'Combi',
+  pickup: 'Pick-up',
   otro: 'Otro',
 };
 
 const VehiclesScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
+  const ui = useUI();
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const bg         = isDarkMode ? '#161616' : '#F0F2F5';
-  const cardBg     = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border     = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary   = isDarkMode ? '#FFFFFF' : '#111827';
-  const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const chipBg        = isDarkMode ? '#2A2A2A' : '#F3F4F6';
+  const bg         = ui.bg;
+  const cardBg     = ui.surface;
+  const border     = ui.border;
+  const textPrimary   = ui.text;
+  const textMuted     = ui.textMuted;
+  const textSecondary = ui.textMuted;
+  const chipBg        = ui.bg;
 
   const [vehicles, setVehicles] = useState([]);
   const [page, setPage] = useState(1);
@@ -75,7 +76,7 @@ const VehiclesScreen = () => {
         setHasMore(false);
       }
     } catch {
-      showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos');
+      showAlert('Ocurrió algo', 'No pudimos cargar tus vehículos.');
       if (reset || pageNum === 1) setVehicles([]);
     } finally {
       fetchLock.current = false;
@@ -106,7 +107,7 @@ const VehiclesScreen = () => {
   const handleDelete = (vehicleId) => {
     showAlert(
       'Eliminar Vehículo',
-      '¿Estás seguro que deseas eliminar este vehículo?',
+      '¿Seguro que querés eliminar este vehículo?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -155,7 +156,7 @@ const VehiclesScreen = () => {
         activeOpacity={0.85}
       >
         {/* Image */}
-        <View style={[styles.imageWrapper, { backgroundColor: isDarkMode ? '#2A2A2A' : '#F3F4F6' }]}>
+        <View style={[styles.imageWrapper, { backgroundColor: ui.bg }]}>
           {photoUrl ? (
             <Image
               source={{ uri: photoUrl }}
@@ -220,8 +221,9 @@ const VehiclesScreen = () => {
               onPress={(e) => { e.stopPropagation(); handleDelete(item._id); }}
               activeOpacity={0.7}
             >
-              <Ionicons name="trash-outline" size={16} color={isDarkMode ? '#F87171' : '#DC2626'} />
-              <Text style={[styles.actionBtnText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>Eliminar</Text>
+              {/* Sin rojo: el destructivo se confirma igual con el diálogo de handleDelete. */}
+              <Ionicons name="trash-outline" size={16} color={textMuted} />
+              <Text style={[styles.actionBtnText, { color: textMuted }]}>Eliminar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -270,17 +272,17 @@ const VehiclesScreen = () => {
           </View>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            Agrega tu primer vehículo para crear viajes
+            Cargá tu primer vehículo para empezar a publicar viajes.
           </Text>
         </View>
       )}
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: isDarkMode ? '#FFFFFF' : '#111827' }]}
+        style={[styles.fab, { backgroundColor: ui.invertBg }]}
         onPress={() => navigation.navigate('VehicleForm')}
         activeOpacity={0.85}
       >
-        <Ionicons name="add" size={28} color={isDarkMode ? '#111827' : '#FFFFFF'} />
+        <Ionicons name="add" size={28} color={ui.invertText} />
       </TouchableOpacity>
     </View>
   );
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
   listFooter:  { paddingVertical: 20, alignItems: 'center' },
 
   card: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     marginBottom: 16,
     overflow: 'hidden',
@@ -334,12 +336,12 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     flex: 1,
   },
   plate: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     letterSpacing: 0.5,
   },
   chipsRow: {
@@ -348,13 +350,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
   },
   chipText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   featuresRow: {
     flexDirection: 'row',
@@ -384,7 +386,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   actionDivider: {
     width: 1,
@@ -402,13 +404,13 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
-  emptyTitle:    { fontSize: 17, fontWeight: '600' },
+  emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center' },
 
   fab: {
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
     bottom: 28,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

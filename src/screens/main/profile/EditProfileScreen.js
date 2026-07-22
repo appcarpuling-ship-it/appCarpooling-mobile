@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
@@ -23,20 +23,19 @@ import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import PillButton from '../../../components/ui/PillButton';
+import { appendFile } from '../../../utils/formDataFile';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { getCurrentThemeMode } = useColors();
+  const ui = useUI();
   const headerHeight = useHeaderHeight();
-  const isDarkMode = getCurrentThemeMode() === 'dark';
 
-  const bg          = isDarkMode ? '#161616' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const labelTitleColor = isDarkMode ? textMuted : '#000000';
-  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
-  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+  const bg          = ui.bg;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const labelTitleColor = ui.textMuted;
+  const accent      = ui.invertBg;
+  const accentInv   = ui.invertText;
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]   = useState(false);
@@ -55,6 +54,8 @@ const EditProfileScreen = ({ navigation }) => {
     bio:       user?.bio      || '',
   });
   const [avatarUri, setAvatarUri] = useState(null);
+  const [gender, setGender] = useState(user?.gender || '');
+  const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [dniFrontLoading, setDniFrontLoading] = useState(false);
@@ -89,10 +90,7 @@ const EditProfileScreen = ({ navigation }) => {
     setAvatarLoading(true);
     try {
       const formDataToSend = new FormData();
-      const filename = imageUri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
-      formDataToSend.append('avatar', { uri: imageUri, name: filename, type });
+      await appendFile(formDataToSend, 'avatar', imageUri, 'avatar.jpg');
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
       if (response.success) {
         await refreshUser();
@@ -145,12 +143,7 @@ const EditProfileScreen = ({ navigation }) => {
     setDniLoading(true);
     try {
       const fd = new FormData();
-      const filename = imageUri.split('/').pop() || `${field}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      let ext = match ? match[1].toLowerCase() : 'jpeg';
-      if (ext === 'jpg') ext = 'jpeg';
-      const name = filename.includes('.') ? filename : `${field}.jpg`;
-      fd.append(field, { uri: imageUri, name, type: `image/${ext}` });
+      await appendFile(fd, field, imageUri, `${field}.jpg`);
       const response = await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, fd);
       if (response.success) {
         await refreshUser();
@@ -207,6 +200,9 @@ const EditProfileScreen = ({ navigation }) => {
       fd.append('city',     formData.city.trim());
       fd.append('province', formData.province);
       if (formData.bio.trim()) fd.append('bio', formData.bio.trim());
+      // El backend solo acepta gender si el usuario todavía no tiene uno
+      // (authController.updateProfile); mandarlo si ya está lo ignora.
+      if (!user?.gender && gender) fd.append('gender', gender);
 
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
@@ -229,7 +225,7 @@ const EditProfileScreen = ({ navigation }) => {
     const uri = avatarUri || (user?.avatar ? buildImageUri(user.avatar) : null);
     if (uri) return <Image source={{ uri }} style={styles.avatarImage} />;
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
         <Text style={[styles.avatarInitials, { color: textPrimary }]}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
@@ -239,6 +235,10 @@ const EditProfileScreen = ({ navigation }) => {
 
   const genderLabel =
     user?.gender === 'female' ? 'Femenino' : user?.gender === 'male' ? 'Masculino' : '—';
+
+  const dniCount = (user?.dniFrontUrl ? 1 : 0) + (user?.dniBackUrl ? 1 : 0);
+  const dniDone = dniCount === 2;
+
 
   const fields = [
     { key: 'firstName', label: 'Nombre',    placeholder: 'Tu nombre',          keyboard: 'default' },
@@ -251,13 +251,24 @@ const EditProfileScreen = ({ navigation }) => {
   // ciudad, que es el orden en que uno las piensa (y el mismo que usa el registro).
   const cityField = { key: 'city', label: 'Ciudad', placeholder: 'Tu ciudad', keyboard: 'default' };
 
-  const renderField = (field) => (
-    <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
-      <Text style={[styles.label, { color: labelTitleColor }]}>{field.label}</Text>
+  // Campo relleno con la etiqueta adentro: reemplaza la fila subrayada, que hacía
+  // ver la pantalla como un formulario de ajustes y no como el resto de la app.
+  const renderField = (field, half) => (
+    <View
+      key={field.key}
+      style={[
+        styles.field,
+        half && styles.fieldHalf,
+        { backgroundColor: ui.surface, borderColor: focusedField === field.key ? textPrimary : 'transparent' },
+      ]}
+    >
+      <Text style={[styles.fieldLabel, { color: textMuted }]}>{field.label}</Text>
       <TextInput
-        style={[styles.input, { color: textPrimary }]}
+        style={[styles.fieldInput, { color: textPrimary }]}
         value={formData[field.key]}
         onChangeText={(v) => handleChange(field.key, v)}
+        onFocus={() => setFocusedField(field.key)}
+        onBlur={() => setFocusedField(null)}
         placeholder={field.placeholder}
         placeholderTextColor={textMuted}
         keyboardType={field.keyboard}
@@ -265,6 +276,10 @@ const EditProfileScreen = ({ navigation }) => {
         maxLength={field.maxLength}
       />
     </View>
+  );
+
+  const SectionLabel = ({ children }) => (
+    <Text style={[styles.sectionLabel, { color: labelTitleColor }]}>{children}</Text>
   );
 
   return (
@@ -282,164 +297,255 @@ const EditProfileScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Avatar */}
-          <View style={[styles.avatarSection, { borderBottomColor: divider }]}>
-            <View style={styles.avatarWrapper}>
-              {avatarLoading && (
-                <View style={styles.avatarOverlay}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                </View>
-              )}
-              {renderAvatar()}
+          {/* Avatar + nombre */}
+          <View style={styles.hero}>
+            <View style={styles.avatarBlock}>
+              <View style={styles.avatarWrapper}>
+                {avatarLoading && (
+                  <View style={styles.avatarOverlay}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  </View>
+                )}
+                {renderAvatar()}
+              </View>
+              {/* El botón de cámara reemplaza al link "Cambiar foto": es el gesto
+                  que ya espera la gente sobre un avatar. */}
+              <TouchableOpacity
+                style={[styles.avatarBadge, { backgroundColor: accent, borderColor: bg }]}
+                onPress={pickImage}
+                activeOpacity={0.85}
+                disabled={avatarLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar foto de perfil"
+              >
+                <Ionicons name="camera" size={17} color={accentInv} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={pickImage} activeOpacity={0.7} disabled={avatarLoading}>
-              <Text style={[styles.changePhotoText, { color: avatarLoading ? textMuted : accent }]}>
-                {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* DNI — verificación para todos los usuarios */}
-          <View style={[styles.dniSection, { borderBottomColor: divider }]}>
-            <Text style={[styles.dniBlockTitle, { color: labelTitleColor }]}>Documentación (DNI)</Text>
-            <Text style={[styles.dniBlockHint, { color: textMuted }]}>
-              Lo solicitamos a conductores y pasajeros para verificar identidad. Necesitás frente y dorso. Las fotos se guardan de forma segura.
+            <Text style={[styles.heroName, { color: textPrimary }]} numberOfLines={1}>
+              {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
             </Text>
-            <View style={styles.dniRow}>
-              <TouchableOpacity
-                style={[styles.dniSlot, { borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                onPress={() => pickDniDocument('front')}
-                activeOpacity={0.85}
-                disabled={dniFrontLoading}
-              >
-                {dniFrontLoading && (
-                  <View style={styles.dniSlotOverlay}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+          </View>
+
+          {/* Cuenta */}
+          <View style={styles.section}>
+            <SectionLabel>Cuenta</SectionLabel>
+            <View style={styles.fieldStack}>
+              {/* El email identifica la cuenta y el backend no lo modifica en
+                  este endpoint, así que se muestra bloqueado y se dice por qué. */}
+              <View style={[styles.field, styles.fieldLocked, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Email</Text>
+                <View style={styles.selector}>
+                  <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted, flex: 1 }]} numberOfLines={1}>
+                    {user?.email || '—'}
+                  </Text>
+                  <Ionicons name="lock-closed" size={15} color={textMuted} />
+                </View>
+              </View>
+
+              <View style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Sexo</Text>
+                {user?.gender ? (
+                  // Una vez cargado no se cambia: el backend solo lo acepta vacío.
+                  <View style={styles.selector}>
+                    <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted, flex: 1 }]}>
+                      {genderLabel}
+                    </Text>
+                    <Ionicons name="lock-closed" size={15} color={textMuted} />
                   </View>
-                )}
-                {user?.dniFrontUrl ? (
-                  <Image source={{ uri: buildImageUri(user.dniFrontUrl) }} style={styles.dniSlotImage} />
                 ) : (
-                  <View style={styles.dniSlotInner}>
-                    <Ionicons name="id-card-outline" size={26} color={textMuted} />
-                    <Text style={[styles.dniSlotLabel, { color: textMuted }]}>Frente — tocar</Text>
+                  <View style={styles.genderRow}>
+                    {[
+                      { key: 'female', label: 'Femenino' },
+                      { key: 'male',   label: 'Masculino' },
+                    ].map((g) => {
+                      const on = gender === g.key;
+                      return (
+                        <TouchableOpacity
+                          key={g.key}
+                          style={[styles.genderChip, { backgroundColor: on ? accent : bg }]}
+                          onPress={() => setGender(g.key)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: on }}
+                        >
+                          <Text style={[styles.genderChipText, { color: on ? accentInv : textPrimary }]}>
+                            {g.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dniSlot, { borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                onPress={() => pickDniDocument('back')}
-                activeOpacity={0.85}
-                disabled={dniBackLoading}
-              >
-                {dniBackLoading && (
-                  <View style={styles.dniSlotOverlay}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  </View>
-                )}
-                {user?.dniBackUrl ? (
-                  <Image source={{ uri: buildImageUri(user.dniBackUrl) }} style={styles.dniSlotImage} />
-                ) : (
-                  <View style={styles.dniSlotInner}>
-                    <Ionicons name="id-card-outline" size={26} color={textMuted} />
-                    <Text style={[styles.dniSlotLabel, { color: textMuted }]}>Dorso — tocar</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Email</Text>
-              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{user?.email || '—'}</Text>
-            </View>
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Sexo</Text>
-              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{genderLabel}</Text>
-            </View>
-            {fields.map(renderField)}
+          {/* Datos personales */}
+          <View style={styles.section}>
+            <SectionLabel>Datos personales</SectionLabel>
+            <View style={styles.fieldStack}>
+              <View style={styles.row}>
+                {renderField(fields[0], true)}
+                {renderField(fields[1], true)}
+              </View>
+              <View style={styles.row}>
+                {renderField(fields[2], true)}
+                {renderField(fields[3], true)}
+              </View>
 
-            {/* Provincia — arriba de Ciudad */}
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Provincia</Text>
+              {/* Provincia va antes que Ciudad: es el orden en que uno las piensa */}
               <TouchableOpacity
-                style={styles.selector}
+                style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}
                 onPress={() => setShowProvincePicker(true)}
-                activeOpacity={0.7}
+                activeOpacity={0.75}
               >
-                <Text style={[styles.input, { color: formData.province ? textPrimary : textMuted, flex: 1 }]}>
-                  {formData.province || 'Seleccionar'}
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={textMuted} />
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Provincia</Text>
+                <View style={styles.selector}>
+                  <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: formData.province ? textPrimary : textMuted, flex: 1 }]}>
+                    {formData.province || 'Seleccionar'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={textMuted} />
+                </View>
               </TouchableOpacity>
-            </View>
 
-            {renderField(cityField)}
-
-            {/* Bio */}
-            <View style={[styles.inputGroup, { borderBottomColor: 'transparent' }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Sobre ti</Text>
-              <TextInput
-                style={[styles.textArea, { color: textPrimary, borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                value={formData.bio}
-                onChangeText={(v) => handleChange('bio', v)}
-                placeholder="Cuéntanos sobre ti..."
-                placeholderTextColor={textMuted}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
+              {renderField(cityField)}
             </View>
           </View>
 
-          {/* Save */}
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: loading ? textMuted : accent }]}
+          {/* Sobre vos */}
+          <View style={styles.section}>
+            <SectionLabel>Sobre vos</SectionLabel>
+            <TextInput
+              style={[
+                styles.textArea,
+                { color: textPrimary, backgroundColor: ui.surface, borderColor: focusedField === 'bio' ? textPrimary : 'transparent' },
+              ]}
+              value={formData.bio}
+              onChangeText={(v) => handleChange('bio', v)}
+              onFocus={() => setFocusedField('bio')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Contá algo sobre vos: a dónde viajás seguido, si escuchás música, si llevás mascotas…"
+              placeholderTextColor={textMuted}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* Verificación de identidad. Antes eran dos recuadros enormes para algo
+              secundario; ahora es una tarjeta con estado y dos filas compactas. */}
+          <View style={styles.section}>
+            <SectionLabel>Identidad</SectionLabel>
+            <View style={[styles.verifyCard, { backgroundColor: ui.surface }]}>
+              <View style={styles.verifyHead}>
+                <View style={[styles.verifyIcon, { backgroundColor: dniDone ? accent : bg }]}>
+                  <Ionicons
+                    name={dniDone ? 'shield-checkmark' : 'shield-outline'}
+                    size={20}
+                    color={dniDone ? accentInv : textMuted}
+                  />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={[styles.verifyTitle, { color: textPrimary }]}>
+                    {dniDone ? 'Identidad verificada' : 'Verificá tu identidad'}
+                  </Text>
+                  <Text style={[styles.verifySub, { color: textMuted }]}>
+                    {dniDone
+                      ? 'Ya tenemos las dos caras de tu DNI.'
+                      : `Faltan ${2 - dniCount} de 2 fotos.`}
+                  </Text>
+                </View>
+              </View>
+
+              {[
+                { side: 'front', label: 'Frente del DNI', url: user?.dniFrontUrl, busy: dniFrontLoading },
+                { side: 'back',  label: 'Dorso del DNI',  url: user?.dniBackUrl,  busy: dniBackLoading },
+              ].map((slot) => (
+                <TouchableOpacity
+                  key={slot.side}
+                  style={[styles.verifyRow, { borderTopColor: bg }]}
+                  onPress={() => pickDniDocument(slot.side)}
+                  activeOpacity={0.75}
+                  disabled={slot.busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Subir ${slot.label}`}
+                >
+                  <View style={[styles.verifyThumb, { backgroundColor: bg }]}>
+                    {slot.busy ? (
+                      <ActivityIndicator size="small" color={textMuted} />
+                    ) : slot.url ? (
+                      <Image source={{ uri: buildImageUri(slot.url) }} style={styles.verifyThumbImg} />
+                    ) : (
+                      <Ionicons name="camera-outline" size={19} color={textMuted} />
+                    )}
+                  </View>
+
+                  <View style={styles.flex}>
+                    <Text style={[styles.verifyRowLabel, { color: textPrimary }]}>{slot.label}</Text>
+                    <Text style={[styles.verifyRowState, { color: textMuted }]}>
+                      {slot.url ? 'Cargada · tocá para reemplazar' : 'Tocá para subir la foto'}
+                    </Text>
+                  </View>
+
+                  {slot.url ? (
+                    <View style={[styles.verifyTick, { backgroundColor: accent }]}>
+                      <Ionicons name="checkmark" size={13} color={accentInv} />
+                    </View>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={textMuted} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              Se la pedimos a conductores y pasajeros. Las fotos se guardan de forma segura y no se muestran en tu perfil.
+            </Text>
+          </View>
+
+          <PillButton
+            label="Guardar cambios"
             onPress={handleSave}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={accentInv} size="small" />
-            ) : (
-              <Text style={[styles.saveBtnText, { color: accentInv }]}>Guardar cambios</Text>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.save}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Province Picker */}
-      <Modal visible={showProvincePicker} transparent animationType="fade" onRequestClose={() => setShowProvincePicker(false)}>
+      <Modal visible={showProvincePicker} transparent animationType="slide" onRequestClose={() => setShowProvincePicker(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: isDarkMode ? '#222222' : '#FFFFFF' }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: divider }]}>
+          {/* Tocar fuera cierra: antes solo salías por la X */}
+          <TouchableOpacity style={styles.flex} activeOpacity={1} onPress={() => setShowProvincePicker(false)} />
+          <View style={[styles.modalBox, { backgroundColor: bg }]}>
+            <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textPrimary }]}>Provincia</Text>
-              <TouchableOpacity onPress={() => setShowProvincePicker(false)}>
-                <Ionicons name="close" size={22} color={textMuted} />
+              <TouchableOpacity
+                style={[styles.modalClose, { backgroundColor: ui.surface }]}
+                onPress={() => setShowProvincePicker(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <Ionicons name="close" size={19} color={textPrimary} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {ARGENTINA_PROVINCES.map((province) => (
-                <TouchableOpacity
-                  key={province}
-                  style={[styles.provinceItem, { borderBottomColor: divider }]}
-                  onPress={() => { handleChange('province', province); setShowProvincePicker(false); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.provinceText,
-                    { color: formData.province === province ? textPrimary : textMuted },
-                    formData.province === province && { fontWeight: '600' },
-                  ]}>
-                    {province}
-                  </Text>
-                  {formData.province === province && (
-                    <Ionicons name="checkmark" size={18} color={textPrimary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalList}>
+              {ARGENTINA_PROVINCES.map((province) => {
+                const selected = formData.province === province;
+                return (
+                  <TouchableOpacity
+                    key={province}
+                    style={[styles.provinceItem, { backgroundColor: selected ? accent : ui.surface }]}
+                    onPress={() => { handleChange('province', province); setShowProvincePicker(false); }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.provinceText, { color: selected ? accentInv : textPrimary }]}>
+                      {province}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={18} color={accentInv} />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
@@ -472,7 +578,7 @@ const EditProfileScreen = ({ navigation }) => {
         type="error"
         title="Error"
         message={modalMessage}
-        confirmText="OK"
+        confirmText="Entendido"
         showCancel={false}
       />
     </View>
@@ -484,135 +590,183 @@ const styles = StyleSheet.create({
   flex:          { flex: 1 },
   scrollContent: { paddingBottom: 48 },
 
-  // Avatar
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: 28,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  // Hero: avatar + nombre
+  hero: { alignItems: 'center', paddingTop: 28, paddingBottom: 32, paddingHorizontal: 24 },
+  avatarBlock: { width: 124, height: 124, marginBottom: 18 },
   avatarWrapper: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 124,
+    height: 124,
+    borderRadius: 999,
     overflow: 'hidden',
-    marginBottom: 14,
-    position: 'relative',
   },
   avatarImage:       { width: '100%', height: '100%' },
   avatarPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  avatarInitials:    { fontSize: 46, fontWeight: '700' },
+  avatarInitials:    { fontSize: 44, fontFamily: 'Sora_800ExtraBold' },
   avatarOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-  changePhotoText: { fontSize: 15, fontWeight: '500' },
-
-  dniSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  // Fuera del wrapper: ese tiene overflow hidden y recortaría el botón.
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dniBlockTitle: {
+  heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6, textAlign: 'center' },
+  heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
+  // Campos bloqueados: se ven como los demás pero con candado y sin foco
+  fieldLocked: { opacity: 0.85 },
+  genderRow:   { flexDirection: 'row', gap: 8, marginTop: 8 },
+  genderChip: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  genderChipText: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
+
+  // Secciones
+  section: { paddingHorizontal: 24, marginBottom: 28 },
+  sectionLabel: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 11,
-    fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 6,
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  dniBlockHint: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
-  dniRow: { flexDirection: 'row', gap: 10 },
-  dniSlot: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-    minHeight: 100,
-    maxHeight: 112,
-    position: 'relative',
-  },
-  dniSlotImage: { width: '100%', height: 100, resizeMode: 'cover' },
-  dniSlotInner: {
-    flex: 1,
-    minHeight: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  dniSlotLabel: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center', paddingHorizontal: 6 },
-  dniSlotOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
+  sectionHint: { fontFamily: 'Sora_400Regular', fontSize: 12, lineHeight: 18, marginTop: 10, marginLeft: 4, marginRight: 4 },
 
-  // Form
-  form: { paddingHorizontal: 20, paddingTop: 8 },
-  inputGroup: {
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  // Campos
+  fieldStack: { gap: 10 },
+  row:        { flexDirection: 'row', gap: 10 },
+  fieldHalf:  { flex: 1 },
+  field: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    paddingTop: 11,
+    paddingBottom: 13,
   },
-  label:  { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
-  input:  { fontSize: 15, paddingVertical: 0 },
+  fieldLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  fieldInput: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: 16,
+    padding: 0,
+    marginTop: 3,
+    minHeight: 22,
+  },
+  fieldReadOnly: { lineHeight: 22 },
   selector: { flexDirection: 'row', alignItems: 'center' },
   textArea: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 16,
+    fontFamily: 'Sora_400Regular',
     fontSize: 15,
-    minHeight: 90,
+    lineHeight: 21,
+    minHeight: 110,
   },
 
-  // Save
-  saveBtn: {
-    marginHorizontal: 20,
-    marginTop: 28,
-    height: 50,
-    borderRadius: 12,
+  // Verificación de identidad
+  verifyCard: { borderRadius: 24, overflow: 'hidden' },
+  verifyHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 18,
+  },
+  verifyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveBtnText: { fontSize: 15, fontWeight: '700' },
+  verifyTitle: { fontFamily: 'Sora_700Bold', fontSize: 16 },
+  verifySub:   { fontFamily: 'Sora_400Regular', fontSize: 13, marginTop: 2 },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderTopWidth: 2,
+  },
+  verifyThumb: {
+    width: 52,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  verifyThumbImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  verifyRowLabel: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
+  verifyRowState: { fontFamily: 'Sora_400Regular', fontSize: 12, marginTop: 2 },
+  verifyTick: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  save: { marginHorizontal: 24, marginTop: 4 },
 
   // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    justifyContent: 'flex-end',
   },
   modalBox: {
-    borderRadius: 14,
-    maxHeight: '70%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '75%',
     width: '100%',
-    maxWidth: 400,
     overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 24,
+    paddingTop: 22,
+    paddingBottom: 16,
   },
-  modalTitle:   { fontSize: 17, fontWeight: '700' },
+  modalTitle: { fontSize: 24, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  modalClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalList: { paddingHorizontal: 24, paddingBottom: 32, gap: 8 },
   provinceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    borderRadius: 18,
   },
-  provinceText: { fontSize: 15 },
+  provinceText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
 });
 
 export default EditProfileScreen;

@@ -15,15 +15,14 @@ import { useColors } from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { navigateFromNotification } from '../../../utils/notificationNavigation';
 import { get_withauth } from '../../../services/apiService';
-
-const PAGE_SIZE = 20;
+import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
 
   useTheme();
   const { markAsRead, markAllAsRead } = useNotifications();
@@ -37,7 +36,7 @@ const NotificationsScreen = ({ navigation }) => {
   const [optimisticRead, setOptimisticRead] = useState(new Set());
   const fetchingRef = useRef(false);
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
@@ -52,7 +51,7 @@ const NotificationsScreen = ({ navigation }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(`/notifications?page=${pageNum}&limit=${PAGE_SIZE}`);
+      const response = await get_withauth(`/notifications?page=${pageNum}&limit=${LIST_PAGE_SIZE}`);
       if (response?.success) {
         const newItems = (response.data || []).filter(isInAppNotification);
         setItems(prev => reset ? newItems : [...prev, ...newItems]);
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: -0.3,
   },
   markAllBtn: {
@@ -289,7 +288,7 @@ const styles = StyleSheet.create({
   },
   markAllText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 
   // List
@@ -327,7 +326,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   rowTime: {
     fontSize: 12,
@@ -356,7 +355,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   emptyText: {
     fontSize: 14,

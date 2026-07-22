@@ -35,9 +35,10 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
-
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
+  // isDarkMode ya viene resuelto: getCurrentThemeMode() devuelve 'system' cuando
+  // el usuario sigue al sistema, y comparar contra 'dark' dejaba el login en
+  // claro aunque el sistema estuviera en oscuro.
+  const { isDarkMode } = useColors();
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
@@ -65,9 +66,12 @@ const LoginScreen = ({ navigation }) => {
       const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUrl);
 
       if (result.type === 'success') {
-        const params = new URLSearchParams(result.url.split('?')[1] || '');
-        const token = params.get('token');
-        const error = params.get('error');
+        // Linking.parse es el parser canónico de Expo: URLSearchParams de React Native
+        // no decodifica de forma confiable el deep link y devolvía un token corrupto
+        // que el backend rechazaba ("Token inválido o expirado").
+        const { queryParams } = Linking.parse(result.url);
+        const token = queryParams?.token;
+        const error = queryParams?.error;
         if (token) {
           const loginResult = await loginWithJwt(token);
           if (!loginResult.success) showAlert('Error con Google', loginResult.message || 'No se pudo iniciar sesión.');

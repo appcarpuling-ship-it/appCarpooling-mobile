@@ -28,6 +28,7 @@ import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } f
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -447,9 +448,9 @@ const ChatsScreen = ({ navigation }) => {
                 </LinearGradient>
               )}
               {isUnread && (
-                <View style={[styles.unreadDot, { 
-                  backgroundColor: isDarkMode ? '#EF4444' : '#DC2626', 
-                  borderColor: isDarkMode ? '#161616' : '#FFFFFF' 
+                <View style={[styles.unreadDot, {
+                  backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
+                  borderColor: isDarkMode ? '#161616' : '#FFFFFF'
                 }]} />
               )}
             </View>
@@ -753,22 +754,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // backgroundColor: '#FFFFFF', // Ahora dinámico
   },
-  header: {
-    padding: 24,
-    paddingTop: 80,
-    paddingBottom: 32,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    // borderBottomColor: '#E5E7EB', // Ahora dinámico
-    // backgroundColor: '#FFFFFF', // Ahora dinámico
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: SORA_FONTS.bold,
-    fontWeight: 'bold',
-    color: '#000000',
-    letterSpacing: 0.5,
-  },
   content: {
     flex: 1,
   },
@@ -781,15 +766,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     // backgroundColor: '#FFFFFF', // Ahora dinámico
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md + 2,
     paddingVertical: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   searchIcon: {
     marginRight: spacing.sm,
@@ -810,8 +790,8 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     // backgroundColor: '#F3F4F6', // Ahora dinámico
-    borderRadius: borderRadius.xl,
-    padding: spacing.xs,
+    borderRadius: borderRadius.full,
+    padding: 5,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
@@ -819,19 +799,14 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 3,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterButtonActive: {
     // backgroundColor: '#FFFFFF', // Ahora dinámico
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   filterButtonText: {
     fontSize: fontSize.sm,
@@ -845,23 +820,19 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.md,
     paddingTop: spacing.sm,
+    paddingBottom: TAB_BAR_SPACE,
   },
   conversationItem: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
+    marginBottom: spacing.sm + 4,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
   conversationGradient: {
-    borderRadius: borderRadius.lg,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: borderRadius.xl,
   },
   conversationInner: {
     flexDirection: 'row',
-    padding: spacing.md,
+    padding: spacing.md + 2,
   },
   avatarContainer: {
     position: 'relative',
@@ -875,11 +846,6 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1F2937',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   avatarText: {
     fontSize: fontSize.lg,
@@ -892,13 +858,8 @@ const styles = StyleSheet.create({
     right: spacing.md,
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: borderRadius.full,
     borderWidth: 2,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
   },
   conversationContent: {
     flex: 1,
