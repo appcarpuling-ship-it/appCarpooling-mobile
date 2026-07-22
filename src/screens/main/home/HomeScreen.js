@@ -988,7 +988,7 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Publicar solicitud</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]}>Indicá a dónde querés ir y los conductores se postulan</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Indicá a dónde querés ir y recibí postulaciones de conductores</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
@@ -1003,7 +1003,7 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis solicitudes</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes que publicaste y elegí conductor</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes que publicaste y elegí a tu conductor</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
@@ -1018,7 +1018,7 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Ver solicitudes abiertas</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]}>Explorá pedidos de pasajeros y postulate como conductor</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Explorá pedidos de pasajeros y postulate como conductor</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
@@ -1033,7 +1033,7 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Viajes que ofrecí</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]}>Revisá las solicitudes donde te postulaste como conductor</Text>
+              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes donde te postulaste como conductor</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />
           </TouchableOpacity>
@@ -1469,9 +1469,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 3,
   },
+  // 2 renglones fijos, como las cards de Viajes: las descripciones más cortas
+  // entraban en uno y esas cards quedaban más bajas que el resto.
   hubCardSub: {
     fontSize: 12,
     lineHeight: 17,
+    minHeight: 34,
   },
 
   // Request cards (solicitudes tab)
