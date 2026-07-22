@@ -39,7 +39,9 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
   };
 
   return (
-    <View style={[styles.wrap, { backgroundColor: ui.bg, paddingBottom: Math.max(insets.bottom, 12) }]}>
+    // Sin fondo propio: se ve el de la pantalla. Pintarlo agregaba una banda
+    // blanca cuando la pantalla de atrás no era blanca.
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <View style={[styles.bar, { backgroundColor: barBg }]}>
         {state.routes.map((route, i) => {
           const isFocused = state.index === i;
@@ -59,9 +61,12 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                 // sobre la barra. Lleva solo un contorno fino porque el relleno
                 // es blanco y sobre la página clara la mitad de arriba
                 // desaparecía y el botón se veía cortado.
-                style={[styles.fab, { borderColor: ui.invertBg, opacity: isFocused ? 1 : 0.75 }]}
+                // Opacidad siempre 1: al bajarla, la mitad que sobresale de la
+                // barra dejaba pasar el fondo y se veía descolorida. El estado
+                // activo lo marca el avatar, no el círculo.
+                style={[styles.fab, { borderColor: ui.invertBg }]}
               >
-                <Image source={RUMBO_AVATAR} style={styles.fabAvatar} />
+                <Image source={RUMBO_AVATAR} style={[styles.fabAvatar, !isFocused && styles.fabAvatarOff]} />
               </TouchableOpacity>
             );
           }
@@ -110,7 +115,9 @@ const styles = StyleSheet.create({
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   fab:       { width: 58, height: 58, borderRadius: 999, marginTop: -22, backgroundColor: '#FFFFFF', borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  fabAvatar: { width: 40, height: 40, borderRadius: 999 },
+  fabAvatar:    { width: 40, height: 40, borderRadius: 999 },
+  // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
+  fabAvatarOff: { opacity: 0.55 },
   badge:     { position: 'absolute', top: 2, right: 4, minWidth: 17, height: 17, borderRadius: 999, borderWidth: 2, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   badgeText: { fontFamily: 'Sora_700Bold', fontSize: 9, color: '#000000' },
 });
