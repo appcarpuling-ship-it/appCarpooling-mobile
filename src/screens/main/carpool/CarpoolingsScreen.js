@@ -220,7 +220,7 @@ const CarpoolingsScreen = ({ navigation }) => {
               </View>
               <View style={styles.menuText}>
                 <Text style={[styles.menuTitle, { color: textPrimary }]}>{item.title}</Text>
-                <Text style={[styles.menuDesc, { color: textSecondary }]}>{item.description}</Text>
+                <Text style={[styles.menuDesc, { color: textSecondary }]} numberOfLines={2}>{item.description}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -309,7 +309,9 @@ const styles = StyleSheet.create({
   },
   menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
   menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, marginBottom: 3 },
-  menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18 },
+  // 2 renglones fijos: "Crear Viaje" entraba en uno y su card quedaba más baja
+  // que las demás. El alto no depende del ancho de pantalla.
+  menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18, minHeight: 36 },
 
   bannerSection: { marginTop: 32 },
   bannerListContent: { paddingHorizontal: 24 },
