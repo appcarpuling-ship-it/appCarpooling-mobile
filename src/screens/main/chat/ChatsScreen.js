@@ -478,7 +478,7 @@ const ChatsScreen = ({ navigation }) => {
               <Text
                 style={[
                   styles.lastMessage, 
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  { color: ui.textMuted },
                   isUnread && { fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#1F2937' }
                 ]}
                 numberOfLines={1}
@@ -527,7 +527,7 @@ const ChatsScreen = ({ navigation }) => {
                 style={styles.clearSearchButton}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={22} color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+                <Ionicons name="close" size={22} color={ui.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -546,7 +546,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'all' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'all' ? (ui.invertText) : (ui.textMuted),
                 fontWeight: filter === 'all' ? '600' : '500'
               }
             ]}>
@@ -564,7 +564,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'trips' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'trips' ? (ui.invertText) : (ui.textMuted),
                 fontWeight: filter === 'trips' ? '600' : '500'
               }
             ]}>
@@ -582,7 +582,7 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={[
               styles.filterButtonText,
               { 
-                color: filter === 'direct' ? (ui.invertText) : (isDarkMode ? '#9CA3AF' : '#6B7280'),
+                color: filter === 'direct' ? (ui.invertText) : (ui.textMuted),
                 fontWeight: filter === 'direct' ? '600' : '500'
               }
             ]}>
@@ -629,7 +629,7 @@ const ChatsScreen = ({ navigation }) => {
               loadingMoreConv ? (
                 <View style={{ paddingVertical: 20, alignItems: 'center', gap: 8 }}>
                   <ActivityIndicator size="small" color={ui.invertBg} />
-                  <Text style={{ fontSize: 13, color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>Cargando más…</Text>
+                  <Text style={{ fontSize: 13, color: ui.textMuted }}>Cargando más…</Text>
                 </View>
               ) : null
             }
@@ -681,7 +681,7 @@ const ChatsScreen = ({ navigation }) => {
               }
               activeOpacity={0.75}
             >
-              <Ionicons name="person-outline" size={22} color={isDarkMode ? '#E5E7EB' : '#374151'} />
+              <Ionicons name="person-outline" size={22} color={ui.text} />
               <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                 Ver perfil
               </Text>
@@ -702,7 +702,7 @@ const ChatsScreen = ({ navigation }) => {
               }
               activeOpacity={0.75}
             >
-              <Ionicons name="flag-outline" size={22} color={isDarkMode ? '#E5E7EB' : '#374151'} />
+              <Ionicons name="flag-outline" size={22} color={ui.text} />
               <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                 Reportar
               </Text>
@@ -734,7 +734,7 @@ const ChatsScreen = ({ navigation }) => {
               onPress={closeChatActions}
               activeOpacity={0.75}
             >
-              <Text style={[styles.chatActionCancelText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+              <Text style={[styles.chatActionCancelText, { color: ui.textMuted }]}>
                 Cancelar
               </Text>
             </TouchableOpacity>

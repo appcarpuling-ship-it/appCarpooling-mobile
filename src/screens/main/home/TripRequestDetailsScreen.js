@@ -21,13 +21,13 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
-  const bg       = dark ? '#161616' : '#F9FAFB';
-  const cardBg   = dark ? '#1F1F1F' : '#FFFFFF';
+  const bg       = ui.bg;
+  const cardBg   = ui.surface;
   const border   = dark ? '#2E2E2E' : '#E5E7EB';
 
   const ui = useUI();  const divider  = ui.bg;
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
   const accent      = ui.invertBg;
   const accentInverse = ui.invertText;
 

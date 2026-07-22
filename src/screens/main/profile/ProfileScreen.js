@@ -221,7 +221,7 @@ const ProfileScreen = () => {
                 />
                 {avatarImageLoading ? (
                   <View style={[styles.avatarImageLoader, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.65)' }]}>
-                    <ActivityIndicator size="large" color={isDarkMode ? '#FFFFFF' : '#111827'} />
+                    <ActivityIndicator size="large" color={ui.invertBg} />
                   </View>
                 ) : null}
               </View>

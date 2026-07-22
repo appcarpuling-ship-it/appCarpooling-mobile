@@ -26,7 +26,6 @@ import { ENDPOINTS } from '../../../config/api';
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, vehicles } = route.params;
     const { showAlert } = useAlert();
-    const { isDarkMode } = useColors();
     const { user } = useAuth();
 
     const ui          = useUI();
@@ -341,7 +340,7 @@ const TripDetails = ({ navigation, route }) => {
                                     ]}>
                                         <View style={[
                                             styles.toggleCircle,
-                                            { backgroundColor: formData[p.key] ? (isDarkMode ? '#000000' : '#FFFFFF') : textMuted },
+                                            { backgroundColor: formData[p.key] ? (ui.invertText) : textMuted },
                                             formData[p.key] && styles.toggleOn,
                                         ]} />
                                     </View>
@@ -353,7 +352,7 @@ const TripDetails = ({ navigation, route }) => {
                         <TouchableOpacity
                             style={[
                                 styles.submitBtn,
-                                { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
+                                { backgroundColor: ui.invertBg },
                                 loading && { opacity: 0.6 },
                             ]}
                             onPress={handleCreateTrip}
@@ -361,8 +360,8 @@ const TripDetails = ({ navigation, route }) => {
                             activeOpacity={0.85}
                         >
                             {loading
-                                ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} size="small" />
-                                : <Text style={[styles.submitText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+                                ? <ActivityIndicator color={ui.invertText} size="small" />
+                                : <Text style={[styles.submitText, { color: ui.invertText }]}>
                                     Publicar viaje
                                   </Text>
                             }

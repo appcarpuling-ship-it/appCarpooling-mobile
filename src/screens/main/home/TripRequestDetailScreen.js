@@ -32,8 +32,8 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const { showAlert }  = useAlert();
 
   const dark        = isDarkMode;
-  const bg          = dark ? '#161616' : '#F9FAFB';
-  const cardBg      = dark ? '#1F1F1F' : '#FFFFFF';
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
   const textPrimary = dark ? '#FFFFFF'  : '#1F2937';
   const textSecondary = dark ? '#D1D5DB' : '#374151';
   const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
@@ -477,14 +477,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isAcceptedDriver && request.status === 'paid' && (
             <View style={[styles.footerRow, { marginTop: 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancelTrip}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
+                  ? <ActivityIndicator size="small" color={ui.textMuted} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar viaje</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -515,14 +515,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar solicitud</Text>
+                  ? <ActivityIndicator size="small" color={ui.textMuted} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar solicitud</Text>
                 }
               </TouchableOpacity>
             </View>

@@ -166,7 +166,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]);
   const tripSeatCap = useMemo(() => (trip ? tripSeatCapacity(trip) : 0), [trip]);
 
-  const headerBackTint = dark ? '#FFFFFF' : '#1F2937';
+  const headerBackTint = ui.text;
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
@@ -965,7 +965,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                   */}
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
+                    style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
                     disabled={cancellingTrip}
                   >
@@ -998,7 +998,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
+                    style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
                     disabled={cancellingTrip}
                   >

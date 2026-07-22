@@ -19,12 +19,12 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
-  const bg         = dark ? '#161616' : '#F9FAFB';
-  const cardBg     = dark ? '#1F1F1F' : '#FFFFFF';
-  const border     = dark ? '#333333' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
-  const divider     = dark ? '#2A2A2A' : '#F3F4F6';
+  const bg         = ui.bg;
+  const cardBg     = ui.surface;
+  const border     = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
 
   const ui = useUI();  const accent      = ui.invertBg;
   const accentInverse = ui.invertText;

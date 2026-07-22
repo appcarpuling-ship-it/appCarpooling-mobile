@@ -17,6 +17,7 @@ import { buildImageUri } from '../../../services/apiService';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { PROVINCE_IMAGES } from '../../../constants/provinceImages';
 import { getDepartmentsForProvince } from '../../../constants/departmentImages';
+import { useUI } from '../../../theme/ui';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -24,8 +25,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const { isAuthenticated, user } = useAuth();
 
   const dark          = isDarkMode;
-  const bg            = dark ? '#161616' : '#F9FAFB';
-  const cardBg        = dark ? '#222222' : '#F7F7F7';
+
+  const ui = useUI();  const bg            = ui.bg;
+  const cardBg        = ui.surface;
   const textPrimary   = dark ? '#FFFFFF'  : '#1F2937';
   const textMuted     = dark ? '#9CA3AF'  : '#6B7280';
   const divider       = dark ? '#2A2A2A'  : '#F0F0F0';
@@ -153,7 +155,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     return (
       <Modal transparent animationType="fade" visible={visible} onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: dark ? '#161616' : '#FFFFFF' }]}>
+          <View style={[styles.pickerContainer, { backgroundColor: ui.bg }]}>
             <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
               {step === 'department' && (
                 <TouchableOpacity onPress={() => onStepChange('province')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 10 }}>
@@ -176,9 +178,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => {
                   const isSelected = selectedProv === item.key;
-                  const cardBgItem = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint    = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textMuted;
+                  const cardBgItem = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint    = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textMuted;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
@@ -203,7 +205,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
             {step === 'department' && (
               <>
                 <TouchableOpacity
-                  style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor }]}
+                  style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor }]}
                   onPress={() => { onCitySelect(''); handleClose(); }}
                   activeOpacity={0.75}
                 >
@@ -218,8 +220,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
                   contentContainerStyle={{ paddingTop: 12, paddingBottom: 24, gap: 12 }}
                   showsVerticalScrollIndicator={false}
                   renderItem={({ item }) => {
-                    const cardBgItem = dark ? '#252525' : '#FFFFFF';
-                    const imgTint    = dark ? '#FFFFFF' : '#1F2937';
+                    const cardBgItem = ui.surface;
+                    const imgTint    = ui.text;
                     return (
                       <TouchableOpacity
                         style={[styles.provinceGridItem, { flex: 1, backgroundColor: cardBgItem, borderColor }]}
@@ -321,7 +323,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           {passenger.avatar ? (
             <Image source={{ uri: buildImageUri(passenger.avatar) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Text style={[styles.initials, { color: textMuted }]}>{initials}</Text>
             </View>
           )}
@@ -388,9 +390,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     );
   };
 
-  const chipActive  = { backgroundColor: dark ? '#FFFFFF' : '#000000', borderColor: dark ? 'transparent' : '#000000' };
+  const chipActive  = { backgroundColor: ui.invertBg, borderColor: dark ? 'transparent' : '#000000' };
   const chipDefault = { backgroundColor: dark ? '#292929' : '#FFFFFF', borderColor: borderColor };
-  const chipTextActive  = { color: dark ? '#000000' : '#FFFFFF' };
+  const chipTextActive  = { color: ui.invertText };
   const chipTextDefault = { color: textMuted };
 
   return (

@@ -364,12 +364,12 @@ const HomeScreen = ({ navigation, route }) => {
 
   // Dynamic colors
   const bg = colors.background;
-  const cardBg = dark ? '#222222' : '#F7F7F7';
-  const inputBg = dark ? '#222222' : '#F7F7F7';
+  const cardBg = ui.surface;
+  const inputBg = ui.surface;
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
   const textMuted = colors.textMuted;
-  const borderColor = dark ? '#2A2A2A' : '#E8E8E8';
+  const borderColor = ui.bg;
 
   const ui = useUI();  const accent = ui.invertBg;
   const accentInverse = ui.invertText;
@@ -402,7 +402,7 @@ const HomeScreen = ({ navigation, route }) => {
             style={styles.driverAvatar}
           />
         ) : (
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
             <Text style={[styles.driverInitials, { color: textSecondary }]}>
               {getDriverInitials(trip.driver)}
             </Text>
@@ -481,7 +481,7 @@ const HomeScreen = ({ navigation, route }) => {
           {req.passenger?.avatar ? (
             <Image source={{ uri: buildImageUri(req.passenger.avatar) }} style={styles.driverAvatar} />
           ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Ionicons name="person-outline" size={18} color={textMuted} />
             </View>
           )}
@@ -593,15 +593,15 @@ const HomeScreen = ({ navigation, route }) => {
                 windowSize={5}
                 renderItem={({ item }) => {
                   const isSelected = selectedProvince === item.key;
-                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        borderColor: isSelected ? cardBackground : (ui.border),
                         shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,
@@ -638,7 +638,7 @@ const HomeScreen = ({ navigation, route }) => {
                 windowSize={5}
                 ListHeaderComponent={
                   <TouchableOpacity
-                    style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor: dark ? '#333333' : '#E5E7EB' }]}
+                    style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor: ui.border }]}
                     onPress={() => { onDeptSelect(''); handleClose(); }}
                     activeOpacity={0.75}
                   >
@@ -648,15 +648,15 @@ const HomeScreen = ({ navigation, route }) => {
                 }
                 renderItem={({ item }) => {
                   const isSelected = selectedDept === item.label;
-                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        borderColor: isSelected ? cardBackground : (ui.border),
                         shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,

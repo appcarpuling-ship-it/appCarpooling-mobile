@@ -684,7 +684,7 @@ const BookingScreen = ({ route, navigation }) => {
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.pickupIconWrap, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+            <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
               <Ionicons name="location-outline" size={18} color={textMuted} />
             </View>
             <View style={{ flex: 1 }}>
@@ -781,7 +781,7 @@ const BookingScreen = ({ route, navigation }) => {
               {!pickupSearchVisible && (
                 <View style={[pickupStyles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, 16) }]}>
                   <View style={pickupStyles.handleContainer}>
-                    <View style={[pickupStyles.handle, { backgroundColor: dark ? '#2E2E2E' : '#E8E8E8' }]} />
+                    <View style={[pickupStyles.handle, { backgroundColor: ui.border }]} />
                   </View>
 
                   <TouchableOpacity
@@ -851,7 +851,7 @@ const BookingScreen = ({ route, navigation }) => {
                         }}
                         activeOpacity={0.6}
                       >
-                        <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                        <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                           <Ionicons name="map-outline" size={16} color={textPrimary} />
                         </View>
                         <Text style={[pickupStyles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
@@ -869,7 +869,7 @@ const BookingScreen = ({ route, navigation }) => {
                               onPress={() => selectFrequentPickup(addr)}
                               activeOpacity={0.6}
                             >
-                              <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                              <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                                 <Ionicons name="time-outline" size={16} color={textPrimary} />
                               </View>
                               <View style={{ flex: 1 }}>
@@ -888,7 +888,7 @@ const BookingScreen = ({ route, navigation }) => {
                           onPress={() => selectPickupFromSearch(item)}
                           activeOpacity={0.6}
                         >
-                          <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                          <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                             <Ionicons name="location-sharp" size={16} color={textPrimary} />
                           </View>
                           <View style={{ flex: 1 }}>
