@@ -31,7 +31,7 @@ const menuItems = [
   {
     id: 1,
     title: 'Crear Viaje',
-    description: 'Publica un nuevo viaje como conductor',
+    description: 'Publicá un nuevo viaje y ofrecé lugares libres',
     icon: 'add-circle-outline',
     screen: 'CreateTrip',
   },
