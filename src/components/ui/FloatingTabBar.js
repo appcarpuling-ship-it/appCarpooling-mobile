@@ -4,7 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUI } from '../../theme/ui';
 
-const RUMBO_AVATAR = require('../../../assets/agent/rumbo_black_128.png');
+// El logo va al revés que el relleno del botón: relleno negro -> logo blanco.
+const RUMBO_WHITE = require('../../../assets/agent/rumbo_128.png');
+const RUMBO_BLACK = require('../../../assets/agent/rumbo_black_128.png');
 
 const ICONS = {
   HomeTab:        ['home-outline', 'home'],
@@ -50,24 +52,31 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
 
           if (route.name === CENTER_TAB) {
             return (
-              <TouchableOpacity
-                key={route.key}
-                onPress={() => onPress(route, isFocused)}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isFocused }}
-                accessibilityLabel={label}
-                // Sin anillo, como en la referencia: el círculo apoya directo
-                // sobre la barra. Lleva solo un contorno fino porque el relleno
-                // es blanco y sobre la página clara la mitad de arriba
-                // desaparecía y el botón se veía cortado.
-                // Opacidad siempre 1: al bajarla, la mitad que sobresale de la
-                // barra dejaba pasar el fondo y se veía descolorida. El estado
-                // activo lo marca el avatar, no el círculo.
-                style={[styles.fab, { borderColor: ui.invertBg }]}
-              >
-                <Image source={RUMBO_AVATAR} style={[styles.fabAvatar, !isFocused && styles.fabAvatarOff]} />
-              </TouchableOpacity>
+              <View key={route.key} style={styles.fabSlot}>
+                {/* La "bajadita" de la referencia: un círculo del color del
+                    fondo, más grande que el botón, que recorta la barra. Medido
+                    sobre la captura, el borde describe un arco de círculo. */}
+                <View
+                  pointerEvents="none"
+                  style={[styles.fabCutout, { backgroundColor: ui.bg }]}
+                />
+                <TouchableOpacity
+                  onPress={() => onPress(route, isFocused)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isFocused }}
+                  accessibilityLabel={label}
+                  // Opacidad siempre 1: al bajarla, la mitad que sobresale de la
+                  // barra dejaba pasar el fondo y se veía descolorida. El estado
+                  // activo lo marca el avatar.
+                  style={[styles.fab, { backgroundColor: ui.invertBg }]}
+                >
+                  <Image
+                    source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
+                    style={[styles.fabAvatar, !isFocused && styles.fabAvatarOff]}
+                  />
+                </TouchableOpacity>
+              </View>
             );
           }
 
@@ -107,15 +116,18 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
 const styles = StyleSheet.create({
   // Sin position:absolute a propósito: la barra sigue ocupando su lugar en el
   // layout, así ninguna lista queda tapada por debajo.
-  // paddingTop >= lo que sobresale el FAB, o su parte de arriba queda fuera del
-  // área pintada y se ve el contenido de la pantalla por detrás.
-  // Sobresale 16: marginTop 20 menos los 4 que lo centran en la barra de 64.
-  wrap:      { paddingHorizontal: 16, paddingTop: 22 },
-  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 64, borderRadius: 999, paddingHorizontal: 8 },
+  // Proporciones tomadas de la captura de referencia: el botón sobresale ~58%
+  // de su alto sobre la barra y la bajadita baja otro tanto.
+  wrap:      { paddingHorizontal: 16, paddingTop: 36 },
+  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  fab:       { width: 58, height: 58, borderRadius: 999, marginTop: -22, backgroundColor: '#FFFFFF', borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  fabAvatar:    { width: 40, height: 40, borderRadius: 999 },
+
+  // marginTop deja el botón 31px por encima del borde de la barra
+  fabSlot:   { alignItems: 'center', justifyContent: 'center', marginTop: -78 },
+  fabCutout: { position: 'absolute', width: 70, height: 70, borderRadius: 999, top: -8, left: -8 },
+  fab:       { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  fabAvatar:    { width: 34, height: 34, borderRadius: 999 },
   // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
   fabAvatarOff: { opacity: 0.55 },
   badge:     { position: 'absolute', top: 2, right: 4, minWidth: 17, height: 17, borderRadius: 999, borderWidth: 2, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
