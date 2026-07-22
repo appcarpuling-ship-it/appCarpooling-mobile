@@ -680,24 +680,33 @@ const HomeScreen = ({ navigation, route }) => {
   const renderTop = () => (
     <>
       <View style={styles.header}>
-        <Image source={LOGO_SOURCE} style={styles.logo} />
-        <Text style={[styles.headerTitle, { color: textPrimary }]}>Carpuling</Text>
-        {isAuthenticated && (
-          <TouchableOpacity
-            onPress={() => setShowNotificationsModal(true)}
-            style={[styles.notifBtn, { backgroundColor: inputBg }]}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="notifications-outline" size={20} color={textPrimary} />
-            {unreadCount > 0 && (
-              <View style={[styles.notifBadge, { borderColor: bg }]}>
-                <Text style={styles.notifBadgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerRow}>
+          <Image source={LOGO_SOURCE} style={styles.logo} />
+          <Text style={[styles.headerGreeting, { color: textMuted }]} numberOfLines={1}>
+            {user?.firstName ? `Hola, ${user.firstName}` : 'Carpuling'}
+          </Text>
+          {isAuthenticated && (
+            <TouchableOpacity
+              onPress={() => setShowNotificationsModal(true)}
+              style={[styles.notifBtn, { backgroundColor: inputBg }]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="notifications-outline" size={20} color={textPrimary} />
+              {unreadCount > 0 && (
+                <View style={[styles.notifBadge, { borderColor: bg, backgroundColor: textPrimary }]}>
+                  <Text style={[styles.notifBadgeText, { color: bg }]}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+        {/* Título display: el peso hace de acento, no el color. */}
+        <Text style={[styles.headerTitle, { color: textPrimary }]}>
+          ¿A dónde{'\n'}
+          <Text style={styles.headerTitleStrong}>vamos hoy?</Text>
+        </Text>
       </View>
       <View style={styles.tabBarWrap}>
         <View style={[styles.tabPill, { backgroundColor: inputBg }]}>
@@ -744,7 +753,8 @@ const HomeScreen = ({ navigation, route }) => {
         {activeTrip && (
           <View style={styles.activeTripWrapper}>
             <TouchableOpacity
-              style={styles.activeTripBanner}
+              // En oscuro, el #111 del banner se perdía contra el fondo #161616.
+              style={[styles.activeTripBanner, dark && { backgroundColor: '#2A2A2A' }]}
               onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
               activeOpacity={0.88}
             >
@@ -867,6 +877,11 @@ const HomeScreen = ({ navigation, route }) => {
               activeOpacity={0.85}
             >
               <Text style={[styles.searchBtnText, { color: accentInverse }]}>Buscar viajes</Text>
+              <View style={styles.searchBtnChevrons}>
+                {[0.35, 0.6, 1].map((opacity, i) => (
+                  <Ionicons key={i} name="chevron-forward" size={15} color={accentInverse} style={{ opacity, marginLeft: -5 }} />
+                ))}
+              </View>
             </TouchableOpacity>
           </View>
           {(origin || destination || selectedDate || selectedSeats) && (
@@ -877,7 +892,7 @@ const HomeScreen = ({ navigation, route }) => {
               accessibilityRole="button"
               accessibilityLabel="Restablecer búsqueda y limpiar filtros"
             >
-              <Text style={[styles.clearFiltersLinkText, { color: '#EF4444' }]}>
+              <Text style={[styles.clearFiltersLinkText, { color: textMuted }]}>
                 Restablecer búsqueda
               </Text>
             </TouchableOpacity>
@@ -1187,13 +1202,13 @@ const styles = StyleSheet.create({
   },
   activeTripRing: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 0.8,
-    borderColor: '#F59E0B',
+    borderColor: 'rgba(255,255,255,0.55)',
   },
   activeTripBanner: {
     backgroundColor: '#111111',
-    borderRadius: 16,
+    borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -1213,8 +1228,8 @@ const styles = StyleSheet.create({
   activeDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#22C55E',
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
   },
   activeTripLabel: {
     fontSize: 11,
@@ -1232,31 +1247,40 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 14,
-    paddingBottom: 10,
+    paddingBottom: 18,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   logo: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    marginBottom: 10,
+    width: 30,
+    height: 30,
     resizeMode: 'contain',
   },
+  headerGreeting: {
+    flex: 1,
+    fontFamily: 'Sora_500Medium',
+    fontSize: 15,
+  },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    fontFamily: 'Sora_300Light',
+    fontSize: 34,
+    lineHeight: 42,
+    letterSpacing: -1,
+    marginTop: 18,
+  },
+  headerTitleStrong: {
+    fontFamily: 'Sora_800ExtraBold',
   },
   headerSub: {
     fontSize: 13,
     marginTop: 4,
   },
   notifBtn: {
-    position: 'absolute',
-    top: 20,
-    right: 24,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1267,8 +1291,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#EF4444',
-    borderRadius: 8,
+    borderRadius: 999,
     minWidth: 16,
     height: 16,
     justifyContent: 'center',
@@ -1277,15 +1300,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   notifBadgeText: {
-    color: '#FFFFFF',
+    fontFamily: 'Sora_700Bold',
     fontSize: 9,
-    fontWeight: '700',
   },
 
   // Search block
   searchBlock: {
     marginHorizontal: 24,
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   searchRow: {
@@ -1372,15 +1394,20 @@ const styles = StyleSheet.create({
   },
   searchBtn: {
     flex: 1,
-    height: 52,
-    borderRadius: 12,
+    height: 58,
+    borderRadius: 999,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.1,
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 16,
+  },
+  searchBtnChevrons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 14,
   },
   clearFiltersLink: {
     alignSelf: 'center',
@@ -1389,8 +1416,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   clearFiltersLinkText: {
+    fontFamily: 'Sora_500Medium',
     fontSize: 13,
-    fontWeight: '500',
     textDecorationLine: 'underline',
     textDecorationStyle: 'solid',
   },
@@ -1403,18 +1430,18 @@ const styles = StyleSheet.create({
   },
   tabPill: {
     flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: 999,
+    padding: 5,
   },
   tabPillItem: {
     flex: 1,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 999,
     alignItems: 'center',
   },
   tabPillText: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 14,
-    fontWeight: '600',
   },
 
   // Solicitudes hub
@@ -1562,18 +1589,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontFamily: 'Sora_700Bold',
+    fontSize: 22,
+    letterSpacing: -0.6,
   },
   sectionLink: {
+    fontFamily: 'Sora_500Medium',
     fontSize: 14,
-    fontWeight: '500',
   },
 
   // Trip Card
   tripCard: {
-    borderRadius: 14,
+    borderRadius: 24,
     marginBottom: 12,
   },
   tripDriverRow: {
