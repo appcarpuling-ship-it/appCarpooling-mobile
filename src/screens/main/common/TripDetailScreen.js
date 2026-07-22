@@ -32,6 +32,7 @@ import { getPendingPaymentReservations, confirmFromCallback, cancelSeatReservati
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
 import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
@@ -129,14 +130,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { colors, isDarkMode } = useColors();
 
   const dark = isDarkMode;
-  const bg = colors.background;
-  const textPrimary = colors.textPrimary;
-  const textSecondary = colors.textSecondary;
-  const textMuted = colors.textMuted;
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
-  const cardBg = dark ? '#1A1A1A' : '#F7F7F7';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const ui = useUI();
+  const bg = ui.bg;
+  const textPrimary = ui.text;
+  const textSecondary = ui.textMuted;
+  const textMuted = ui.textMuted;
+  const divider = ui.border;
+  const cardBg = ui.surface;
+  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -583,11 +585,13 @@ const TripDetailScreen = ({ route, navigation }) => {
     !isOwnTrip && user && driverId && String(driverId) !== String(userId)
   );
 
+  // En blanco y negro el estado no puede ir por color: los viajes en marcha
+  // llevan el badge sólido y los cerrados uno apagado.
   const statusMap = {
-    active:    { color: dark ? '#34D399' : '#10B981', label: 'Activo' },
-    started:   { color: dark ? '#FBBF24' : '#F59E0B', label: 'En curso' },
-    completed: { color: dark ? '#60A5FA' : '#3B82F6', label: 'Finalizado' },
-    cancelled: { color: dark ? '#F87171' : '#EF4444', label: 'Cancelado' },
+    active:    { solid: true,  label: 'Activo' },
+    started:   { solid: true,  label: 'En curso' },
+    completed: { solid: false, label: 'Finalizado' },
+    cancelled: { solid: false, label: 'Cancelado' },
   };
   const statusCfg = statusMap[trip.status];
 
@@ -615,9 +619,9 @@ const TripDetailScreen = ({ route, navigation }) => {
       >
         {statusCfg && (
           <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
-              <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? accentInverse : textMuted }]} />
+              <Text style={[styles.statusText, { color: statusCfg.solid ? accentInverse : textMuted }]}>{statusCfg.label}</Text>
             </View>
           </View>
         )}
@@ -693,17 +697,17 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Date / time / seats */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={16} color={dark ? textPrimary : colors.info} />
+            <Ionicons name="calendar-outline" size={16} color={textMuted} />
             <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(trip.departureDate)}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={16} color={dark ? textPrimary : colors.accentOrange} />
+            <Ionicons name="time-outline" size={16} color={textMuted} />
             <Text style={[styles.metaText, { color: textPrimary }]}>{trip.departureTime}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={16} color={dark ? textPrimary : colors.accentGreen} />
+            <Ionicons name="person-outline" size={16} color={textMuted} />
             <Text style={[styles.metaText, { color: textPrimary }]}>
               {tripFreeSeats}/{tripSeatCap} libres
             </Text>
@@ -828,7 +832,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Ionicons
                 name={trip.rules?.smokingAllowed ? 'checkmark-circle' : 'close-circle'}
                 size={18}
-                color={trip.rules?.smokingAllowed ? colors.success : colors.error}
+                color={trip.rules?.smokingAllowed ? textPrimary : textMuted}
               />
               <Text style={[styles.ruleText, { color: textPrimary }]}>
                 {trip.rules?.smokingAllowed ? 'Fumar permitido' : 'No se permite fumar'}
@@ -838,7 +842,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Ionicons
                 name={trip.rules?.petsAllowed ? 'checkmark-circle' : 'close-circle'}
                 size={18}
-                color={trip.rules?.petsAllowed ? colors.success : colors.error}
+                color={trip.rules?.petsAllowed ? textPrimary : textMuted}
               />
               <Text style={[styles.ruleText, { color: textPrimary }]}>
                 {trip.rules?.petsAllowed ? 'Mascotas permitidas' : 'No se permiten mascotas'}
@@ -848,7 +852,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Ionicons
                 name={trip.rules?.largeLuggageAllowed ? 'checkmark-circle' : 'close-circle'}
                 size={18}
-                color={trip.rules?.largeLuggageAllowed ? colors.success : colors.error}
+                color={trip.rules?.largeLuggageAllowed ? textPrimary : textMuted}
               />
               <Text style={[styles.ruleText, { color: textPrimary }]}>
                 {trip.rules?.largeLuggageAllowed ? 'Equipaje grande permitido' : 'Sin equipaje grande'}
@@ -903,9 +907,9 @@ const TripDetailScreen = ({ route, navigation }) => {
                       </Text>
                       <View style={{
                         paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
-                        backgroundColor: paid ? (colors.success + '20') : (colors.accentOrange + '20'),
+                        backgroundColor: paid ? accent : cardBg,
                       }}>
-                        <Text style={{ fontSize: 11, fontFamily: 'Sora_600SemiBold', color: paid ? colors.success : colors.accentOrange }}>
+                        <Text style={{ fontSize: 11, fontFamily: 'Sora_600SemiBold', color: paid ? accentInverse : textMuted }}>
                           {paid ? 'Pagó' : 'Confirmado'}
                         </Text>
                       </View>
@@ -966,8 +970,8 @@ const TripDetailScreen = ({ route, navigation }) => {
                     disabled={cancellingTrip}
                   >
                     {cancellingTrip
-                      ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                      : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                      ? <ActivityIndicator size="small" color={textMuted} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Cancelar</Text>
                     }
                   </TouchableOpacity>
                 </View>
@@ -999,8 +1003,8 @@ const TripDetailScreen = ({ route, navigation }) => {
                     disabled={cancellingTrip}
                   >
                     {cancellingTrip
-                      ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                      : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar</Text>
+                      ? <ActivityIndicator size="small" color={textMuted} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Cancelar</Text>
                     }
                   </TouchableOpacity>
                 </View>
@@ -1019,8 +1023,8 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>Reserva cancelada</Text>
                 </View>
               ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
-                <View style={[styles.statusFooter, { backgroundColor: (colors.warning || '#F59E0B') + '15' }]}>
-                  <Text style={[styles.statusFooterText, { color: colors.warning || '#F59E0B' }]}>
+                <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>
                     Esperando aprobacion del conductor
                   </Text>
                 </View>
@@ -1028,13 +1032,13 @@ const TripDetailScreen = ({ route, navigation }) => {
                 <View style={styles.pendingWrap}>
                   <View style={styles.pendingTopRow}>
                     <View style={styles.pendingIndicator}>
-                      <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
-                      <Text style={[styles.pendingLabel, { color: colors.warning }]}>Pago pendiente</Text>
+                      <View style={[styles.pendingDot, { backgroundColor: textPrimary }]} />
+                      <Text style={[styles.pendingLabel, { color: textPrimary }]}>Pago pendiente</Text>
                     </View>
                     <TouchableOpacity onPress={handleCancelPendingReservation} disabled={cancellingReservation}>
                       {cancellingReservation
-                        ? <ActivityIndicator size="small" color={colors.error} />
-                        : <Text style={[styles.cancelLink, { color: colors.error }]}>Cancelar</Text>
+                        ? <ActivityIndicator size="small" color={textMuted} />
+                        : <Text style={[styles.cancelLink, { color: textMuted }]}>Cancelar</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -1051,15 +1055,15 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[styles.statusFooter, { backgroundColor: colors.success + '15' }]}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <Text style={[styles.statusFooterText, { color: colors.success }]}>Reserva paga</Text>
+                <View style={[styles.statusFooter, { backgroundColor: accent }]}>
+                  <Ionicons name="checkmark-circle" size={18} color={accentInverse} />
+                  <Text style={[styles.statusFooterText, { color: accentInverse }]}>Reserva paga</Text>
                 </View>
               )
             ) : (
               trip.womenOnly && !canReserveWomenOnlyTrip ? (
-                <View style={[styles.statusFooter, { backgroundColor: (colors.warning || '#F59E0B') + '12' }]}>
-                  <Ionicons name="woman-outline" size={18} color={colors.warning || '#F59E0B'} />
+                <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
+                  <Ionicons name="woman-outline" size={18} color={textMuted} />
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>
                     Este viaje es solo mujeres. Solo pueden reservar usuarias con perfil femenino.
                   </Text>
@@ -1071,7 +1075,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                     style={{
                       fontSize: 13,
                       fontFamily: 'Sora_600SemiBold',
-                      color: colors?.error || '#EF4444',
+                      color: textMuted,
                       textAlign: 'center',
                       marginBottom: 10,
                       paddingHorizontal: 8,
@@ -1215,12 +1219,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
     gap: 6,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusDot: { width: 7, height: 7, borderRadius: 999 },
   statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Section

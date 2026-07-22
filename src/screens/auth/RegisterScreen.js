@@ -17,8 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
-import { useColors } from '../../hooks/useColors';
 import { appendFile } from '../../utils/formDataFile';
+import { useUI } from '../../theme/ui';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
@@ -41,14 +41,14 @@ const RegisterScreen = ({ navigation }) => {
     return () => { ScreenCapture.allowScreenCaptureAsync(); };
   }, []);
 
-  const { isDarkMode } = useColors();
   const { showAlert } = useAlert();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui          = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
 
   const [currentStep, setCurrentStep] = useState(0);
   const stepAnim = useRef(new Animated.Value(1)).current;
@@ -252,7 +252,7 @@ const RegisterScreen = ({ navigation }) => {
                       <ActivityIndicator size="small" color={textMuted} />
                       <Text style={[styles.referralMsg, { color: textMuted }]}>  Validando código...</Text>
                     </View>
-                  : <Text style={[styles.referralMsg, { color: referralMessage.includes('válido') && !referralMessage.includes('no') ? '#10B981' : '#EF4444' }]}>
+                  : <Text style={[styles.referralMsg, { color: textPrimary }]}>
                       {referralMessage}
                     </Text>
                 }
@@ -333,7 +333,7 @@ const RegisterScreen = ({ navigation }) => {
                       <Ionicons name="camera-outline" size={40} color={textMuted} />
                     </View>
                 }
-                <View style={[styles.cameraBadge, { backgroundColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' }]}>
+                <View style={[styles.cameraBadge, { backgroundColor: ui.surface }]}>
                   <Ionicons name="camera" size={14} color={textPrimary} />
                 </View>
               </TouchableOpacity>
@@ -358,23 +358,23 @@ const RegisterScreen = ({ navigation }) => {
         <View style={[styles.btnContainer, { backgroundColor: bg }]}>
           {currentStep < STEPS.length - 1 ? (
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+              style={[styles.btn, { backgroundColor: ui.invertBg }]}
               onPress={handleNext}
               activeOpacity={0.85}
             >
-              <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Siguiente</Text>
-              <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 8 }} />
+              <Text style={[styles.btnText, { color: ui.invertText }]}>Siguiente</Text>
+              <Ionicons name="arrow-forward" size={18} color={ui.invertText} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+              style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
               onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.85}
             >
               {loading
-                ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Crear cuenta</Text>
+                ? <ActivityIndicator color={ui.invertText} />
+                : <Text style={[styles.btnText, { color: ui.invertText }]}>Crear cuenta</Text>
               }
             </TouchableOpacity>
           )}

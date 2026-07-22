@@ -19,6 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
 
@@ -28,12 +29,13 @@ const TripDetails = ({ navigation, route }) => {
     const { isDarkMode } = useColors();
     const { user } = useAuth();
 
-    const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-    const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-    const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-    const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-    const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-    const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+    const ui          = useUI();
+    const bg          = ui.bg;
+    const cardBg      = ui.surface;
+    const border      = ui.border;
+    const textPrimary = ui.text;
+    const textMuted   = ui.textMuted;
+    const divider     = ui.bg;
 
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
