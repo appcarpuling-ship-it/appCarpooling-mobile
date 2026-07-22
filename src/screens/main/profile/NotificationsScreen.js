@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: -0.3,
   },
   markAllBtn: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   markAllText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 
   // List
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   rowTime: {
     fontSize: 12,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   emptyText: {
     fontSize: 14,

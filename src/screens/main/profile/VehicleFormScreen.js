@@ -17,25 +17,26 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 
 const VehicleFormScreen = ({ navigation, route }) => {
-  const { isDarkMode } = useColors();
+  const ui = useUI();
   const { showAlert } = useAlert();
   const headerHeight = useHeaderHeight();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary     = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted       = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const textLabel       = isDarkMode ? '#E5E7EB' : '#374151';
-  const textHint        = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const placeholderColor = isDarkMode ? '#787F8C' : '#A8B0BC';
-  const divider         = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const isDarkMode  = ui.isDarkMode;
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary     = ui.text;
+  const textMuted       = ui.textMuted;
+  const textLabel       = ui.text;
+  const textHint        = ui.textMuted;
+  const placeholderColor = ui.textMuted;
+  const divider         = ui.bg;
 
   const isEdit = !!route.params?.vehicle;
   const vehicleData = route.params?.vehicle;
@@ -561,13 +562,13 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 40, gap: 12 },
 
   section: {
-    borderRadius: 14,
+    borderRadius: 24,
     borderWidth: 1,
     padding: 20,
   },
   sectionLabel: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     letterSpacing: 0.2,
     marginBottom: 6,
   },
@@ -613,11 +614,11 @@ const styles = StyleSheet.create({
   },
   photoAddText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   photoAddHint: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     marginTop: 2,
   },
 
@@ -649,7 +650,7 @@ const styles = StyleSheet.create({
   },
   regCardReplaceText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   regCardAdd: {
     width: 200,
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1.5,
   },
-  typeChipText: { fontSize: 14, fontWeight: '600' },
+  typeChipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   // Form
   row:       { flexDirection: 'row', gap: 20 },
@@ -680,14 +681,14 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0,
     marginBottom: 8,
   },
   input: {
     fontSize: 17,
     lineHeight: 24,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
@@ -709,7 +710,7 @@ const styles = StyleSheet.create({
   featureLabel: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   toggle: {
     width: 46,
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
   },
   submitText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 });
 

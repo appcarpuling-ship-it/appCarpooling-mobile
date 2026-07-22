@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
@@ -25,17 +25,18 @@ import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { isDarkMode } = useColors();
+  const ui = useUI();
   const headerHeight = useHeaderHeight();
 
-  const bg          = isDarkMode ? '#161616' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const labelTitleColor = isDarkMode ? textMuted : '#000000';
-  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
-  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+  const isDarkMode  = ui.isDarkMode;
+  const bg          = ui.bg;
+  const border      = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
+  const labelTitleColor = ui.textMuted;
+  const accent      = ui.invertBg;
+  const accentInv   = ui.invertText;
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]   = useState(false);
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
   },
   avatarImage:       { width: '100%', height: '100%' },
   avatarPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  avatarInitials:    { fontSize: 46, fontWeight: '700' },
+  avatarInitials:    { fontSize: 46, fontFamily: 'Sora_700Bold' },
   avatarOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1,
   },
-  changePhotoText: { fontSize: 15, fontWeight: '500' },
+  changePhotoText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
 
   dniSection: {
     paddingHorizontal: 20,
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
   },
   dniBlockTitle: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 6,
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
   },
-  dniSlotLabel: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center', paddingHorizontal: 6 },
+  dniSlotLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', marginTop: 6, textAlign: 'center', paddingHorizontal: 6 },
   dniSlotOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -556,7 +557,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  label:  { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  label:  { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
   input:  { fontSize: 15, paddingVertical: 0 },
   selector: { flexDirection: 'row', alignItems: 'center' },
   textArea: {
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveBtnText: { fontSize: 15, fontWeight: '700' },
+  saveBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   // Modal
   modalOverlay: {
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalTitle:   { fontSize: 17, fontWeight: '700' },
+  modalTitle:   { fontSize: 17, fontFamily: 'Sora_700Bold' },
   provinceItem: {
     flexDirection: 'row',
     alignItems: 'center',
