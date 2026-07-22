@@ -111,7 +111,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
             <Ionicons 
               name="checkmark-circle" 
               size={24} 
-              color={colors.accentGreen}
+              color={colors.textPrimary}
             />
           )}
         </View>
@@ -164,7 +164,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
 
         {/* Información adicional */}
         <View style={[styles.infoContainer, { backgroundColor: colors.surface }]}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
+          <Ionicons name="information-circle-outline" size={20} color={colors.textMuted} />
           <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: SORA_FONTS.regular }]}>
             El modo automático cambiará entre claro y oscuro según la configuración de tu dispositivo.
           </Text>

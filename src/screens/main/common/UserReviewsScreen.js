@@ -165,7 +165,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
           </View>
           <View style={styles.reviewTypeContainer}>
             <LinearGradient
-              colors={review.type === 'driver' ? ['#10B981', '#059669'] : ['#F59E0B', '#D97706']}
+              colors={review.type === 'driver' ? ['#2B2B2B', '#111111'] : ['#6B6B6B', '#4A4A4A']}
               style={styles.reviewTypeBadge}
             >
               <Ionicons

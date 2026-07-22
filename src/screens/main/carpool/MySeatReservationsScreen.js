@@ -13,6 +13,7 @@ import { getMyReservations, cancelSeatReservation, confirmFromCallback } from '.
 import { post_withauth } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
+import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
@@ -21,12 +22,13 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
   const { colors } = useColors();
+  const ui = useUI();
   const { isDarkMode } = useTheme();
 
   const dark = isDarkMode;
   const bg = colors.background;
   const cardBg = colors.cardBackground;
-  const divider = dark ? '#2A2A2A' : '#ECECEC';
+  const divider = ui.bg;
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
   const chipBg = dark ? '#1C1C1C' : '#F3F4F6';
@@ -149,19 +151,21 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const getPill = (item) => {
     const ts = item.trip?.status;
     const rs = item.seatReservation?.reservationStatus;
-    if (ts === 'cancelled') return { c: dark ? '#F87171' : '#EF4444', t: 'Viaje cancelado' };
-    if (ts === 'completed') return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Viaje finalizado' };
-    if (ts === 'started')   return { c: dark ? '#FBBF24' : '#F59E0B', t: 'En curso' };
+    // Sin color: lo que sigue en juego lleva el pill solido y lo cerrado, apagado.
+    const vivo = { solid: true }, cerrado = { solid: false };
+    if (ts === 'cancelled') return { ...cerrado, t: 'Viaje cancelado' };
+    if (ts === 'completed') return { ...cerrado, t: 'Viaje finalizado' };
+    if (ts === 'started')   return { ...vivo, t: 'En curso' };
     switch (rs) {
-      case 'pending_approval': return { c: dark ? '#FBBF24' : '#F59E0B', t: 'Pendiente de aprobación' };
-      case 'pending_payment':  return { c: dark ? '#FB923C' : '#EA580C', t: 'Pendiente de pago' };
-      case 'payment_failed':   return { c: dark ? '#F87171' : '#DC2626', t: 'Pago fallido' };
-      case 'reserved':         return { c: dark ? '#34D399' : '#10B981', t: 'Confirmada' };
-      case 'trip_completed':   return { c: dark ? '#60A5FA' : '#3B82F6', t: 'Completada' };
-      case 'expired':          return { c: textMuted, t: 'Vencida' };
-      case 'rejected':         return { c: dark ? '#F87171' : '#EF4444', t: 'Rechazada' };
-      case 'cancelled':        return { c: dark ? '#F87171' : '#EF4444', t: 'Cancelada' };
-      default:                 return { c: textMuted, t: '—' };
+      case 'pending_approval': return { ...vivo, t: 'Pendiente de aprobación' };
+      case 'pending_payment':  return { ...vivo, t: 'Pendiente de pago' };
+      case 'payment_failed':   return { ...vivo, t: 'Pago fallido' };
+      case 'reserved':         return { ...vivo, t: 'Confirmada' };
+      case 'trip_completed':   return { ...cerrado, t: 'Completada' };
+      case 'expired':          return { ...cerrado, t: 'Vencida' };
+      case 'rejected':         return { ...cerrado, t: 'Rechazada' };
+      case 'cancelled':        return { ...cerrado, t: 'Cancelada' };
+      default:                 return { ...cerrado, t: '—' };
     }
   };
 
@@ -231,9 +235,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
         >
           {/* Header */}
           <View style={styles.cardHeader}>
-            <View style={[styles.statusPill, { backgroundColor: pill.c + '20' }]}>
-              <View style={[styles.statusDot, { backgroundColor: pill.c }]} />
-              <Text style={[styles.statusPillText, { color: pill.c }]}>{pill.t}</Text>
+            <View style={[styles.statusPill, { backgroundColor: pill.solid ? ui.invertBg : ui.surface }]}>
+              <View style={[styles.statusDot, { backgroundColor: pill.solid ? ui.invertText : textMuted }]} />
+              <Text style={[styles.statusPillText, { color: pill.solid ? ui.invertText : textMuted }]}>{pill.t}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={textMuted} />
           </View>
@@ -300,9 +304,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
                 {formatCurrency(item.seatReservation?.reservationAmount || 0)}
               </Text>
               {timeLeft && (
-                <View style={[styles.timerBadge, { backgroundColor: pill.c + '1A' }]}>
-                  <Ionicons name="time-outline" size={12} color={pill.c} />
-                  <Text style={[styles.timerText, { color: pill.c }]}>{timeLeft}</Text>
+                <View style={[styles.timerBadge, { backgroundColor: ui.surface }]}>
+                  <Ionicons name="time-outline" size={12} color={textMuted} />
+                  <Text style={[styles.timerText, { color: textMuted }]}>{timeLeft}</Text>
                 </View>
               )}
             </View>
@@ -314,14 +318,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
               onCheckoutPress={handleOpenCheckout}
             />
             <TouchableOpacity
-              style={[styles.cancelBtn, { borderColor: (colors.error || '#DC2626') + '50' }]}
+              style={[styles.cancelBtn, { borderColor: ui.border }]}
               onPress={() => handleCancelReservation(item)}
               activeOpacity={0.7}
               disabled={cancellingId === item.seatReservation?._id}
             >
               {cancellingId === item.seatReservation?._id
-                ? <ActivityIndicator size="small" color={colors.error || '#DC2626'} />
-                : <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar reserva</Text>
+                ? <ActivityIndicator size="small" color={textMuted} />
+                : <Text style={[styles.cancelText, { color: textMuted }]}>Cancelar reserva</Text>
               }
             </TouchableOpacity>
           </View>
@@ -339,8 +343,8 @@ const MySeatReservationsScreen = ({ navigation }) => {
               disabled={cancellingId === item.seatReservation?._id}
             >
               {cancellingId === item.seatReservation?._id
-                ? <ActivityIndicator size="small" color={colors.error || '#DC2626'} />
-                : <Text style={[styles.cancelText, { color: colors.error || '#DC2626' }]}>Cancelar</Text>
+                ? <ActivityIndicator size="small" color={textMuted} />
+                : <Text style={[styles.cancelText, { color: textMuted }]}>Cancelar</Text>
               }
             </TouchableOpacity>
           </View>
@@ -367,9 +371,9 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
         {(rs === 'rejected' || rs === 'cancelled') && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
-            <View style={[styles.metaChip, { backgroundColor: pill.c + '20', alignSelf: 'flex-start' }]}>
-              {rs === 'rejected' && <Ionicons name="close-circle-outline" size={13} color={pill.c} />}
-              <Text style={[styles.metaText, { color: pill.c }]}>
+            <View style={[styles.metaChip, { backgroundColor: ui.surface, alignSelf: 'flex-start' }]}>
+              {rs === 'rejected' && <Ionicons name="close-circle-outline" size={13} color={textMuted} />}
+              <Text style={[styles.metaText, { color: textMuted }]}>
                 {rs === 'rejected' ? 'Rechazada por el conductor' : 'Reserva cancelada'}
               </Text>
             </View>

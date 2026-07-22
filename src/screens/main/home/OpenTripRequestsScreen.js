@@ -437,8 +437,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
               onPress={clearFilters}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle-outline" size={14} color={dark ? '#F87171' : '#DC2626'} />
-              <Text style={[styles.filterChipText, { color: dark ? '#F87171' : '#DC2626' }]}>Limpiar</Text>
+              <Ionicons name="close-circle-outline" size={14} color={textMuted} />
+              <Text style={[styles.filterChipText, { color: textMuted }]}>Limpiar</Text>
             </TouchableOpacity>
           )}
         </ScrollView>
