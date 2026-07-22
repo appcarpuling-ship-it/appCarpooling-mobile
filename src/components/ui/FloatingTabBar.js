@@ -36,6 +36,10 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
   // blanca y la barra casi negra, así que va un gris oscuro; en oscuro las dos
   // son oscuras, así que el que se despega es el blanco.
   const fabBg = ui.isDarkMode ? '#FFFFFF' : '#636363';
+
+  const centerIndex = state.routes.findIndex((r) => r.name === CENTER_TAB);
+  const centerRoute = state.routes[centerIndex];
+  const centerFocused = state.index === centerIndex;
   const activeFg = '#FFFFFF';
   const inactiveFg = '#8A8A8E';
 
@@ -50,43 +54,22 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
     // Sin fondo propio: se ve el de la pantalla. Pintarlo agregaba una banda
     // blanca cuando la pantalla de atrás no era blanca.
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <View style={[styles.bar, { backgroundColor: barBg }]}>
-        {state.routes.map((route, i) => {
-          const isFocused = state.index === i;
-          const { options } = descriptors[route.key];
-          const label = options.tabBarLabel ?? route.name;
+      {/* paddingTop = lo que sobresale el botón, para que quede dentro de este
+          contenedor: en Android lo que se dibuja fuera del padre no recibe toques. */}
+      <View style={styles.barWrap}>
+        <View style={[styles.bar, { backgroundColor: barBg }]}>
+          {state.routes.map((route, i) => {
+            const isFocused = state.index === i;
+            const { options } = descriptors[route.key];
+            const label = options.tabBarLabel ?? route.name;
 
-          if (route.name === CENTER_TAB) {
-            return (
-              <View key={route.key} style={styles.fabSlot}>
-                {/* La "bajadita" de la referencia: un círculo del color del
-                    fondo, más grande que el botón, que recorta la barra. Medido
-                    sobre la captura, el borde describe un arco de círculo. */}
-                <View
-                  pointerEvents="none"
-                  style={[styles.fabCutout, { backgroundColor: ui.bg }]}
-                />
-                <TouchableOpacity
-                  onPress={() => onPress(route, isFocused)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isFocused }}
-                  accessibilityLabel={label}
-                  // Opacidad siempre 1: al bajarla, la mitad que sobresale de la
-                  // barra dejaba pasar el fondo y se veía descolorida. El estado
-                  // activo lo marca el avatar.
-                  style={[styles.fab, { backgroundColor: fabBg }]}
-                >
-                  <Image
-                    source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
-                    style={[styles.fabAvatar, !isFocused && styles.fabAvatarOff]}
-                  />
-                </TouchableOpacity>
-              </View>
-            );
-          }
+            // El botón se dibuja fuera de la barra (abajo): acá solo se le
+            // reserva el lugar en la fila.
+            if (route.name === CENTER_TAB) {
+              return <View key={route.key} style={styles.fabSpacer} />;
+            }
 
-          const [outline, solid] = ICONS[route.name] ?? ICONS.HomeTab;
+            const [outline, solid] = ICONS[route.name] ?? ICONS.HomeTab;
           const showBadge = route.name === 'ChatsTab' && unreadCount > 0;
 
           return (
@@ -111,9 +94,37 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                   </View>
                 )}
               </View>
-            </TouchableOpacity>
-          );
-        })}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* La bajadita: círculo del color del fondo, más grande que el botón
+              y concéntrico con él. Va DENTRO de la barra, que tiene
+              overflow:hidden, así solo se ve el arco que le come el borde y no
+              queda ningún aro por encima. */}
+          <View pointerEvents="none" style={styles.cutoutLayer}>
+            <View style={[styles.cutout, { backgroundColor: ui.bg }]} />
+          </View>
+        </View>
+
+        {/* El botón, fuera de la barra para que el recorte no lo tape */}
+        <View pointerEvents="box-none" style={styles.fabLayer}>
+          <TouchableOpacity
+            onPress={() => onPress(centerRoute, centerFocused)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: centerFocused }}
+            accessibilityLabel="Rumbo"
+            // Opacidad siempre 1: al bajarla, la parte que sobresale de la barra
+            // dejaba pasar el fondo. El estado activo lo marca el avatar.
+            style={[styles.fab, { backgroundColor: fabBg }]}
+          >
+            <Image
+              source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
+              style={[styles.fabAvatar, !centerFocused && styles.fabAvatarOff]}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -124,16 +135,23 @@ const styles = StyleSheet.create({
   // layout, así ninguna lista queda tapada por debajo.
   // Proporciones tomadas de la captura de referencia: el botón sobresale ~58%
   // de su alto sobre la barra y la bajadita baja otro tanto.
-  wrap:      { paddingHorizontal: 16, paddingTop: 26 },
-  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
+  wrap:      { paddingHorizontal: 16 },
+  // paddingTop = lo que sobresale el botón (18)
+  barWrap:   { paddingTop: 18 },
+  // overflow hidden: es lo que recorta la bajadita contra la barra
+  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8, overflow: 'hidden' },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 
-  // marginTop deja el botón 18px por encima del borde de la barra
-  fabSlot:   { alignItems: 'center', justifyContent: 'center', marginTop: -52 },
-  // Del mismo tamaño que el botón y sin desplazamiento: la barra se hunde
-  // justo en su borde. Más grande dejaba un aro visible alrededor.
-  fabCutout: { position: 'absolute', width: 54, height: 54, borderRadius: 999, top: 0, left: 0 },
+  fabSpacer: { width: 54 },
+  // Capa que llena la barra y centra el círculo en horizontal
+  cutoutLayer: { ...StyleSheet.absoluteFillObject, alignItems: 'center' },
+  // Concéntrico con el botón: su centro cae 9px dentro de la barra, así que
+  // arrancando en -24 el borde inferior queda a 42 y esa es la bajadita.
+  cutout:    { width: 66, height: 66, borderRadius: 999, marginTop: -24 },
+
+  // top:0 de barWrap = 18px por encima del borde de la barra
+  fabLayer:  { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },
   fab:       { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   fabAvatar:    { width: 34, height: 34, borderRadius: 999 },
   // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
