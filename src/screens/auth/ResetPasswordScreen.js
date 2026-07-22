@@ -11,13 +11,11 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { post_public } from '../../services/apiService';
 import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
-import { useColors } from '../../hooks/useColors';
-import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
+import { spacing, borderRadius, fontSize } from '../../theme/colors';
 import { useUI } from '../../theme/ui';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
@@ -28,7 +26,6 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
-  const { colors, isDarkMode } = useColors();
   const ui = useUI();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -96,147 +93,119 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={isDarkMode
-          ? ['#161616', '#292929', '#161616']
-          : ['#FFFFFF', '#F8F9FA', '#FFFFFF']
-        }
-        style={styles.gradient}
+    <View style={[styles.container, { backgroundColor: ui.bg }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-            <Animated.View
-              style={[
-                styles.content,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
-                }
-              ]}
-            >
-              {/* Logo y título */}
-              <View style={styles.header}>
-                <View
-                  style={[styles.logoContainer, {
-                    backgroundColor: ui.invertBg,
-                  }]}
-                >
-                  <Ionicons name="lock-open-outline" size={40} color={ui.invertText} />
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <Animated.View
+            style={[
+              styles.content,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            {/* Logo y título */}
+            <View style={styles.header}>
+              <View style={[styles.logoContainer, { backgroundColor: ui.invertBg }]}>
+                <Ionicons name="lock-open-outline" size={40} color={ui.invertText} />
+              </View>
+              <Text style={[styles.title, { color: ui.text }]}>Nueva Contraseña</Text>
+              <Text style={[styles.subtitle, { color: ui.textMuted }]}>
+                Ingresa el código que enviamos a {email} y tu nueva contraseña
+              </Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              {/* Code Input */}
+              <View style={[styles.inputWrapper, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="keypad-outline" size={20} color={ui.textMuted} />
                 </View>
-                <Text style={[styles.title, { color: colors.textPrimary }]}>Nueva Contraseña</Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Ingresa el código que enviamos a {email} y tu nueva contraseña
-                </Text>
+                <TextInput
+                  style={[styles.input, { color: ui.text }]}
+                  placeholder="Código de 6 dígitos"
+                  placeholderTextColor={ui.textMuted}
+                  value={code}
+                  onChangeText={setCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
               </View>
 
-              {/* Form */}
-              <View style={styles.form}>
-                {/* Code Input */}
-                <View style={[styles.inputWrapper, {
-                  backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
-                  borderColor: isDarkMode ? '#404040' : colors.inputBorder,
-                }]}>
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons name="keypad-outline" size={20} color={colors.textTertiary} />
-                  </View>
-                  <TextInput
-                    style={[styles.input, { color: colors.textPrimary }]}
-                    placeholder="Código de 6 dígitos"
-                    placeholderTextColor={colors.placeholder}
-                    value={code}
-                    onChangeText={setCode}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                  />
+              {/* New Password Input */}
+              <View style={[styles.inputWrapper, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="lock-closed-outline" size={20} color={ui.textMuted} />
                 </View>
-
-                {/* New Password Input */}
-                <View style={[styles.inputWrapper, {
-                  backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
-                  borderColor: isDarkMode ? '#404040' : colors.inputBorder,
-                }]}>
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
-                  </View>
-                  <TextInput
-                    style={[styles.input, { color: colors.textPrimary }]}
-                    placeholder="Nueva contraseña"
-                    placeholderTextColor={colors.placeholder}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry={!showPassword}
+                <TextInput
+                  style={[styles.input, { color: ui.text }]}
+                  placeholder="Nueva contraseña"
+                  placeholderTextColor={ui.textMuted}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={ui.textMuted}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={colors.textTertiary}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Confirm Password Input */}
-                <View style={[styles.inputWrapper, {
-                  backgroundColor: isDarkMode ? '#292929' : colors.inputBackground,
-                  borderColor: isDarkMode ? '#404040' : colors.inputBorder,
-                }]}>
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
-                  </View>
-                  <TextInput
-                    style={[styles.input, { color: colors.textPrimary }]}
-                    placeholder="Confirmar contraseña"
-                    placeholderTextColor={colors.placeholder}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                </View>
-
-                {/* Reset Button */}
-                <TouchableOpacity
-                  onPress={handleResetPassword}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[styles.button, {
-                      backgroundColor: ui.invertBg,
-                    }]}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color={ui.invertText} />
-                    ) : (
-                      <Text style={[styles.buttonText, { color: ui.invertText }]}>Restablecer Contraseña</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-
-                {/* Back */}
-                <TouchableOpacity
-                  style={styles.linkButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Text style={[styles.linkText, { color: colors.primary }]}>Volver</Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+
+              {/* Confirm Password Input */}
+              <View style={[styles.inputWrapper, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="lock-closed-outline" size={20} color={ui.textMuted} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: ui.text }]}
+                  placeholder="Confirmar contraseña"
+                  placeholderTextColor={ui.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showPassword}
+                />
+              </View>
+
+              {/* Reset Button */}
+              <TouchableOpacity
+                onPress={handleResetPassword}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.button, { backgroundColor: ui.invertBg }]}>
+                  {loading ? (
+                    <ActivityIndicator color={ui.invertText} />
+                  ) : (
+                    <Text style={[styles.buttonText, { color: ui.invertText }]}>Restablecer Contraseña</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Back */}
+              <TouchableOpacity
+                style={styles.linkButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={[styles.linkText, { color: ui.text }]}>Volver</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  gradient: {
     flex: 1,
   },
   keyboardView: {

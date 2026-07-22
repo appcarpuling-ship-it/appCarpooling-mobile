@@ -368,7 +368,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   </Text>
                 )}
               </View>
-              <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
+              <Ionicons name="checkmark-circle" size={20} color={textPrimary} />
             </View>
           </View>
         )}
@@ -403,7 +403,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                       {app.driverSnapshot?.firstName} {app.driverSnapshot?.lastName}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                      <Ionicons name="star" size={11} color="#F59E0B" />
+                      <Ionicons name="star" size={11} color={textPrimary} />
                       <Text style={[styles.passengerSeats, { color: textMuted }]}>
                         {app.driverSnapshot?.rating?.toFixed(1) || '—'}
                       </Text>
@@ -415,7 +415,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     </View>
                   </View>
                   {app.status === 'rejected' ? (
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#FEE2E2' }}>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: cardBg }}>
                       <Text style={{ color: ui.textMuted, fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
                     </View>
                   ) : (
@@ -454,9 +454,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
           {/* Esperando pago (driver) */}
           {isAcceptedDriver && request.status === 'awaiting_payment' && (
-            <View style={[styles.statusFooter, { backgroundColor: '#DBEAFE' }]}>
-              <Ionicons name="hourglass-outline" size={17} color="#2563EB" />
-              <Text style={[styles.statusFooterText, { color: '#2563EB' }]}>
+            <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
+              <Ionicons name="hourglass-outline" size={17} color={ui.invertText} />
+              <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
                 ¡Te eligieron! El pasajero está completando el pago.
               </Text>
             </View>
@@ -464,9 +464,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
           {/* Confirmado */}
           {(isPassenger || isAcceptedDriver) && request.status === 'paid' && (
-            <View style={[styles.statusFooter, { backgroundColor: '#DCFCE7' }]}>
-              <Ionicons name="checkmark-circle" size={17} color="#16A34A" />
-              <Text style={[styles.statusFooterText, { color: '#16A34A' }]}>
+            <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
+              <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
+              <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
                 {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Pago confirmado. El viaje está en tu agenda.'}
               </Text>
             </View>
@@ -492,9 +492,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
             alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
-              <View style={[styles.statusFooter, { backgroundColor: dark ? '#0D2B1A' : '#F0FDF4' }]}>
-                <Ionicons name="checkmark-circle" size={17} color="#22C55E" />
-                <Text style={[styles.statusFooterText, { color: ui.text }]}>Ya te postulaste a este viaje</Text>
+              <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
+                <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
+                <Text style={[styles.statusFooterText, { color: ui.invertText }]}>Ya te postulaste a este viaje</Text>
               </View>
             ) : canApply ? (
               <TouchableOpacity

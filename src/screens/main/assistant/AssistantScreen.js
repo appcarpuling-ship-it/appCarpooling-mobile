@@ -7,13 +7,11 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useColors } from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import apiService from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -23,7 +21,7 @@ import { useUI } from '../../../theme/ui';
 const RUMBO_AVATAR_DARK = require('../../../../assets/agent/rumbo_128.png');
 const RUMBO_AVATAR_LIGHT = require('../../../../assets/agent/rumbo_black_128.png');
 const BOT_NAME = 'Rumbo';
- 
+
 const THINKING_MSGS = [
   'Pensando...',
   'Investigando...',
@@ -40,7 +38,7 @@ const RUMBO_CAPABILITIES = [
   { icon: 'card-outline',        label: 'Pagos y tarifas' },
 ];
 
-function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode }) {
+function RumboProfileModal({ visible, onClose, isDarkMode }) {
   const ui = useUI();
   const slideAnim = useRef(new Animated.Value(400)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -77,15 +75,12 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
           },
         ]}
       >
-        {/* Handle */}
         <View style={[styles.sheetHandle, { backgroundColor: ui.border }]} />
 
-        {/* Avatar grande */}
         <View style={styles.profileAvatarWrapper}>
           <Image source={avatarSrc} style={styles.profileAvatar} />
         </View>
 
-        {/* Nombre */}
         <Text style={[styles.profileName, { color: ui.text, fontFamily: 'Sora_800ExtraBold' }]}>
           {BOT_NAME}
         </Text>
@@ -93,15 +88,10 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
           Asistente virtual de Carpuling
         </Text>
 
-        {/* Separador */}
-        
-
-        {/* Descripción */}
         <Text style={[styles.profileBio, { color: ui.textMuted, fontFamily: 'Sora_400Regular' }]}>
           Hola, soy Rumbo. Estoy aquí para ayudarte con todo lo que necesites dentro de Carpuling. Desde buscar viajes hasta resolver dudas sobre pagos.
         </Text>
 
-        {/* Lo que puedo hacer */}
         <Text style={[styles.profileSectionTitle, { color: ui.textMuted, fontFamily: 'Sora_600SemiBold' }]}>
           ¿En qué puedo ayudarte?
         </Text>
@@ -131,8 +121,7 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
   );
 }
 
-// Componente animado para el indicador de "pensando"
-function ThinkingBubble({ colors, fontFamily }) {
+function ThinkingBubble({ color }) {
   const [msgIndex, setMsgIndex] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -142,19 +131,11 @@ function ThinkingBubble({ colors, fontFamily }) {
 
     const cycle = () => {
       if (cancelled) return;
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start(() => {
+      Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
         if (cancelled) return;
         current = (current + 1) % THINKING_MSGS.length;
         setMsgIndex(current);
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }).start(() => {
+        Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }).start(() => {
           if (cancelled) return;
           setTimeout(cycle, 700);
         });
@@ -170,13 +151,7 @@ function ThinkingBubble({ colors, fontFamily }) {
   }, []);
 
   return (
-    <Animated.Text
-      style={[
-        styles.bubbleText,
-        styles.thinkingText,
-        { color: colors.textTertiary, fontFamily: fontFamily.regular, opacity },
-      ]}
-    >
+    <Animated.Text style={[styles.bubbleText, styles.thinkingText, { color, fontFamily: 'Sora_400Regular', opacity }]}>
       {THINKING_MSGS[msgIndex]}
     </Animated.Text>
   );
@@ -184,7 +159,6 @@ function ThinkingBubble({ colors, fontFamily }) {
 
 export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
-  const { colors, fontFamily } = useColors();
   const ui = useUI();
   const { isDarkMode } = useTheme();
   const flatListRef = useRef(null);
@@ -275,8 +249,8 @@ export default function AssistantScreen() {
         <View style={[styles.row, styles.botRow]}>
           {avatarEl}
           <View style={styles.botContent}>
-            <View style={[styles.bubble, styles.botBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ThinkingBubble colors={colors} fontFamily={fontFamily} />
+            <View style={[styles.bubble, styles.botBubble, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+              <ThinkingBubble color={ui.textMuted} />
             </View>
           </View>
         </View>
@@ -289,8 +263,8 @@ export default function AssistantScreen() {
         <View style={[styles.row, styles.botRow]}>
           {avatarEl}
           <View style={styles.botContent}>
-            <View style={[styles.bubble, styles.botBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.bubbleText, { color: colors.textPrimary, fontFamily: fontFamily.medium }]}>
+            <View style={[styles.bubble, styles.botBubble, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+              <Text style={[styles.bubbleText, { color: ui.text, fontFamily: 'Sora_500Medium' }]}>
                 {item.text}
               </Text>
             </View>
@@ -299,17 +273,17 @@ export default function AssistantScreen() {
                 key={opt.id}
                 style={[
                   styles.optionBtn,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   disabled && styles.optionDisabled,
                 ]}
                 onPress={() => handleOption(opt)}
                 activeOpacity={0.7}
                 disabled={disabled}
               >
-                <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: fontFamily.regular }]}>
+                <Text style={[styles.optionText, { color: ui.text, fontFamily: 'Sora_400Regular' }]}>
                   {opt.label}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+                <Ionicons name="chevron-forward" size={14} color={ui.textMuted} />
               </TouchableOpacity>
             ))}
           </View>
@@ -320,8 +294,8 @@ export default function AssistantScreen() {
     if (item.type === 'user') {
       return (
         <View style={[styles.row, styles.userRow]}>
-          <View style={[styles.bubble, styles.userBubble, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.bubbleText, { color: isDarkMode ? colors.background : '#FFFFFF', fontFamily: fontFamily.regular }]}>
+          <View style={[styles.bubble, styles.userBubble, { backgroundColor: ui.invertBg }]}>
+            <Text style={[styles.bubbleText, { color: ui.invertText, fontFamily: 'Sora_400Regular' }]}>
               {item.text}
             </Text>
           </View>
@@ -330,15 +304,13 @@ export default function AssistantScreen() {
     }
 
     return null;
-  }, [colors, fontFamily, isDarkMode, activeOptionsId, disabled, handleOption]);
+  }, [ui, isDarkMode, activeOptionsId, disabled, handleOption]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: ui.bg }]}>
       <RumboProfileModal
         visible={showProfile}
         onClose={() => setShowProfile(false)}
-        colors={colors}
-        fontFamily={fontFamily}
         isDarkMode={isDarkMode}
       />
       {/* El header estaba vacío: solo pintaba una barra. Ahora identifica a Rumbo
@@ -350,7 +322,7 @@ export default function AssistantScreen() {
           {
             paddingTop: insets.top + 8,
             backgroundColor: ui.bg,
-            borderBottomColor: colors.border,
+            borderBottomColor: ui.border,
           },
         ]}
         onPress={() => setShowProfile(true)}
@@ -360,8 +332,8 @@ export default function AssistantScreen() {
       >
         <Image source={isDarkMode ? RUMBO_AVATAR_DARK : RUMBO_AVATAR_LIGHT} style={styles.headerAvatar} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.headerName, { color: colors.textPrimary, fontFamily: fontFamily.bold }]}>Rumbo</Text>
-          <Text style={[styles.headerRole, { color: colors.textMuted, fontFamily: fontFamily.regular }]}>Tu asistente de viajes</Text>
+          <Text style={[styles.headerName, { color: ui.text, fontFamily: 'Sora_700Bold' }]}>Rumbo</Text>
+          <Text style={[styles.headerRole, { color: ui.textMuted, fontFamily: 'Sora_400Regular' }]}>Tu asistente de viajes</Text>
         </View>
       </TouchableOpacity>
 
@@ -510,11 +482,6 @@ const styles = StyleSheet.create({
   },
   profileRole: {
     fontSize: 13,
-    marginBottom: 16,
-  },
-  profileDivider: {
-    width: '100%',
-    height: 1,
     marginBottom: 16,
   },
   profileBio: {

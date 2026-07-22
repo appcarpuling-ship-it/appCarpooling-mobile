@@ -92,7 +92,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 {driver.firstName} {driver.lastName}
               </Text>
               <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color="#F59E0B" />
+                <Ionicons name="star" size={14} color={textPrimary} />
                 <Text style={[styles.ratingText, { color: textMuted }]}>
                   {driver.rating?.toFixed(1) || '—'}
                 </Text>
@@ -104,7 +104,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               </View>
               {driver.verified && (
                 <View style={styles.verifiedRow}>
-                  <Ionicons name="shield-checkmark" size={13} color="#22C55E" />
+                  <Ionicons name="shield-checkmark" size={13} color={textPrimary} />
                   <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>Verificado</Text>
                 </View>
               )}
@@ -192,9 +192,9 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
       {app.status === 'accepted' && (
         <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
-          <View style={[styles.acceptedBadge, { backgroundColor: '#DCFCE7' }]}>
-            <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-            <Text style={{ color: ui.text, fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
+          <View style={[styles.acceptedBadge, { backgroundColor: ui.invertBg }]}>
+            <Ionicons name="checkmark-circle" size={16} color={ui.invertText} />
+            <Text style={{ color: ui.invertText, fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
           </View>
         </View>
       )}

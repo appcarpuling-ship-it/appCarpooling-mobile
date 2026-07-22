@@ -432,8 +432,8 @@ const TripRequestsScreen = ({ route }) => {
             </Text>
           </View>
           {pending > 0 ? (
-            <View style={styles.pendingBadge}>
-              <Text style={styles.pendingBadgeText}>{pending} pendiente{pending > 1 ? 's' : ''}</Text>
+            <View style={[styles.pendingBadge, { backgroundColor: ui.invertBg }]}>
+              <Text style={[styles.pendingBadgeText, { color: ui.invertText }]}>{pending} pendiente{pending > 1 ? 's' : ''}</Text>
             </View>
           ) : (
             <Ionicons name="chevron-forward" size={16} color={textMuted} />
@@ -825,12 +825,11 @@ const styles = StyleSheet.create({
   tripCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tripCardMetaText: { fontSize: 13 },
   pendingBadge: {
-    backgroundColor: '#FEF3C7',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
-  pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold', color: '#B45309' },
+  pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   reqSectionPad: {
     paddingHorizontal: 16,

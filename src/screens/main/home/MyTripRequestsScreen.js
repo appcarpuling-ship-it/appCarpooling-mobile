@@ -108,7 +108,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
       >
         <View style={styles.cardHeader}>
           <View style={styles.routeRow}>
-            <Ionicons name="radio-button-on" size={13} color="#22C55E" />
+            <Ionicons name="radio-button-on" size={13} color={textPrimary} />
             <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.origin.city}</Text>
             <Ionicons name="arrow-forward" size={13} color={textMuted} />
             <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.destination.city}</Text>

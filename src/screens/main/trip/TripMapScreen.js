@@ -12,7 +12,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
@@ -41,16 +40,15 @@ const decodePolyline = (encoded) => {
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
   const insets = useSafeAreaInsets();
-  const { isDarkMode } = useColors();
   const ui = useUI();
   const { user } = useAuth();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
 
-  const isDark = isDarkMode;
-  const cardBg = isDark ? '#1E1E1E' : '#FFFFFF';
-  const textPrimary = isDark ? '#FFFFFF' : '#000000';
+  const isDark = ui.isDarkMode;
+  const cardBg = ui.surface;
+  const textPrimary = ui.text;
 
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -315,7 +313,7 @@ const styles = StyleSheet.create({
   destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
   waypointMarker: { width: 26, height: 26, borderRadius: 18, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  driverMarker: { width: 30, height: 30, borderRadius: 18, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  driverMarker: { width: 30, height: 30, borderRadius: 18, backgroundColor: '#010101', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   waypointNumber: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   stopTooltip: {
     position: 'absolute',

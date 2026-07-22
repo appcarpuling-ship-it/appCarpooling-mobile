@@ -45,7 +45,7 @@ const NotificationsScreen = ({ navigation }) => {
   const ui = useUI();  const divider = ui.bg;
   const accent = ui.invertBg;
   const accentInverse = ui.invertText;
-  const unreadBg = dark ? '#1A1F2E' : '#F5F7FF';
+  const unreadBg = ui.surface;
   const unreadDot = dark ? '#6B7280' : '#111111';
 
   // Carga inicial / refresh
@@ -144,7 +144,7 @@ const NotificationsScreen = ({ navigation }) => {
         <View style={[
           styles.iconWrap,
           { backgroundColor: ui.bg },
-          !isRead && { backgroundColor: dark ? '#252B3D' : '#E8ECFF' },
+          !isRead && { backgroundColor: dark ? '#333333' : '#E5E5E5' },
         ]}>
           <Ionicons
             name={getNotificationIcon(item.type)}

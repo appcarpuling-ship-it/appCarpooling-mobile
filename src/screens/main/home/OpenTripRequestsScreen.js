@@ -443,7 +443,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
           {hasActiveFilters && (
             <TouchableOpacity
-              style={[styles.filterChip, { backgroundColor: dark ? '#3A1A1A' : '#FEF2F2', borderColor: dark ? '#5A2A2A' : '#FECACA' }]}
+              style={[styles.filterChip, { backgroundColor: cardBg, borderColor }]}
               onPress={clearFilters}
               activeOpacity={0.7}
             >

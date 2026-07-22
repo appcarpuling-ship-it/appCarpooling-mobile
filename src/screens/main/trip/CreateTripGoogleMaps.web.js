@@ -15,13 +15,11 @@ import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import { get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { getPlaceDetails as getPlaceDetailsApi } from '../../../services/mapsService';
-import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 
 const CreateTripGoogleMaps = ({ navigation }) => {
   const ui = useUI();
-  const { colors, isDarkMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const isMounted = useRef(true);
@@ -207,19 +205,19 @@ const CreateTripGoogleMaps = ({ navigation }) => {
 
   if (loadingVehicles) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.statusText, { color: colors.textSecondary }]}>Verificando vehículos...</Text>
+      <View style={[styles.centered, { backgroundColor: ui.bg }]}>
+        <ActivityIndicator size="large" color={ui.invertBg} />
+        <Text style={[styles.statusText, { color: ui.textMuted }]}>Verificando vehículos...</Text>
       </View>
     );
   }
 
   if (!vehicles || vehicles.length === 0) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No tienes vehículos registrados</Text>
-        <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
+      <View style={[styles.centered, { backgroundColor: ui.bg }]}>
+        <Ionicons name="car-outline" size={64} color={ui.textMuted} />
+        <Text style={[styles.emptyText, { color: ui.textMuted }]}>No tienes vehículos registrados</Text>
+        <Text style={[styles.emptySubtext, { color: ui.textMuted }]}>
           Necesitas registrar un vehículo antes de crear un viaje
         </Text>
       </View>
@@ -227,15 +225,15 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <StatusBar barStyle={colors.statusBarStyle} />
+    <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top }]}>
+      <StatusBar barStyle={ui.isDarkMode ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: ui.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={ui.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Crear viaje</Text>
+        <Text style={[styles.headerTitle, { color: ui.text }]}>Crear viaje</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -245,25 +243,25 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         {/* Map not available banner */}
-        <View style={[styles.mapBanner, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: ui.border }]}>
-          <Ionicons name="map-outline" size={18} color={isDarkMode ? '#93C5FD' : ui.text} />
+        <View style={[styles.mapBanner, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+          <Ionicons name="map-outline" size={18} color={ui.text} />
           <Text style={[styles.mapBannerText, { color: ui.text }]}>
             El mapa interactivo no está disponible en la versión web. Ingresa las direcciones manualmente.
           </Text>
         </View>
 
         {/* Inputs card */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: ui.surface, borderColor: ui.border }]}>
           {/* Timeline + inputs */}
           <View style={styles.inputsWrapper}>
             {/* Timeline */}
             <View style={styles.timeline}>
               <View style={[styles.originDot, { backgroundColor: ui.text }]} />
-              <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+              <View style={[styles.timelineLine, { backgroundColor: ui.border }]} />
               {formData.waypoints.map((_, i) => (
                 <React.Fragment key={i}>
-                  <View style={[styles.waypointDot, { backgroundColor: '#666' }]} />
-                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                  <View style={[styles.waypointDot, { backgroundColor: ui.textMuted }]} />
+                  <View style={[styles.timelineLine, { backgroundColor: ui.border }]} />
                 </React.Fragment>
               ))}
               <View style={[styles.destinationSquare, { backgroundColor: ui.textMuted }]} />
@@ -291,17 +289,17 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   externalLoading={false}
                   styles={{
                     container: { flex: 1 },
-                    textInput: { height: 44, color: colors.textPrimary, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
+                    textInput: { height: 44, color: ui.text, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
                   }}
                 />
                 {formData.origin.address ? (
                   <TouchableOpacity onPress={clearOrigin} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                    <Ionicons name="close-circle" size={18} color={ui.textMuted} />
                   </TouchableOpacity>
                 ) : null}
               </View>
 
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={[styles.divider, { backgroundColor: ui.border }]} />
 
               {/* Waypoints */}
               {formData.waypoints.map((waypoint, index) => {
@@ -327,14 +325,14 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                         externalLoading={false}
                         styles={{
                           container: { flex: 1 },
-                          textInput: { height: 44, color: colors.textPrimary, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
+                          textInput: { height: 44, color: ui.text, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
                         }}
                       />
                       <TouchableOpacity onPress={() => removeWaypoint(index)} style={styles.clearBtn}>
-                        <Ionicons name="close-circle" size={18} color={waypoint.address ? ui.textMuted : colors.textMuted} />
+                        <Ionicons name="close-circle" size={18} color={ui.textMuted} />
                       </TouchableOpacity>
                     </View>
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                    <View style={[styles.divider, { backgroundColor: ui.border }]} />
                   </React.Fragment>
                 );
               })}
@@ -343,10 +341,10 @@ const CreateTripGoogleMaps = ({ navigation }) => {
               {formData.waypoints.length < 3 && (
                 <>
                   <TouchableOpacity onPress={addWaypoint} style={styles.addWaypointBtn}>
-                    <Ionicons name="add-circle" size={20} color={colors.primary} />
-                    <Text style={[styles.addWaypointText, { color: colors.primary }]}>Agregar parada</Text>
+                    <Ionicons name="add-circle" size={20} color={ui.text} />
+                    <Text style={[styles.addWaypointText, { color: ui.text }]}>Agregar parada</Text>
                   </TouchableOpacity>
-                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <View style={[styles.divider, { backgroundColor: ui.border }]} />
                 </>
               )}
 
@@ -370,12 +368,12 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   externalLoading={false}
                   styles={{
                     container: { flex: 1 },
-                    textInput: { height: 44, color: colors.textPrimary, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
+                    textInput: { height: 44, color: ui.text, fontSize: 16, fontWeight: '500', backgroundColor: 'transparent', paddingHorizontal: 12 },
                   }}
                 />
                 {formData.destination.address ? (
                   <TouchableOpacity onPress={clearDestination} style={styles.clearBtn}>
-                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                    <Ionicons name="close-circle" size={18} color={ui.textMuted} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -386,13 +384,13 @@ const CreateTripGoogleMaps = ({ navigation }) => {
           {activeAutocomplete && autocompleteResults.length > 0 && (
             <ScrollView
               keyboardShouldPersistTaps="handled"
-              style={[styles.results, { borderTopColor: colors.border }]}
+              style={[styles.results, { borderTopColor: ui.border }]}
               nestedScrollEnabled
             >
               {autocompleteResults.map((item) => (
                 <TouchableOpacity
                   key={item.place_id}
-                  style={[styles.resultRow, { borderBottomColor: colors.border }]}
+                  style={[styles.resultRow, { borderBottomColor: ui.border }]}
                   onPress={() => {
                     getPlaceDetailsApi(item.place_id)
                       .then(data => {
@@ -411,13 +409,13 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   activeOpacity={0.6}
                 >
                   <View style={[styles.resultIcon, { backgroundColor: ui.surface }]}>
-                    <Ionicons name="location-sharp" size={16} color={isDarkMode ? '#FFF' : '#292929'} />
+                    <Ionicons name="location-sharp" size={16} color={ui.text} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.resultMain, { color: colors.textPrimary }]} numberOfLines={1}>
+                    <Text style={[styles.resultMain, { color: ui.text }]} numberOfLines={1}>
                       {item.structured_formatting?.main_text || item.description}
                     </Text>
-                    <Text style={[styles.resultSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                    <Text style={[styles.resultSub, { color: ui.textMuted }]} numberOfLines={1}>
                       {item.structured_formatting?.secondary_text || ''}
                     </Text>
                   </View>
