@@ -22,6 +22,7 @@ import { useAlert } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 import PillButton from '../../../components/ui/PillButton';
+import { appendFile } from '../../../utils/formDataFile';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const ui = useUI();
@@ -247,19 +248,14 @@ const VehicleFormScreen = ({ navigation, route }) => {
         fd.append('existingPhotos', JSON.stringify(existingPhotos));
       }
 
-      photos.forEach((uri, index) => {
-        const filename = uri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        fd.append('photos', { uri, name: filename || `photo-${index}.jpg`, type });
-      });
+      // for...of y no forEach: appendFile es async en web (lee el blob) y
+      // forEach no espera las promesas, así que el fd se enviaría vacío.
+      for (const [index, uri] of photos.entries()) {
+        await appendFile(fd, 'photos', uri, `photo-${index}.jpg`);
+      }
 
       if (registrationCardUri) {
-        const uri = registrationCardUri;
-        const filename = uri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        fd.append('registrationCard', { uri, name: filename || 'registration-card.jpg', type });
+        await appendFile(fd, 'registrationCard', registrationCardUri, 'registration-card.jpg');
       }
 
       const response = isEdit

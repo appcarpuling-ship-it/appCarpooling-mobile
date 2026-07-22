@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+import { appendFile } from '../../utils/formDataFile';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
@@ -90,15 +91,8 @@ const RegisterScreen = ({ navigation }) => {
     );
   };
 
-  const appendRegisterImage = (formData, fieldName, uri) => {
-    if (!uri) return;
-    const filename = uri.split('/').pop() || `${fieldName}.jpg`;
-    const match = /\.(\w+)$/.exec(filename);
-    let ext = match ? match[1].toLowerCase() : 'jpeg';
-    if (ext === 'jpg') ext = 'jpeg';
-    const name = filename.includes('.') ? filename : `${filename}.jpg`;
-    formData.append(fieldName, { uri, name, type: `image/${ext}` });
-  };
+  const appendRegisterImage = (formData, fieldName, uri) =>
+    appendFile(formData, fieldName, uri, `${fieldName}.jpg`);
 
   const pickDniSide = (side) => {
     chooseImageSource(
@@ -180,9 +174,9 @@ const RegisterScreen = ({ navigation }) => {
       formDataToSend.append('province', values.province);
       if (values.bio) formDataToSend.append('bio', values.bio);
       if (values.referralCode?.trim()) formDataToSend.append('referralCode', values.referralCode.toUpperCase());
-      appendRegisterImage(formDataToSend, 'avatar', avatarUri);
-      appendRegisterImage(formDataToSend, 'dniFront', dniFrontUri);
-      appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
+      await appendRegisterImage(formDataToSend, 'avatar', avatarUri);
+      await appendRegisterImage(formDataToSend, 'dniFront', dniFrontUri);
+      await appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
       const result = await register(formDataToSend);
       if (result.success) {
         showAlert('Registro exitoso', 'Te enviamos un código de verificación a tu email. Recuerda revisar la carpeta (spam).', [

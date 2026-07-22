@@ -24,6 +24,7 @@ import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import PillButton from '../../../components/ui/PillButton';
+import { appendFile } from '../../../utils/formDataFile';
 
 const EditProfileScreen = ({ navigation }) => {
   const ui = useUI();
@@ -89,10 +90,7 @@ const EditProfileScreen = ({ navigation }) => {
     setAvatarLoading(true);
     try {
       const formDataToSend = new FormData();
-      const filename = imageUri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
-      formDataToSend.append('avatar', { uri: imageUri, name: filename, type });
+      await appendFile(formDataToSend, 'avatar', imageUri, 'avatar.jpg');
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
       if (response.success) {
         await refreshUser();
@@ -145,12 +143,7 @@ const EditProfileScreen = ({ navigation }) => {
     setDniLoading(true);
     try {
       const fd = new FormData();
-      const filename = imageUri.split('/').pop() || `${field}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      let ext = match ? match[1].toLowerCase() : 'jpeg';
-      if (ext === 'jpg') ext = 'jpeg';
-      const name = filename.includes('.') ? filename : `${field}.jpg`;
-      fd.append(field, { uri: imageUri, name, type: `image/${ext}` });
+      await appendFile(fd, field, imageUri, `${field}.jpg`);
       const response = await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, fd);
       if (response.success) {
         await refreshUser();
