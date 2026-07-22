@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   checkoutButtonText: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   qrSection: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   qrToggleText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     flex: 1,
     textAlign: 'center',
   },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   qrAmount: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
 });
 

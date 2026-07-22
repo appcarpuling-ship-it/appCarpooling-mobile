@@ -996,7 +996,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textAlign: 'center',
   },
   animatedContainer: {
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 14,
@@ -1077,7 +1077,7 @@ const styles = StyleSheet.create({
   routeStop: {},
   routeCity: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   routeProvince: {
     fontSize: 12,
@@ -1132,7 +1132,7 @@ const styles = StyleSheet.create({
   },
   seatCount: {
     fontSize: 36,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     lineHeight: 40,
   },
   seatCountLabel: {
@@ -1145,7 +1145,7 @@ const styles = StyleSheet.create({
   },
   errorInline: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   // Price
@@ -1160,7 +1160,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   priceDivider: {
     height: StyleSheet.hairlineWidth,
@@ -1168,11 +1168,11 @@ const styles = StyleSheet.create({
   },
   priceTotalLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   priceTotalValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   discountBadge: {
     flexDirection: 'row',
@@ -1185,7 +1185,7 @@ const styles = StyleSheet.create({
   },
   discountBadgeText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     flex: 1,
   },
 
@@ -1204,7 +1204,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   driverInfo: {
     flex: 1,
@@ -1212,7 +1212,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -1242,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   vehicleYear: {
     fontSize: 13,
@@ -1256,7 +1256,7 @@ const styles = StyleSheet.create({
   },
   plateText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 1,
   },
 
@@ -1272,7 +1272,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   // Preferences
@@ -1324,7 +1324,7 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 6,
   },
   bannerDesc: {
@@ -1347,14 +1347,14 @@ const styles = StyleSheet.create({
   },
   pickupLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 3,
   },
   pickupValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   confirmBtn: {
@@ -1368,11 +1368,11 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   confirmBtnPrice: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
 });
 
@@ -1408,10 +1408,10 @@ const pickupStyles = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 16,
     gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 56,
   },
-  addressText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  addressText: { flex: 1, fontSize: 15, fontFamily: 'Sora_500Medium' },
   sheetActions: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
   confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnText: { fontSize: 16, fontWeight: '700' },
+  confirmBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   searchOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
   },
@@ -1421,7 +1421,7 @@ const pickupStyles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, gap: 8,
   },
   searchBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  searchTextInput: { flex: 1, height: 44, fontSize: 15, fontWeight: '500' },
+  searchTextInput: { flex: 1, height: 44, fontSize: 15, fontFamily: 'Sora_500Medium' },
   results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
   resultRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -1429,7 +1429,7 @@ const pickupStyles = StyleSheet.create({
     gap: 12, borderBottomWidth: StyleSheet.hairlineWidth,
   },
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultMain: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   resultSub: { fontSize: 12, marginTop: 2 },
   markerDot: {
     width: 14, height: 14, borderRadius: 7,
@@ -1443,8 +1443,8 @@ const pickupStyles = StyleSheet.create({
     zIndex: 50,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
-  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
-  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
+  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default BookingScreen;

@@ -228,7 +228,7 @@ const LocationPickerField = ({
 
 const styles = StyleSheet.create({
   fieldWrap:   { marginBottom: 16 },
-  fieldLabel:  { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  fieldLabel:  { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
   fieldButton: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, paddingHorizontal: 14, minHeight: 48 },
   fieldText:   { flex: 1, fontSize: 15 },
   errorRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 4 },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   pickerContainer:     { borderRadius: 20, width: '96%', maxHeight: '90%', overflow: 'hidden' },
   pickerLoadingOverlay:{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   pickerHeader:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1 },
-  pickerTitle:         { fontSize: 17, fontWeight: '600' },
+  pickerTitle:         { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
 
   gridItem:   { borderRadius: 16, borderWidth: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
   gridImage:  { width: 96, height: 96, marginBottom: 10 },

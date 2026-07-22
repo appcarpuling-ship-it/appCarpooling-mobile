@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   icon: { fontSize: 30 },
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  title: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 8, textAlign: 'center' },
   message: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   btn: {
     width: '100%',
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  btnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  later: { fontSize: 14, fontWeight: '500' },
+  btnText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Sora_700Bold' },
+  later: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 });

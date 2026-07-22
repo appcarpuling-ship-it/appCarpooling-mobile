@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   cardHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   statusPill:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   statusDot:      { width: 6, height: 6, borderRadius: 3 },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_700Bold' },
 
   routeRow:       { flexDirection: 'row', marginBottom: 14 },
   routeLine:      { alignItems: 'center', width: 18, marginRight: 12, paddingTop: 2 },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   dotDest:        { width: 10, height: 10, borderRadius: 5 },
   routeLabels:    { flex: 1, gap: 14 },
   addrBlock:      {},
-  addrMain:       { fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  addrMain:       { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 20 },
   addrSub:        { fontSize: 12, lineHeight: 17, marginTop: 1 },
 
   metaRow:        { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -467,16 +467,16 @@ const styles = StyleSheet.create({
   rowBetween:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
   priceBox:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
-  price:          { fontSize: 20, fontWeight: '700' },
+  price:          { fontSize: 20, fontFamily: 'Sora_700Bold' },
   timerBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  timerText:      { fontSize: 12, fontWeight: '600' },
+  timerText:      { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   cancelBtn:      { alignSelf: 'stretch', paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
-  cancelText:     { fontSize: 14, fontWeight: '600' },
+  cancelText:     { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   btnGhost:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  btnGhostText:   { fontSize: 14, fontWeight: '500' },
-  emptyTitle:     { fontSize: 16, fontWeight: '600' },
+  btnGhostText:   { fontSize: 14, fontFamily: 'Sora_500Medium' },
+  emptyTitle:     { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   emptySub:       { fontSize: 13, textAlign: 'center' },
 });
 

@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
     textAlign: 'center',
   },
   content: {
@@ -153,7 +152,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
   },
 });
 

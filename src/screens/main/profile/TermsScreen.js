@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   sectionText: {
     fontSize: 13,

@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   statusText: { marginTop: 16, fontSize: 14 },
-  emptyText: { fontSize: 20, fontWeight: '600', marginTop: 24, textAlign: 'center' },
+  emptyText: { fontSize: 20, fontFamily: 'Sora_600SemiBold', marginTop: 24, textAlign: 'center' },
   emptySubtext: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   header: {
     flexDirection: 'row',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold' },
   mapBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,14 +492,14 @@ const styles = StyleSheet.create({
   divider: { height: 1, marginLeft: 12, marginRight: 12 },
   clearBtn: { padding: 6 },
   addWaypointBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingLeft: 12, paddingRight: 16 },
-  addWaypointText: { marginLeft: 8, fontSize: 16, fontWeight: '500' },
+  addWaypointText: { marginLeft: 8, fontSize: 16, fontFamily: 'Sora_500Medium' },
   results: { borderTopWidth: 1, maxHeight: 220 },
   resultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1 },
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  resultMain: { fontSize: 15, fontWeight: '500' },
+  resultMain: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   resultSub: { fontSize: 13, marginTop: 2 },
   continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  continueBtnText: { fontSize: 16, fontWeight: '700' },
+  continueBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
 export default CreateTripGoogleMaps;

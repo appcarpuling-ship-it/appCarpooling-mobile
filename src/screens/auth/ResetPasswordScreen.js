@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     textAlign: 'center',
     marginBottom: spacing.xs,
     letterSpacing: 0.5,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
   linkButton: {
     marginTop: spacing.md,

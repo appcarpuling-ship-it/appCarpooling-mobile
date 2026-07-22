@@ -184,16 +184,16 @@ const styles = StyleSheet.create({
   content:    { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
   header:     { alignItems: 'center', marginBottom: 32 },
   iconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title:      { fontSize: 26, fontWeight: '700', marginBottom: 8 },
+  title:      { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 8 },
   subtitle:   { fontSize: 14, marginBottom: 4 },
-  email:      { fontSize: 15, fontWeight: '600' },
+  email:      { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
-  codeInput:  { height: 72, fontSize: 32, fontWeight: '700', textAlign: 'center', letterSpacing: 12 },
+  codeInput:  { height: 72, fontSize: 32, fontFamily: 'Sora_700Bold', textAlign: 'center', letterSpacing: 12 },
   btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  btnText:    { fontSize: 16, fontWeight: '700' },
+  btnText:    { fontSize: 16, fontFamily: 'Sora_700Bold' },
   resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   resendText: { fontSize: 14 },
-  resendLink: { fontSize: 14, fontWeight: '600' },
+  resendLink: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default VerificationScreen;

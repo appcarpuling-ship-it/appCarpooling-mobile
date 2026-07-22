@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     color: '#1F2937',
   },
   filterChipTextActive: {
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   },
   clearFiltersButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
 
   // List
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     color: '#000000',
     flex: 1,
     lineHeight: 18,
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#10B981',
     marginLeft: spacing.sm,
   },
@@ -999,11 +999,11 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#F3F4F6',
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
   driverName: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     color: '#374151',
     flex: 1,
   },
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#374151',
     marginTop: spacing.md,
   },
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#1F2937',
   },
 
@@ -1088,7 +1088,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
   },
   provinceList: {
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   provinceOptionText: {
     fontSize: fontSize.md,
@@ -1174,7 +1174,7 @@ const styles = StyleSheet.create({
   },
   provinceOptionTextSelected: {
     color: '#1F2937',
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
   datePickerWrapper: {
     backgroundColor: '#FFFFFF',
@@ -1196,7 +1196,7 @@ const styles = StyleSheet.create({
   pickerButtonText: {
     fontSize: fontSize.md,
     color: '#6B7280',
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   pickerButtonConfirm: {
     backgroundColor: '#1F2937',
@@ -1205,7 +1205,7 @@ const styles = StyleSheet.create({
   pickerButtonConfirmText: {
     fontSize: fontSize.md,
     color: '#FFFFFF',
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
 });
 

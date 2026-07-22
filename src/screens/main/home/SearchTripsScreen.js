@@ -38,7 +38,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     },
     searchText: {
       fontSize: fontSize.md,
-      fontWeight: fontWeight.medium,
+      fontFamily: 'Sora_500Medium',
       color: colors.textPrimary,
       marginLeft: spacing.sm,
     },
@@ -60,13 +60,13 @@ const SearchTripsScreen = ({ route, navigation }) => {
     },
     routeText: {
       fontSize: fontSize.lg,
-      fontWeight: fontWeight.bold,
+      fontFamily: 'Sora_700Bold',
       color: colors.textPrimary,
       flex: 1,
     },
     priceText: {
       fontSize: fontSize.lg,
-      fontWeight: fontWeight.bold,
+      fontFamily: 'Sora_700Bold',
       color: colors.primary,
     },
     tripInfo: {
@@ -94,7 +94,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     },
     driverName: {
       fontSize: fontSize.md,
-      fontWeight: fontWeight.medium,
+      fontFamily: 'Sora_500Medium',
       color: colors.textPrimary,
       marginLeft: spacing.sm,
     },
@@ -117,7 +117,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     filtersButtonText: {
       color: colors.textPrimary,
       fontSize: fontSize.md,
-      fontWeight: fontWeight.semibold,
+      fontFamily: 'Sora_600SemiBold',
     },
     clearFiltersButton: {
       borderRadius: borderRadius.lg,
@@ -131,7 +131,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     clearFiltersText: {
       color: colors.textSecondary,
       fontSize: fontSize.md,
-      fontWeight: fontWeight.medium,
+      fontFamily: 'Sora_500Medium',
     },
     retryButton: {
       borderRadius: borderRadius.lg,
@@ -142,7 +142,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     retryButtonText: {
       color: colors.textPrimary,
       fontSize: fontSize.md,
-      fontWeight: fontWeight.semibold,
+      fontFamily: 'Sora_600SemiBold',
     },
     centerContainer: {
       flex: 1,
@@ -707,7 +707,7 @@ const staticStyles = StyleSheet.create({
   },
   searchText: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     marginLeft: spacing.sm,
   },
   resultsText: {
@@ -747,7 +747,7 @@ const staticStyles = StyleSheet.create({
   avatarText: {
     color: '#000000',
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
   tripInfo: {
     flex: 1,
@@ -755,7 +755,7 @@ const staticStyles = StyleSheet.create({
   },
   driverName: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
     marginBottom: 2,
   },
@@ -780,7 +780,7 @@ const staticStyles = StyleSheet.create({
   },
   price: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
   routeContainer: {
     flexDirection: 'row',
@@ -817,13 +817,13 @@ const staticStyles = StyleSheet.create({
   },
   routeTime: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#6366F1',
     marginBottom: 2,
   },
   routeCity: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
     marginBottom: 2,
   },
@@ -845,7 +845,7 @@ const staticStyles = StyleSheet.create({
   },
   seats: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#6366F1',
   },
   emptyContainer: {
@@ -869,7 +869,7 @@ const staticStyles = StyleSheet.create({
   },
   emptyText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
@@ -899,7 +899,7 @@ const staticStyles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
   },
 
@@ -921,7 +921,7 @@ const staticStyles = StyleSheet.create({
   },
   filtersButtonText: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
     marginLeft: spacing.sm,
   },
@@ -934,7 +934,7 @@ const staticStyles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
 
   // Trip Card Styles
@@ -967,13 +967,13 @@ const staticStyles = StyleSheet.create({
   },
   cityText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#000000',
     letterSpacing: 0.5,
   },
   priceText: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#10B981',
     textShadowColor: 'rgba(52, 211, 153, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
@@ -995,7 +995,7 @@ const staticStyles = StyleSheet.create({
   },
   driverName: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
   },
   tripMetrics: {
@@ -1007,7 +1007,7 @@ const staticStyles = StyleSheet.create({
   },
   seatsText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#6366F1',
   },
   timeSection: {
@@ -1020,7 +1020,7 @@ const staticStyles = StyleSheet.create({
   },
   timeText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     color: '#6B7280',
   },
 });

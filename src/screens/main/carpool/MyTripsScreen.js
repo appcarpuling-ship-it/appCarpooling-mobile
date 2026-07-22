@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: 14, fontWeight: '600' },
+  tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   listContent: { padding: 16, gap: 12 },
 
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
   dotDest:   { width: 9, height: 9, borderRadius: 2 },
   routeLabels: { flex: 1 },
-  cityText:  { fontSize: 14, fontWeight: '600' },
+  cityText:  { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   // Status pill
   statusPill: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
-  statusPillText: { fontSize: 11, fontWeight: '600' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
   // Meta row
   metaRow: {
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
   },
-  footerBtnText: { fontSize: 13, fontWeight: '600' },
+  footerBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   footerBadge: {
     borderRadius: 10,
     minWidth: 18,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 5,
   },
-  footerBadgeText: { fontSize: 10, fontWeight: '700' },
+  footerBadgeText: { fontSize: 10, fontFamily: 'Sora_700Bold' },
   footerBtnOutline: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -587,14 +587,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 5,
   },
-  footerBtnOutlineText: { fontSize: 13, fontWeight: '500' },
+  footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   // Empty
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     gap: 10, padding: 32,
   },
-  emptyTitle:    { fontSize: 16, fontWeight: '600', marginTop: 4 },
+  emptyTitle:    { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
   emptySubtitle: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });
 

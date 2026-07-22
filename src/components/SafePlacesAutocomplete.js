@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     color: '#000',
   },
   resultSubtext: {

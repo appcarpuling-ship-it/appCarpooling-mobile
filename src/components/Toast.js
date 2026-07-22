@@ -146,7 +146,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
   },
 });
 

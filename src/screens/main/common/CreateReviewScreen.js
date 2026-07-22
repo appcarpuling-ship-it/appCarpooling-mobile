@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: staticColors.textPrimary,
     marginBottom: spacing.sm,
     textAlign: 'center',
@@ -330,14 +330,14 @@ const styles = StyleSheet.create({
   userAvatarText: {
     color: '#FFF',
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
   userInfo: {
     flex: 1,
   },
   userName: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontFamily: 'Sora_600SemiBold',
     color: staticColors.textPrimary,
     marginBottom: spacing.xs,
   },
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontFamily: 'Sora_600SemiBold',
     color: staticColors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: fontSize.md,
     color: staticColors.textSecondary,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   commentSection: {
     marginBottom: spacing.xl,
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
 });
 

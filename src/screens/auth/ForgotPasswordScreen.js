@@ -111,14 +111,14 @@ const styles = StyleSheet.create({
   backBtn:      { width: 44, height: 44, justifyContent: 'center', marginBottom: 24 },
   header:       { alignItems: 'center', marginBottom: 32 },
   iconCircle:   { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title:        { fontSize: 26, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
+  title:        { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 10, textAlign: 'center' },
   subtitle:     { fontSize: 14, textAlign: 'center', lineHeight: 22 },
   card:         { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
   inputRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   inputIcon:    { marginRight: 10 },
   input:        { flex: 1, height: 52, fontSize: 15 },
   btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
-  btnText:      { fontSize: 16, fontWeight: '700' },
+  btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
 export default ForgotPasswordScreen;

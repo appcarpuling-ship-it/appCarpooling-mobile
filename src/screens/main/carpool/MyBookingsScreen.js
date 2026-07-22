@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '600' },
+  statusText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   route: { padding: 16, paddingBottom: 12 },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
   routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
-  routeText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  routeText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   meta: {
     flexDirection: 'row',
@@ -474,9 +474,9 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarInitials: { fontSize: 14, fontWeight: '600' },
+  avatarInitials: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   driverInfo: { flex: 1 },
-  driverName: { fontSize: 14, fontWeight: '600' },
+  driverName: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   driverLabel: { fontSize: 12, marginTop: 2 },
 
   actions: {
@@ -489,21 +489,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  btnPrimaryText: { fontSize: 14, fontWeight: '600' },
+  btnPrimaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   btnSecondary: {
     paddingVertical: 13,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
   },
-  btnSecondaryText: { fontSize: 14, fontWeight: '500' },
+  btnSecondaryText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyIconBox: {
     width: 72, height: 72, borderRadius: 36,
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
-  emptyTitle: { fontSize: 17, fontWeight: '600', marginBottom: 6 },
+  emptyTitle: { fontSize: 17, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });
 

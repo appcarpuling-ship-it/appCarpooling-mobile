@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
 
     sectionLabel: {
         fontSize: 11,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
         letterSpacing: 1,
         textTransform: 'uppercase',
         marginLeft: 4,
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     },
     routeText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
     routeMeta: {
         fontSize: 13,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     },
     chipText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
 
     // Input row
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     },
     capacityHint: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
 
     // Preferences
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     prefText: {
         flex: 1,
         fontSize: 15,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
     toggle: {
         width: 46,
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     },
     submitText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
     },
 
     // Modal vehículo
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     modalCancel: { fontSize: 16 },
-    modalTitle:  { fontSize: 17, fontWeight: '600' },
+    modalTitle:  { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
     vehicleOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     vehicleInfo: { flex: 1 },
-    vehicleName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+    vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginBottom: 2 },
     vehiclePlateTxt: { fontSize: 13 },
 
     // Pickers
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     },
     pickerTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
         textAlign: 'center',
         paddingVertical: 14,
         borderBottomWidth: StyleSheet.hairlineWidth,

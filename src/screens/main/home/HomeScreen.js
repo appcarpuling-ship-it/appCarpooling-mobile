@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
   },
   activeTripLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1242,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   activeTripDest: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: '#FFFFFF',
   },
 
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
   searchRowText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
   },
   searchRowContent: {
     flex: 1,
@@ -1346,17 +1346,17 @@ const styles = StyleSheet.create({
   },
   searchRowLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   searchRowValue: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
   },
   searchRowInput: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
     padding: 0,
     margin: 0,
     ...Platform.select({
@@ -1467,7 +1467,7 @@ const styles = StyleSheet.create({
   },
   hubCardTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     marginBottom: 3,
   },
   // 2 renglones fijos, como las cards de Viajes: las descripciones más cortas
@@ -1507,7 +1507,7 @@ const styles = StyleSheet.create({
   },
   reqCity: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     maxWidth: 90,
   },
   reqStatusBadge: {
@@ -1517,7 +1517,7 @@ const styles = StyleSheet.create({
   },
   reqStatusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   reqMeta: {
     flexDirection: 'row',
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
   },
   bannerSectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     marginBottom: 10,
     paddingHorizontal: 24,
   },
@@ -1629,7 +1629,7 @@ const styles = StyleSheet.create({
   },
   driverInitials: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   driverInfo: {
     flex: 1,
@@ -1637,7 +1637,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   tripDateTime: {
     fontSize: 12,
@@ -1679,14 +1679,14 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 2,
   },
   routeText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   tripFooterRow: {
     flexDirection: 'row',
@@ -1749,7 +1749,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   provinceOption: {
     flexDirection: 'row',
@@ -1824,7 +1824,7 @@ const styles = StyleSheet.create({
   },
   dateBtnText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 });
 

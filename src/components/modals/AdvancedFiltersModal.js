@@ -34,18 +34,18 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
     },
     modalTitle: {
       fontSize: fontSize.xl,
-      fontWeight: fontWeight.bold,
+      fontFamily: 'Sora_700Bold',
       color: colors.textPrimary,
     },
     sectionTitle: {
       fontSize: fontSize.lg,
-      fontWeight: fontWeight.semibold,
+      fontFamily: 'Sora_600SemiBold',
       color: colors.textPrimary,
       marginBottom: spacing.md,
     },
     inputLabel: {
       fontSize: fontSize.sm,
-      fontWeight: fontWeight.medium,
+      fontFamily: 'Sora_500Medium',
       color: colors.textSecondary,
       marginBottom: spacing.xs,
     },
@@ -152,7 +152,7 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
     },
     resetButtonText: {
       fontSize: fontSize.md,
-      fontWeight: fontWeight.semibold,
+      fontFamily: 'Sora_600SemiBold',
       color: colors.textSecondary,
     },
   });
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   timeButtonText: {
     marginLeft: spacing.xs,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   starsContainer: {
     flexDirection: 'row',
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   vehicleButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   },
   sortButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   applyButton: {
     flex: 2,
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#FFF',
   },
 });

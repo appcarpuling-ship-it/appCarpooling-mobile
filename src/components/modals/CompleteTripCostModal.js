@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   subtitle: {
     fontSize: 13,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 4,
   },
   input: {
@@ -158,11 +158,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   totalValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   actions: {
     flexDirection: 'row',
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   btnSecondaryText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   btnPrimary: {
     flex: 1,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 });
 

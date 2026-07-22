@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     color: '#FFFFFF',
   },
   placeholder: {

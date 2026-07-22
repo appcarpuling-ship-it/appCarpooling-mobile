@@ -1117,8 +1117,8 @@ const styles = StyleSheet.create({
     zIndex: 50,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
-  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
-  selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
+  selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
 
   // Mini sheet
@@ -1136,7 +1136,7 @@ const styles = StyleSheet.create({
     minHeight: 48, borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },
-  miniRowText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  miniRowText: { flex: 1, fontSize: 15, fontFamily: 'Sora_500Medium' },
   miniAddText: { flex: 1, fontSize: 14, marginLeft: 4 },
   rowBtn: { padding: 4 },
   mapIconBtn: { padding: 8, borderRadius: 8 },
@@ -1153,7 +1153,7 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 9, borderRadius: 10,
   },
-  mapPillText: { fontSize: 12, fontWeight: '600' },
+  mapPillText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   // Route section
   routeSection: {
@@ -1162,7 +1162,7 @@ const styles = StyleSheet.create({
   },
   routeMeta: { fontSize: 13, textAlign: 'center' },
   confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  confirmText: { fontSize: 16, fontWeight: '700' },
+  confirmText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 
   // Timeline dots (shared)
   tlDotOrigin: { width: 8, height: 8, borderRadius: 4 },
@@ -1196,7 +1196,7 @@ const styles = StyleSheet.create({
   results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
   resultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultMain: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   resultSub:  { fontSize: 12, marginTop: 2 },
 
   // Markers
@@ -1204,12 +1204,12 @@ const styles = StyleSheet.create({
   destMarkerOuter: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },
   waypointMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  waypointMarkerText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  waypointMarkerText: { fontSize: 11, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
 
   // Loading
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 300 },
   loadingBox: { borderRadius: 16, padding: 24, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
-  loadingText: { fontSize: 14, fontWeight: '500' },
+  loadingText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Empty
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
@@ -1225,9 +1225,9 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center' },
 });
 

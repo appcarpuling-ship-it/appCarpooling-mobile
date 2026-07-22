@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn:     { marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
+  headerTitle: { fontSize: 20, fontFamily: 'Sora_700Bold' },
   headerSub:   { fontSize: 13, marginTop: 2 },
 
   listPad:      { padding: 16, paddingBottom: 40 },
@@ -745,13 +745,13 @@ const styles = StyleSheet.create({
 
   tripContextLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   tripContextLine: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     lineHeight: 21,
   },
   tripContextMetaRow: {
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
   },
   tripContextMetaText: { fontSize: 13 },
   tripContextSwitchBtn: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 },
-  tripContextSwitchText: { fontSize: 14, fontWeight: '600' },
+  tripContextSwitchText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   emptyBlock: { alignItems: 'center', gap: 12, paddingVertical: 32 },
   emptyBlockGrow: { flex: 1, justifyContent: 'center', paddingVertical: 48 },
@@ -801,8 +801,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   routeTextCol:   { flex: 1 },
-  routeTextLabel: { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  routeTextValue: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  routeTextLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  routeTextValue: { fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 20 },
   tripCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 20,
   },
-  pendingBadgeText: { fontSize: 12, fontWeight: '600', color: '#B45309' },
+  pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold', color: '#B45309' },
 
   reqSectionPad: {
     paddingHorizontal: 16,
@@ -844,12 +844,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarInitials: { fontSize: 16, fontWeight: '600' },
-  passengerName:  { fontSize: 15, fontWeight: '600' },
+  avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
+  passengerName:  { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   statusRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot:      { width: 7, height: 7, borderRadius: 4 },
-  statusText:     { fontSize: 12, fontWeight: '500' },
-  amountText:     { fontSize: 15, fontWeight: '700' },
+  statusText:     { fontSize: 12, fontFamily: 'Sora_500Medium' },
+  amountText:     { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   metaRow: {
     flexDirection: 'row',
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
   },
   btnRejectText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   btnAccept: {
     flex: 1,
@@ -918,7 +918,7 @@ const styles = StyleSheet.create({
   },
   btnAcceptText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   modalCancelBtn: {
     flex: 1,
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCancelText: { fontSize: 14, fontWeight: '600' },
+  modalCancelText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   modalRejectBtn: {
     flex: 1,
     height: 46,
@@ -937,10 +937,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalRejectText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  modalRejectText: { fontSize: 14, fontFamily: 'Sora_600SemiBold', color: '#FFFFFF' },
 
   // Empty
-  emptyTitle:    { fontSize: 17, fontWeight: '600' },
+  emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
   // Modal
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalTitle:   { fontSize: 17, fontWeight: '700' },
+  modalTitle:   { fontSize: 17, fontFamily: 'Sora_700Bold' },
   modalLabel:   { fontSize: 13, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   textArea: {
     marginHorizontal: 20,

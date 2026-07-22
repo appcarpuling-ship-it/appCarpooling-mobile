@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     flexShrink: 1,
   },
   resultCount: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  sortText: { fontSize: 12, fontWeight: '500' },
+  sortText: { fontSize: 12, fontFamily: 'Sora_500Medium' },
   list: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -323,13 +323,13 @@ const styles = StyleSheet.create({
   routeText: {
     flex: 1,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     lineHeight: 18,
   },
   arrow: { marginTop: 1, flexShrink: 0 },
   price: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#10B981',
     flexShrink: 0,
     marginLeft: 2,
@@ -352,12 +352,12 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   driverName: {
     flex: 1,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   metaRow: {
     flexDirection: 'row',
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loadingText: { fontSize: 14, marginTop: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', marginTop: 4 },
+  emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   tryAgainBtn: {
     marginTop: 12,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  tryAgainText: { fontSize: 14, fontWeight: '600' },
+  tryAgainText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default SearchResultsScreen;

@@ -811,11 +811,9 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.medium,
-    fontWeight: fontWeight.medium,
   },
   filterButtonTextActive: {
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semiBold,
   },
   listContent: {
     padding: spacing.md,
@@ -849,7 +847,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#FFFFFF',
   },
   unreadDot: {
@@ -873,7 +871,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
   },
   time: {
     fontSize: fontSize.xs,
@@ -881,7 +879,7 @@ const styles = StyleSheet.create({
   tripInfo: {
     fontSize: fontSize.xs,
     marginBottom: spacing.xs,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   lastMessage: {
     fontSize: fontSize.sm,
@@ -914,7 +912,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
@@ -947,7 +945,6 @@ const styles = StyleSheet.create({
   chatActionsTitle: {
     fontSize: fontSize.md,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: '600',
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
@@ -960,7 +957,6 @@ const styles = StyleSheet.create({
   chatActionLabel: {
     fontSize: fontSize.md,
     fontFamily: SORA_FONTS.medium,
-    fontWeight: '500',
   },
   chatActionDivider: {
     height: StyleSheet.hairlineWidth,
@@ -973,7 +969,6 @@ const styles = StyleSheet.create({
   chatActionCancelText: {
     fontSize: fontSize.md,
     fontFamily: SORA_FONTS.medium,
-    fontWeight: '500',
   },
 });
 

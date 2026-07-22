@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  avatarInitials: { fontSize: 36, fontWeight: '700' },
-  name: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  avatarInitials: { fontSize: 36, fontFamily: 'Sora_700Bold' },
+  name: { fontSize: 24, fontFamily: 'Sora_700Bold', marginBottom: 6 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   location: { fontSize: 14 },
   actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   chatButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 24,
   },
-  chatButtonText: { fontSize: 16, fontWeight: '600' },
+  chatButtonText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   card: {
     borderRadius: 12,
     borderWidth: 1,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 6,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   vehicleThumb: { width: 56, height: 56, borderRadius: 8, marginRight: 12 },
   vehicleThumbPh: { justifyContent: 'center', alignItems: 'center' },
   vehicleInfo: { flex: 1 },
-  vehicleTitle: { fontSize: 15, fontWeight: '600' },
+  vehicleTitle: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   vehicleMeta: { fontSize: 13, marginTop: 2 },
   modalOverlay: {
     flex: 1,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: '85%',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 8 },
   modalHint: { fontSize: 13, marginBottom: 12 },
   reasonList: { maxHeight: 220 },
   reasonChip: {

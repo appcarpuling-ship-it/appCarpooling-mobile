@@ -100,7 +100,7 @@ const bannerStyles = StyleSheet.create({
   },
   image: { width: '100%', height: '100%' },
   content: { flex: 1, padding: 18, justifyContent: 'flex-end' },
-  title: { fontSize: 17, fontWeight: '700', color: '#FFF', marginBottom: 6 },
+  title: { fontSize: 17, fontFamily: 'Sora_700Bold', color: '#FFF', marginBottom: 6 },
   desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
 });
 
@@ -905,7 +905,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                         paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
                         backgroundColor: paid ? (colors.success + '20') : (colors.accentOrange + '20'),
                       }}>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: paid ? colors.success : colors.accentOrange }}>
+                        <Text style={{ fontSize: 11, fontFamily: 'Sora_600SemiBold', color: paid ? colors.success : colors.accentOrange }}>
                           {paid ? 'Pagó' : 'Confirmado'}
                         </Text>
                       </View>
@@ -1070,7 +1070,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <Text
                     style={{
                       fontSize: 13,
-                      fontWeight: '600',
+                      fontFamily: 'Sora_600SemiBold',
                       color: colors?.error || '#EF4444',
                       textAlign: 'center',
                       marginBottom: 10,
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: '600' },
+  statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Section
   section: {
@@ -1231,7 +1231,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 14,
@@ -1262,18 +1262,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  routeDotStopNum: { fontSize: 9, fontWeight: '700', color: '#FFF' },
+  routeDotStopNum: { fontSize: 9, fontFamily: 'Sora_700Bold', color: '#FFF' },
   routeDotDest: { width: 10, height: 10, borderRadius: 5 },
   routeLabelsCol: { flex: 1, gap: 0 },
   routeStop: { paddingBottom: 16 },
   routeStopLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 2,
   },
-  routeStopAddress: { fontSize: 15, fontWeight: '500' },
+  routeStopAddress: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   routeStopCity: { fontSize: 13, marginTop: 1 },
 
   // Meta row
@@ -1300,9 +1300,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   costBannerLeft: { flex: 1 },
-  costBannerLabel: { fontSize: 14, fontWeight: '500' },
+  costBannerLabel: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   costBannerSub: { fontSize: 12, marginTop: 2 },
-  costBannerValue: { fontSize: 22, fontWeight: '700' },
+  costBannerValue: { fontSize: 22, fontFamily: 'Sora_700Bold' },
 
   // Driver
   driverRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -1311,9 +1311,9 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36,
     justifyContent: 'center', alignItems: 'center',
   },
-  driverInitials: { fontSize: 18, fontWeight: '600' },
+  driverInitials: { fontSize: 18, fontFamily: 'Sora_600SemiBold' },
   driverInfo: { flex: 1 },
-  driverName: { fontSize: 16, fontWeight: '600' },
+  driverName: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   driverPhotoHint: { fontSize: 12, marginTop: 4 },
 
   // Vehicle
@@ -1338,7 +1338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   vehicleInfo: { flex: 1 },
-  vehicleName: { fontSize: 15, fontWeight: '600' },
+  vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   vehicleColor: { fontSize: 13, marginTop: 2 },
 
   // Features
@@ -1371,9 +1371,9 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  passengerInitials: { fontSize: 14, fontWeight: '600' },
+  passengerInitials: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   passengerInfo: { flex: 1 },
-  passengerName: { fontSize: 14, fontWeight: '500' },
+  passengerName: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   passengerSeats: { fontSize: 12, marginTop: 2 },
   chatBtn: {
     width: 34, height: 34, borderRadius: 17,
@@ -1388,7 +1388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  mapBtnText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Footer
   footer: {
@@ -1407,19 +1407,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     flexDirection: 'row', gap: 6,
   },
-  footerBtnText: { fontSize: 16, fontWeight: '600' },
+  footerBtnText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   footerBtnOutline: {
     height: 52, borderRadius: 12,
     borderWidth: 1.5,
     justifyContent: 'center', alignItems: 'center',
     flexDirection: 'row', gap: 6,
   },
-  footerBtnOutlineText: { fontSize: 15, fontWeight: '600' },
+  footerBtnOutlineText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   cancelLink: {
     alignItems: 'center',
     paddingVertical: 12,
   },
-  cancelLinkText: { fontSize: 14, fontWeight: '500' },
+  cancelLinkText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   statusFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  statusFooterText: { fontSize: 15, fontWeight: '500' },
+  statusFooterText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   pendingWrap: { gap: 12 },
   pendingTopRow: {
     flexDirection: 'row',
@@ -1437,8 +1437,8 @@ const styles = StyleSheet.create({
   },
   pendingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pendingDot: { width: 8, height: 8, borderRadius: 4 },
-  pendingLabel: { fontSize: 14, fontWeight: '500' },
-  cancelLink: { fontSize: 14, fontWeight: '500' },
+  pendingLabel: { fontSize: 14, fontFamily: 'Sora_500Medium' },
+  cancelLink: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   footerChatWrap: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1.5,
   },
-  footerChatBtnText: { fontSize: 15, fontWeight: '600' },
+  footerChatBtnText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
 
   // Modals
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
@@ -1460,7 +1460,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 20, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  sheetTitle: { fontSize: 17, fontWeight: '600' },
+  sheetTitle: { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   imageOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.92)',
     justifyContent: 'center', alignItems: 'center',
@@ -1493,12 +1493,12 @@ const styles = StyleSheet.create({
   },
   headerOrigin: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     flexShrink: 1,
   },
   headerDest: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     flexShrink: 1,
   },
   statusPill: {
@@ -1509,7 +1509,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 
   // Price card
@@ -1522,8 +1522,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   priceCardLeft: { flex: 1, gap: 4 },
-  priceCardLabel: { fontSize: 12, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4 },
-  priceCardValue: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  priceCardLabel: { fontSize: 12, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4 },
+  priceCardValue: { fontSize: 28, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 },
   priceCardIcon: {
     width: 44,
     height: 44,

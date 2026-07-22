@@ -242,19 +242,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semibold,
     color: safeColors.textSecondary,
   },
   required: {
     color: safeColors.error || '#EF4444',
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
   },
   characterCount: {
     fontSize: fontSize.xs,
     fontFamily: SORA_FONTS.medium,
-    fontWeight: fontWeight.medium,
   },
   inputContainer: {
     flexDirection: 'row',
