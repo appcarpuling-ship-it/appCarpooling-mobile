@@ -130,7 +130,16 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileStackNavigator}
-        options={{ tabBarLabel: 'Perfil' }}
+        options={({ route }) => {
+          const nested = getFocusedRouteNameFromRoute(route) ?? 'Profile';
+          // Formularios largos: la barra tapa el final del scroll y compite con
+          // el botón de guardar. FloatingTabBar lee este display:'none'.
+          const hideTabBar = ['EditProfile', 'VehicleForm'].includes(nested);
+          return {
+            tabBarLabel: 'Perfil',
+            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
+          };
+        }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevenir navegación por defecto
