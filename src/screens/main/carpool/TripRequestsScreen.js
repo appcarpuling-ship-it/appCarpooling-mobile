@@ -30,7 +30,7 @@ const TripRequestsScreen = ({ route }) => {
   const { tripId } = route.params || {};
 
   useLayoutEffect(() => {
-    const tint = isDarkMode ? '#FFFFFF' : '#1F2937';
+    const tint = ui.text;
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity
@@ -291,17 +291,25 @@ const TripRequestsScreen = ({ route }) => {
   };
 
   const getStatus = (status) => {
+    // Los 8 valores del enum reservationStatus del backend, mas los del viaje.
+    // Faltaban payment_failed, trip_completed y expired: caian al default y la
+    // pantalla mostraba la clave cruda ("trip_completed") al conductor.
     const map = {
+      // del viaje
       pending:          { solid: true,  label: 'Pendiente' },
       confirmed:        { solid: true,  label: 'Confirmado' },
       cancelled:        { solid: false, label: 'Cancelado' },
       completed:        { solid: false, label: 'Completado' },
-      pending_approval: { color: ui.textMuted, label: 'Esperando tu aprobación' },
-      pending_payment:  { color: '#8B5CF6', label: 'Pago pendiente' },
-      reserved:         { color: ui.text, label: 'Confirmada' },
-      rejected:         { color: ui.textMuted, label: 'Rechazada' },
+      // de la reserva del asiento
+      pending_approval: { solid: true,  label: 'Esperando tu aprobación' },
+      pending_payment:  { solid: true,  label: 'Pago pendiente' },
+      payment_failed:   { solid: true,  label: 'Pago fallido' },
+      reserved:         { solid: true,  label: 'Confirmada' },
+      trip_completed:   { solid: false, label: 'Viaje completado' },
+      expired:          { solid: false, label: 'Vencida' },
+      rejected:         { solid: false, label: 'Rechazada' },
     };
-    return map[status] || { color: textMuted, label: status };
+    return map[status] || { solid: false, label: '—' };
   };
 
   const fmtDate = (d) =>
@@ -522,7 +530,7 @@ const TripRequestsScreen = ({ route }) => {
         {isPending && (
           <View style={[styles.actionsRow, { borderTopColor: divider }]}>
             <TouchableOpacity
-              style={[styles.btnReject, { backgroundColor: isDarkMode ? '#3D1A1A' : '#FEE2E2' }]}
+              style={[styles.btnReject, { backgroundColor: ui.surface }]}
               onPress={() => {
                 setSelectedRequest(item._id);
                 setRejectModalVisible(true);

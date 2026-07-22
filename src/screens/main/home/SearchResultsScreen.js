@@ -41,11 +41,11 @@ const SearchResultsScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('price');
 
-  const cardBg = isDarkMode ? '#292929' : '#FFFFFF';
-  const cardBorder = isDarkMode ? '#404040' : '#E5E7EB';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-
-  const ui = useUI();  const textMuted = ui.textMuted;
+  const ui = useUI();
+  const cardBg = ui.surface;
+  const cardBorder = ui.border;
+  const textPrimary = ui.text;
+  const textMuted = ui.textMuted;
   const textSecondary = ui.textMuted;
 
   const loadResults = useCallback(async (sort, pageNum = 1, reset = true) => {
@@ -136,8 +136,8 @@ const SearchResultsScreen = ({ route, navigation }) => {
                 style={[styles.avatar, { borderColor: cardBorder }]}
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
-                <Text style={[styles.avatarInitials, { color: isDarkMode ? '#1F2937' : '#FFFFFF' }]}>
+              <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: ui.text }]}>
+                <Text style={[styles.avatarInitials, { color: ui.invertText }]}>
                   {driver.firstName?.[0]}{driver.lastName?.[0]}
                 </Text>
               </View>

@@ -248,16 +248,16 @@ const AllTripsScreen = ({ navigation }) => {
 
       return (
         <TouchableOpacity
-          style={[styles.tripCard, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+          style={[styles.tripCard, { backgroundColor: ui.surface, borderColor: ui.border }]}
           onPress={() => navigation.navigate('TripDetail', { tripId: item._id })}
           activeOpacity={0.7}
         >
           <View style={styles.cardGradient}>
             <View style={styles.tripHeader}>
               <View style={styles.routeRow}>
-                <Text style={[styles.addressText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={2}>{originAddress}</Text>
+                <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{originAddress}</Text>
                 <Ionicons name="arrow-forward" size={18} color={ui.textMuted} style={styles.arrowIcon} />
-                <Text style={[styles.addressText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]} numberOfLines={2}>{destAddress}</Text>
+                <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{destAddress}</Text>
               </View>
               {/* <Text style={styles.priceText}>
                 {item.pricePerSeat ? `$${item.pricePerSeat}` : 'Gratis'}
@@ -269,7 +269,7 @@ const AllTripsScreen = ({ navigation }) => {
                 {driver.avatar ? (
                   <Image
                     source={{ uri: buildImageUri(driver.avatar) }}
-                    style={[styles.avatarImage, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                    style={[styles.avatarImage, { borderColor: ui.border }]}
                     defaultSource={require('../../../../assets/logo/192x192-black.png')}
                   />
                 ) : (
@@ -285,7 +285,7 @@ const AllTripsScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            <View style={[styles.tripMeta, { borderTopColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+            <View style={[styles.tripMeta, { borderTopColor: ui.border }]}>
               <View style={styles.metaItem}>
                 <Ionicons name="calendar-outline" size={14} color={ui.textMuted} />
                 <Text style={[styles.metaText, { color: ui.textMuted }]}>
@@ -314,10 +314,10 @@ const AllTripsScreen = ({ navigation }) => {
 
   const renderLocationModal = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
     const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
-    const borderColor = isDarkMode ? '#404040' : '#E5E7EB';
+    const borderColor = ui.border;
     const textMuted = ui.textMuted;
-    const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-    const accent = isDarkMode ? '#FFFFFF' : '#1F2937';
+    const textPrimary = ui.text;
+    const accent = ui.text;
     const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
     const depts = getDepartmentsForProvince(selectedProvince);
 
@@ -363,9 +363,9 @@ const AllTripsScreen = ({ navigation }) => {
                 windowSize={5}
                 renderItem={({ item }) => {
                   const isSelected = selectedProvince === item.key;
-                  const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textMuted;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
@@ -408,7 +408,7 @@ const AllTripsScreen = ({ navigation }) => {
                 windowSize={5}
                 ListHeaderComponent={
                   <TouchableOpacity
-                    style={[styles.deptAllItem, { backgroundColor: isDarkMode ? '#252525' : '#FFFFFF', borderColor }]}
+                    style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor }]}
                     onPress={() => { onDeptSelect(''); handleClose(); }}
                     activeOpacity={0.75}
                   >
@@ -418,9 +418,9 @@ const AllTripsScreen = ({ navigation }) => {
                 }
                 renderItem={({ item }) => {
                   const isSelected = selectedDept === item.label;
-                  const cardBackground = isSelected ? (isDarkMode ? '#FFFFFF' : '#1F2937') : (isDarkMode ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : (isDarkMode ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (isDarkMode ? '#1F2937' : '#FFFFFF') : textMuted;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textMuted;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
@@ -469,26 +469,26 @@ const AllTripsScreen = ({ navigation }) => {
     return (
       <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => { setTempTime(null); setShowTimePicker(false); }}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
-              <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Hora</Text>
+          <View style={[styles.pickerContainer, { backgroundColor: ui.surface }]}>
+            <View style={[styles.pickerHeader, { borderBottomColor: ui.border }]}>
+              <Text style={[styles.pickerTitle, { color: ui.text }]}>Seleccionar Hora</Text>
               <TouchableOpacity onPress={() => { setTempTime(null); setShowTimePicker(false); }}>
-                <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+                <Ionicons name="close" size={24} color={ui.text} />
               </TouchableOpacity>
             </View>
-            <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+            <View style={[styles.datePickerWrapper, { backgroundColor: ui.surface }]}>
               <DateTimePicker
                 value={tempTime || selectedTime || new Date()}
                 mode="time"
                 display="spinner"
                 onChange={handleTimeChange}
-                textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
+                textColor={ui.text}
                 themeVariant={isDarkMode ? 'dark' : 'light'}
               />
             </View>
             <View style={styles.pickerButtons}>
               <TouchableOpacity
-                style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                style={[styles.pickerButton, { borderColor: ui.border }]}
                 onPress={() => {
                   setSelectedTime(null);
                   setTempTime(null);
@@ -519,11 +519,11 @@ const AllTripsScreen = ({ navigation }) => {
   const renderSeatsModal = () => (
     <Modal transparent animationType="fade" visible={showSeatsPicker} onRequestClose={() => setShowSeatsPicker(false)}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
-          <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
-            <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Lugares Disponibles</Text>
+        <View style={[styles.pickerContainer, { backgroundColor: ui.surface }]}>
+          <View style={[styles.pickerHeader, { borderBottomColor: ui.border }]}>
+            <Text style={[styles.pickerTitle, { color: ui.text }]}>Lugares Disponibles</Text>
             <TouchableOpacity onPress={() => setShowSeatsPicker(false)}>
-              <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+              <Ionicons name="close" size={24} color={ui.text} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.provinceList}>
@@ -536,7 +536,7 @@ const AllTripsScreen = ({ navigation }) => {
                 }}
                 style={[
                   styles.provinceOption,
-                  { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { borderBottomColor: ui.border },
                   minAvailableSeats === option && { backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF' },
                 ]}
               >
@@ -567,13 +567,13 @@ const AllTripsScreen = ({ navigation }) => {
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
           {/* Filters */}
-          <View style={[styles.filtersSection, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
+          <View style={[styles.filtersSection, { borderBottomColor: ui.border }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
               {/* Origin */}
               <TouchableOpacity
                 style={[
                   styles.filterChip,
-                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   (originProvince || originCity) && { backgroundColor: ui.invertBg, borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => { setOriginStep(originProvince ? 'department' : 'province'); setShowOriginPicker(true); }}
@@ -594,7 +594,7 @@ const AllTripsScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[
                   styles.filterChip,
-                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   (destinationProvince || destinationCity) && { backgroundColor: ui.invertBg, borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => { setDestinationStep(destinationProvince ? 'department' : 'province'); setShowDestinationPicker(true); }}
@@ -615,7 +615,7 @@ const AllTripsScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[
                   styles.filterChip,
-                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   selectedDate && { backgroundColor: ui.invertBg, borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => {
@@ -638,7 +638,7 @@ const AllTripsScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[
                   styles.filterChip,
-                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   selectedTime && { backgroundColor: ui.invertBg, borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => {
@@ -661,7 +661,7 @@ const AllTripsScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[
                   styles.filterChip,
-                  { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF', borderColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                  { backgroundColor: ui.surface, borderColor: ui.border },
                   minAvailableSeats && { backgroundColor: ui.invertBg, borderColor: isDarkMode ? 'transparent' : '#000000' }
                 ]}
                 onPress={() => setShowSeatsPicker(true)}
@@ -727,7 +727,7 @@ const AllTripsScreen = ({ navigation }) => {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Ionicons name="car-outline" size={64} color={ui.textMuted} />
-                  <Text style={[styles.emptyText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>No se encontraron viajes</Text>
+                  <Text style={[styles.emptyText, { color: ui.text }]}>No se encontraron viajes</Text>
                   <Text style={[styles.emptySubtext, { color: ui.textMuted }]}>
                     {hasActiveFilters
                       ? 'Intenta ajustar los filtros'
@@ -789,27 +789,27 @@ const AllTripsScreen = ({ navigation }) => {
         {showDatePicker && Platform.OS === 'ios' && (
           <Modal transparent animationType="fade" onRequestClose={() => { setTempDate(null); setShowDatePicker(false); }}>
             <View style={styles.modalOverlay}>
-              <View style={[styles.pickerContainer, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
-                <View style={[styles.pickerHeader, { borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB' }]}>
-                  <Text style={[styles.pickerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>Seleccionar Fecha</Text>
+              <View style={[styles.pickerContainer, { backgroundColor: ui.surface }]}>
+                <View style={[styles.pickerHeader, { borderBottomColor: ui.border }]}>
+                  <Text style={[styles.pickerTitle, { color: ui.text }]}>Seleccionar Fecha</Text>
                   <TouchableOpacity onPress={() => { setTempDate(null); setShowDatePicker(false); }}>
-                    <Ionicons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#1F2937'} />
+                    <Ionicons name="close" size={24} color={ui.text} />
                   </TouchableOpacity>
                 </View>
-                <View style={[styles.datePickerWrapper, { backgroundColor: isDarkMode ? '#292929' : '#FFFFFF' }]}>
+                <View style={[styles.datePickerWrapper, { backgroundColor: ui.surface }]}>
                   <DateTimePicker
                     value={tempDate || selectedDate || new Date()}
                     mode="date"
                     display="spinner"
                     onChange={handleDateChange}
                     minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
-                    textColor={isDarkMode ? '#FFFFFF' : '#1F2937'}
+                    textColor={ui.text}
                     themeVariant={isDarkMode ? 'dark' : 'light'}
                   />
                 </View>
                 <View style={styles.pickerButtons}>
                   <TouchableOpacity
-                    style={[styles.pickerButton, { borderColor: isDarkMode ? '#404040' : '#E5E7EB' }]}
+                    style={[styles.pickerButton, { borderColor: ui.border }]}
                     onPress={() => {
                       setSelectedDate(null);
                       setTempDate(null);
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
   },
   deptAllItem: {
     marginHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     alignItems: 'center',
     paddingVertical: 14,
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   provinceGridItem: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     alignItems: 'center',
     paddingVertical: 16,

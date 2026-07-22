@@ -245,9 +245,9 @@ const CreateTripGoogleMaps = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         {/* Map not available banner */}
-        <View style={[styles.mapBanner, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: isDarkMode ? '#334155' : '#BFDBFE' }]}>
+        <View style={[styles.mapBanner, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: ui.border }]}>
           <Ionicons name="map-outline" size={18} color={isDarkMode ? '#93C5FD' : ui.text} />
-          <Text style={[styles.mapBannerText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
+          <Text style={[styles.mapBannerText, { color: ui.text }]}>
             El mapa interactivo no está disponible en la versión web. Ingresa las direcciones manualmente.
           </Text>
         </View>

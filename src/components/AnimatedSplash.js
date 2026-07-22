@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { StyleSheet, Animated, Easing, View } from 'react-native';
-import useColors from '../hooks/useColors';
+import { useEffect, useRef, useMemo } from 'react';
+import { StyleSheet, Animated, Easing, View, Text } from 'react-native';
+import { useUI } from '../theme/ui';
 
 const TITLE = 'Carpuling';
 
@@ -8,18 +8,26 @@ const TITLE = 'Carpuling';
 let splashAnimationConsumed = false;
 
 /**
- * Splash mínimo: mismo fondo que la app, logo + marca, solo fades suaves.
+ * Entrada de marca: el logo aparece, las letras del nombre suben escalonadas y
+ * una línea se abre debajo. Todo con opacidad y transform, que son las dos
+ * propiedades que el driver nativo puede animar sin pasar por el hilo de JS.
  */
 const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
-  const { colors, fontFamily, isDarkMode } = useColors();
+  const ui = useUI();
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const curtainOpacity = useRef(new Animated.Value(1)).current;
+  const logo = useRef(new Animated.Value(0)).current;
+  const line = useRef(new Animated.Value(0)).current;
+  const curtain = useRef(new Animated.Value(1)).current;
 
-  const LOGO_SOURCE = isDarkMode
+  // Un valor por letra: es lo que permite el escalonado.
+  const letters = useMemo(
+    () => TITLE.split('').map(() => new Animated.Value(0)),
+    []
+  );
+
+  const LOGO_SOURCE = ui.isDarkMode
     ? require('../../assets/logo/192x192-white.png')
     : require('../../assets/logo/192x192-black.png');
 
@@ -27,30 +35,46 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
     if (!fontsLoaded || splashAnimationConsumed) return;
     splashAnimationConsumed = true;
 
-    const out = Easing.bezier(0.33, 1, 0.68, 1);
+    const out = Easing.bezier(0.16, 1, 0.3, 1); // desacelera largo al final
 
+    // Las letras arrancan con el logo todavía entrando y la línea se solapa con
+    // las últimas: en serie la secuencia daba 2,8s, demasiado para un arranque.
     const sequence = Animated.sequence([
       Animated.parallel([
-        Animated.timing(logoOpacity, {
+        Animated.timing(logo, {
           toValue: 1,
-          duration: 560,
+          duration: 520,
           easing: out,
           useNativeDriver: true,
         }),
         Animated.sequence([
-          Animated.delay(180),
-          Animated.timing(textOpacity, {
+          Animated.delay(200),
+          Animated.stagger(
+            38,
+            letters.map((v) =>
+              Animated.timing(v, {
+                toValue: 1,
+                duration: 380,
+                easing: out,
+                useNativeDriver: true,
+              })
+            )
+          ),
+        ]),
+        Animated.sequence([
+          Animated.delay(620),
+          Animated.timing(line, {
             toValue: 1,
-            duration: 480,
+            duration: 420,
             easing: out,
             useNativeDriver: true,
           }),
         ]),
       ]),
-      Animated.delay(640),
-      Animated.timing(curtainOpacity, {
+      Animated.delay(240),
+      Animated.timing(curtain, {
         toValue: 0,
-        duration: 340,
+        duration: 380,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
       }),
@@ -64,26 +88,54 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
   }, [fontsLoaded]);
 
   return (
-    <Animated.View style={[styles.root, { backgroundColor: colors.background, opacity: curtainOpacity }]}>
+    <Animated.View style={[styles.root, { backgroundColor: ui.bg, opacity: curtain }]}>
       <View style={styles.center}>
         <Animated.Image
           source={LOGO_SOURCE}
-          style={[styles.logo, { opacity: logoOpacity }]}
+          style={[
+            styles.logo,
+            {
+              opacity: logo,
+              transform: [
+                { scale: logo.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) },
+              ],
+            },
+          ]}
           resizeMode="contain"
         />
 
-        {/* <Animated.Text
+        <View style={styles.word}>
+          {TITLE.split('').map((char, i) => (
+            <Animated.Text
+              key={`${char}-${i}`}
+              style={[
+                styles.letter,
+                {
+                  color: ui.text,
+                  opacity: letters[i],
+                  transform: [
+                    {
+                      translateY: letters[i].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [18, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {char}
+            </Animated.Text>
+          ))}
+        </View>
+
+        {/* scaleX desde el centro: la línea se abre hacia los dos lados */}
+        <Animated.View
           style={[
-            styles.wordmark,
-            {
-              color: colors.textPrimary,
-              opacity: textOpacity,
-              fontFamily: fontFamily.medium,
-            },
+            styles.line,
+            { backgroundColor: ui.text, opacity: line, transform: [{ scaleX: line }] },
           ]}
-        >
-          {TITLE}
-        </Animated.Text> */}
+        />
       </View>
     </Animated.View>
   );
@@ -99,15 +151,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
-    gap: 20,
   },
   logo: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
+    marginBottom: 26,
   },
-  wordmark: {
-    fontSize: 22,
-    letterSpacing: 1.2,
+  word: {
+    flexDirection: 'row',
+  },
+  letter: {
+    fontFamily: 'Sora_300Light',
+    fontSize: 32,
+    letterSpacing: -0.5,
+  },
+  line: {
+    width: 120,
+    height: 1,
+    marginTop: 18,
+    opacity: 0.35,
   },
 });
 

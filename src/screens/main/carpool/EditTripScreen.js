@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
     marginBottom: 28,

@@ -294,7 +294,7 @@ const MyBookingsScreen = ({ navigation }) => {
             <Text style={[styles.driverName, { color: activeTxt }]}>{driver.firstName} {driver.lastName}</Text>
             <Text style={[styles.driverLabel, { color: activeMuted }]}>Conductor</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={isActive ? (isDarkMode ? 'rgba(255,255,255,0.3)' : ui.textMuted) : (isDarkMode ? '#555' : '#CCC')} />
+          <Ionicons name="chevron-forward" size={18} color={isActive ? (isDarkMode ? 'rgba(255,255,255,0.3)' : ui.textMuted) : (ui.textMuted)} />
         </View>
 
         {/* Actions */}
@@ -310,7 +310,7 @@ const MyBookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : ui.textMuted) : (isDarkMode ? '#666666' : '#888888') }]}
+              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : ui.textMuted) : (ui.textMuted) }]}
               onPress={() => handleCancelBooking(item._id)}
               activeOpacity={0.7}
               disabled={cancellingId === item._id}
@@ -340,6 +340,13 @@ const MyBookingsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      <View style={styles.screenHeader}>
+        <Text style={[styles.screenTitle, { color: ui.text }]}>
+          Los viajes{'\n'}
+          <Text style={styles.screenTitleStrong}>que reservaste</Text>
+        </Text>
+      </View>
+
       {bookings.length > 0 ? (
         <FlatList
           onEndReached={onEndReached}
@@ -386,6 +393,9 @@ const MyBookingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
+  screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
   listFooterLoader: {
@@ -399,7 +409,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
   },
