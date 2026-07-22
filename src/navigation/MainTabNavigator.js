@@ -19,6 +19,15 @@ import { useTutorial } from '../context/TutorialContext';
 
 const Tab = createBottomTabNavigator();
 
+// Pantalla inicial de cada stack: es donde se muestra la barra.
+const TAB_ROOT = {
+  HomeTab: 'Home',
+  CarpoolingsTab: 'Carpoolings',
+  AssistantTab: 'Assistant',
+  ChatsTab: 'Chats',
+  ProfileTab: 'Profile',
+};
+
 const MainTabNavigator = () => {
   const { unreadCount } = useUnreadMessages();
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
@@ -42,24 +51,24 @@ const MainTabNavigator = () => {
     <Tab.Navigator
       id="MainTabs"
       tabBar={(props) => <FloatingTabBar {...props} unreadCount={unreadCount} />}
-      screenOptions={{
-        headerShown: false,
-        // FloatingTabBar lee este display:'none' para ocultarse (teclado abierto
-        // en Android, y las pantallas que ya lo declaraban en sus options).
-        tabBarStyle: keyboardVisible ? { display: 'none' } : undefined,
+      screenOptions={({ route }) => {
+        // La barra vive solo en la raíz de cada tab. Adentro de un stack
+        // (detalle, formulario, mapa) estorba: tapa el final del scroll y
+        // compite con el botón de la pantalla. getFocusedRouteNameFromRoute
+        // devuelve undefined mientras no saliste de la primera pantalla.
+        const nested = getFocusedRouteNameFromRoute(route);
+        const deep = nested !== undefined && nested !== TAB_ROOT[route.name];
+        return {
+          headerShown: false,
+          // FloatingTabBar lee este display:'none' para ocultarse.
+          tabBarStyle: keyboardVisible || deep ? { display: 'none' } : undefined,
+        };
       }}
     >
       <Tab.Screen
         name="HomeTab"
         component={HomeStackNavigator}
-        options={({ route }) => {
-          const focused = getFocusedRouteNameFromRoute(route) ?? 'Home';
-          const hideTabBar = ['CreateTripRequest', 'TripMap'].includes(focused);
-          return {
-            tabBarLabel: 'Inicio',
-            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
-          };
-        }}
+        options={{ tabBarLabel: 'Inicio' }}
       />
       <Tab.Screen
         name="CarpoolingsTab"
@@ -89,14 +98,7 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ChatsTab"
         component={ChatStackNavigator}
-        options={({ route }) => {
-          const nested = getFocusedRouteNameFromRoute(route) ?? 'Chats';
-          const hideTabBar = nested === 'ChatDetail' || nested === 'UserProfile';
-          return {
-            tabBarLabel: 'Mensajes',
-            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
-          };
-        }}
+        options={{ tabBarLabel: 'Mensajes' }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             e.preventDefault();
@@ -130,16 +132,7 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileStackNavigator}
-        options={({ route }) => {
-          const nested = getFocusedRouteNameFromRoute(route) ?? 'Profile';
-          // Formularios largos: la barra tapa el final del scroll y compite con
-          // el botón de guardar. FloatingTabBar lee este display:'none'.
-          const hideTabBar = ['EditProfile', 'VehicleForm'].includes(nested);
-          return {
-            tabBarLabel: 'Perfil',
-            ...(hideTabBar ? { tabBarStyle: { display: 'none' } } : {}),
-          };
-        }}
+        options={{ tabBarLabel: 'Perfil' }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
             // Prevenir navegación por defecto
