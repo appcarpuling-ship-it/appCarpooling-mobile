@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useColors } from '../hooks/useColors';
 import { useTheme } from '../context/ThemeContext';
 import { ActivityIndicator, View } from 'react-native';
 
 // Auth screens
+import OnboardingScreen, { ONBOARDING_SEEN_KEY } from '../screens/auth/OnboardingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerificationScreen from '../screens/auth/VerificationScreen';
@@ -29,9 +31,17 @@ const AppNavigator = () => {
   const colors = useColors();
   const { isDarkMode } = useTheme();
 
+  // null = todavía no sabemos si vio el onboarding; evita mostrar Login y saltar.
+  const [seenOnboarding, setSeenOnboarding] = useState(null);
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_SEEN_KEY)
+      .then((v) => setSeenOnboarding(v === '1'))
+      .catch(() => setSeenOnboarding(true)); // si falla, no bloqueamos el login
+  }, []);
+
   console.log('AppNavigator - isAuthenticated:', isAuthenticated, 'loading:', loading);
 
-  if (loading) {
+  if (loading || seenOnboarding === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -49,6 +59,7 @@ const AppNavigator = () => {
     >
       {!isAuthenticated ? (
         <>
+          {!seenOnboarding && <Stack.Screen name="Onboarding" component={OnboardingScreen} />}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="Verification" component={VerificationScreen} />
