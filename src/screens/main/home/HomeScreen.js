@@ -704,8 +704,8 @@ const HomeScreen = ({ navigation, route }) => {
         </View>
         {/* Título display: el peso hace de acento, no el color. */}
         <Text style={[styles.headerTitle, { color: textPrimary }]}>
-          ¿A dónde{'\n'}
-          <Text style={styles.headerTitleStrong}>vamos hoy?</Text>
+          Compartí tu{'\n'}
+          <Text style={styles.headerTitleStrong}>próximo viaje</Text>
         </Text>
       </View>
       <View style={styles.tabBarWrap}>
