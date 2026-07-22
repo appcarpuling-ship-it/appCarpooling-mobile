@@ -43,10 +43,10 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const VEHICLE_TYPES = [
     { key: 'sedan',    label: 'Sedán',    maxCapacity: 4 },
-    { key: 'hatchback',label: 'Hatchback',maxCapacity: 4 },
+    { key: 'hatchback',label: 'Compacto', maxCapacity: 4 },
     { key: 'suv',      label: 'SUV',      maxCapacity: 6 },
-    { key: 'pickup',   label: 'Pickup',   maxCapacity: 3 },
-    { key: 'van',      label: 'Van',      maxCapacity: 8 },
+    { key: 'pickup',   label: 'Pick-up',  maxCapacity: 3 },
+    { key: 'van',      label: 'Combi',    maxCapacity: 8 },
     { key: 'otro',     label: 'Otro',     maxCapacity: 8 },
   ];
 
@@ -159,7 +159,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
         }
       }
     } catch {
-      showAlert('Ocurrió algo', 'No se pudo seleccionar la imagen');
+      showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
     }
   };
 
@@ -180,7 +180,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
           const next = [...photos, ...compressed];
           if (existingPhotos.length + next.length > 10) {
-            showAlert('Ocurrió algo', 'Máximo 10 fotos');
+            showAlert('Ocurrió algo', 'Podés subir hasta 10 fotos.');
             return;
           }
           setPhotos(next);
@@ -189,45 +189,45 @@ const VehicleFormScreen = ({ navigation, route }) => {
         }
       }
     } catch {
-      showAlert('Ocurrió algo', 'No se pudieron seleccionar las imágenes');
+      showAlert('Ocurrió algo', 'No pudimos abrir esas imágenes.');
     }
   };
 
   const handleSubmit = async () => {
     const { brand, model, year, color, licensePlate, capacity } = formData;
     if (!brand || !model || !year || !color || !licensePlate || !capacity) {
-      showAlert('Ocurrió algo', 'Completa todos los campos');
+      showAlert('Ocurrió algo', 'Completá todos los campos.');
       return;
     }
 
     const totalPhotos = existingPhotos.length + photos.length;
     if (!isEdit && totalPhotos < 3) {
-      showAlert('Ocurrió algo', `Mínimo 3 fotos. Tenés ${totalPhotos}`);
+      showAlert('Ocurrió algo', `Necesitás 3 fotos como mínimo. Llevás ${totalPhotos}.`);
       return;
     }
     if (isEdit && totalPhotos === 0) {
-      showAlert('Ocurrió algo', 'Necesitás al menos 1 foto');
+      showAlert('Ocurrió algo', 'Dejá al menos una foto del vehículo.');
       return;
     }
 
     if (!isEdit && !registrationCardUri) {
-      showAlert('Ocurrió algo', 'Subí la tarjeta verde o cédula del vehículo');
+      showAlert('Ocurrió algo', 'Subí la tarjeta verde o la cédula del vehículo.');
       return;
     }
     if (isEdit && !hasRegistrationOnServer && !registrationCardUri) {
-      showAlert('Ocurrió algo', 'Subí la tarjeta verde o cédula del vehículo');
+      showAlert('Ocurrió algo', 'Subí la tarjeta verde o la cédula del vehículo.');
       return;
     }
 
     const yearNum = parseInt(year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
-      showAlert('Ocurrió algo', 'Año no válido');
+      showAlert('Ocurrió algo', 'Revisá el año: no parece válido.');
       return;
     }
 
     const capacityNum = parseInt(capacity);
     if (capacityNum < 1 || capacityNum > maxCapacityForType) {
-      showAlert('Ocurrió algo', `Capacidad: 1 a ${maxCapacityForType} pasajeros para el tipo seleccionado`);
+      showAlert('Ocurrió algo', `Para ese tipo podés cargar de 1 a ${maxCapacityForType} pasajeros.`);
       return;
     }
 
@@ -286,18 +286,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const featuresList = [
     { key: 'ac',      label: 'Aire acondicionado', icon: 'snow-outline' },
     { key: 'music',   label: 'Música',             icon: 'musical-notes-outline' },
-    { key: 'smoking', label: 'Se puede fumar',     icon: 'flame-outline' },
+    { key: 'smoking', label: 'Se puede fumar',    icon: 'flame-outline' },
     { key: 'pets',    label: 'Mascotas',           icon: 'paw-outline' },
     { key: 'luggage', label: 'Equipaje grande',    icon: 'bag-handle-outline' },
   ];
 
   const fields = [
-    { key: 'brand',        label: 'Marca',    placeholder: 'Toyota, Ford, Chevrolet...', half: false },
-    { key: 'model',        label: 'Modelo',   placeholder: 'Corolla, Focus, Cruze...',   half: false },
+    { key: 'brand',        label: 'Marca',    placeholder: 'Toyota, Ford, Chevrolet…', half: false },
+    { key: 'model',        label: 'Modelo',   placeholder: 'Corolla, Focus, Cruze…',   half: false },
     { key: 'year',         label: 'Año',      placeholder: '2020', half: true, keyboard: 'numeric', max: 4 },
     { key: 'color',        label: 'Color',    placeholder: 'Blanco',                    half: true },
-    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en el vehículo o documento', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
-    { key: 'capacity',     label: `Capacidad de pasajeros (máx. ${maxCapacityForType})`, placeholder: `1–${maxCapacityForType}`, half: false, keyboard: 'numeric', max: 1 },
+    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en la chapa', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
+    { key: 'capacity',     label: `Pasajeros (máx. ${maxCapacityForType})`, placeholder: `1–${maxCapacityForType}`, half: false, keyboard: 'numeric', max: 1 },
   ];
 
   const totalPhotos = existingPhotos.length + photos.length;
@@ -436,7 +436,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Tipo</Text>
             <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Define el máximo de pasajeros que podés ofrecer.
+              Define cuántos pasajeros vas a poder ofrecer.
             </Text>
             <View style={styles.chipsWrap}>
               {VEHICLE_TYPES.map((t) => {
@@ -451,7 +451,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
                     accessibilityState={{ selected: on }}
                   >
                     <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{t.label}</Text>
-                    <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{t.maxCapacity}</Text>
+                    {/* El número solo no se entendía: el ícono lo ancla a "pasajeros". */}
+                    <View style={styles.chipMetaWrap}>
+                      <Ionicons name="person" size={11} color={on ? ui.invertText : textMuted} />
+                      <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{t.maxCapacity}</Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -717,7 +721,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  chipMeta: { fontSize: 12, fontFamily: 'Sora_500Medium', opacity: 0.7 },
+  chipMetaWrap: { flexDirection: 'row', alignItems: 'center', gap: 3, opacity: 0.75 },
+  chipMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   featureChip: {
     flexDirection: 'row',
     alignItems: 'center',

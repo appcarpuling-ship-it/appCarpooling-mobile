@@ -17,12 +17,14 @@ import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { Image } from 'react-native';
 
+// Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
+// tipo se muestra con dos nombres distintos según la pantalla.
 const TYPE_LABELS = {
   sedan: 'Sedán',
   suv: 'SUV',
-  hatchback: 'Hatchback',
-  van: 'Van',
-  pickup: 'Pickup',
+  hatchback: 'Compacto',
+  van: 'Combi',
+  pickup: 'Pick-up',
   otro: 'Otro',
 };
 
@@ -74,7 +76,7 @@ const VehiclesScreen = () => {
         setHasMore(false);
       }
     } catch {
-      showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos');
+      showAlert('Ocurrió algo', 'No pudimos cargar tus vehículos.');
       if (reset || pageNum === 1) setVehicles([]);
     } finally {
       fetchLock.current = false;
@@ -105,7 +107,7 @@ const VehiclesScreen = () => {
   const handleDelete = (vehicleId) => {
     showAlert(
       'Eliminar Vehículo',
-      '¿Estás seguro que deseas eliminar este vehículo?',
+      '¿Seguro que querés eliminar este vehículo?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -270,7 +272,7 @@ const VehiclesScreen = () => {
           </View>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            Agrega tu primer vehículo para crear viajes
+            Cargá tu primer vehículo para empezar a publicar viajes.
           </Text>
         </View>
       )}
