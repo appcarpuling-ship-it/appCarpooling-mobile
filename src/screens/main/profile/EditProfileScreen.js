@@ -36,14 +36,6 @@ const EditProfileScreen = ({ navigation }) => {
   const accent      = ui.invertBg;
   const accentInv   = ui.invertText;
 
-  // Ancla de alto contraste, como el bloque negro del precio en las referencias.
-  // En oscuro se aclara en vez de invertirse, igual que la barra inferior: un
-  // bloque blanco de este tamaño encandila sobre el fondo #161616.
-  const heroBg    = ui.isDarkMode ? '#262626' : '#111111';
-  const heroFg    = '#FFFFFF';
-  const heroMuted = 'rgba(255,255,255,0.6)';
-  const heroTint  = 'rgba(255,255,255,0.12)';
-
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]   = useState(false);
   const [modalMessage, setModalMessage]       = useState('');
@@ -61,6 +53,7 @@ const EditProfileScreen = ({ navigation }) => {
     bio:       user?.bio      || '',
   });
   const [avatarUri, setAvatarUri] = useState(null);
+  const [gender, setGender] = useState(user?.gender || '');
   const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
@@ -214,6 +207,9 @@ const EditProfileScreen = ({ navigation }) => {
       fd.append('city',     formData.city.trim());
       fd.append('province', formData.province);
       if (formData.bio.trim()) fd.append('bio', formData.bio.trim());
+      // El backend solo acepta gender si el usuario todavía no tiene uno
+      // (authController.updateProfile); mandarlo si ya está lo ignora.
+      if (!user?.gender && gender) fd.append('gender', gender);
 
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
@@ -236,8 +232,8 @@ const EditProfileScreen = ({ navigation }) => {
     const uri = avatarUri || (user?.avatar ? buildImageUri(user.avatar) : null);
     if (uri) return <Image source={{ uri }} style={styles.avatarImage} />;
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: heroTint }]}>
-        <Text style={[styles.avatarInitials, { color: heroFg }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
+        <Text style={[styles.avatarInitials, { color: textPrimary }]}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
       </View>
@@ -308,9 +304,8 @@ const EditProfileScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Bloque oscuro de identidad: el ancla de contraste de la pantalla.
-              Absorbe email y sexo, que antes eran una sección "Cuenta" aparte. */}
-          <View style={[styles.hero, { backgroundColor: heroBg }]}>
+          {/* Avatar + nombre */}
+          <View style={styles.hero}>
             <View style={styles.avatarBlock}>
               <View style={styles.avatarWrapper}>
                 {avatarLoading && (
@@ -323,28 +318,74 @@ const EditProfileScreen = ({ navigation }) => {
               {/* El botón de cámara reemplaza al link "Cambiar foto": es el gesto
                   que ya espera la gente sobre un avatar. */}
               <TouchableOpacity
-                style={[styles.avatarBadge, { backgroundColor: heroFg, borderColor: heroBg }]}
+                style={[styles.avatarBadge, { backgroundColor: accent, borderColor: bg }]}
                 onPress={pickImage}
                 activeOpacity={0.85}
                 disabled={avatarLoading}
                 accessibilityRole="button"
                 accessibilityLabel="Cambiar foto de perfil"
               >
-                <Ionicons name="camera" size={17} color="#111111" />
+                <Ionicons name="camera" size={17} color={accentInv} />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.heroName, { color: heroFg }]} numberOfLines={1}>
+            <Text style={[styles.heroName, { color: textPrimary }]} numberOfLines={1}>
               {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
             </Text>
-            <Text style={[styles.heroMail, { color: heroMuted }]} numberOfLines={1}>{user?.email || '—'}</Text>
+          </View>
 
-            {genderLabel !== '—' && (
-              <View style={[styles.heroChip, { backgroundColor: heroTint }]}>
-                <Ionicons name="person-outline" size={13} color={heroFg} />
-                <Text style={[styles.heroChipText, { color: heroFg }]}>{genderLabel}</Text>
+          {/* Cuenta */}
+          <View style={styles.section}>
+            <SectionLabel>Cuenta</SectionLabel>
+            <View style={styles.fieldStack}>
+              {/* El email identifica la cuenta y el backend no lo modifica en
+                  este endpoint, así que se muestra bloqueado y se dice por qué. */}
+              <View style={[styles.field, styles.fieldLocked, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Email</Text>
+                <View style={styles.selector}>
+                  <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted, flex: 1 }]} numberOfLines={1}>
+                    {user?.email || '—'}
+                  </Text>
+                  <Ionicons name="lock-closed" size={15} color={textMuted} />
+                </View>
               </View>
-            )}
+
+              <View style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Sexo</Text>
+                {user?.gender ? (
+                  // Una vez cargado no se cambia: el backend solo lo acepta vacío.
+                  <View style={styles.selector}>
+                    <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted, flex: 1 }]}>
+                      {genderLabel}
+                    </Text>
+                    <Ionicons name="lock-closed" size={15} color={textMuted} />
+                  </View>
+                ) : (
+                  <View style={styles.genderRow}>
+                    {[
+                      { key: 'female', label: 'Femenino' },
+                      { key: 'male',   label: 'Masculino' },
+                    ].map((g) => {
+                      const on = gender === g.key;
+                      return (
+                        <TouchableOpacity
+                          key={g.key}
+                          style={[styles.genderChip, { backgroundColor: on ? accent : bg }]}
+                          onPress={() => setGender(g.key)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: on }}
+                        >
+                          <Text style={[styles.genderChipText, { color: on ? accentInv : textPrimary }]}>
+                            {g.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
 
           {/* Datos personales */}
@@ -556,17 +597,8 @@ const styles = StyleSheet.create({
   flex:          { flex: 1 },
   scrollContent: { paddingBottom: 48 },
 
-  // Hero: bloque oscuro de identidad
-  hero: {
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 32,
-    paddingTop: 32,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
-    borderRadius: 32,
-  },
+  // Hero: avatar + nombre
+  hero: { alignItems: 'center', paddingTop: 28, paddingBottom: 32, paddingHorizontal: 24 },
   avatarBlock: { width: 124, height: 124, marginBottom: 18 },
   avatarWrapper: {
     width: 124,
@@ -598,17 +630,16 @@ const styles = StyleSheet.create({
   },
   heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6, textAlign: 'center' },
   heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
-  heroMail:       { fontFamily: 'Sora_400Regular', fontSize: 13, marginTop: 6 },
-  heroChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  // Campos bloqueados: se ven como los demás pero con candado y sin foco
+  fieldLocked: { opacity: 0.85 },
+  genderRow:   { flexDirection: 'row', gap: 8, marginTop: 8 },
+  genderChip: {
+    flex: 1,
+    paddingVertical: 11,
     borderRadius: 999,
-    marginTop: 16,
+    alignItems: 'center',
   },
-  heroChipText: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
+  genderChipText: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
 
   // Secciones
   section: { paddingHorizontal: 24, marginBottom: 28 },
