@@ -133,7 +133,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
             <View style={styles.metaItem}>
               <Ionicons name="people-outline" size={14} color={textMuted} />
-              <Text style={[styles.metaText, { color: pendingApps > 0 ? '#F59E0B' : textMuted }]}>
+              <Text style={[styles.metaText, { color: pendingApps > 0 ? ui.textMuted : textMuted }]}>
                 {totalApps}/5 postulaciones
                 {pendingApps > 0 ? ` · ${pendingApps} esperando respuesta` : ''}
               </Text>
@@ -143,7 +143,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
 
         {item.status === 'awaiting_payment' && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: '#F59E0B', fontSize: 12, flex: 1 }}>
+            <Text style={{ color: ui.textMuted, fontSize: 12, flex: 1 }}>
               Conductor aceptado — pendiente de pago
             </Text>
             <Ionicons name="chevron-forward" size={15} color={textMuted} />
@@ -152,7 +152,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
 
         {item.status === 'paid' && item.createdTrip && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: '#22C55E', fontSize: 12, flex: 1 }}>
+            <Text style={{ color: ui.text, fontSize: 12, flex: 1 }}>
               ¡Viaje confirmado!
             </Text>
             <Ionicons name="chevron-forward" size={15} color={textMuted} />

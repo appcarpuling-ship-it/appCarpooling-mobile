@@ -23,6 +23,7 @@ import CompleteTripCostModal from '../../../components/modals/CompleteTripCostMo
 import { useUI } from '../../../theme/ui';
 
 const MyTripsScreen = ({ navigation }) => {
+  const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
@@ -175,13 +176,13 @@ const MyTripsScreen = ({ navigation }) => {
   const getStatusConfig = (status) => {
     switch (status) {
       case 'active':
-        return { color: isDarkMode ? '#34D399' : '#10B981', bg: isDarkMode ? '#064E3B' : '#D1FAE5', text: 'Activo' };
+        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#064E3B' : '#D1FAE5', text: 'Activo' };
       case 'started':
-        return { color: isDarkMode ? '#FBBF24' : '#F59E0B', bg: isDarkMode ? '#78350F' : '#FEF3C7', text: 'Viaje iniciado' };
+        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#78350F' : '#FEF3C7', text: 'Viaje iniciado' };
       case 'completed':
-        return { color: isDarkMode ? '#60A5FA' : '#3B82F6', bg: isDarkMode ? '#1E3A5F' : '#DBEAFE', text: 'Completado' };
+        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#1E3A5F' : '#DBEAFE', text: 'Completado' };
       case 'cancelled':
-        return { color: isDarkMode ? '#F87171' : '#EF4444', bg: isDarkMode ? '#7F1D1D' : '#FEE2E2', text: 'Cancelado' };
+        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#7F1D1D' : '#FEE2E2', text: 'Cancelado' };
       default:
         return { color: colors.textTertiary, bg: colors.borderLight, text: status };
     }
@@ -228,8 +229,7 @@ const MyTripsScreen = ({ navigation }) => {
   const renderTripItem = ({ item }) => {
     const { color, text: statusText } = getStatusConfig(item.status);
     const freeNow = tripRemainingSeats(item);
-
-    const ui = useUI();    const textPrimary   = ui.invertBg;
+    const textPrimary   = ui.invertBg;
     const textMuted     = ui.textMuted;
     const cardBg        = colors.cardBackground;
     const divider       = ui.bg;
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 14,
     borderWidth: 0.8,
-    borderColor: '#F59E0B',
+    borderColor: '#8A8A8E',
   },
   activeHeader: {
     flexDirection: 'row',
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#000000',
   },
   activeLabel: {
     fontSize: 11,

@@ -851,7 +851,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                     {wp.address ? [wp.address, wp.city].filter(Boolean).join(', ') : `Parada ${i + 1}`}
                   </Text>
                   <TouchableOpacity onPress={() => removeWaypoint(i)} style={styles.rowBtn}>
-                    <Ionicons name="close-circle" size={17} color={wp.address ? '#DC2626' : textMuted} />
+                    <Ionicons name="close-circle" size={17} color={wp.address ? ui.textMuted : textMuted} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}

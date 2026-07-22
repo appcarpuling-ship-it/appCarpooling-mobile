@@ -96,7 +96,7 @@ const BookingScreen = ({ route, navigation }) => {
   const accent = ui.invertBg;
   const accentInverse = ui.invertText;
   const sectionLabelColor = dark ? textMuted : '#374151';
-  const successColor = colors.success || '#10B981';
+  const successColor = ui.text || ui.text;
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -253,7 +253,7 @@ const BookingScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
         <View style={styles.centerContainer}>
-          <Text style={[styles.errorText, { color: colors.error || '#EF4444' }]}>
+          <Text style={[styles.errorText, { color: ui.textMuted || ui.textMuted }]}>
             Error: Datos del viaje incompletos
           </Text>
         </View>
@@ -509,7 +509,7 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           ) : error ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.errorInline, { color: colors.error || '#EF4444' }]}>{error}</Text>
+              <Text style={[styles.errorInline, { color: ui.textMuted || ui.textMuted }]}>{error}</Text>
             </View>
           ) : priceData ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -619,7 +619,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.smokingAllowed ? 'checkmark-circle-outline' : 'close-circle-outline'}
                     size={18}
-                    color={trip.rules?.smokingAllowed ? successColor : '#EF4444'}
+                    color={trip.rules?.smokingAllowed ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.smokingAllowed ? 'Permite fumar' : 'No fumar'}
@@ -629,7 +629,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.petsAllowed ? 'checkmark-circle-outline' : 'close-circle-outline'}
                     size={18}
-                    color={trip.rules?.petsAllowed ? successColor : '#EF4444'}
+                    color={trip.rules?.petsAllowed ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.petsAllowed ? 'Mascotas OK' : 'Sin mascotas'}
@@ -639,7 +639,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.musicAllowed !== false ? 'musical-notes-outline' : 'musical-notes-outline'}
                     size={18}
-                    color={trip.rules?.musicAllowed !== false ? successColor : '#EF4444'}
+                    color={trip.rules?.musicAllowed !== false ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.musicAllowed !== false ? 'Música OK' : 'Sin música'}
@@ -914,7 +914,7 @@ const BookingScreen = ({ route, navigation }) => {
               styles.confirmBtn,
               {
                 backgroundColor:
-                  tripFreeNow <= 0 ? (colors.error || '#EF4444') : accent,
+                  tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
                 opacity:
                   loading ||
                   calculatingPrice ||

@@ -246,7 +246,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
       >
         {/* Map not available banner */}
         <View style={[styles.mapBanner, { backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF', borderColor: isDarkMode ? '#334155' : '#BFDBFE' }]}>
-          <Ionicons name="map-outline" size={18} color={isDarkMode ? '#93C5FD' : '#3B82F6'} />
+          <Ionicons name="map-outline" size={18} color={isDarkMode ? '#93C5FD' : ui.text} />
           <Text style={[styles.mapBannerText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
             El mapa interactivo no está disponible en la versión web. Ingresa las direcciones manualmente.
           </Text>
@@ -258,7 +258,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
           <View style={styles.inputsWrapper}>
             {/* Timeline */}
             <View style={styles.timeline}>
-              <View style={[styles.originDot, { backgroundColor: colors.success }]} />
+              <View style={[styles.originDot, { backgroundColor: ui.text }]} />
               <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
               {formData.waypoints.map((_, i) => (
                 <React.Fragment key={i}>
@@ -266,7 +266,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                   <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
                 </React.Fragment>
               ))}
-              <View style={[styles.destinationSquare, { backgroundColor: colors.error }]} />
+              <View style={[styles.destinationSquare, { backgroundColor: ui.textMuted }]} />
             </View>
 
             {/* Inputs */}
@@ -331,7 +331,7 @@ const CreateTripGoogleMaps = ({ navigation }) => {
                         }}
                       />
                       <TouchableOpacity onPress={() => removeWaypoint(index)} style={styles.clearBtn}>
-                        <Ionicons name="close-circle" size={18} color={waypoint.address ? colors.error : colors.textMuted} />
+                        <Ionicons name="close-circle" size={18} color={waypoint.address ? ui.textMuted : colors.textMuted} />
                       </TouchableOpacity>
                     </View>
                     <View style={[styles.divider, { backgroundColor: colors.border }]} />

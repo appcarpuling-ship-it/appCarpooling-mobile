@@ -105,7 +105,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               {driver.verified && (
                 <View style={styles.verifiedRow}>
                   <Ionicons name="shield-checkmark" size={13} color="#22C55E" />
-                  <Text style={{ color: '#22C55E', fontSize: 12, fontWeight: '600' }}>Verificado</Text>
+                  <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>Verificado</Text>
                 </View>
               )}
             </View>
@@ -194,7 +194,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
           <View style={[styles.acceptedBadge, { backgroundColor: '#DCFCE7' }]}>
             <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-            <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
+            <Text style={{ color: ui.text, fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
           </View>
         </View>
       )}

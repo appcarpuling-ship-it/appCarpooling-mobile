@@ -170,7 +170,7 @@ const MyApplicationsScreen = ({ navigation }) => {
         {item.myApplication?.status === 'accepted' && (
           <View style={[styles.acceptedBanner, { borderTopColor: divider }]}>
             <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
-            <Text style={{ color: '#22C55E', fontSize: 12, fontWeight: '600' }}>
+            <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>
               El pasajero te eligió como conductor
             </Text>
           </View>

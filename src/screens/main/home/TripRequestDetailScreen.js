@@ -416,7 +416,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   </View>
                   {app.status === 'rejected' ? (
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#FEE2E2' }}>
-                      <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
+                      <Text style={{ color: ui.textMuted, fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
                     </View>
                   ) : (
                     <Ionicons name="chevron-forward" size={16} color={textMuted} />
@@ -435,15 +435,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={styles.pendingWrap}>
               <View style={styles.pendingTopRow}>
                 <View style={styles.pendingIndicator}>
-                  <View style={[styles.pendingDot, { backgroundColor: '#F59E0B' }]} />
-                  <Text style={[styles.pendingLabel, { color: '#F59E0B' }]}>Pago pendiente</Text>
+                  <View style={[styles.pendingDot, { backgroundColor: ui.textMuted }]} />
+                  <Text style={[styles.pendingLabel, { color: ui.textMuted }]}>Pago pendiente</Text>
                 </View>
               </View>
               <Text style={[{ fontSize: 13, color: textMuted, marginBottom: 14 }]}>
                 Tu conductor está reservado. Completá el pago para confirmar el viaje.
               </Text>
               <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: '#F59E0B' }]}
+                style={[styles.footerBtn, { backgroundColor: ui.textMuted }]}
                 onPress={() => setCheckoutModal({ visible: true, paymentUrl: request.paymentData.paymentUrl })}
                 activeOpacity={0.85}
               >
@@ -494,7 +494,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
               <View style={[styles.statusFooter, { backgroundColor: dark ? '#0D2B1A' : '#F0FDF4' }]}>
                 <Ionicons name="checkmark-circle" size={17} color="#22C55E" />
-                <Text style={[styles.statusFooterText, { color: '#22C55E' }]}>Ya te postulaste a este viaje</Text>
+                <Text style={[styles.statusFooterText, { color: ui.text }]}>Ya te postulaste a este viaje</Text>
               </View>
             ) : canApply ? (
               <TouchableOpacity
@@ -578,7 +578,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                           <Text style={[styles.vehicleName, { color: textPrimary }]}>{v.brand} {v.model} {v.year}</Text>
                           <Text style={{ color: textMuted, fontSize: 12 }}>{v.color} · {v.licensePlate}</Text>
                           {insufficient && (
-                            <Text style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
+                            <Text style={{ color: ui.textMuted, fontSize: 11, marginTop: 2 }}>
                               Capacidad insuficiente ({v.capacity} de {request.seatsNeeded} requeridos)
                             </Text>
                           )}

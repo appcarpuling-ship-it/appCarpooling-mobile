@@ -296,10 +296,10 @@ const TripRequestsScreen = ({ route }) => {
       confirmed:        { solid: true,  label: 'Confirmado' },
       cancelled:        { solid: false, label: 'Cancelado' },
       completed:        { solid: false, label: 'Completado' },
-      pending_approval: { color: '#F59E0B', label: 'Esperando tu aprobación' },
+      pending_approval: { color: ui.textMuted, label: 'Esperando tu aprobación' },
       pending_payment:  { color: '#8B5CF6', label: 'Pago pendiente' },
-      reserved:         { color: '#10B981', label: 'Confirmada' },
-      rejected:         { color: '#EF4444', label: 'Rechazada' },
+      reserved:         { color: ui.text, label: 'Confirmada' },
+      rejected:         { color: ui.textMuted, label: 'Rechazada' },
     };
     return map[status] || { color: textMuted, label: status };
   };
@@ -529,7 +529,7 @@ const TripRequestsScreen = ({ route }) => {
               }}
               activeOpacity={0.7}
             >
-              <Text style={[styles.btnRejectText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>Rechazar</Text>
+              <Text style={[styles.btnRejectText, { color: isDarkMode ? ui.textMuted : ui.textMuted }]}>Rechazar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btnAccept, { backgroundColor: accent }]}
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
   },
   rejectionText: {
     fontSize: 13,
-    color: '#EF4444',
+    color: '#8A8A8E',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 10,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#8A8A8E',
     justifyContent: 'center',
     alignItems: 'center',
   },

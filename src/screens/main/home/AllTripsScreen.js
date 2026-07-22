@@ -32,6 +32,7 @@ import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
 
 const AllTripsScreen = ({ navigation }) => {
+  const ui = useUI();
   const { colors, createColorArray } = useColors();
   const { isDarkMode } = useTheme();
 
@@ -314,8 +315,7 @@ const AllTripsScreen = ({ navigation }) => {
   const renderLocationModal = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
     const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
     const borderColor = isDarkMode ? '#404040' : '#E5E7EB';
-
-    const ui = useUI();    const textMuted = ui.textMuted;
+    const textMuted = ui.textMuted;
     const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
     const accent = isDarkMode ? '#FFFFFF' : '#1F2937';
     const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
@@ -685,8 +685,8 @@ const AllTripsScreen = ({ navigation }) => {
               </Text>
               {hasActiveFilters && (
                 <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters} activeOpacity={0.7}>
-                  <Ionicons name="close-circle" size={16} color={isDarkMode ? '#EF4444' : '#DC2626'} />
-                  <Text style={[styles.clearFiltersButtonText, { color: isDarkMode ? '#EF4444' : '#DC2626' }]}>Limpiar filtros</Text>
+                  <Ionicons name="close-circle" size={16} color={isDarkMode ? ui.textMuted : ui.textMuted} />
+                  <Text style={[styles.clearFiltersButtonText, { color: isDarkMode ? ui.textMuted : ui.textMuted }]}>Limpiar filtros</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: fontSize.lg,
     fontFamily: 'Sora_700Bold',
-    color: '#10B981',
+    color: '#000000',
     marginLeft: spacing.sm,
   },
   driverRow: {

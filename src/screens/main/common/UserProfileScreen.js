@@ -266,14 +266,14 @@ const UserProfileScreen = ({ route, navigation }) => {
               styles.secondaryBtn,
               isBlocked
                 ? { borderColor: colors.border, backgroundColor: cardBg }
-                : { borderColor: '#DC2626', backgroundColor: cardBg },
+                : { borderColor: ui.textMuted, backgroundColor: cardBg },
             ]}
             onPress={confirmBlock}
             disabled={blockLoading}
             activeOpacity={0.8}
           >
             {blockLoading ? (
-              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : '#DC2626'} />
+              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : ui.textMuted} />
             ) : isBlocked ? (
               <>
                 <Ionicons name="lock-open-outline" size={18} color={colors.textPrimary} />
@@ -282,7 +282,7 @@ const UserProfileScreen = ({ route, navigation }) => {
             ) : (
               <>
                 <Ionicons name="ban-outline" size={18} color="#DC2626" />
-                <Text style={[styles.secondaryBtnText, { color: '#DC2626' }]}>Bloquear</Text>
+                <Text style={[styles.secondaryBtnText, { color: ui.textMuted }]}>Bloquear</Text>
               </>
             )}
           </TouchableOpacity>

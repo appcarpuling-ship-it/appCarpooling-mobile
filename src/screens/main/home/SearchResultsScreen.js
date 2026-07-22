@@ -165,7 +165,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="people-outline" size={13} color={textMuted} />
-              <Text style={[styles.metaText, { color: freeSeats === 0 ? colors.error : textMuted }]}>
+              <Text style={[styles.metaText, { color: freeSeats === 0 ? ui.textMuted : textMuted }]}>
                 {freeSeats === 0 ? 'Completo' : `${freeSeats} libre${freeSeats !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: fontSize.md,
     fontFamily: 'Sora_700Bold',
-    color: '#10B981',
+    color: '#000000',
     flexShrink: 0,
     marginLeft: 2,
   },
