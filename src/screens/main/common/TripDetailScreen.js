@@ -627,13 +627,13 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {trip.status === 'completed' && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
             <TripCostBreakdown trip={trip} />
           </View>
         )}
 
         {/* Route */}
-        <View style={[styles.section, { borderBottomColor: divider }]}>
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <View style={styles.routeRow}>
             <View style={styles.routeDotsCol}>
               <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
@@ -715,7 +715,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Driver */}
-        <View style={[styles.section, { borderBottomColor: divider }]}>
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor</Text>
           <View style={styles.driverRow}>
             {(() => {
@@ -750,7 +750,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {trip.vehicle && (() => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
-            <View style={[styles.section, { borderBottomColor: divider }]}>
+            <View style={[styles.section, { backgroundColor: cardBg }]}>
               <Text style={[styles.sectionLabel, { color: textPrimary }]}>Vehículo</Text>
               {vehiclePaths.length > 0 ? (
                 <ScrollView
@@ -793,7 +793,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Features */}
         {trip.vehicle?.features && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
             <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
@@ -825,7 +825,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Rules */}
-        <View style={[styles.section, { borderBottomColor: divider }]}>
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionLabel, { color: textPrimary }]}>Preferencias</Text>
           <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
@@ -863,7 +863,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Notes */}
         {trip.notes && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Notas</Text>
             <Text style={[styles.notesText, { color: textPrimary }]}>{trip.notes}</Text>
           </View>
@@ -871,7 +871,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Passengers (driver only) */}
         {isOwnTrip && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Pasajeros confirmados ({passengers.length})
             </Text>
@@ -1228,16 +1228,20 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Section
+  // Cards separadas en vez de filas con línea divisoria: era el look de lista
+  // de ajustes y no el del resto de la app.
   section: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 24,
   },
   sectionLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 1,
     marginBottom: 14,
   },
 

@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     },
 
     card: {
-        borderRadius: 14,
+        borderRadius: 24,
         borderWidth: 1,
         overflow: 'hidden',
     },
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
 
     // Submit
     submitBtn: {
-        borderRadius: 12,
+        borderRadius: 999,
         paddingVertical: 16,
         alignItems: 'center',
         marginTop: 8,
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pickerBox: {
-        borderRadius: 14,
+        borderRadius: 24,
         margin: 20,
         minWidth: 300,
         overflow: 'hidden',
