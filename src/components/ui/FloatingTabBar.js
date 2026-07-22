@@ -119,7 +119,7 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
           >
             <Image
               source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
-              style={[styles.fabAvatar, !centerFocused && styles.fabAvatarOff]}
+              style={styles.fabAvatar}
             />
           </TouchableOpacity>
         </View>
@@ -147,7 +147,6 @@ const styles = StyleSheet.create({
   fab:       { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   fabAvatar:    { width: 34, height: 34, borderRadius: 999 },
   // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
-  fabAvatarOff: { opacity: 0.55 },
   badge:     { position: 'absolute', top: 2, right: 4, minWidth: 17, height: 17, borderRadius: 999, borderWidth: 2, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   badgeText: { fontFamily: 'Sora_700Bold', fontSize: 9, color: '#000000' },
 });
