@@ -459,7 +459,7 @@ const ChatsScreen = ({ navigation }) => {
 
             <View style={styles.conversationContent}>
               <View style={styles.conversationHeader}>
-                <Text style={[styles.userName, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                <Text style={[styles.userName, { color: ui.text }]}>
                   {otherUser?.firstName} {otherUser?.lastName}
                 </Text>
                 {item.lastMessage && (
@@ -479,7 +479,7 @@ const ChatsScreen = ({ navigation }) => {
                 style={[
                   styles.lastMessage, 
                   { color: ui.textMuted },
-                  isUnread && { fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#1F2937' }
+                  isUnread && { fontWeight: '600', color: ui.text }
                 ]}
                 numberOfLines={1}
               >
@@ -509,11 +509,11 @@ const ChatsScreen = ({ navigation }) => {
             styles.searchInputContainer,
             { 
               backgroundColor: ui.surface,
-              borderColor: isDarkMode ? '#404040' : '#E5E7EB'
+              borderColor: ui.border
             }
           ]}>
             <TextInput
-              style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
+              style={[styles.searchInput, { color: ui.text }]}
               placeholder="Buscar conversaciones..."
               placeholderTextColor={ui.textMuted}
               value={searchTerm}
@@ -604,7 +604,7 @@ const ChatsScreen = ({ navigation }) => {
             }
           >
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+              <Text style={[styles.emptyText, { color: ui.text }]}>
                 {conversations.length === 0
                   ? 'No tienes conversaciones'
                   : searchTerm
@@ -664,7 +664,7 @@ const ChatsScreen = ({ navigation }) => {
           >
             <View style={styles.chatActionsHandle} />
             <Text
-              style={[styles.chatActionsTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}
+              style={[styles.chatActionsTitle, { color: ui.text }]}
               numberOfLines={2}
             >
               {chatActionsTarget
@@ -682,7 +682,7 @@ const ChatsScreen = ({ navigation }) => {
               activeOpacity={0.75}
             >
               <Ionicons name="person-outline" size={22} color={ui.text} />
-              <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+              <Text style={[styles.chatActionLabel, { color: ui.text }]}>
                 Ver perfil
               </Text>
             </TouchableOpacity>
@@ -690,7 +690,7 @@ const ChatsScreen = ({ navigation }) => {
             <View
               style={[
                 styles.chatActionDivider,
-                { backgroundColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                { backgroundColor: ui.border },
               ]}
             />
 
@@ -703,7 +703,7 @@ const ChatsScreen = ({ navigation }) => {
               activeOpacity={0.75}
             >
               <Ionicons name="flag-outline" size={22} color={ui.text} />
-              <Text style={[styles.chatActionLabel, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+              <Text style={[styles.chatActionLabel, { color: ui.text }]}>
                 Reportar
               </Text>
             </TouchableOpacity>
@@ -711,7 +711,7 @@ const ChatsScreen = ({ navigation }) => {
             <View
               style={[
                 styles.chatActionDivider,
-                { backgroundColor: isDarkMode ? '#404040' : '#E5E7EB' },
+                { backgroundColor: ui.border },
               ]}
             />
 

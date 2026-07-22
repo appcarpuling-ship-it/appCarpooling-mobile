@@ -24,7 +24,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const ui = useUI();
   const bg       = ui.bg;
   const cardBg   = ui.surface;
-  const border   = dark ? '#2E2E2E' : '#E5E7EB';  const divider  = ui.bg;
+  const border   = ui.border;  const divider  = ui.bg;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
   const accent      = ui.invertBg;

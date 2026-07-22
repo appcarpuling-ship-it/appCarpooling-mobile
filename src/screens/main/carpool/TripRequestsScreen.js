@@ -30,7 +30,7 @@ const TripRequestsScreen = ({ route }) => {
   const { tripId } = route.params || {};
 
   useLayoutEffect(() => {
-    const tint = isDarkMode ? '#FFFFFF' : '#1F2937';
+    const tint = ui.text;
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity
@@ -530,7 +530,7 @@ const TripRequestsScreen = ({ route }) => {
         {isPending && (
           <View style={[styles.actionsRow, { borderTopColor: divider }]}>
             <TouchableOpacity
-              style={[styles.btnReject, { backgroundColor: isDarkMode ? '#3D1A1A' : '#FEE2E2' }]}
+              style={[styles.btnReject, { backgroundColor: ui.surface }]}
               onPress={() => {
                 setSelectedRequest(item._id);
                 setRejectModalVisible(true);

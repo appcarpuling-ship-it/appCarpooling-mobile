@@ -31,7 +31,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const border      = ui.border;
   const textPrimary = ui.invertBg;
   const textMuted   = ui.textMuted;
-  const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
+  const iconBg      = ui.bg;
 
   const handleResetPassword = async () => {
     if (!email) {

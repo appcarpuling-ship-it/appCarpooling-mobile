@@ -375,8 +375,8 @@ const HomeScreen = ({ navigation, route }) => {
   const divider = ui.bg;
   /** Contraste fuerte en claro: labels, paradas, flechas */
   const tripRouteMuted = dark ? textMuted : '#111827';
-  const tripCardChevron = dark ? '#444444' : '#111827';
-  const tripRouteLine = dark ? '#333333' : '#374151';
+  const tripCardChevron = ui.text;
+  const tripRouteLine = ui.textMuted;
   /** Búsqueda inicio: en claro texto negro para leer bien (4 campos) */
   const searchFieldLabel = dark ? textMuted : '#000000';
   const searchFieldEmpty = dark ? textMuted : '#000000';

@@ -173,18 +173,20 @@ const MyTripsScreen = ({ navigation }) => {
     }
   };
 
+  // Mismo criterio que el resto: lo que sigue en juego va sólido, lo cerrado
+  // apagado. Antes eran verde, ámbar, azul y rojo con su fondo tintado.
   const getStatusConfig = (status) => {
     switch (status) {
       case 'active':
-        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#064E3B' : '#D1FAE5', text: 'Activo' };
+        return { color: ui.invertText, bg: ui.invertBg, text: 'Activo' };
       case 'started':
-        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#78350F' : '#FEF3C7', text: 'Viaje iniciado' };
+        return { color: ui.invertText, bg: ui.invertBg, text: 'Viaje iniciado' };
       case 'completed':
-        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#1E3A5F' : '#DBEAFE', text: 'Completado' };
+        return { color: ui.textMuted, bg: ui.surface, text: 'Completado' };
       case 'cancelled':
-        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#7F1D1D' : '#FEE2E2', text: 'Cancelado' };
+        return { color: ui.textMuted, bg: ui.surface, text: 'Cancelado' };
       default:
-        return { color: colors.textTertiary, bg: colors.borderLight, text: status };
+        return { color: ui.textMuted, bg: ui.surface, text: status };
     }
   };
 
@@ -370,20 +372,30 @@ const MyTripsScreen = ({ navigation }) => {
   const divider     = ui.bg;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Tabs — estilo subrayado */}
-      <View style={[styles.tabsContainer, { borderBottomColor: divider }]}>
-        {['upcoming', 'past'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && { borderBottomColor: textPrimary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, { color: activeTab === tab ? textPrimary : textMuted }]}>
-              {tab === 'upcoming' ? 'Próximos' : 'Pasados'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+    <View style={[styles.container, { backgroundColor: ui.bg }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: ui.text }]}>
+          Los viajes{'\n'}
+          <Text style={styles.titleStrong}>que ofrecés</Text>
+        </Text>
+      </View>
+
+      {/* Tabs en pill, como el resto de la app */}
+      <View style={styles.tabsContainer}>
+        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+          {['upcoming', 'past'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                {tab === 'upcoming' ? 'Próximos' : 'Pasados'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {activeTab === 'past' ? (
@@ -455,16 +467,16 @@ const styles = StyleSheet.create({
   centerContainer:{ flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // Tabs — estilo subrayado
-  tabsContainer: {
-    flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  tabsContainer: { paddingHorizontal: 24, paddingBottom: 8 },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24 },
+  title:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  tabPill: { flexDirection: 'row', borderRadius: 999, padding: 5 },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 11,
+    borderRadius: 999,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
   tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
@@ -473,7 +485,7 @@ const styles = StyleSheet.create({
   // Card
   cardWrapper: { marginBottom: 0 },
   card: {
-    borderRadius: 14,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },

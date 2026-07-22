@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: 12,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
     marginBottom: 12,

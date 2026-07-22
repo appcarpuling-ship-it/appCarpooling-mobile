@@ -34,8 +34,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const accent        = dark ? '#FFFFFF'  : '#000000';
   const borderColor   = dark ? '#404040'  : '#E5E7EB';
   const tripRouteMuted  = dark ? textMuted : '#111827';
-  const tripCardChevron = dark ? '#444444' : '#111827';
-  const tripRouteLine   = dark ? '#333333' : '#374151';
+  const tripCardChevron = ui.text;
+  const tripRouteLine   = ui.textMuted;
 
   const [requests,   setRequests]   = useState([]);
   const [page,       setPage]       = useState(1);
@@ -259,7 +259,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     return (
       <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => { setTempDate(null); setShowDatePicker(false); }}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: dark ? '#292929' : '#FFFFFF' }]}>
+          <View style={[styles.pickerContainer, { backgroundColor: ui.surface }]}>
             <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
               <Text style={[styles.pickerTitle, { color: textPrimary }]}>Seleccionar Fecha</Text>
               <TouchableOpacity onPress={() => { setTempDate(null); setShowDatePicker(false); }}>
@@ -392,7 +392,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   };
 
   const chipActive  = { backgroundColor: ui.invertBg, borderColor: dark ? 'transparent' : '#000000' };
-  const chipDefault = { backgroundColor: dark ? '#292929' : '#FFFFFF', borderColor: borderColor };
+  const chipDefault = { backgroundColor: ui.surface, borderColor: borderColor };
   const chipTextActive  = { color: ui.invertText };
   const chipTextDefault = { color: textMuted };
 

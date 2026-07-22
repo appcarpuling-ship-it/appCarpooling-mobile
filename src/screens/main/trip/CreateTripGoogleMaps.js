@@ -81,7 +81,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const textPrimary = ui.invertBg;
   const textMuted   = ui.textMuted;
   const divider     = ui.bg;
-  const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
+  const iconBg      = ui.bg;
 
   const [vehicles, setVehicles] = useState([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
