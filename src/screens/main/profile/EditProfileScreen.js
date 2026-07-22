@@ -414,8 +414,11 @@ const EditProfileScreen = ({ navigation }) => {
                     </>
                   ) : (
                     <View style={styles.dniSlotInner}>
-                      <Ionicons name="id-card-outline" size={26} color={textMuted} />
-                      <Text style={[styles.dniSlotLabel, { color: textMuted }]}>{slot.label}</Text>
+                      <View style={[styles.dniSlotIcon, { backgroundColor: accent }]}>
+                        <Ionicons name="camera" size={19} color={accentInv} />
+                      </View>
+                      <Text style={[styles.dniSlotLabel, { color: textPrimary }]}>{slot.label} del DNI</Text>
+                      <Text style={[styles.dniSlotHint, { color: textMuted }]}>Tocá para subir la foto</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -601,12 +604,14 @@ const styles = StyleSheet.create({
   },
 
   // DNI
-  dniRow: { flexDirection: 'row', gap: 12 },
+  // Apilados y a todo el ancho: a media pantalla la foto del DNI quedaba
+  // demasiado chica para verificar que se lee.
+  dniRow: { gap: 12 },
   dniSlot: {
-    flex: 1,
+    width: '100%',
     borderRadius: 20,
     overflow: 'hidden',
-    height: 116,
+    height: 180,
     position: 'relative',
   },
   dniSlotImage: { width: '100%', height: '100%', resizeMode: 'cover' },
@@ -614,9 +619,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
   },
-  dniSlotLabel: { fontSize: 12, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
+  dniSlotIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  dniSlotLabel: { fontSize: 14, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
+  dniSlotHint:  { fontSize: 12, fontFamily: 'Sora_400Regular', textAlign: 'center' },
   dniCheck: {
     position: 'absolute',
     top: 8,
