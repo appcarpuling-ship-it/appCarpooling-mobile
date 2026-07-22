@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,230 +14,29 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import {  gradients, spacing, borderRadius, fontSize } from '../../../theme/colors';
-import useColors from '../../../hooks/useColors';
-import { useAlert } from '../../../context/AlertContext';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import PillButton from '../../../components/ui/PillButton';
+import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 
 const CreateTripScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
-  const { colors, gradients, fontFamily, createColorArray } = useColors();
   const ui = useUI();
+
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const border = ui.border;
+  const textPrimary = ui.text;
+  const textMuted = ui.textMuted;
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  
-  // Dynamic styles that depend on colors hook
-  const dynamicStyles = StyleSheet.create({
-    section: {
-      marginBottom: spacing.lg,
-      padding: spacing.lg,
-      borderRadius: borderRadius.lg,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      overflow: 'hidden',
-    },
-    sectionTitle: {
-      fontSize: fontSize.lg,
-      fontFamily: fontFamily.semiBold,
-      color: colors.textPrimary,
-      marginLeft: spacing.sm,
-    },
-    label: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.medium,
-      color: colors.textSecondary,
-      marginBottom: spacing.md,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    input: {
-      flex: 1,
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.regular,
-      color: colors.textPrimary,
-      marginLeft: spacing.sm,
-      paddingVertical: spacing.sm,
-    },
-    dateTimeText: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.regular,
-      color: colors.textSecondary,
-      paddingVertical: spacing.sm,
-    },
-    placeholderText: {
-      color: colors.textTertiary,
-    },
-    switchRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
-      marginBottom: spacing.xs,
-    },
-    switchLabel: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.regular,
-      color: colors.textPrimary,
-      marginLeft: spacing.sm,
-    },
-    createButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: borderRadius.lg,
-      paddingVertical: spacing.lg,
-      marginTop: spacing.md,
-      shadowColor: colors.primary,
-      shadowOffset: {
-        width: 0,
-        height: 8,
-      },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 8,
-    },
-    createButtonText: {
-      color: '#ffffff',
-      fontSize: fontSize.lg,
-      fontFamily: fontFamily.semiBold,
-      marginLeft: spacing.sm,
-    },
-    emptyText: {
-      fontSize: fontSize.xl,
-      fontFamily: fontFamily.bold,
-      color: colors.textSecondary,
-      marginTop: spacing.lg,
-      textAlign: 'center',
-    },
-    emptySubtext: {
-      fontSize: fontSize.sm,
-      fontFamily: fontFamily.regular,
-      color: colors.textTertiary,
-      marginTop: spacing.sm,
-      textAlign: 'center',
-    },
-    addVehicleButton: {
-      borderRadius: borderRadius.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.xl,
-      marginTop: spacing.xl,
-    },
-    addVehicleButtonText: {
-      color: colors.textPrimary,
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.semiBold,
-    },
-    modalContainer: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      margin: spacing.lg,
-      minWidth: '80%',
-      maxWidth: '90%',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: spacing.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
-    },
-    modalTitle: {
-      fontSize: fontSize.lg,
-      fontFamily: fontFamily.semiBold,
-      color: colors.textPrimary,
-    },
-    modalPicker: {
-      backgroundColor: 'transparent',
-      color: colors.textPrimary,
-      marginVertical: spacing.md,
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      padding: spacing.lg,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderLight,
-    },
-    modalButton: {
-      flex: 1,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-      borderRadius: borderRadius.md,
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      marginHorizontal: spacing.xs,
-    },
-    modalButtonPrimary: {
-      backgroundColor: colors.primary,
-    },
-    modalButtonText: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.semiBold,
-      color: colors.textPrimary,
-    },
-    modalButtonCancel: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.semiBold,
-      color: colors.textSecondary,
-    },
-    vehicleItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.md,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-    vehicleItemSelected: {
-      backgroundColor: colors.primary + '20',
-      borderColor: colors.primary,
-    },
-    vehicleName: {
-      fontSize: fontSize.md,
-      fontFamily: fontFamily.semiBold,
-      color: colors.textPrimary,
-      marginBottom: spacing.xs,
-    },
-    vehicleNameSelected: {
-      color: colors.primary,
-    },
-    vehiclePlate: {
-      fontSize: fontSize.sm,
-      fontFamily: fontFamily.regular,
-      color: colors.textSecondary,
-    },
-    datePickerWrapper: {
-      backgroundColor: '#FFFFFF',
-      paddingVertical: spacing.md,
-    },
-  });
+
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
@@ -246,22 +45,15 @@ const CreateTripScreen = ({ navigation }) => {
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
   const [showOriginProvincePicker, setShowOriginProvincePicker] = useState(false);
   const [showDestinationProvincePicker, setShowDestinationProvincePicker] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
   const [tempTime, setTempTime] = useState(new Date());
   const [formData, setFormData] = useState({
     vehicle: '',
-    origin: {
-      address: '',
-      city: '',
-      province: '',
-    },
-    destination: {
-      address: '',
-      city: '',
-      province: '',
-    },
+    origin: { address: '', city: '', province: '' },
+    destination: { address: '', city: '', province: '' },
     departureDate: '',
     departureTime: '',
     availableSeats: '',
@@ -271,56 +63,27 @@ const CreateTripScreen = ({ navigation }) => {
     allowPets: false,
   });
 
-  // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     loadVehicles();
-
-    // Start animations
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const loadVehicles = async () => {
     try {
-      console.log('🚗 [CreateTrip] Cargando vehículos...');
       setLoadingVehicles(true);
-
       const response = await get_withauth(ENDPOINTS.MY_VEHICLES);
-      console.log('🚗 [CreateTrip] Respuesta vehículos:', response);
-
       if (response.success) {
         setVehicles(response.data);
-        console.log('✅ [CreateTrip] Vehículos cargados:', response.data);
-
-        // No auto-seleccionar vehículo, dejar que el usuario elija
-        // if (response.data.length > 0) {
-        //   const firstVehicleId = response.data[0]._id;
-        //   console.log('🚗 [CreateTrip] Seleccionando primer vehículo:', firstVehicleId);
-        //
-        //   setFormData(prevFormData => ({
-        //     ...prevFormData,
-        //     vehicle: firstVehicleId
-        //   }));
-        // }
       } else {
-        console.warn('⚠️ [CreateTrip] Error cargando vehículos:', response.message);
         showAlert('Ocurrió algo', 'No se pudieron cargar los vehículos: ' + (response.message || 'Error desconocido'));
       }
     } catch (error) {
-      console.error('❌ [CreateTrip] Error loading vehicles:', error);
       showAlert('Ocurrió algo', 'Error al cargar vehículos: ' + error.message);
     } finally {
       setLoadingVehicles(false);
@@ -330,10 +93,7 @@ const CreateTripScreen = ({ navigation }) => {
   const handleChange = (field, value) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setFormData({
-        ...formData,
-        [parent]: { ...formData[parent], [child]: value },
-      });
+      setFormData({ ...formData, [parent]: { ...formData[parent], [child]: value } });
     } else {
       setFormData({ ...formData, [field]: value });
     }
@@ -342,14 +102,9 @@ const CreateTripScreen = ({ navigation }) => {
   const onDateChange = (event, selectedDate) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
-      if (selectedDate && event.type === 'set') {
-        confirmDate(selectedDate);
-      }
-    } else {
-      // En iOS, solo actualizar la fecha temporal
-      if (selectedDate) {
-        setTempDate(selectedDate);
-      }
+      if (selectedDate && event.type === 'set') confirmDate(selectedDate);
+    } else if (selectedDate) {
+      setTempDate(selectedDate);
     }
   };
 
@@ -371,76 +126,36 @@ const CreateTripScreen = ({ navigation }) => {
   const confirmDate = (selectedDate) => {
     setDate(selectedDate);
     setShowDatePicker(false);
-
-    // Usar la fecha directamente sin conversiones de timezone problemáticas
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const day = String(selectedDate.getDate()).padStart(2, '0');
-    const formatted = `${year}-${month}-${day}`;
-
-    console.log('📅 Fecha seleccionada:', {
-      original: selectedDate,
-      year: year,
-      month: month,
-      day: day,
-      formatted: formatted
-    });
-
-    setFormData({ ...formData, departureDate: formatted });
+    setFormData({ ...formData, departureDate: `${year}-${month}-${day}` });
   };
 
   const onTimeChange = (event, selectedTime) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
-      if (selectedTime && event.type === 'set') {
-        confirmTime(selectedTime);
-      }
-    } else {
-      // En iOS, solo actualizar la hora temporal
-      if (selectedTime) {
-        setTempTime(selectedTime);
-      }
+      if (selectedTime && event.type === 'set') confirmTime(selectedTime);
+    } else if (selectedTime) {
+      setTempTime(selectedTime);
     }
   };
 
   const confirmTime = (selectedTime) => {
     setTime(selectedTime);
     setShowTimePicker(false);
-
     const hours = selectedTime.getHours().toString().padStart(2, '0');
     const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-    const timeString = `${hours}:${minutes}`;
-
-    console.log('🕒 Hora seleccionada:', {
-      original: selectedTime,
-      formatted: timeString
-    });
-
-    setFormData({ ...formData, departureTime: timeString });
+    setFormData({ ...formData, departureTime: `${hours}:${minutes}` });
   };
 
   const handleCreateTrip = async () => {
-    const {
-      vehicle,
-      origin,
-      destination,
-      departureDate,
-      departureTime,
-      availableSeats,
-      pricePerSeat,
-    } = formData;
+    const { vehicle, origin, destination, departureDate, departureTime, availableSeats, pricePerSeat } = formData;
 
     if (
-      !vehicle ||
-      !origin.address ||
-      !origin.city ||
-      !origin.province ||
-      !destination.address ||
-      !destination.city ||
-      !destination.province ||
-      !departureDate ||
-      !departureTime ||
-      !availableSeats
+      !vehicle || !origin.address || !origin.city || !origin.province ||
+      !destination.address || !destination.city || !destination.province ||
+      !departureDate || !departureTime || !availableSeats
     ) {
       setModalMessage('Por favor completa todos los campos obligatorios');
       setShowErrorModal(true);
@@ -465,21 +180,12 @@ const CreateTripScreen = ({ navigation }) => {
         departureTime: formData.departureTime,
         availableSeats: parseInt(availableSeats),
         notes: formData.notes,
-        rules: {
-          smokingAllowed: formData.allowSmoking,
-          petsAllowed: formData.allowPets,
-        }
+        rules: { smokingAllowed: formData.allowSmoking, petsAllowed: formData.allowPets },
       };
 
-      // Solo agregar pricePerSeat si tiene un valor
-      if (pricePerSeat && pricePerSeat.trim() !== '') {
-        tripData.pricePerSeat = parseFloat(pricePerSeat);
-      } else {
-        tripData.pricePerSeat = 0;
-      }
+      tripData.pricePerSeat = pricePerSeat && pricePerSeat.trim() !== '' ? parseFloat(pricePerSeat) : 0;
 
       const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
-
       if (response.success) {
         setModalMessage('Viaje creado exitosamente');
         setShowSuccessModal(true);
@@ -492,607 +198,388 @@ const CreateTripScreen = ({ navigation }) => {
     }
   };
 
-  // Mostrar loading mientras cargan los vehículos
+  const selectedVehicleLabel = formData.vehicle
+    ? (() => {
+        const v = vehicles.find(v => v._id === formData.vehicle);
+        return v ? `${v.brand} ${v.model} - ${v.licensePlate}` : 'Selecciona un vehículo';
+      })()
+    : '';
+
+  // Hoja inferior compartida por los pickers de esta pantalla: corners 28,
+  // título 24 ExtraBold, cierre circular y toque afuera para cerrar.
+  const Sheet = ({ visible, onClose, title, children }) => (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.sheetOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { backgroundColor: bg }]}>
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { color: textPrimary }]}>{title}</Text>
+            <TouchableOpacity style={[styles.sheetClose, { backgroundColor: cardBg }]} onPress={onClose}>
+              <Ionicons name="close" size={18} color={textPrimary} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderField = ({ key, label, placeholder, keyboard, multiline, caps, onChangeText, value }) => (
+    <View
+      style={[
+        styles.field,
+        multiline && styles.fieldMultiline,
+        { backgroundColor: cardBg, borderColor: focusedField === key ? textPrimary : 'transparent' },
+      ]}
+    >
+      <Text style={[styles.fieldLabel, { color: textMuted }]}>{label}</Text>
+      <TextInput
+        style={[styles.fieldInput, { color: textPrimary }, multiline && styles.fieldInputMultiline]}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setFocusedField(key)}
+        onBlur={() => setFocusedField(null)}
+        placeholder={placeholder}
+        placeholderTextColor={textMuted}
+        keyboardType={keyboard || 'default'}
+        autoCapitalize={caps ? 'characters' : 'sentences'}
+        multiline={multiline}
+        numberOfLines={multiline ? 3 : 1}
+        textAlignVertical={multiline ? 'top' : 'center'}
+      />
+    </View>
+  );
+
   if (loadingVehicles) {
     return (
-      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.emptyContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={dynamicStyles.emptyText}>Cargando vehículos...</Text>
-      </LinearGradient>
+      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={textPrimary} />
+        <Text style={[styles.emptyText, { color: textPrimary }]}>Cargando vehículos...</Text>
+      </View>
     );
   }
 
-  // Mostrar mensaje si no hay vehículos después de cargar
   if (!loadingVehicles && vehicles.length === 0) {
     return (
-      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.emptyContainer}>
-        <Ionicons name="car-outline" size={64} color={colors.textTertiary} />
-        <Text style={dynamicStyles.emptyText}>No tienes vehículos registrados</Text>
-        <Text style={dynamicStyles.emptySubtext}>
+      <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
+        <Ionicons name="car-outline" size={64} color={textMuted} />
+        <Text style={[styles.emptyText, { color: textPrimary }]}>No tienes vehículos registrados</Text>
+        <Text style={[styles.emptySubtext, { color: textMuted }]}>
           Necesitas registrar un vehículo antes de crear un viaje
         </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Vehicles')}>
-          <LinearGradient colors={gradients.primary} style={dynamicStyles.addVehicleButton}>
-            <Text style={dynamicStyles.addVehicleButtonText}>Agregar Vehículo</Text>
-          </LinearGradient>
+        <TouchableOpacity
+          style={[styles.addVehicleButton, { backgroundColor: ui.invertBg }]}
+          onPress={() => navigation.navigate('Vehicles')}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.addVehicleButtonText, { color: ui.invertText }]}>Agregar Vehículo</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView
-          style={styles.scrollView}
+          style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View
-            style={[
-              styles.content,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            {/* Vehicle Selection Section */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="car-sport-outline" size={24} color={colors.primary} />
-                <Text style={dynamicStyles.sectionTitle}>Vehículo</Text>
-              </View>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: textPrimary }]}>
+                Compartí tu{'\n'}
+                <Text style={styles.titleStrong}>próximo viaje</Text>
+              </Text>
+            </View>
+
+            {/* Vehículo */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
               <TouchableOpacity
+                style={[styles.field, { backgroundColor: cardBg }]}
                 onPress={() => setShowVehiclePicker(true)}
                 activeOpacity={0.7}
               >
-                <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="car-outline" size={20} color={colors.primary} />
-                  <View style={styles.dateTimeTextContainer}>
-                    <Text style={[dynamicStyles.dateTimeText, !formData.vehicle && dynamicStyles.placeholderText]}>
-                      {formData.vehicle
-                        ? vehicles.find(v => v._id === formData.vehicle)
-                          ? `${vehicles.find(v => v._id === formData.vehicle).brand} ${vehicles.find(v => v._id === formData.vehicle).model} - ${vehicles.find(v => v._id === formData.vehicle).licensePlate}`
-                          : 'Selecciona un vehículo'
-                        : 'Selecciona un vehículo'}
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { color: textMuted }]}>Auto</Text>
+                    <Text style={[styles.fieldInput, { color: formData.vehicle ? textPrimary : textMuted }]} numberOfLines={1}>
+                      {selectedVehicleLabel || 'Selecciona un vehículo'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.primary} />
+                  <Ionicons name="chevron-down" size={18} color={textMuted} />
                 </View>
               </TouchableOpacity>
 
-              <Modal
-                visible={showVehiclePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowVehiclePicker(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Vehículo</Text>
+              <Sheet visible={showVehiclePicker} onClose={() => setShowVehiclePicker(false)} title="Vehículo">
+                <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
+                  {vehicles.map((vehicle) => {
+                    const selected = formData.vehicle === vehicle._id;
+                    return (
                       <TouchableOpacity
-                        onPress={() => setShowVehiclePicker(false)}
-                        style={styles.closeButton}
+                        key={vehicle._id}
+                        style={[styles.sheetItem, { backgroundColor: selected ? ui.invertBg : cardBg }]}
+                        onPress={() => { handleChange('vehicle', vehicle._id); setShowVehiclePicker(false); }}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
-                      </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.vehicleList}>
-                      {vehicles.map((vehicle) => (
-                        <TouchableOpacity
-                          key={vehicle._id}
-                          onPress={() => {
-                            handleChange('vehicle', vehicle._id);
-                            setShowVehiclePicker(false);
-                          }}
-                          style={[
-                            dynamicStyles.vehicleItem,
-                            formData.vehicle === vehicle._id && dynamicStyles.vehicleItemSelected
-                          ]}
-                        >
-                          <View style={styles.vehicleItemContent}>
-                            <Ionicons
-                              name="car"
-                              size={24}
-                              color={formData.vehicle === vehicle._id ? colors.primary : colors.textSecondary}
-                            />
-                            <View style={styles.vehicleItemText}>
-                              <Text style={[
-                                dynamicStyles.vehicleName,
-                                formData.vehicle === vehicle._id && dynamicStyles.vehicleNameSelected
-                              ]}>
-                                {vehicle.brand} {vehicle.model}
-                              </Text>
-                              <Text style={dynamicStyles.vehiclePlate}>{vehicle.licensePlate}</Text>
-                            </View>
-                          </View>
-                          {formData.vehicle === vehicle._id && (
-                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
-            </LinearGradient>
-
-            {/* Route Section - Origin */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="location-outline" size={24} color={colors.primary} />
-                <Text style={dynamicStyles.sectionTitle}>Origen</Text>
-              </View>
-
-              <TouchableOpacity onPress={() => setShowOriginProvincePicker(true)} activeOpacity={0.7}>
-                <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="map-outline" size={18} color={colors.textSecondary} />
-                  <View style={styles.dateTimeTextContainer}>
-                    <Text style={[dynamicStyles.dateTimeText, !formData.origin.province && dynamicStyles.placeholderText]}>
-                      {formData.origin.province || 'Provincia *'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Ciudad *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.origin.city}
-                  onChangeText={(value) => handleChange('origin.city', value)}
-                />
-              </View>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Dirección *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.origin.address}
-                  onChangeText={(value) => handleChange('origin.address', value)}
-                />
-              </View>
-
-              <Modal
-                visible={showOriginProvincePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowOriginProvincePicker(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Provincia (Origen)</Text>
-                      <TouchableOpacity
-                        onPress={() => setShowOriginProvincePicker(false)}
-                        style={styles.closeButton}
-                      >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
-                      </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.provinceList}>
-                      {ARGENTINA_PROVINCES.map((province) => (
-                        <TouchableOpacity
-                          key={province}
-                          onPress={() => {
-                            handleChange('origin.province', province);
-                            setShowOriginProvincePicker(false);
-                          }}
-                          style={[
-                            dynamicStyles.vehicleItem,
-                            formData.origin.province === province && dynamicStyles.vehicleItemSelected
-                          ]}
-                        >
-                          <Text style={[
-                            dynamicStyles.vehicleName,
-                            formData.origin.province === province && dynamicStyles.vehicleNameSelected
-                          ]}>
-                            {province}
+                        <Ionicons name="car" size={20} color={selected ? ui.invertText : textMuted} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.sheetItemTitle, { color: selected ? ui.invertText : textPrimary }]}>
+                            {vehicle.brand} {vehicle.model}
                           </Text>
-                          {formData.origin.province === province && (
-                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
-            </LinearGradient>
+                          <Text style={[styles.sheetItemSubtitle, { color: selected ? ui.invertText : textMuted }]}>
+                            {vehicle.licensePlate}
+                          </Text>
+                        </View>
+                        {selected && <Ionicons name="checkmark-circle" size={22} color={ui.invertText} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </Sheet>
+            </View>
 
-            {/* Route Section - Destination */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="flag-outline" size={24} color={ui.text} />
-                <Text style={dynamicStyles.sectionTitle}>Destino</Text>
-              </View>
+            {/* Origen */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Origen</Text>
 
-              <TouchableOpacity onPress={() => setShowDestinationProvincePicker(true)} activeOpacity={0.7}>
-                <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="map-outline" size={18} color={colors.textSecondary} />
-                  <View style={styles.dateTimeTextContainer}>
-                    <Text style={[dynamicStyles.dateTimeText, !formData.destination.province && dynamicStyles.placeholderText]}>
-                      {formData.destination.province || 'Provincia *'}
+              <TouchableOpacity
+                style={[styles.field, { backgroundColor: cardBg, marginBottom: 10 }]}
+                onPress={() => setShowOriginProvincePicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { color: textMuted }]}>Provincia</Text>
+                    <Text style={[styles.fieldInput, { color: formData.origin.province ? textPrimary : textMuted }]}>
+                      {formData.origin.province || 'Elegí una provincia'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={18} color={textMuted} />
                 </View>
               </TouchableOpacity>
 
-              <Modal
-                visible={showOriginProvincePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowOriginProvincePicker(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Provincia (Origen)</Text>
-                      <TouchableOpacity
-                        onPress={() => setShowOriginProvincePicker(false)}
-                        style={styles.closeButton}
-                      >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
-                      </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.provinceList}>
-                      {ARGENTINA_PROVINCES.map((province) => (
-                        <TouchableOpacity
-                          key={province}
-                          onPress={() => {
-                            handleChange('origin.province', province);
-                            setShowOriginProvincePicker(false);
-                          }}
-                          style={[
-                            dynamicStyles.vehicleItem,
-                            formData.origin.province === province && dynamicStyles.vehicleItemSelected
-                          ]}
-                        >
-                          <Text style={[
-                            dynamicStyles.vehicleName,
-                            formData.origin.province === province && dynamicStyles.vehicleNameSelected
-                          ]}>
-                            {province}
-                          </Text>
-                          {formData.origin.province === province && (
-                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
+              {renderField({
+                key: 'originCity', label: 'Ciudad', placeholder: 'Ciudad de origen',
+                value: formData.origin.city, onChangeText: v => handleChange('origin.city', v),
+              })}
+              <View style={{ height: 10 }} />
+              {renderField({
+                key: 'originAddress', label: 'Dirección', placeholder: 'Calle y altura',
+                value: formData.origin.address, onChangeText: v => handleChange('origin.address', v),
+              })}
 
-              <Modal
+              <Sheet
+                visible={showOriginProvincePicker}
+                onClose={() => setShowOriginProvincePicker(false)}
+                title="Provincia de origen"
+              >
+                <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
+                  {ARGENTINA_PROVINCES.map((province) => {
+                    const selected = formData.origin.province === province;
+                    return (
+                      <TouchableOpacity
+                        key={province}
+                        style={[styles.sheetItem, { backgroundColor: selected ? ui.invertBg : cardBg }]}
+                        onPress={() => { handleChange('origin.province', province); setShowOriginProvincePicker(false); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.sheetItemTitle, { color: selected ? ui.invertText : textPrimary, flex: 1 }]}>
+                          {province}
+                        </Text>
+                        {selected && <Ionicons name="checkmark-circle" size={22} color={ui.invertText} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </Sheet>
+            </View>
+
+            {/* Destino */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Destino</Text>
+
+              <TouchableOpacity
+                style={[styles.field, { backgroundColor: cardBg, marginBottom: 10 }]}
+                onPress={() => setShowDestinationProvincePicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { color: textMuted }]}>Provincia</Text>
+                    <Text style={[styles.fieldInput, { color: formData.destination.province ? textPrimary : textMuted }]}>
+                      {formData.destination.province || 'Elegí una provincia'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={18} color={textMuted} />
+                </View>
+              </TouchableOpacity>
+
+              {renderField({
+                key: 'destCity', label: 'Ciudad', placeholder: 'Ciudad de destino',
+                value: formData.destination.city, onChangeText: v => handleChange('destination.city', v),
+              })}
+              <View style={{ height: 10 }} />
+              {renderField({
+                key: 'destAddress', label: 'Dirección', placeholder: 'Calle y altura',
+                value: formData.destination.address, onChangeText: v => handleChange('destination.address', v),
+              })}
+
+              <Sheet
                 visible={showDestinationProvincePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowDestinationProvincePicker(false)}
+                onClose={() => setShowDestinationProvincePicker(false)}
+                title="Provincia de destino"
               >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Provincia (Destino)</Text>
+                <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
+                  {ARGENTINA_PROVINCES.map((province) => {
+                    const selected = formData.destination.province === province;
+                    return (
                       <TouchableOpacity
-                        onPress={() => setShowDestinationProvincePicker(false)}
-                        style={styles.closeButton}
+                        key={province}
+                        style={[styles.sheetItem, { backgroundColor: selected ? ui.invertBg : cardBg }]}
+                        onPress={() => { handleChange('destination.province', province); setShowDestinationProvincePicker(false); }}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
+                        <Text style={[styles.sheetItemTitle, { color: selected ? ui.invertText : textPrimary, flex: 1 }]}>
+                          {province}
+                        </Text>
+                        {selected && <Ionicons name="checkmark-circle" size={22} color={ui.invertText} />}
                       </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.provinceList}>
-                      {ARGENTINA_PROVINCES.map((province) => (
-                        <TouchableOpacity
-                          key={province}
-                          onPress={() => {
-                            handleChange('destination.province', province);
-                            setShowDestinationProvincePicker(false);
-                          }}
-                          style={[
-                            dynamicStyles.vehicleItem,
-                            formData.destination.province === province && dynamicStyles.vehicleItemSelected
-                          ]}
-                        >
-                          <Text style={[
-                            dynamicStyles.vehicleName,
-                            formData.destination.province === province && dynamicStyles.vehicleNameSelected
-                          ]}>
-                            {province}
-                          </Text>
-                          {formData.destination.province === province && (
-                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
+                    );
+                  })}
+                </ScrollView>
+              </Sheet>
+            </View>
 
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Ciudad *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.destination.city}
-                  onChangeText={(value) => handleChange('destination.city', value)}
-                />
+            {/* Detalles */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Detalles del viaje</Text>
+
+              <View style={styles.row}>
+                <TouchableOpacity
+                  style={[styles.field, styles.fieldHalf, { backgroundColor: cardBg }]}
+                  onPress={() => { setTempDate(date); setShowDatePicker(true); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.fieldLabel, { color: textMuted }]}>Fecha</Text>
+                  <Text style={[styles.fieldInput, { color: formData.departureDate ? textPrimary : textMuted }]} numberOfLines={1}>
+                    {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Elegir'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.field, styles.fieldHalf, { backgroundColor: cardBg }]}
+                  onPress={() => { setTempTime(time); setShowTimePicker(true); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.fieldLabel, { color: textMuted }]}>Hora</Text>
+                  <Text style={[styles.fieldInput, { color: formData.departureTime ? textPrimary : textMuted }]} numberOfLines={1}>
+                    {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Elegir'}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Dirección *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.destination.address}
-                  onChangeText={(value) => handleChange('destination.address', value)}
-                />
-              </View>
-            </LinearGradient>
+              <View style={{ height: 10 }} />
 
-            {/* Details Section */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="information-circle-outline" size={24} color={ui.textMuted} />
-                <Text style={dynamicStyles.sectionTitle}>Detalles del Viaje</Text>
-              </View>
-
-              <TouchableOpacity onPress={() => {
-                setTempDate(date);
-                setShowDatePicker(true);
-              }} activeOpacity={0.7}>
-                <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="calendar-outline" size={18} color={ui.textMuted} />
-                  <View style={styles.dateTimeTextContainer}>
-                    <Text style={[dynamicStyles.dateTimeText, !formData.departureDate && dynamicStyles.placeholderText]}>
-                      {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Fecha de salida *'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={18} color={ui.textMuted} />
-                </View>
-              </TouchableOpacity>
-
-              <Modal
-                visible={showDatePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowDatePicker(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Fecha</Text>
-                      <TouchableOpacity
-                        onPress={() => setShowDatePicker(false)}
-                        style={styles.closeButton}
-                      >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={dynamicStyles.datePickerWrapper}>
-                      <DateTimePicker
-                        value={tempDate}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={onDateChange}
-                        minimumDate={new Date()}
-                        style={dynamicStyles.modalPicker}
-                        textColor="#000000"
-                      />
-                    </View>
-                    {Platform.OS === 'ios' && (
-                      <View style={dynamicStyles.modalButtons}>
-                        <TouchableOpacity
-                          onPress={() => setShowDatePicker(false)}
-                          style={dynamicStyles.modalButton}
-                        >
-                          <Text style={dynamicStyles.modalButtonCancel}>Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => confirmDate(tempDate)}
-                          style={[dynamicStyles.modalButton, dynamicStyles.modalButtonPrimary]}
-                        >
-                          <Text style={dynamicStyles.modalButtonText}>Confirmar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </Modal>
-
-              <TouchableOpacity onPress={() => {
-                setTempTime(time);
-                setShowTimePicker(true);
-              }} activeOpacity={0.7}>
-                <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="time-outline" size={18} color={ui.textMuted} />
-                  <View style={styles.dateTimeTextContainer}>
-                    <Text style={[dynamicStyles.dateTimeText, !formData.departureTime && dynamicStyles.placeholderText]}>
-                      {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Hora de salida *'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={18} color={ui.textMuted} />
-                </View>
-              </TouchableOpacity>
-
-              <Modal
-                visible={showTimePicker}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowTimePicker(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={dynamicStyles.modalContainer}>
-                    <View style={dynamicStyles.modalHeader}>
-                      <Text style={dynamicStyles.modalTitle}>Seleccionar Hora</Text>
-                      <TouchableOpacity
-                        onPress={() => setShowTimePicker(false)}
-                        style={styles.closeButton}
-                      >
-                        <Ionicons name="close" size={24} color={colors.textPrimary} />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={dynamicStyles.datePickerWrapper}>
-                      <DateTimePicker
-                        value={tempTime}
-                        mode="time"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={onTimeChange}
-                        style={dynamicStyles.modalPicker}
-                        textColor="#000000"
-                      />
-                    </View>
-                    {Platform.OS === 'ios' && (
-                      <View style={dynamicStyles.modalButtons}>
-                        <TouchableOpacity
-                          onPress={() => setShowTimePicker(false)}
-                          style={dynamicStyles.modalButton}
-                        >
-                          <Text style={dynamicStyles.modalButtonCancel}>Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => confirmTime(tempTime)}
-                          style={[dynamicStyles.modalButton, dynamicStyles.modalButtonPrimary]}
-                        >
-                          <Text style={dynamicStyles.modalButtonText}>Confirmar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </Modal>
-
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="people-outline" size={18} color={ui.textMuted} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="¿Cuántos asientos disponibles? *"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.availableSeats}
-                  onChangeText={(value) => handleChange('availableSeats', value)}
-                  keyboardType="numeric"
-                />
-              </View>
+              {renderField({
+                key: 'seats', label: 'Asientos disponibles', placeholder: 'Ej. 3', keyboard: 'numeric',
+                value: formData.availableSeats, onChangeText: v => handleChange('availableSeats', v),
+              })}
               {formData.vehicle && (() => {
                 const sv = vehicles.find(v => v._id === formData.vehicle);
                 return sv?.capacity ? (
-                  <Text style={{ fontSize: 12, color: colors.textTertiary, marginTop: -8, marginBottom: 8, marginLeft: 4 }}>
+                  <Text style={[styles.fieldHint, { color: textMuted }]}>
                     Máx. {sv.capacity} según el vehículo
                   </Text>
                 ) : null;
               })()}
 
-              <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="cash-outline" size={18} color={ui.textMuted} />
-                <TextInput
-                  style={dynamicStyles.input}
-                  placeholder="Precio por asiento (opcional)"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.pricePerSeat}
-                  onChangeText={(value) => handleChange('pricePerSeat', value)}
-                  keyboardType="decimal-pad"
+              <View style={{ height: 10 }} />
+              {renderField({
+                key: 'price', label: 'Precio por asiento (opcional)', placeholder: '$', keyboard: 'decimal-pad',
+                value: formData.pricePerSeat, onChangeText: v => handleChange('pricePerSeat', v),
+              })}
+
+              <View style={{ height: 10 }} />
+              {renderField({
+                key: 'notes', label: 'Notas (opcional)', placeholder: 'Punto de encuentro, equipaje, etc.',
+                value: formData.notes, onChangeText: v => handleChange('notes', v), multiline: true,
+              })}
+
+              <Sheet visible={showDatePicker} onClose={() => setShowDatePicker(false)} title="Fecha de salida">
+                <DateTimePicker
+                  value={tempDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onDateChange}
+                  minimumDate={new Date()}
+                  textColor={textPrimary}
+                  themeVariant={ui.isDarkMode ? 'dark' : 'light'}
                 />
-              </View>
+                {Platform.OS === 'ios' && (
+                  <PillButton label="Confirmar" onPress={() => confirmDate(tempDate)} style={styles.sheetConfirm} />
+                )}
+              </Sheet>
 
-              <View style={[dynamicStyles.inputWrapper, styles.textAreaWrapper]}>
-                <View style={styles.textAreaIconContainer}>
-                  <Ionicons name="document-text-outline" size={18} color={colors.primary} />
-                </View>
-                <TextInput
-                  style={[dynamicStyles.input, styles.textArea]}
-                  placeholder="Notas (opcional)"
-                  placeholderTextColor={colors.placeholder}
-                  value={formData.notes}
-                  onChangeText={(value) => handleChange('notes', value)}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
+              <Sheet visible={showTimePicker} onClose={() => setShowTimePicker(false)} title="Hora de salida">
+                <DateTimePicker
+                  value={tempTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onTimeChange}
+                  textColor={textPrimary}
+                  themeVariant={ui.isDarkMode ? 'dark' : 'light'}
                 />
-              </View>
-            </LinearGradient>
+                {Platform.OS === 'ios' && (
+                  <PillButton label="Confirmar" onPress={() => confirmTime(tempTime)} style={styles.sheetConfirm} />
+                )}
+              </Sheet>
+            </View>
 
-            {/* Preferences Section */}
-            <LinearGradient
-              colors={createColorArray(colors.surfaceElevated, colors.surface)}
-              style={dynamicStyles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Ionicons name="settings-outline" size={24} color={ui.textMuted} />
-                <Text style={dynamicStyles.sectionTitle}>Preferencias</Text>
-              </View>
+            {/* Preferencias */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Preferencias</Text>
 
-              <View style={dynamicStyles.switchRow}>
+              <View style={[styles.switchRow, { backgroundColor: cardBg }]}>
                 <View style={styles.switchLabelContainer}>
-                  <Ionicons name="cloud-outline" size={20} color={colors.textSecondary} />
-                  <Text style={dynamicStyles.switchLabel}>Permitir fumar</Text>
+                  <Ionicons name="cloud-outline" size={18} color={textMuted} />
+                  <Text style={[styles.switchLabel, { color: textPrimary }]}>Permitir fumar</Text>
                 </View>
                 <Switch
                   value={formData.allowSmoking}
                   onValueChange={(value) => handleChange('allowSmoking', value)}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                  thumbColor={formData.allowSmoking ? colors.primary : colors.textMuted}
-                  ios_backgroundColor={colors.inputBorder}
+                  trackColor={{ false: border, true: ui.invertBg }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={border}
                 />
               </View>
 
-              <View style={dynamicStyles.switchRow}>
+              <View style={{ height: 10 }} />
+
+              <View style={[styles.switchRow, { backgroundColor: cardBg }]}>
                 <View style={styles.switchLabelContainer}>
-                  <Ionicons name="paw-outline" size={20} color={colors.textSecondary} />
-                  <Text style={dynamicStyles.switchLabel}>Permitir mascotas</Text>
+                  <Ionicons name="paw-outline" size={18} color={textMuted} />
+                  <Text style={[styles.switchLabel, { color: textPrimary }]}>Permitir mascotas</Text>
                 </View>
                 <Switch
                   value={formData.allowPets}
                   onValueChange={(value) => handleChange('allowPets', value)}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryLight }}
-                  thumbColor={formData.allowPets ? colors.primary : colors.textMuted}
-                  ios_backgroundColor={colors.inputBorder}
+                  trackColor={{ false: border, true: ui.invertBg }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={border}
                 />
               </View>
-            </LinearGradient>
+            </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
+            <PillButton
+              label="Crear viaje"
               onPress={handleCreateTrip}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <LinearGradient colors={gradients.primary} style={dynamicStyles.createButton}>
-                {loading ? (
-                  <ActivityIndicator color={colors.textPrimary} />
-                ) : (
-                  <>
-                    <Text style={dynamicStyles.createButtonText}>Crear Viaje</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              loading={loading}
+              style={styles.submit}
+            />
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1100,10 +587,7 @@ const CreateTripScreen = ({ navigation }) => {
       <ConfirmationModal
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          navigation.goBack();
-        }}
+        onConfirm={() => { setShowSuccessModal(false); navigation.goBack(); }}
         type="success"
         title="Éxito"
         message={modalMessage}
@@ -1121,90 +605,109 @@ const CreateTripScreen = ({ navigation }) => {
         confirmText="Entendido"
         showCancel={false}
       />
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  flex: { flex: 1 },
+  scrollContent: { paddingBottom: 48 },
+
+  header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 26 },
+  title: { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+
+  section: { paddingHorizontal: 24, marginBottom: 26 },
+  sectionLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  keyboardView: {
-    flex: 1,
+
+  row: { flexDirection: 'row', gap: 10 },
+
+  field: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    paddingHorizontal: 18,
+    paddingTop: 11,
+    paddingBottom: 13,
   },
-  scrollView: {
-    flex: 1,
+  fieldHalf: { flex: 1 },
+  fieldMultiline: { paddingBottom: 13 },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  fieldLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  scrollContent: {
-    paddingBottom: spacing.xl,
+  fieldInput: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: 16,
+    padding: 0,
+    marginTop: 3,
+    minHeight: 22,
   },
-  content: {
-    padding: spacing.lg,
+  fieldInputMultiline: {
+    minHeight: 60,
   },
-  sectionHeader: {
+  fieldHint: {
+    fontSize: 12,
+    fontFamily: 'Sora_500Medium',
+    marginTop: 6,
+    marginLeft: 4,
+  },
+
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  switchLabelContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  switchLabel: { fontSize: 15, fontFamily: 'Sora_500Medium' },
+
+  submit: { marginHorizontal: 24, marginTop: 4 },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyText: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 16, textAlign: 'center' },
+  emptySubtext: { fontSize: 14, fontFamily: 'Sora_400Regular', marginTop: 8, textAlign: 'center' },
+  addVehicleButton: { borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, marginTop: 24 },
+  addVehicleButtonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 34,
+    maxHeight: '80%',
+  },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 22, fontFamily: 'Sora_800ExtraBold' },
+  sheetClose: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  sheetList: { maxHeight: 420 },
+  sheetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    gap: 10,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
   },
-  dateTimeTextContainer: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: spacing.sm,
-  },
-  textAreaWrapper: {
-    alignItems: 'flex-start',
-  },
-  textAreaIconContainer: {
-    marginTop: spacing.md,
-  },
-  switchLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xxl,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xxl,
-  },
-  // Date/Time Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  // Vehicle Picker Modal Styles
-  vehicleList: {
-    maxHeight: 400,
-    padding: spacing.md,
-  },
-  vehicleItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  vehicleItemText: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  provinceList: {
-    maxHeight: 400,
-    padding: spacing.md,
-  },
+  sheetItemTitle: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+  sheetItemSubtitle: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 2 },
+  sheetConfirm: { marginTop: 16 },
 });
 
 export default CreateTripScreen;

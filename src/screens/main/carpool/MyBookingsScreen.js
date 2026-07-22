@@ -217,7 +217,7 @@ const MyBookingsScreen = ({ navigation }) => {
     const activeTxt     = isActive ? (isDarkMode ? '#FFFFFF' : textPrimary) : textPrimary;
     const activeMuted   = isActive ? (isDarkMode ? 'rgba(255,255,255,0.5)' : textSecondary) : textSecondary;
     const activeDivider = isActive ? (isDarkMode ? '#333333' : divider) : divider;
-    const activeLabelColor = isDarkMode ? 'rgba(255,255,255,0.6)' : '#B45309';
+    const activeLabelColor = isDarkMode ? 'rgba(255,255,255,0.6)' : textSecondary;
 
     return (
       <View style={styles.cardWrapper}>
@@ -284,7 +284,7 @@ const MyBookingsScreen = ({ navigation }) => {
           {driver.avatar ? (
             <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: isActive ? (isDarkMode ? '#333' : '#FEF3C7') : (isDarkMode ? '#333' : '#EFEFEF') }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#333' : '#EFEFEF' }]}>
               <Text style={[styles.avatarInitials, { color: activeTxt }]}>
                 {driver.firstName[0]}{driver.lastName[0]}
               </Text>

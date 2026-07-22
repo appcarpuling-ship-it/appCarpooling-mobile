@@ -143,7 +143,7 @@ const MyApplicationsScreen = ({ navigation }) => {
 
         {/* Route */}
         <View style={[styles.routeRow, { borderTopColor: divider }]}>
-          <Ionicons name="radio-button-on" size={12} color="#22C55E" />
+          <Ionicons name="radio-button-on" size={12} color={textPrimary} />
           <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.origin.city}</Text>
           <Ionicons name="arrow-forward" size={12} color={textMuted} />
           <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.destination.city}</Text>
@@ -169,7 +169,7 @@ const MyApplicationsScreen = ({ navigation }) => {
         {/* Accepted highlight */}
         {item.myApplication?.status === 'accepted' && (
           <View style={[styles.acceptedBanner, { borderTopColor: divider }]}>
-            <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
+            <Ionicons name="checkmark-circle" size={14} color={textPrimary} />
             <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>
               El pasajero te eligió como conductor
             </Text>

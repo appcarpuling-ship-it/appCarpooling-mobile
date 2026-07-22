@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, post_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
@@ -32,7 +31,6 @@ const REPORT_REASONS = [
 const UserProfileScreen = ({ route, navigation }) => {
   const ui = useUI();
   const { userId, tripId, conversationId, fromChat, openReport } = route.params || {};
-  const { colors, isDarkMode } = useColors();
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const [profile, setProfile] = useState(null);
@@ -204,47 +202,47 @@ const UserProfileScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
+      <View style={[styles.center, { backgroundColor: ui.bg }]}>
+        <ActivityIndicator size="large" color={ui.text} />
       </View>
     );
   }
 
   if (!profile) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Ionicons name="person-outline" size={48} color={colors.textMuted} />
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>Usuario no disponible</Text>
+      <View style={[styles.center, { backgroundColor: ui.bg }]}>
+        <Ionicons name="person-outline" size={48} color={ui.textMuted} />
+        <Text style={[styles.emptyText, { color: ui.textMuted }]}>Usuario no disponible</Text>
       </View>
     );
   }
 
   const avatarUrl = profile.avatar ? buildImageUri(profile.avatar) : null;
-  const cardBg = isDarkMode ? '#292929' : colors.cardBackground;
+  const cardBg = ui.surface;
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: ui.bg }]}
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#292929' : colors.surface }]}>
-            <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
+            <Text style={[styles.avatarInitials, { color: ui.text }]}>
               {profile.firstName?.[0]}
               {profile.lastName?.[0]}
             </Text>
           </View>
         )}
-        <Text style={[styles.name, { color: colors.textPrimary }]}>
+        <Text style={[styles.name, { color: ui.text }]}>
           {profile.firstName} {profile.lastName}
         </Text>
         {(profile.city || profile.province) && (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-            <Text style={[styles.location, { color: colors.textSecondary }]}>
+            <Ionicons name="location-outline" size={15} color={ui.textMuted} />
+            <Text style={[styles.location, { color: ui.textMuted }]}>
               {[profile.city, profile.province].filter(Boolean).join(', ')}
             </Text>
           </View>
@@ -254,18 +252,18 @@ const UserProfileScreen = ({ route, navigation }) => {
       {!isSelf && (
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.secondaryBtn, { borderColor: colors.border, backgroundColor: cardBg }]}
+            style={[styles.secondaryBtn, { borderColor: ui.border, backgroundColor: cardBg }]}
             onPress={() => setReportOpen(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="flag-outline" size={18} color={colors.textPrimary} />
-            <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>Reportar</Text>
+            <Ionicons name="flag-outline" size={18} color={ui.text} />
+            <Text style={[styles.secondaryBtnText, { color: ui.text }]}>Reportar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.secondaryBtn,
               isBlocked
-                ? { borderColor: colors.border, backgroundColor: cardBg }
+                ? { borderColor: ui.border, backgroundColor: cardBg }
                 : { borderColor: ui.textMuted, backgroundColor: cardBg },
             ]}
             onPress={confirmBlock}
@@ -273,15 +271,15 @@ const UserProfileScreen = ({ route, navigation }) => {
             activeOpacity={0.8}
           >
             {blockLoading ? (
-              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : ui.textMuted} />
+              <ActivityIndicator size="small" color={isBlocked ? ui.textMuted : ui.textMuted} />
             ) : isBlocked ? (
               <>
-                <Ionicons name="lock-open-outline" size={18} color={colors.textPrimary} />
-                <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>Desbloquear</Text>
+                <Ionicons name="lock-open-outline" size={18} color={ui.text} />
+                <Text style={[styles.secondaryBtnText, { color: ui.text }]}>Desbloquear</Text>
               </>
             ) : (
               <>
-                <Ionicons name="ban-outline" size={18} color="#DC2626" />
+                <Ionicons name="ban-outline" size={18} color={ui.textMuted} />
                 <Text style={[styles.secondaryBtnText, { color: ui.textMuted }]}>Bloquear</Text>
               </>
             )}
@@ -307,26 +305,26 @@ const UserProfileScreen = ({ route, navigation }) => {
       )}
 
       {vehicles.length > 0 && (
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: colors.border }]}>
-          <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Vehículos</Text>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
+          <Text style={[styles.cardLabel, { color: ui.textMuted }]}>Vehículos</Text>
           {vehicles.map((v) => {
             const img =
               (v.photos && v.photos[0] && buildImageUri(v.photos[0])) ||
               (v.photo && buildImageUri(v.photo));
             return (
-              <View key={v._id} style={[styles.vehicleRow, { borderTopColor: colors.border }]}>
+              <View key={v._id} style={[styles.vehicleRow, { borderTopColor: ui.border }]}>
                 {img ? (
                   <Image source={{ uri: img }} style={styles.vehicleThumb} />
                 ) : (
-                  <View style={[styles.vehicleThumb, styles.vehicleThumbPh, { backgroundColor: colors.surface }]}>
-                    <Ionicons name="car-outline" size={22} color={colors.textMuted} />
+                  <View style={[styles.vehicleThumb, styles.vehicleThumbPh, { backgroundColor: ui.surface }]}>
+                    <Ionicons name="car-outline" size={22} color={ui.textMuted} />
                   </View>
                 )}
                 <View style={styles.vehicleInfo}>
-                  <Text style={[styles.vehicleTitle, { color: colors.textPrimary }]}>
+                  <Text style={[styles.vehicleTitle, { color: ui.text }]}>
                     {v.brand} {v.model} ({v.year})
                   </Text>
-                  <Text style={[styles.vehicleMeta, { color: colors.textSecondary }]}>
+                  <Text style={[styles.vehicleMeta, { color: ui.textMuted }]}>
                     {v.color} · {v.licensePlate} · {v.capacity} plazas
                   </Text>
                 </View>
@@ -337,16 +335,16 @@ const UserProfileScreen = ({ route, navigation }) => {
       )}
 
       {profile.bio ? (
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: colors.border }]}>
-          <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Sobre mí</Text>
-          <Text style={[styles.cardValue, { color: colors.textPrimary }]}>{profile.bio}</Text>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
+          <Text style={[styles.cardLabel, { color: ui.textMuted }]}>Sobre mí</Text>
+          <Text style={[styles.cardValue, { color: ui.text }]}>{profile.bio}</Text>
         </View>
       ) : null}
 
       {profile.memberSince || profile.createdAt ? (
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: colors.border }]}>
-          <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Miembro desde</Text>
-          <Text style={[styles.cardValue, { color: colors.textPrimary }]}>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
+          <Text style={[styles.cardLabel, { color: ui.textMuted }]}>Miembro desde</Text>
+          <Text style={[styles.cardValue, { color: ui.text }]}>
             {new Date(profile.memberSince || profile.createdAt).toLocaleDateString('es-ES', {
               month: 'long',
               year: 'numeric',
@@ -360,9 +358,9 @@ const UserProfileScreen = ({ route, navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalBox, { backgroundColor: colors.background }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Reportar usuario</Text>
-            <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
+          <View style={[styles.modalBox, { backgroundColor: ui.bg }]}>
+            <Text style={[styles.modalTitle, { color: ui.text }]}>Reportar usuario</Text>
+            <Text style={[styles.modalHint, { color: ui.textMuted }]}>
               Elegí un motivo. Los administradores lo verán en el panel.
             </Text>
             <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
@@ -372,13 +370,13 @@ const UserProfileScreen = ({ route, navigation }) => {
                   style={[
                     styles.reasonChip,
                     {
-                      borderColor: reportReasonCode === r.value ? colors.textPrimary : colors.border,
-                      backgroundColor: reportReasonCode === r.value ? (isDarkMode ? '#333' : '#F3F4F6') : 'transparent',
+                      borderColor: reportReasonCode === r.value ? ui.text : ui.border,
+                      backgroundColor: reportReasonCode === r.value ? ui.surface : 'transparent',
                     },
                   ]}
                   onPress={() => setReportReasonCode(r.value)}
                 >
-                  <Text style={{ color: colors.textPrimary, fontSize: 14 }}>{r.label}</Text>
+                  <Text style={{ color: ui.text, fontSize: 14 }}>{r.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -386,13 +384,13 @@ const UserProfileScreen = ({ route, navigation }) => {
               style={[
                 styles.reportInput,
                 {
-                  borderColor: colors.border,
-                  color: colors.textPrimary,
-                  backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB',
+                  borderColor: ui.border,
+                  color: ui.text,
+                  backgroundColor: ui.surface,
                 },
               ]}
               placeholder="Detalle (opcional u obligatorio si elegiste «Otro»)"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={ui.textMuted}
               value={reportDetail}
               onChangeText={setReportDetail}
               multiline
@@ -400,7 +398,7 @@ const UserProfileScreen = ({ route, navigation }) => {
             />
             <View style={styles.modalBtns}>
               <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setReportOpen(false)}>
-                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancelar</Text>
+                <Text style={{ color: ui.textMuted, fontWeight: '600' }}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtnPrimary, { backgroundColor: ui.invertBg }]}
@@ -408,7 +406,7 @@ const UserProfileScreen = ({ route, navigation }) => {
                 disabled={reportSubmitting}
               >
                 {reportSubmitting ? (
-                  <ActivityIndicator color={isDarkMode ? '#000' : '#FFF'} />
+                  <ActivityIndicator color={ui.invertText} />
                 ) : (
                   <Text style={{ color: ui.invertText, fontWeight: '700' }}>Enviar</Text>
                 )}

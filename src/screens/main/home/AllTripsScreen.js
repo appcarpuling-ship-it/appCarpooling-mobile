@@ -17,7 +17,6 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -537,7 +536,7 @@ const AllTripsScreen = ({ navigation }) => {
                 style={[
                   styles.provinceOption,
                   { borderBottomColor: ui.border },
-                  minAvailableSeats === option && { backgroundColor: isDarkMode ? '#1E3A8A' : '#EBF4FF' },
+                  minAvailableSeats === option && { backgroundColor: ui.surface },
                 ]}
               >
                 <Text
@@ -888,17 +887,9 @@ const styles = StyleSheet.create({
     gap: 6,
     maxWidth: 160,
   },
-  filterChipActive: {
-    backgroundColor: '#1F2937',
-    borderColor: '#1F2937',
-  },
   filterChipText: {
     fontSize: fontSize.sm,
     fontFamily: 'Sora_500Medium',
-    color: '#1F2937',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
   },
   resultsRow: {
     flexDirection: 'row',
@@ -1058,12 +1049,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#1F2937',
   },
   clearButtonText: {
     fontSize: fontSize.sm,
     fontFamily: 'Sora_600SemiBold',
-    color: '#1F2937',
   },
 
   // Modals
@@ -1073,32 +1062,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
-    maxHeight: '70%',
-    width: '85%',
-  },
   pickerLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  pickerTitle: {
-    fontSize: fontSize.lg,
-    fontFamily: 'Sora_600SemiBold',
-    color: '#000000',
   },
   provinceList: {
     maxHeight: 400,
@@ -1111,9 +1080,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
-  },
-  provinceOptionSelected: {
-    backgroundColor: '#1F293715',
   },
   deptAllItem: {
     marginHorizontal: 16,
@@ -1178,12 +1144,7 @@ const styles = StyleSheet.create({
   },
   provinceOptionText: {
     fontSize: fontSize.md,
-    color: '#6B7280',
     flex: 1,
-  },
-  provinceOptionTextSelected: {
-    color: '#1F2937',
-    fontFamily: 'Sora_600SemiBold',
   },
   datePickerWrapper: {
     backgroundColor: '#FFFFFF',
@@ -1206,10 +1167,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: '#6B7280',
     fontFamily: 'Sora_500Medium',
-  },
-  pickerButtonConfirm: {
-    backgroundColor: '#1F2937',
-    borderColor: '#1F2937',
   },
   pickerButtonConfirmText: {
     fontSize: fontSize.md,

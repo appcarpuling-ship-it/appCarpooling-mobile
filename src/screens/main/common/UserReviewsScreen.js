@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,15 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
-import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 
 const UserReviewsScreen = ({ route, navigation }) => {
   const { userId, userName } = route.params || {};
   const { showAlert } = useAlert();
-  const { colors, createColorArray } = useColors();
   const ui = useUI();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,16 +40,8 @@ const UserReviewsScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (!loading) {
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
       ]).start();
     }
   }, [loading]);
@@ -87,11 +75,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const renderStars = (rating) => {
@@ -102,7 +86,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
           key={i}
           name={i <= rating ? 'star' : 'star-outline'}
           size={16}
-          color={i <= rating ? '#FFB800' : colors.textTertiary}
+          color={i <= rating ? ui.text : ui.textMuted}
         />
       );
     }
@@ -113,150 +97,106 @@ const UserReviewsScreen = ({ route, navigation }) => {
     const isActive = filterType === type;
     return (
       <TouchableOpacity
+        key={type}
         onPress={() => setFilterType(type)}
-        style={[styles.filterButton, isActive && styles.filterButtonActive]}
+        style={[styles.filterButton, { backgroundColor: isActive ? ui.invertBg : ui.surface }]}
         activeOpacity={0.7}
       >
-        <LinearGradient
-          colors={isActive ? ['#1F2937', '#111827'] : ['transparent', 'transparent']}
-          style={styles.filterGradient}
-        >
-          <Ionicons
-            name={icon}
-            size={18}
-            color={isActive ? '#FFF' : colors.textSecondary}
-          />
-          <Text style={[
-            styles.filterButtonText,
-            { color: isActive ? '#FFF' : colors.textSecondary }
-          ]}>
-            {label}
-          </Text>
-        </LinearGradient>
+        <Ionicons name={icon} size={16} color={isActive ? ui.invertText : ui.textMuted} />
+        <Text style={[styles.filterButtonText, { color: isActive ? ui.invertText : ui.textMuted }]}>
+          {label}
+        </Text>
       </TouchableOpacity>
     );
   };
 
-  const renderReviewCard = (review, index) => {
-    return (
-      <LinearGradient
-        key={review._id}
-        colors={createColorArray(colors.surfaceElevated, colors.surface)}
-        style={[styles.reviewCard, { opacity: loading ? 0 : 1 }]}
-      >
-        {/* Review Header */}
-        <View style={styles.reviewHeader}>
-          <LinearGradient
-            colors={['#1F2937', '#111827']}
-            style={styles.reviewerAvatar}
-          >
-            <Text style={styles.reviewerAvatarText}>
-              {review.reviewer.firstName?.[0]}{review.reviewer.lastName?.[0]}
-            </Text>
-          </LinearGradient>
-          <View style={styles.reviewerInfo}>
-            <Text style={styles.reviewerName}>
-              {review.reviewer.firstName} {review.reviewer.lastName}
-            </Text>
-            <View style={styles.reviewMeta}>
-              <View style={styles.starsContainer}>
-                {renderStars(review.rating)}
-              </View>
-              <Text style={styles.reviewDate}>{formatDate(review.createdAt)}</Text>
-            </View>
-          </View>
-          <View style={styles.reviewTypeContainer}>
-            <LinearGradient
-              colors={review.type === 'driver' ? ['#2B2B2B', '#111111'] : ['#6B6B6B', '#4A4A4A']}
-              style={styles.reviewTypeBadge}
-            >
-              <Ionicons
-                name={review.type === 'driver' ? 'car-outline' : 'person-outline'}
-                size={12}
-                color="#FFF"
-              />
-              <Text style={styles.reviewTypeText}>
-                {review.type === 'driver' ? 'Conductor' : 'Pasajero'}
-              </Text>
-            </LinearGradient>
+  const renderReviewCard = (review) => (
+    <View key={review._id} style={[styles.reviewCard, { backgroundColor: ui.surface, opacity: loading ? 0 : 1 }]}>
+      <View style={styles.reviewHeader}>
+        <View style={[styles.reviewerAvatar, { backgroundColor: ui.invertBg }]}>
+          <Text style={[styles.reviewerAvatarText, { color: ui.invertText }]}>
+            {review.reviewer.firstName?.[0]}{review.reviewer.lastName?.[0]}
+          </Text>
+        </View>
+        <View style={styles.reviewerInfo}>
+          <Text style={[styles.reviewerName, { color: ui.text }]}>
+            {review.reviewer.firstName} {review.reviewer.lastName}
+          </Text>
+          <View style={styles.reviewMeta}>
+            <View style={styles.starsContainer}>{renderStars(review.rating)}</View>
+            <Text style={[styles.reviewDate, { color: ui.textMuted }]}>{formatDate(review.createdAt)}</Text>
           </View>
         </View>
+        <View style={[styles.reviewTypeBadge, { backgroundColor: ui.bg }]}>
+          <Ionicons
+            name={review.type === 'driver' ? 'car-outline' : 'person-outline'}
+            size={12}
+            color={ui.textMuted}
+          />
+          <Text style={[styles.reviewTypeText, { color: ui.textMuted }]}>
+            {review.type === 'driver' ? 'Conductor' : 'Pasajero'}
+          </Text>
+        </View>
+      </View>
 
-        {/* Review Comment */}
-        <Text style={styles.reviewComment}>{review.comment}</Text>
+      <Text style={[styles.reviewComment, { color: ui.text }]}>{review.comment}</Text>
 
-        {/* Trip Info */}
-        {review.trip && (
-          <View style={styles.tripInfo}>
-            <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
-            <Text style={styles.tripText} numberOfLines={1}>
-              {review.trip.origin?.city} → {review.trip.destination?.city}
-            </Text>
-          </View>
-        )}
-      </LinearGradient>
-    );
-  };
+      {review.trip && (
+        <View style={styles.tripInfo}>
+          <Ionicons name="location-outline" size={14} color={ui.textMuted} />
+          <Text style={[styles.tripText, { color: ui.textMuted }]} numberOfLines={1}>
+            {review.trip.origin?.city} → {review.trip.destination?.city}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 
   if (loading) {
     return (
-      <LinearGradient colors={createColorArray(colors.background, colors.surface)} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: ui.bg }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando reseñas...</Text>
+          <ActivityIndicator size="large" color={ui.invertBg} />
+          <Text style={[styles.loadingText, { color: ui.textMuted }]}>Cargando reseñas...</Text>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={['#F8F9FA', '#E5E7EB']} style={styles.container}>
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
-      >
-        {/* Header */}
+    <View style={[styles.container, { backgroundColor: ui.bg }]}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Reseñas de {userName}</Text>
+          <Text style={[styles.title, { color: ui.text }]}>
+            Reseñas de{'\n'}
+            <Text style={styles.titleStrong}>{userName}</Text>
+          </Text>
 
-          {/* Stats */}
-          <LinearGradient
-            colors={createColorArray(colors.surfaceElevated, colors.surface)}
-            style={styles.statsContainer}
-          >
+          <View style={[styles.statsContainer, { backgroundColor: ui.surface }]}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.averageRating?.toFixed(1) || '0.0'}</Text>
-              <Text style={styles.statLabel}>Promedio</Text>
-              <View style={styles.statsStars}>
-                {renderStars(Math.round(stats.averageRating || 0))}
-              </View>
+              <Text style={[styles.statValue, { color: ui.text }]}>{stats.averageRating?.toFixed(1) || '0.0'}</Text>
+              <Text style={[styles.statLabel, { color: ui.textMuted }]}>Promedio</Text>
+              <View style={styles.statsStars}>{renderStars(Math.round(stats.averageRating || 0))}</View>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: ui.border }]} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalReviews || 0}</Text>
-              <Text style={styles.statLabel}>Reseñas</Text>
+              <Text style={[styles.statValue, { color: ui.text }]}>{stats.totalReviews || 0}</Text>
+              <Text style={[styles.statLabel, { color: ui.textMuted }]}>Reseñas</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: ui.border }]} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.driverReviews || 0}</Text>
-              <Text style={styles.statLabel}>Conductor</Text>
+              <Text style={[styles.statValue, { color: ui.text }]}>{stats.driverReviews || 0}</Text>
+              <Text style={[styles.statLabel, { color: ui.textMuted }]}>Conductor</Text>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
-        {/* Filters */}
         <View style={styles.filtersContainer}>
           {renderFilterButton('all', 'Todas', 'list-outline')}
           {renderFilterButton('driver', 'Conductor', 'car-outline')}
           {renderFilterButton('passenger', 'Pasajero', 'person-outline')}
         </View>
 
-        {/* Reviews List */}
         <ScrollView
           style={styles.reviewsList}
           showsVerticalScrollIndicator={false}
@@ -264,216 +204,99 @@ const UserReviewsScreen = ({ route, navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={createColorArray(colors.primary)}
+              tintColor={ui.invertBg}
+              colors={[ui.invertBg]}
             />
           }
         >
           {reviews.length > 0 ? (
-            reviews.map((review, index) => renderReviewCard(review, index))
+            reviews.map((review) => renderReviewCard(review))
           ) : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="star-outline" size={64} color={colors.textTertiary} />
-              <Text style={styles.emptyTitle}>Sin reseñas</Text>
-              <Text style={styles.emptySubtitle}>
+              <Ionicons name="star-outline" size={64} color={ui.textMuted} />
+              <Text style={[styles.emptyTitle, { color: ui.text }]}>Sin reseñas</Text>
+              <Text style={[styles.emptySubtitle, { color: ui.textMuted }]}>
                 {filterType === 'all'
                   ? 'Este usuario aún no tiene reseñas'
-                  : `No hay reseñas como ${filterType === 'driver' ? 'conductor' : 'pasajero'}`
-                }
+                  : `No hay reseñas como ${filterType === 'driver' ? 'conductor' : 'pasajero'}`}
               </Text>
             </View>
           )}
         </ScrollView>
       </Animated.View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#6B7280',
-    fontSize: fontSize.md,
-    marginTop: spacing.md,
-  },
-  header: {
-    paddingTop: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: fontSize.xxl,
-    fontFamily: 'Sora_700Bold',
-    color: '#000000',
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 24 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { fontSize: 15, fontFamily: 'Sora_500Medium', marginTop: 12 },
+
+  header: { paddingTop: 24, marginBottom: 20 },
+  title: { fontFamily: 'Sora_300Light', fontSize: 30, lineHeight: 38, letterSpacing: -1, marginBottom: 20 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+
   statsContainer: {
     flexDirection: 'row',
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    padding: 18,
+    borderRadius: 24,
     alignItems: 'center',
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: fontSize.xl,
-    fontFamily: 'Sora_700Bold',
-    color: '#000000',
-    marginBottom: spacing.xs,
-  },
-  statLabel: {
-    fontSize: fontSize.sm,
-    color: '#6B7280',
-    marginBottom: spacing.xs,
-  },
-  statsStars: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: spacing.md,
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 20, fontFamily: 'Sora_700Bold', marginBottom: 4 },
+  statLabel: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 6 },
+  statsStars: { flexDirection: 'row', gap: 2 },
+  statDivider: { width: 1, height: 40, marginHorizontal: 12 },
+
+  filtersContainer: { flexDirection: 'row', marginBottom: 18, gap: 8 },
   filterButton: {
     flex: 1,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  filterButtonActive: {
-    borderColor: 'transparent',
-  },
-  filterGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.xs,
+    gap: 6,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
   },
-  filterButtonText: {
-    fontSize: fontSize.sm,
-    fontFamily: 'Sora_500Medium',
-  },
-  reviewsList: {
-    flex: 1,
-  },
-  reviewCard: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.md,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
+  filterButtonText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+
+  reviewsList: { flex: 1 },
+  reviewCard: { padding: 18, borderRadius: 24, marginBottom: 12 },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   reviewerAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
-  reviewerAvatarText: {
-    color: '#FFF',
-    fontSize: fontSize.sm,
-    fontFamily: 'Sora_700Bold',
-  },
-  reviewerInfo: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: fontSize.md,
-    fontFamily: 'Sora_600SemiBold',
-    color: '#000000',
-    marginBottom: spacing.xs,
-  },
-  reviewMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    gap: 1,
-  },
-  reviewDate: {
-    fontSize: fontSize.xs,
-    color: '#9CA3AF',
-  },
-  reviewTypeContainer: {
-    marginLeft: spacing.sm,
-  },
+  reviewerAvatarText: { fontSize: 14, fontFamily: 'Sora_700Bold' },
+  reviewerInfo: { flex: 1 },
+  reviewerName: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginBottom: 4 },
+  reviewMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  starsContainer: { flexDirection: 'row', gap: 1 },
+  reviewDate: { fontSize: 11 },
   reviewTypeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    gap: spacing.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    gap: 4,
+    marginLeft: 8,
   },
-  reviewTypeText: {
-    fontSize: fontSize.xs,
-    color: '#FFF',
-    fontFamily: 'Sora_500Medium',
-  },
-  reviewComment: {
-    fontSize: fontSize.md,
-    color: '#6B7280',
-    lineHeight: 22,
-    marginBottom: spacing.sm,
-  },
-  tripInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  tripText: {
-    fontSize: fontSize.sm,
-    color: '#9CA3AF',
-    flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.xxxl,
-  },
-  emptyTitle: {
-    fontSize: fontSize.lg,
-    fontFamily: 'Sora_600SemiBold',
-    color: '#6B7280',
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  emptySubtitle: {
-    fontSize: fontSize.md,
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
+  reviewTypeText: { fontSize: 11, fontFamily: 'Sora_500Medium' },
+  reviewComment: { fontSize: 14, lineHeight: 21, fontFamily: 'Sora_400Regular', marginBottom: 10 },
+  tripInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tripText: { fontSize: 12, flex: 1 },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 64 },
+  emptyTitle: { fontSize: 17, fontFamily: 'Sora_600SemiBold', marginTop: 16, marginBottom: 6 },
+  emptySubtitle: { fontSize: 14, fontFamily: 'Sora_400Regular', textAlign: 'center' },
 });
 
 export default UserReviewsScreen;

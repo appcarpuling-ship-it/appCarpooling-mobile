@@ -723,7 +723,7 @@ const ChatsScreen = ({ navigation }) => {
               activeOpacity={0.75}
               disabled={blockingFromList}
             >
-              <Ionicons name="ban-outline" size={22} color="#DC2626" />
+              <Ionicons name="ban-outline" size={22} color={ui.textMuted} />
               <Text style={[styles.chatActionLabel, { color: ui.textMuted }]}>
                 {blockingFromList ? 'Bloqueando…' : 'Bloquear'}
               </Text>

@@ -18,11 +18,9 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
 import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
-import { useColors } from '../../../hooks/useColors';
 import apiService, { buildImageUri } from '../../../services/apiService';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
@@ -50,7 +48,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
     `${otherUser?.firstName?.[0] ?? '?'}` + `${otherUser?.lastName?.[0] ?? ''}`;
 
   const { user } = useAuth();
-  const { colors } = useColors();
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -123,11 +120,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
     navigation.setOptions({
       headerStyle: {
-        backgroundColor: colors.background
+        backgroundColor: ui.bg
       },
-      headerTintColor: colors.textPrimary,
+      headerTintColor: ui.text,
       headerTitleStyle: {
-        color: colors.textPrimary
+        color: ui.text
       },
       headerTitleAlign: 'left',
       headerTitleContainerStyle: {
@@ -148,7 +145,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={ui.text} />
         </TouchableOpacity>
       ),
       headerTitle: () => {
@@ -176,23 +173,18 @@ const ChatDetailScreen = ({ route, navigation }) => {
                     style={styles.headerAvatar}
                   />
                 ) : (
-                  <LinearGradient
-                    colors={[colors?.messagePrimary, colors?.messageSecondary]}
-                    style={styles.headerAvatar}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Text style={[styles.headerAvatarText, { color: '#FFFFFF' }]}>
+                  <View style={[styles.headerAvatar, { backgroundColor: ui.invertBg }]}>
+                    <Text style={[styles.headerAvatarText, { color: ui.invertText }]}>
                       {displayInitials}
                     </Text>
-                  </LinearGradient>
+                  </View>
                 )}
               </View>
               <View style={styles.headerTextContainer}>
-                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+                <Text style={[styles.headerTitle, { color: ui.text }]}>
                   {displayName}
                 </Text>
-                <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                <Text style={[styles.headerSubtitle, { color: ui.textMuted }]}>
                   {typing ? 'Escribiendo...' : 'En linea'}
                 </Text>
               </View>
@@ -224,7 +216,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
         loadUnreadCount();
       }, 300);
     };
-  }, [conversationId, navigation, otherUser, typing, colors.background, colors.textPrimary, colors.textSecondary, colors?.messagePrimary, colors?.messageSecondary]);
+  }, [conversationId, navigation, otherUser, typing, ui.bg, ui.text, ui.textMuted, ui.invertBg, ui.invertText]);
 
   // Separar en un useEffect para los listeners del socket
   useEffect(() => {
@@ -431,29 +423,24 @@ const ChatDetailScreen = ({ route, navigation }) => {
         ]}
       >
         {isOwnMessage ? (
-          <LinearGradient
-            colors={[colors?.messagePrimary, colors?.messageSecondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.messageBubble, styles.ownMessage]}
-          >
-            <Text style={[styles.messageText, { color: '#FFFFFF' }]}>
+          <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
+            <Text style={[styles.messageText, { color: ui.invertText }]}>
               {item.content}
             </Text>
-            <Text style={[styles.messageTime, { color: 'rgba(255, 255, 255, 0.6)' }]}>
+            <Text style={[styles.messageTime, { color: ui.invertText, opacity: 0.6 }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
-          </LinearGradient>
+          </View>
         ) : (
           <View style={[
-            styles.messageBubble, 
+            styles.messageBubble,
             styles.otherMessage,
-            { backgroundColor: colors.cardBackground }
+            { backgroundColor: ui.surface }
           ]}>
-            <Text style={[styles.messageText, styles.otherMessageText, { color: colors.textPrimary }]}>
+            <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
               {item.content}
             </Text>
-            <Text style={[styles.messageTime, styles.otherMessageTime, { color: colors.textMuted }]}>
+            <Text style={[styles.messageTime, styles.otherMessageTime, { color: ui.textMuted }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
           </View>
@@ -464,8 +451,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   if (!conversationId) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centerContainer, { backgroundColor: ui.bg }]}>
+        <ActivityIndicator size="large" color={ui.invertBg} />
       </View>
     );
   }
@@ -473,8 +460,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centerContainer, { backgroundColor: ui.bg }]}>
+        <ActivityIndicator size="large" color={ui.invertBg} />
       </View>
     );
   }
@@ -486,7 +473,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: ui.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
@@ -514,7 +501,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
           ListHeaderComponent={
             loadingOlder ? (
               <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color={colors.textSecondary} />
+                <ActivityIndicator size="small" color={ui.textMuted} />
               </View>
             ) : null
           }
@@ -522,11 +509,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
         />
 
         {typing && (
-          <View style={[styles.typingIndicator, { backgroundColor: colors.background }]}>
+          <View style={[styles.typingIndicator, { backgroundColor: ui.bg }]}>
             <View
-              style={[styles.typingDot, { backgroundColor: colors?.messagePrimary }]}
+              style={[styles.typingDot, { backgroundColor: ui.invertBg }]}
             />
-            <Text style={[styles.typingText, { color: colors.textSecondary }]}>
+            <Text style={[styles.typingText, { color: ui.textMuted }]}>
               {displayName} esta escribiendo...
             </Text>
           </View>
@@ -535,8 +522,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
         <Animated.View style={[
           styles.inputContainer,
           {
-            backgroundColor: colors.background,
-            borderTopColor: colors.border,
+            backgroundColor: ui.bg,
+            borderTopColor: ui.border,
             paddingTop: COMPOSER_VERTICAL_INSET,
             paddingBottom: inputPadBottom,
           },
@@ -545,13 +532,13 @@ const ChatDetailScreen = ({ route, navigation }) => {
             style={[
               styles.input,
               {
-                backgroundColor: colors.inputBackground,
-                borderColor: colors.inputBorder,
-                color: colors.textPrimary,
+                backgroundColor: ui.surface,
+                borderColor: ui.border,
+                color: ui.text,
               },
             ]}
             placeholder="Escribe un mensaje..."
-            placeholderTextColor={colors.placeholder}
+            placeholderTextColor={ui.textMuted}
             value={newMessage}
             onChangeText={handleTyping}
             onFocus={() => { if (Platform.OS === 'android') inputPadBottom.setValue(COMPOSER_VERTICAL_INSET); }}
@@ -564,18 +551,18 @@ const ChatDetailScreen = ({ route, navigation }) => {
             disabled={!newMessage.trim() || sending}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={(!newMessage.trim() || sending) ? [colors?.textTertiary, colors?.textMuted] : [colors?.messagePrimary, colors?.messageSecondary]}
-              style={styles.sendButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
+              style={[
+                styles.sendButton,
+                { backgroundColor: (!newMessage.trim() || sending) ? ui.surface : ui.invertBg },
+              ]}
             >
               {sending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={ui.invertText} />
               ) : (
-                <Ionicons name="send" size={22} color="#FFFFFF" />
+                <Ionicons name="send" size={22} color={(!newMessage.trim()) ? ui.textMuted : ui.invertText} />
               )}
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </Animated.View>
         </Animated.View>
