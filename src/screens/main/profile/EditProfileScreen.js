@@ -36,6 +36,14 @@ const EditProfileScreen = ({ navigation }) => {
   const accent      = ui.invertBg;
   const accentInv   = ui.invertText;
 
+  // Ancla de alto contraste, como el bloque negro del precio en las referencias.
+  // En oscuro se aclara en vez de invertirse, igual que la barra inferior: un
+  // bloque blanco de este tamaño encandila sobre el fondo #161616.
+  const heroBg    = ui.isDarkMode ? '#262626' : '#111111';
+  const heroFg    = '#FFFFFF';
+  const heroMuted = 'rgba(255,255,255,0.6)';
+  const heroTint  = 'rgba(255,255,255,0.12)';
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]   = useState(false);
   const [modalMessage, setModalMessage]       = useState('');
@@ -228,8 +236,8 @@ const EditProfileScreen = ({ navigation }) => {
     const uri = avatarUri || (user?.avatar ? buildImageUri(user.avatar) : null);
     if (uri) return <Image source={{ uri }} style={styles.avatarImage} />;
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
-        <Text style={[styles.avatarInitials, { color: textPrimary }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: heroTint }]}>
+        <Text style={[styles.avatarInitials, { color: heroFg }]}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
       </View>
@@ -242,16 +250,6 @@ const EditProfileScreen = ({ navigation }) => {
   const dniCount = (user?.dniFrontUrl ? 1 : 0) + (user?.dniBackUrl ? 1 : 0);
   const dniDone = dniCount === 2;
 
-  // Lo que un pasajero mira antes de subirse: foto, datos de contacto, de dónde
-  // sos, una presentación y el documento.
-  const completion = (() => {
-    const done = [
-      formData.firstName, formData.lastName, formData.phone, formData.age,
-      formData.province, formData.city, formData.bio,
-      user?.avatar, user?.dniFrontUrl, user?.dniBackUrl,
-    ].filter(Boolean).length;
-    return Math.round((done / 10) * 100);
-  })();
 
   const fields = [
     { key: 'firstName', label: 'Nombre',    placeholder: 'Tu nombre',          keyboard: 'default' },
@@ -291,16 +289,6 @@ const EditProfileScreen = ({ navigation }) => {
     </View>
   );
 
-  // Dato que no se edita acá: fila compacta, no un campo del mismo peso que los
-  // editables (ocupaban el mismo espacio sin poder tocarlos).
-  const renderReadOnly = (icon, label, value) => (
-    <View style={[styles.accountRow, { borderTopColor: bg }]}>
-      <Ionicons name={icon} size={17} color={textMuted} />
-      <Text style={[styles.accountLabel, { color: textMuted }]}>{label}</Text>
-      <Text style={[styles.accountValue, { color: textPrimary }]} numberOfLines={1}>{value}</Text>
-    </View>
-  );
-
   const SectionLabel = ({ children }) => (
     <Text style={[styles.sectionLabel, { color: labelTitleColor }]}>{children}</Text>
   );
@@ -320,8 +308,9 @@ const EditProfileScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Avatar + identidad */}
-          <View style={styles.hero}>
+          {/* Bloque oscuro de identidad: el ancla de contraste de la pantalla.
+              Absorbe email y sexo, que antes eran una sección "Cuenta" aparte. */}
+          <View style={[styles.hero, { backgroundColor: heroBg }]}>
             <View style={styles.avatarBlock}>
               <View style={styles.avatarWrapper}>
                 {avatarLoading && (
@@ -334,41 +323,28 @@ const EditProfileScreen = ({ navigation }) => {
               {/* El botón de cámara reemplaza al link "Cambiar foto": es el gesto
                   que ya espera la gente sobre un avatar. */}
               <TouchableOpacity
-                style={[styles.avatarBadge, { backgroundColor: accent, borderColor: bg }]}
+                style={[styles.avatarBadge, { backgroundColor: heroFg, borderColor: heroBg }]}
                 onPress={pickImage}
                 activeOpacity={0.85}
                 disabled={avatarLoading}
                 accessibilityRole="button"
                 accessibilityLabel="Cambiar foto de perfil"
               >
-                <Ionicons name="camera" size={17} color={accentInv} />
+                <Ionicons name="camera" size={17} color="#111111" />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.heroName, { color: textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.heroName, { color: heroFg }]} numberOfLines={1}>
               {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
             </Text>
-            {/* Un perfil completo se reserva más: mostrar cuánto falta da un
-                motivo para llenar los campos en vez de dejarlos vacíos. */}
-            <View style={styles.progressBlock}>
-              <View style={styles.progressTop}>
-                <Text style={[styles.progressLabel, { color: textMuted }]}>Perfil completo</Text>
-                <Text style={[styles.progressPct, { color: textPrimary }]}>{completion}%</Text>
-              </View>
-              <View style={[styles.progressTrack, { backgroundColor: ui.surface }]}>
-                <View style={[styles.progressFill, { backgroundColor: accent, width: `${completion}%` }]} />
-              </View>
-            </View>
-          </View>
+            <Text style={[styles.heroMail, { color: heroMuted }]} numberOfLines={1}>{user?.email || '—'}</Text>
 
-          {/* Cuenta — no se edita acá, pero va arriba: cierra el bloque de
-              identidad junto al avatar y el nombre. */}
-          <View style={styles.section}>
-            <SectionLabel>Cuenta</SectionLabel>
-            <View style={[styles.accountCard, { backgroundColor: ui.surface }]}>
-              {renderReadOnly('mail-outline', 'Email', user?.email || '—')}
-              {renderReadOnly('person-outline', 'Sexo', genderLabel)}
-            </View>
+            {genderLabel !== '—' && (
+              <View style={[styles.heroChip, { backgroundColor: heroTint }]}>
+                <Ionicons name="person-outline" size={13} color={heroFg} />
+                <Text style={[styles.heroChipText, { color: heroFg }]}>{genderLabel}</Text>
+              </View>
+            )}
           </View>
 
           {/* Datos personales */}
@@ -580,8 +556,17 @@ const styles = StyleSheet.create({
   flex:          { flex: 1 },
   scrollContent: { paddingBottom: 48 },
 
-  // Hero: avatar + identidad
-  hero: { alignItems: 'center', paddingTop: 28, paddingBottom: 34, paddingHorizontal: 24 },
+  // Hero: bloque oscuro de identidad
+  hero: {
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 32,
+    paddingTop: 32,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    borderRadius: 32,
+  },
   avatarBlock: { width: 124, height: 124, marginBottom: 18 },
   avatarWrapper: {
     width: 124,
@@ -611,20 +596,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6 },
+  heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6, textAlign: 'center' },
   heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
-
-  progressBlock: { width: '100%', marginTop: 24 },
-  progressTop: {
+  heroMail:       { fontFamily: 'Sora_400Regular', fontSize: 13, marginTop: 6 },
+  heroChip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginTop: 16,
   },
-  progressLabel: { fontFamily: 'Sora_500Medium', fontSize: 12 },
-  progressPct:   { fontFamily: 'Sora_800ExtraBold', fontSize: 15 },
-  progressTrack: { height: 7, borderRadius: 999, overflow: 'hidden' },
-  progressFill:  { height: '100%', borderRadius: 999 },
+  heroChipText: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
 
   // Secciones
   section: { paddingHorizontal: 24, marginBottom: 28 },
@@ -717,19 +701,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Cuenta (solo lectura)
-  accountCard: { borderRadius: 24, overflow: 'hidden' },
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderTopWidth: 2,
-  },
-  accountLabel: { fontFamily: 'Sora_500Medium', fontSize: 14 },
-  accountValue: { flex: 1, fontFamily: 'Sora_600SemiBold', fontSize: 14, textAlign: 'right' },
 
   save: { marginHorizontal: 24, marginTop: 4 },
 
