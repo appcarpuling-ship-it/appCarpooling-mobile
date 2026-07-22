@@ -23,17 +23,15 @@ import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import PillButton from '../../../components/ui/PillButton';
 
 const EditProfileScreen = ({ navigation }) => {
   const ui = useUI();
   const headerHeight = useHeaderHeight();
 
-  const isDarkMode  = ui.isDarkMode;
   const bg          = ui.bg;
-  const border      = ui.border;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const divider     = ui.bg;
   const labelTitleColor = ui.textMuted;
   const accent      = ui.invertBg;
   const accentInv   = ui.invertText;
@@ -55,6 +53,7 @@ const EditProfileScreen = ({ navigation }) => {
     bio:       user?.bio      || '',
   });
   const [avatarUri, setAvatarUri] = useState(null);
+  const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [dniFrontLoading, setDniFrontLoading] = useState(false);
@@ -229,7 +228,7 @@ const EditProfileScreen = ({ navigation }) => {
     const uri = avatarUri || (user?.avatar ? buildImageUri(user.avatar) : null);
     if (uri) return <Image source={{ uri }} style={styles.avatarImage} />;
     return (
-      <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
         <Text style={[styles.avatarInitials, { color: textPrimary }]}>
           {formData.firstName?.[0] || ''}{formData.lastName?.[0] || ''}
         </Text>
@@ -251,13 +250,23 @@ const EditProfileScreen = ({ navigation }) => {
   // ciudad, que es el orden en que uno las piensa (y el mismo que usa el registro).
   const cityField = { key: 'city', label: 'Ciudad', placeholder: 'Tu ciudad', keyboard: 'default' };
 
+  // Campo relleno con la etiqueta adentro: reemplaza la fila subrayada, que hacía
+  // ver la pantalla como un formulario de ajustes y no como el resto de la app.
   const renderField = (field) => (
-    <View key={field.key} style={[styles.inputGroup, { borderBottomColor: divider }]}>
-      <Text style={[styles.label, { color: labelTitleColor }]}>{field.label}</Text>
+    <View
+      key={field.key}
+      style={[
+        styles.field,
+        { backgroundColor: ui.surface, borderColor: focusedField === field.key ? textPrimary : 'transparent' },
+      ]}
+    >
+      <Text style={[styles.fieldLabel, { color: textMuted }]}>{field.label}</Text>
       <TextInput
-        style={[styles.input, { color: textPrimary }]}
+        style={[styles.fieldInput, { color: textPrimary }]}
         value={formData[field.key]}
         onChangeText={(v) => handleChange(field.key, v)}
+        onFocus={() => setFocusedField(field.key)}
+        onBlur={() => setFocusedField(null)}
         placeholder={field.placeholder}
         placeholderTextColor={textMuted}
         keyboardType={field.keyboard}
@@ -265,6 +274,18 @@ const EditProfileScreen = ({ navigation }) => {
         maxLength={field.maxLength}
       />
     </View>
+  );
+
+  // Dato que no se edita (email, sexo): mismo contenedor, sin input.
+  const renderReadOnly = (label, value) => (
+    <View style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
+      <Text style={[styles.fieldLabel, { color: textMuted }]}>{label}</Text>
+      <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted }]}>{value}</Text>
+    </View>
+  );
+
+  const SectionLabel = ({ children }) => (
+    <Text style={[styles.sectionLabel, { color: labelTitleColor }]}>{children}</Text>
   );
 
   return (
@@ -282,164 +303,178 @@ const EditProfileScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Avatar */}
-          <View style={[styles.avatarSection, { borderBottomColor: divider }]}>
-            <View style={styles.avatarWrapper}>
-              {avatarLoading && (
-                <View style={styles.avatarOverlay}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                </View>
-              )}
-              {renderAvatar()}
+          {/* Avatar + identidad */}
+          <View style={styles.hero}>
+            <View style={styles.avatarBlock}>
+              <View style={styles.avatarWrapper}>
+                {avatarLoading && (
+                  <View style={styles.avatarOverlay}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  </View>
+                )}
+                {renderAvatar()}
+              </View>
+              {/* El botón de cámara reemplaza al link "Cambiar foto": es el gesto
+                  que ya espera la gente sobre un avatar. */}
+              <TouchableOpacity
+                style={[styles.avatarBadge, { backgroundColor: accent, borderColor: bg }]}
+                onPress={pickImage}
+                activeOpacity={0.85}
+                disabled={avatarLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar foto de perfil"
+              >
+                <Ionicons name="camera" size={17} color={accentInv} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={pickImage} activeOpacity={0.7} disabled={avatarLoading}>
-              <Text style={[styles.changePhotoText, { color: avatarLoading ? textMuted : accent }]}>
-                {avatarLoading ? 'Actualizando...' : 'Cambiar foto'}
-              </Text>
-            </TouchableOpacity>
+
+            <Text style={[styles.heroName, { color: textPrimary }]} numberOfLines={1}>
+              {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
+            </Text>
+            <Text style={[styles.heroMail, { color: textMuted }]} numberOfLines={1}>{user?.email || '—'}</Text>
+          </View>
+
+          {/* Datos personales */}
+          <View style={styles.section}>
+            <SectionLabel>Datos personales</SectionLabel>
+            <View style={styles.fieldStack}>
+              {fields.map(renderField)}
+
+              {/* Provincia va antes que Ciudad: es el orden en que uno las piensa */}
+              <TouchableOpacity
+                style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}
+                onPress={() => setShowProvincePicker(true)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.fieldLabel, { color: textMuted }]}>Provincia</Text>
+                <View style={styles.selector}>
+                  <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: formData.province ? textPrimary : textMuted, flex: 1 }]}>
+                    {formData.province || 'Seleccionar'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={textMuted} />
+                </View>
+              </TouchableOpacity>
+
+              {renderField(cityField)}
+            </View>
+          </View>
+
+          {/* Sobre vos */}
+          <View style={styles.section}>
+            <SectionLabel>Sobre vos</SectionLabel>
+            <TextInput
+              style={[
+                styles.textArea,
+                { color: textPrimary, backgroundColor: ui.surface, borderColor: focusedField === 'bio' ? textPrimary : 'transparent' },
+              ]}
+              value={formData.bio}
+              onChangeText={(v) => handleChange('bio', v)}
+              onFocus={() => setFocusedField('bio')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Contá algo sobre vos: a dónde viajás seguido, si escuchás música, si llevás mascotas…"
+              placeholderTextColor={textMuted}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
           </View>
 
           {/* DNI — verificación para todos los usuarios */}
-          <View style={[styles.dniSection, { borderBottomColor: divider }]}>
-            <Text style={[styles.dniBlockTitle, { color: labelTitleColor }]}>Documentación (DNI)</Text>
-            <Text style={[styles.dniBlockHint, { color: textMuted }]}>
+          <View style={styles.section}>
+            <SectionLabel>Documentación (DNI)</SectionLabel>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
               Lo solicitamos a conductores y pasajeros para verificar identidad. Necesitás frente y dorso. Las fotos se guardan de forma segura.
             </Text>
             <View style={styles.dniRow}>
-              <TouchableOpacity
-                style={[styles.dniSlot, { borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                onPress={() => pickDniDocument('front')}
-                activeOpacity={0.85}
-                disabled={dniFrontLoading}
-              >
-                {dniFrontLoading && (
-                  <View style={styles.dniSlotOverlay}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  </View>
-                )}
-                {user?.dniFrontUrl ? (
-                  <Image source={{ uri: buildImageUri(user.dniFrontUrl) }} style={styles.dniSlotImage} />
-                ) : (
-                  <View style={styles.dniSlotInner}>
-                    <Ionicons name="id-card-outline" size={26} color={textMuted} />
-                    <Text style={[styles.dniSlotLabel, { color: textMuted }]}>Frente — tocar</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dniSlot, { borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                onPress={() => pickDniDocument('back')}
-                activeOpacity={0.85}
-                disabled={dniBackLoading}
-              >
-                {dniBackLoading && (
-                  <View style={styles.dniSlotOverlay}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  </View>
-                )}
-                {user?.dniBackUrl ? (
-                  <Image source={{ uri: buildImageUri(user.dniBackUrl) }} style={styles.dniSlotImage} />
-                ) : (
-                  <View style={styles.dniSlotInner}>
-                    <Ionicons name="id-card-outline" size={26} color={textMuted} />
-                    <Text style={[styles.dniSlotLabel, { color: textMuted }]}>Dorso — tocar</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+              {[
+                { side: 'front', label: 'Frente', url: user?.dniFrontUrl, busy: dniFrontLoading },
+                { side: 'back',  label: 'Dorso',  url: user?.dniBackUrl,  busy: dniBackLoading },
+              ].map((slot) => (
+                <TouchableOpacity
+                  key={slot.side}
+                  style={[styles.dniSlot, { backgroundColor: ui.surface }]}
+                  onPress={() => pickDniDocument(slot.side)}
+                  activeOpacity={0.85}
+                  disabled={slot.busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Subir ${slot.label} del DNI`}
+                >
+                  {slot.busy && (
+                    <View style={styles.dniSlotOverlay}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    </View>
+                  )}
+                  {slot.url ? (
+                    <>
+                      <Image source={{ uri: buildImageUri(slot.url) }} style={styles.dniSlotImage} />
+                      {/* Tilde de "ya cargado": antes la foto se veía pero nada confirmaba el estado */}
+                      <View style={[styles.dniCheck, { backgroundColor: accent }]}>
+                        <Ionicons name="checkmark" size={13} color={accentInv} />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.dniSlotInner}>
+                      <Ionicons name="id-card-outline" size={26} color={textMuted} />
+                      <Text style={[styles.dniSlotLabel, { color: textMuted }]}>{slot.label}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Email</Text>
-              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{user?.email || '—'}</Text>
-            </View>
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Sexo</Text>
-              <Text style={[styles.input, { color: textMuted, paddingVertical: 12 }]}>{genderLabel}</Text>
-            </View>
-            {fields.map(renderField)}
-
-            {/* Provincia — arriba de Ciudad */}
-            <View style={[styles.inputGroup, { borderBottomColor: divider }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Provincia</Text>
-              <TouchableOpacity
-                style={styles.selector}
-                onPress={() => setShowProvincePicker(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.input, { color: formData.province ? textPrimary : textMuted, flex: 1 }]}>
-                  {formData.province || 'Seleccionar'}
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            {renderField(cityField)}
-
-            {/* Bio */}
-            <View style={[styles.inputGroup, { borderBottomColor: 'transparent' }]}>
-              <Text style={[styles.label, { color: labelTitleColor }]}>Sobre ti</Text>
-              <TextInput
-                style={[styles.textArea, { color: textPrimary, borderColor: border, backgroundColor: isDarkMode ? '#1A1A1A' : '#F9FAFB' }]}
-                value={formData.bio}
-                onChangeText={(v) => handleChange('bio', v)}
-                placeholder="Cuéntanos sobre ti..."
-                placeholderTextColor={textMuted}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
+          {/* Cuenta — datos que no se editan acá */}
+          <View style={styles.section}>
+            <SectionLabel>Cuenta</SectionLabel>
+            <View style={styles.fieldStack}>
+              {renderReadOnly('Email', user?.email || '—')}
+              {renderReadOnly('Sexo', genderLabel)}
             </View>
           </View>
 
-          {/* Save */}
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: loading ? textMuted : accent }]}
+          <PillButton
+            label="Guardar cambios"
             onPress={handleSave}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={accentInv} size="small" />
-            ) : (
-              <Text style={[styles.saveBtnText, { color: accentInv }]}>Guardar cambios</Text>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.save}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Province Picker */}
-      <Modal visible={showProvincePicker} transparent animationType="fade" onRequestClose={() => setShowProvincePicker(false)}>
+      <Modal visible={showProvincePicker} transparent animationType="slide" onRequestClose={() => setShowProvincePicker(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: isDarkMode ? '#222222' : '#FFFFFF' }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: divider }]}>
+          {/* Tocar fuera cierra: antes solo salías por la X */}
+          <TouchableOpacity style={styles.flex} activeOpacity={1} onPress={() => setShowProvincePicker(false)} />
+          <View style={[styles.modalBox, { backgroundColor: bg }]}>
+            <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textPrimary }]}>Provincia</Text>
-              <TouchableOpacity onPress={() => setShowProvincePicker(false)}>
-                <Ionicons name="close" size={22} color={textMuted} />
+              <TouchableOpacity
+                style={[styles.modalClose, { backgroundColor: ui.surface }]}
+                onPress={() => setShowProvincePicker(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <Ionicons name="close" size={19} color={textPrimary} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {ARGENTINA_PROVINCES.map((province) => (
-                <TouchableOpacity
-                  key={province}
-                  style={[styles.provinceItem, { borderBottomColor: divider }]}
-                  onPress={() => { handleChange('province', province); setShowProvincePicker(false); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.provinceText,
-                    { color: formData.province === province ? textPrimary : textMuted },
-                    formData.province === province && { fontWeight: '600' },
-                  ]}>
-                    {province}
-                  </Text>
-                  {formData.province === province && (
-                    <Ionicons name="checkmark" size={18} color={textPrimary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalList}>
+              {ARGENTINA_PROVINCES.map((province) => {
+                const selected = formData.province === province;
+                return (
+                  <TouchableOpacity
+                    key={province}
+                    style={[styles.provinceItem, { backgroundColor: selected ? accent : ui.surface }]}
+                    onPress={() => { handleChange('province', province); setShowProvincePicker(false); }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.provinceText, { color: selected ? accentInv : textPrimary }]}>
+                      {province}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={18} color={accentInv} />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
@@ -484,65 +519,114 @@ const styles = StyleSheet.create({
   flex:          { flex: 1 },
   scrollContent: { paddingBottom: 48 },
 
-  // Avatar
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: 28,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  // Hero: avatar + identidad
+  hero: { alignItems: 'center', paddingTop: 28, paddingBottom: 34, paddingHorizontal: 24 },
+  avatarBlock: { width: 124, height: 124, marginBottom: 18 },
   avatarWrapper: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 124,
+    height: 124,
+    borderRadius: 999,
     overflow: 'hidden',
-    marginBottom: 14,
-    position: 'relative',
   },
   avatarImage:       { width: '100%', height: '100%' },
   avatarPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  avatarInitials:    { fontSize: 46, fontFamily: 'Sora_700Bold' },
+  avatarInitials:    { fontSize: 44, fontFamily: 'Sora_800ExtraBold' },
   avatarOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-  changePhotoText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
+  // Fuera del wrapper: ese tiene overflow hidden y recortaría el botón.
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6 },
+  heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
+  heroMail:       { fontFamily: 'Sora_400Regular', fontSize: 14, marginTop: 5 },
 
-  dniSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  dniBlockTitle: {
-    fontSize: 11,
+  // Secciones
+  section: { paddingHorizontal: 24, marginBottom: 28 },
+  sectionLabel: {
     fontFamily: 'Sora_600SemiBold',
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 6,
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  dniBlockHint: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
-  dniRow: { flexDirection: 'row', gap: 10 },
+  sectionHint: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 19, marginBottom: 14, marginLeft: 4 },
+
+  // Campos
+  fieldStack: { gap: 10 },
+  field: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    paddingTop: 11,
+    paddingBottom: 13,
+  },
+  fieldLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  fieldInput: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: 16,
+    padding: 0,
+    marginTop: 3,
+    minHeight: 22,
+  },
+  fieldReadOnly: { lineHeight: 22 },
+  selector: { flexDirection: 'row', alignItems: 'center' },
+  textArea: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 16,
+    fontFamily: 'Sora_400Regular',
+    fontSize: 15,
+    lineHeight: 21,
+    minHeight: 110,
+  },
+
+  // DNI
+  dniRow: { flexDirection: 'row', gap: 12 },
   dniSlot: {
     flex: 1,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
     overflow: 'hidden',
-    minHeight: 100,
-    maxHeight: 112,
+    height: 116,
     position: 'relative',
   },
-  dniSlotImage: { width: '100%', height: 100, resizeMode: 'cover' },
+  dniSlotImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   dniSlotInner: {
     flex: 1,
-    minHeight: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
+    gap: 7,
   },
-  dniSlotLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', marginTop: 6, textAlign: 'center', paddingHorizontal: 6 },
+  dniSlotLabel: { fontSize: 12, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
+  dniCheck: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dniSlotOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -551,68 +635,47 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  // Form
-  form: { paddingHorizontal: 20, paddingTop: 8 },
-  inputGroup: {
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  label:  { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
-  input:  { fontSize: 15, paddingVertical: 0 },
-  selector: { flexDirection: 'row', alignItems: 'center' },
-  textArea: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 90,
-  },
-
-  // Save
-  saveBtn: {
-    marginHorizontal: 20,
-    marginTop: 28,
-    height: 50,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  save: { marginHorizontal: 24, marginTop: 4 },
 
   // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    justifyContent: 'flex-end',
   },
   modalBox: {
-    borderRadius: 14,
-    maxHeight: '70%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '75%',
     width: '100%',
-    maxWidth: 400,
     overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 24,
+    paddingTop: 22,
+    paddingBottom: 16,
   },
-  modalTitle:   { fontSize: 17, fontFamily: 'Sora_700Bold' },
+  modalTitle: { fontSize: 24, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  modalClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalList: { paddingHorizontal: 24, paddingBottom: 32, gap: 8 },
   provinceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    borderRadius: 18,
   },
-  provinceText: { fontSize: 15 },
+  provinceText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
 });
 
 export default EditProfileScreen;
