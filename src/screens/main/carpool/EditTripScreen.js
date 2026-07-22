@@ -17,16 +17,19 @@ import { ENDPOINTS } from '../../../config/api';
 import useColors from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import { useUI } from '../../../theme/ui';
 
 const EditTripScreen = ({ navigation, route }) => {
   const { showAlert } = useAlert();
   const { isDarkMode } = useColors();
 
-  const bg      = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg  = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border  = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const tp      = isDarkMode ? '#FFFFFF' : '#000000';
-  const tm      = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+  const ui = useUI();
+  const bg      = ui.bg;
+  const cardBg  = ui.surface;
+  const border  = ui.border;
+  const tp      = ui.invertBg;
+  const tm      = ui.textMuted;
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]     = useState(false);

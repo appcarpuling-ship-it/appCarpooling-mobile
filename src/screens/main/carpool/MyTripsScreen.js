@@ -20,6 +20,7 @@ import { useColors } from '../../../hooks/useColors';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
+import { useUI } from '../../../theme/ui';
 
 const MyTripsScreen = ({ navigation }) => {
   const { refreshUser } = useAuth();
@@ -227,12 +228,13 @@ const MyTripsScreen = ({ navigation }) => {
   const renderTripItem = ({ item }) => {
     const { color, text: statusText } = getStatusConfig(item.status);
     const freeNow = tripRemainingSeats(item);
-    const textPrimary   = isDarkMode ? '#FFFFFF' : '#000000';
-    const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+    const ui = useUI();    const textPrimary   = ui.invertBg;
+    const textMuted     = ui.textMuted;
     const cardBg        = colors.cardBackground;
-    const divider       = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+    const divider       = ui.bg;
     const accent        = textPrimary;
-    const accentInv     = isDarkMode ? '#000000' : '#FFFFFF';
+    const accentInv     = ui.invertText;
     const isActive      = item.status === 'started';
 
     const activeTxt   = isActive ? '#FFFFFF' : textPrimary;
@@ -363,9 +365,9 @@ const MyTripsScreen = ({ navigation }) => {
 
   const filteredTrips = getFilteredTrips();
 
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

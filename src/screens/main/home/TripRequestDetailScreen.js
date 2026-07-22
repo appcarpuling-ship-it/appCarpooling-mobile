@@ -14,6 +14,7 @@ import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } f
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
+import { useUI } from '../../../theme/ui';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       color: '#22C55E' },
@@ -38,7 +39,8 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
   const divider     = dark ? '#2A2A2A'  : '#E5E7EB';
   const accent      = dark ? '#FFFFFF'  : '#1F2937';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const accentInverse = ui.invertText;
 
   const [request,        setRequest]        = useState(null);
   const [loading,        setLoading]        = useState(true);

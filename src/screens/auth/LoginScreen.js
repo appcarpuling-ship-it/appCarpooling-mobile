@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import { API_CONFIG } from '../../config/api';
+import { useUI } from '../../theme/ui';
 
 // Derivado de la API configurada (EXPO_PUBLIC_API_BASE_URL / eas.json), no clavado:
 // antes apuntaba siempre a producción y el SSO de un build dev terminaba en el server equivocado.
@@ -39,11 +40,12 @@ const LoginScreen = ({ navigation }) => {
   // el usuario sigue al sistema, y comparar contra 'dark' dejaba el login en
   // claro aunque el sistema estuviera en oscuro.
   const { isDarkMode } = useColors();
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+  const ui = useUI();  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
 
   const LOGO_SOURCE = isDarkMode
     ? require('../../../assets/logo/192x192-white.png')
@@ -161,14 +163,14 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Login button */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Iniciar Sesión</Text>
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Iniciar Sesión</Text>
             }
           </TouchableOpacity>
 
@@ -204,7 +206,7 @@ const LoginScreen = ({ navigation }) => {
               >
                 {ssoLoading === 'apple'
                   ? <ActivityIndicator color={textMuted} size="small" />
-                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                  : <FontAwesome name="apple" size={24} color={ui.invertBg} />
                 }
               </TouchableOpacity>
             )}

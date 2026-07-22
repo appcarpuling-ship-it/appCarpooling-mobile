@@ -9,6 +9,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { useUI } from '../../../theme/ui';
 
 const STATUS_LABELS = {
   open: { label: 'Abierta', color: '#22C55E' },
@@ -37,7 +38,8 @@ const MyTripRequestsScreen = ({ navigation }) => {
   const textPrimary = dark ? '#FFFFFF' : '#1F2937';
   const textMuted = dark ? '#9CA3AF' : '#6B7280';
   const accent = dark ? '#FFFFFF' : '#1F2937';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const accentInverse = ui.invertText;
   const divider = dark ? '#2A2A2A' : '#F3F4F6';
 
   const [requests, setRequests] = useState([]);

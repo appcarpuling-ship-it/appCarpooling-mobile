@@ -21,6 +21,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { approveOrRejectReservation } from '../../../services/seatReservationService';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -56,14 +57,16 @@ const TripRequestsScreen = ({ route }) => {
     });
   }, [navigation, isDarkMode]);
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
-  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
+  const accent      = ui.invertBg;
+  const accentInv   = ui.invertText;
 
   const [trips, setTrips] = useState([]);
   const [tripsPage, setTripsPage] = useState(1);
@@ -458,7 +461,7 @@ const TripRequestsScreen = ({ route }) => {
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Text style={[styles.avatarInitials, { color: textMuted }]}>
                 {item.passenger?.firstName?.[0]}
                 {item.passenger?.lastName?.[0]}

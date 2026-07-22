@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
+import { useUI } from '../../../theme/ui';
 
 const pad = (n) => String(n).padStart(2, '0');
 const formatDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
@@ -23,11 +24,12 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const bg       = dark ? '#161616' : '#F9FAFB';
   const cardBg   = dark ? '#1F1F1F' : '#FFFFFF';
   const border   = dark ? '#2E2E2E' : '#E5E7EB';
-  const divider  = dark ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();  const divider  = ui.bg;
   const textPrimary = dark ? '#FFFFFF' : '#1F2937';
   const textMuted   = dark ? '#9CA3AF' : '#6B7280';
-  const accent      = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const accent      = ui.invertBg;
+  const accentInverse = ui.invertText;
 
   const tomorrow = new Date(Date.now() + 86400000);
   tomorrow.setHours(8, 0, 0, 0);

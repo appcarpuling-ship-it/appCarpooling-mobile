@@ -31,6 +31,7 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import * as Location from 'expo-location';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../../services/mapsService';
+import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -90,9 +91,10 @@ const BookingScreen = ({ route, navigation }) => {
   const cardBg = colors.cardBackground || (dark ? '#1C1C1E' : '#FFFFFF');
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const divider = ui.bg;
+  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
   const sectionLabelColor = dark ? textMuted : '#374151';
   const successColor = colors.success || '#10B981';
   
@@ -783,7 +785,7 @@ const BookingScreen = ({ route, navigation }) => {
                   </View>
 
                   <TouchableOpacity
-                    style={[pickupStyles.addressRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                    style={[pickupStyles.addressRow, { borderBottomColor: ui.bg }]}
                     onPress={openPickupSearch}
                     activeOpacity={0.7}
                   >
@@ -796,14 +798,14 @@ const BookingScreen = ({ route, navigation }) => {
 
                   <View style={pickupStyles.sheetActions}>
                     <TouchableOpacity
-                      style={[pickupStyles.confirmBtn, { backgroundColor: dark ? '#FFFFFF' : '#000000' }, (pickupResolving || !pickupPinCoords) && { opacity: 0.6 }]}
+                      style={[pickupStyles.confirmBtn, { backgroundColor: ui.invertBg }, (pickupResolving || !pickupPinCoords) && { opacity: 0.6 }]}
                       onPress={confirmPickupLocation}
                       disabled={pickupResolving || !pickupPinCoords}
                       activeOpacity={0.85}
                     >
                       {pickupResolving
-                        ? <ActivityIndicator color={dark ? '#000000' : '#FFFFFF'} />
-                        : <Text style={[pickupStyles.confirmBtnText, { color: dark ? '#000000' : '#FFFFFF' }]}>Confirmar punto de recogida</Text>
+                        ? <ActivityIndicator color={ui.invertText} />
+                        : <Text style={[pickupStyles.confirmBtnText, { color: ui.invertText }]}>Confirmar punto de recogida</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -814,7 +816,7 @@ const BookingScreen = ({ route, navigation }) => {
               {pickupSearchVisible && (
                 <Animated.View style={[pickupStyles.searchOverlay, { backgroundColor: cardBg, opacity: pickupOverlayOpacity, transform: [{ translateY: pickupOverlayY }] }]}>
                   <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-                    <View style={[pickupStyles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}>
+                    <View style={[pickupStyles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: ui.bg }]}>
                       <TouchableOpacity onPress={closePickupSearch} style={pickupStyles.searchBackBtn} activeOpacity={0.7}>
                         <Ionicons name="arrow-back" size={22} color={textPrimary} />
                       </TouchableOpacity>
@@ -835,13 +837,13 @@ const BookingScreen = ({ route, navigation }) => {
                     </View>
 
                     <ScrollView
-                      style={[pickupStyles.results, { borderTopColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                      style={[pickupStyles.results, { borderTopColor: ui.bg }]}
                       keyboardShouldPersistTaps="handled"
                       keyboardDismissMode="on-drag"
                       showsVerticalScrollIndicator={false}
                     >
                       <TouchableOpacity
-                        style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                        style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                         onPress={() => {
                           closePickupSearch();
                           setPickupMapSelectionMode(true);
@@ -863,7 +865,7 @@ const BookingScreen = ({ route, navigation }) => {
                           {frequentAddresses.map((addr, i) => (
                             <TouchableOpacity
                               key={`freq-${i}`}
-                              style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                              style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                               onPress={() => selectFrequentPickup(addr)}
                               activeOpacity={0.6}
                             >
@@ -882,7 +884,7 @@ const BookingScreen = ({ route, navigation }) => {
                       {pickupSearchResults.map((item) => (
                         <TouchableOpacity
                           key={item.place_id}
-                          style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                          style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                           onPress={() => selectPickupFromSearch(item)}
                           activeOpacity={0.6}
                         >

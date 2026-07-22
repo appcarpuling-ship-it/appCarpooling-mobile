@@ -18,6 +18,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
+import { useUI } from '../../../theme/ui';
 
 const MyBookingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -33,12 +34,14 @@ const MyBookingsScreen = ({ navigation }) => {
   const fetchingRef = useRef(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
-  const bg = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
-  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const border = ui.border;
+  const textPrimary = ui.invertBg;
+  const textSecondary = ui.textMuted;
+  const divider = ui.bg;
 
   useEffect(() => {
     setupTripCancellationListener();

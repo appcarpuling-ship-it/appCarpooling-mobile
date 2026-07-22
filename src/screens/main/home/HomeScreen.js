@@ -36,6 +36,7 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
+import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -369,9 +370,10 @@ const HomeScreen = ({ navigation, route }) => {
   const textSecondary = colors.textSecondary;
   const textMuted = colors.textMuted;
   const borderColor = dark ? '#2A2A2A' : '#E8E8E8';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
+  const divider = ui.bg;
   /** Contraste fuerte en claro: labels, paradas, flechas */
   const tripRouteMuted = dark ? textMuted : '#111827';
   const tripCardChevron = dark ? '#444444' : '#111827';

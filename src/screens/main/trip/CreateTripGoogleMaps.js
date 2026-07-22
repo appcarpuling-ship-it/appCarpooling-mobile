@@ -32,6 +32,7 @@ import {
 import { useColors } from '../../../hooks/useColors';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -73,12 +74,14 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const lastRegionRef = useRef(region);
   const hasMapGestureForSelectionRef = useRef(false);
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const [vehicles, setVehicles] = useState([]);
@@ -685,12 +688,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             Necesitás registrar un vehículo antes de crear un viaje
           </Text>
           <TouchableOpacity
-            style={[styles.emptyCtaBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+            style={[styles.emptyCtaBtn, { backgroundColor: ui.invertBg }]}
             onPress={handleGoToVehicles}
             activeOpacity={0.85}
           >
-            <Text style={[styles.emptyCtaText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Ir a mis vehículos</Text>
-            <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 4 }} />
+            <Text style={[styles.emptyCtaText, { color: ui.invertText }]}>Ir a mis vehículos</Text>
+            <Ionicons name="chevron-forward" size={18} color={ui.invertText} style={{ marginLeft: 4 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -879,14 +882,14 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                 <Text style={[styles.routeMeta, { color: textMuted }]}>{distance} · {duration}</Text>
               )} */}
               <TouchableOpacity
-                style={[styles.confirmBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loadingRoute && { opacity: 0.7 }]}
+                style={[styles.confirmBtn, { backgroundColor: ui.invertBg }, loadingRoute && { opacity: 0.7 }]}
                 onPress={handleContinueToDetails}
                 disabled={loadingVehicles || loadingRoute}
                 activeOpacity={0.85}
               >
                 {loadingRoute
-                  ? <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                  : <Text style={[styles.confirmText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Confirmar ruta</Text>
+                  ? <ActivityIndicator size="small" color={ui.invertText} />
+                  : <Text style={[styles.confirmText, { color: ui.invertText }]}>Confirmar ruta</Text>
                 }
               </TouchableOpacity>
             </View>

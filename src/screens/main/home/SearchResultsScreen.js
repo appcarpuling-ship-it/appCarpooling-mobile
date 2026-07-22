@@ -18,6 +18,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { useUI } from '../../../theme/ui';
 
 const SORT_OPTIONS = ['price', 'time'];
 
@@ -43,8 +44,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
   const cardBg = isDarkMode ? '#292929' : '#FFFFFF';
   const cardBorder = isDarkMode ? '#404040' : '#E5E7EB';
   const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-  const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+
+  const ui = useUI();  const textMuted = ui.textMuted;
+  const textSecondary = ui.textMuted;
 
   const loadResults = useCallback(async (sort, pageNum = 1, reset = true) => {
     if (fetchingRef.current) return;
@@ -235,7 +237,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             onPress={() => navigation.goBack()}
             style={[styles.tryAgainBtn, { backgroundColor: textPrimary }]}
           >
-            <Text style={[styles.tryAgainText, { color: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+            <Text style={[styles.tryAgainText, { color: ui.bg }]}>
               Modificar búsqueda
             </Text>
           </TouchableOpacity>

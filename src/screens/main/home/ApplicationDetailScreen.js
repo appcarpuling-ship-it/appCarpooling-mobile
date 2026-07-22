@@ -11,6 +11,7 @@ import { buildImageUri } from '../../../services/apiService';
 import { acceptTripRequestApplication } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
+import { useUI } from '../../../theme/ui';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId } = route.params;
@@ -24,8 +25,9 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const textPrimary = dark ? '#FFFFFF' : '#1F2937';
   const textMuted   = dark ? '#9CA3AF' : '#6B7280';
   const divider     = dark ? '#2A2A2A' : '#F3F4F6';
-  const accent      = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const accent      = ui.invertBg;
+  const accentInverse = ui.invertText;
 
   const [accepting, setAccepting] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
