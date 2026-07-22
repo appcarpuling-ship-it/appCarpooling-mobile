@@ -348,8 +348,6 @@ const EditProfileScreen = ({ navigation }) => {
             <Text style={[styles.heroName, { color: textPrimary }]} numberOfLines={1}>
               {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
             </Text>
-            <Text style={[styles.heroMail, { color: textMuted }]} numberOfLines={1}>{user?.email || '—'}</Text>
-
             {/* Un perfil completo se reserva más: mostrar cuánto falta da un
                 motivo para llenar los campos en vez de dejarlos vacíos. */}
             <View style={styles.progressBlock}>
@@ -360,6 +358,16 @@ const EditProfileScreen = ({ navigation }) => {
               <View style={[styles.progressTrack, { backgroundColor: ui.surface }]}>
                 <View style={[styles.progressFill, { backgroundColor: accent, width: `${completion}%` }]} />
               </View>
+            </View>
+          </View>
+
+          {/* Cuenta — no se edita acá, pero va arriba: cierra el bloque de
+              identidad junto al avatar y el nombre. */}
+          <View style={styles.section}>
+            <SectionLabel>Cuenta</SectionLabel>
+            <View style={[styles.accountCard, { backgroundColor: ui.surface }]}>
+              {renderReadOnly('mail-outline', 'Email', user?.email || '—')}
+              {renderReadOnly('person-outline', 'Sexo', genderLabel)}
             </View>
           </View>
 
@@ -485,15 +493,6 @@ const EditProfileScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Cuenta — datos que no se editan acá */}
-          <View style={styles.section}>
-            <SectionLabel>Cuenta</SectionLabel>
-            <View style={[styles.accountCard, { backgroundColor: ui.surface }]}>
-              {renderReadOnly('mail-outline', 'Email', user?.email || '—')}
-              {renderReadOnly('person-outline', 'Sexo', genderLabel)}
-            </View>
-          </View>
-
           <PillButton
             label="Guardar cambios"
             onPress={handleSave}
@@ -614,7 +613,6 @@ const styles = StyleSheet.create({
   },
   heroName:       { fontFamily: 'Sora_300Light', fontSize: 26, letterSpacing: -0.6 },
   heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
-  heroMail:       { fontFamily: 'Sora_400Regular', fontSize: 14, marginTop: 5 },
 
   progressBlock: { width: '100%', marginTop: 24 },
   progressTop: {
