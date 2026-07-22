@@ -23,10 +23,12 @@ import useColors from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import { useUI } from '../../../theme/ui';
 
 const CreateTripScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
   const { colors, gradients, fontFamily, createColorArray } = useColors();
+  const ui = useUI();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -721,7 +723,7 @@ const CreateTripScreen = ({ navigation }) => {
               style={dynamicStyles.section}
             >
               <View style={styles.sectionHeader}>
-                <Ionicons name="flag-outline" size={24} color={colors.accent} />
+                <Ionicons name="flag-outline" size={24} color={ui.text} />
                 <Text style={dynamicStyles.sectionTitle}>Destino</Text>
               </View>
 
@@ -858,7 +860,7 @@ const CreateTripScreen = ({ navigation }) => {
               style={dynamicStyles.section}
             >
               <View style={styles.sectionHeader}>
-                <Ionicons name="information-circle-outline" size={24} color={colors.info} />
+                <Ionicons name="information-circle-outline" size={24} color={ui.textMuted} />
                 <Text style={dynamicStyles.sectionTitle}>Detalles del Viaje</Text>
               </View>
 
@@ -867,13 +869,13 @@ const CreateTripScreen = ({ navigation }) => {
                 setShowDatePicker(true);
               }} activeOpacity={0.7}>
                 <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.info} />
+                  <Ionicons name="calendar-outline" size={18} color={ui.textMuted} />
                   <View style={styles.dateTimeTextContainer}>
                     <Text style={[dynamicStyles.dateTimeText, !formData.departureDate && dynamicStyles.placeholderText]}>
                       {formData.departureDate ? formatDateForDisplay(formData.departureDate) : 'Fecha de salida *'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.info} />
+                  <Ionicons name="chevron-down" size={18} color={ui.textMuted} />
                 </View>
               </TouchableOpacity>
 
@@ -930,13 +932,13 @@ const CreateTripScreen = ({ navigation }) => {
                 setShowTimePicker(true);
               }} activeOpacity={0.7}>
                 <View style={dynamicStyles.inputWrapper}>
-                  <Ionicons name="time-outline" size={18} color={colors.accentOrange} />
+                  <Ionicons name="time-outline" size={18} color={ui.textMuted} />
                   <View style={styles.dateTimeTextContainer}>
                     <Text style={[dynamicStyles.dateTimeText, !formData.departureTime && dynamicStyles.placeholderText]}>
                       {formData.departureTime ? formatTimeForDisplay(formData.departureTime) : 'Hora de salida *'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={18} color={colors.accentOrange} />
+                  <Ionicons name="chevron-down" size={18} color={ui.textMuted} />
                 </View>
               </TouchableOpacity>
 
@@ -988,7 +990,7 @@ const CreateTripScreen = ({ navigation }) => {
               </Modal>
 
               <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="people-outline" size={18} color={colors.accentGreen} />
+                <Ionicons name="people-outline" size={18} color={ui.textMuted} />
                 <TextInput
                   style={dynamicStyles.input}
                   placeholder="¿Cuántos asientos disponibles? *"
@@ -1008,7 +1010,7 @@ const CreateTripScreen = ({ navigation }) => {
               })()}
 
               <View style={dynamicStyles.inputWrapper}>
-                <Ionicons name="cash-outline" size={18} color={colors.accentGreen} />
+                <Ionicons name="cash-outline" size={18} color={ui.textMuted} />
                 <TextInput
                   style={dynamicStyles.input}
                   placeholder="Precio por asiento (opcional)"
@@ -1042,7 +1044,7 @@ const CreateTripScreen = ({ navigation }) => {
               style={dynamicStyles.section}
             >
               <View style={styles.sectionHeader}>
-                <Ionicons name="settings-outline" size={24} color={colors.accentOrange} />
+                <Ionicons name="settings-outline" size={24} color={ui.textMuted} />
                 <Text style={dynamicStyles.sectionTitle}>Preferencias</Text>
               </View>
 

@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
+import { useUI } from '../../../theme/ui';
 
 // Valores directos para las fuentes Sora
 const SORA_FONTS = {
@@ -22,6 +23,7 @@ const SORA_FONTS = {
 
 const ThemeSettingsScreen = ({ navigation }) => {
   const { colors } = useColors();
+  const ui = useUI();
   const { getCurrentThemeMode, setThemeMode, isDarkMode } = useTheme();
   
   const currentMode = getCurrentThemeMode();
@@ -185,7 +187,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   previewContainer: {
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 24,
   },
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
   },
   previewText: {
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   optionContainer: {
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
   },
@@ -256,7 +258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     marginTop: 8,
   },
   infoText: {

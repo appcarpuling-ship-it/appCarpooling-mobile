@@ -19,10 +19,12 @@ import { post_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import useColors from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 
 const CreateReviewScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
   const { colors, gradients, createColorArray } = useColors();
+  const ui = useUI();
   const { trip, reviewedUser, reviewType } = route.params || {};
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');

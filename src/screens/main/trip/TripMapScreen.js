@@ -16,6 +16,7 @@ import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
+import { useUI } from '../../../theme/ui';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
@@ -41,6 +42,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useColors();
+  const ui = useUI();
   const { user } = useAuth();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -309,18 +311,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
-  originMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  originMarker: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
-  waypointMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  driverMarker: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  waypointMarker: { width: 26, height: 26, borderRadius: 18, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  driverMarker: { width: 30, height: 30, borderRadius: 18, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   waypointNumber: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   stopTooltip: {
     position: 'absolute',
     bottom: 40,
     left: 20,
     right: 20,
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

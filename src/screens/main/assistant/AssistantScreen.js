@@ -18,6 +18,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import apiService from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
+import { useUI } from '../../../theme/ui';
 
 const RUMBO_AVATAR_DARK = require('../../../../assets/agent/rumbo_128.png');
 const RUMBO_AVATAR_LIGHT = require('../../../../assets/agent/rumbo_black_128.png');
@@ -183,6 +184,7 @@ function ThinkingBubble({ colors, fontFamily }) {
 export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
   const { colors, fontFamily } = useColors();
+  const ui = useUI();
   const { isDarkMode } = useTheme();
   const flatListRef = useRef(null);
   const msgIdRef = useRef(0);
@@ -442,7 +444,7 @@ const styles = StyleSheet.create({
   bubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
   },
   botBubble: { borderBottomLeftRadius: 6 },
