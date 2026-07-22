@@ -18,6 +18,7 @@ import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
 import { put_withauth_formdata } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
+import { useUI } from '../../theme/ui';
 
 const STEPS = [
   { title: 'Sobre vos',        subtitle: 'Contanos quién sos',                        fields: ['firstName', 'lastName'] },
@@ -42,13 +43,14 @@ const isPlaceholder = (name) =>
 const CompleteProfileScreen = () => {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { showAlert } = useAlert();
-  const { isDarkMode } = useColors();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui = useUI();
+
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
 
   const [currentStep, setCurrentStep] = useState(0);
   const stepAnim = useRef(new Animated.Value(1)).current;
@@ -244,7 +246,7 @@ const CompleteProfileScreen = () => {
                         <Ionicons name="camera-outline" size={40} color={textMuted} />
                       </View>
                   }
-                  <View style={[styles.cameraBadge, { backgroundColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' }]}>
+                  <View style={[styles.cameraBadge, { backgroundColor: ui.surface }]}>
                     <Ionicons name="camera" size={14} color={textPrimary} />
                   </View>
                 </TouchableOpacity>
@@ -263,15 +265,15 @@ const CompleteProfileScreen = () => {
 
           <View style={[styles.btnContainer, { backgroundColor: bg }]}>
             {currentStep < STEPS.length - 1 ? (
-              <TouchableOpacity style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]} onPress={handleNext} activeOpacity={0.85}>
-                <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Siguiente</Text>
-                <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 8 }} />
+              <TouchableOpacity style={[styles.btn, { backgroundColor: ui.invertBg }]} onPress={handleNext} activeOpacity={0.85}>
+                <Text style={[styles.btnText, { color: ui.invertText }]}>Siguiente</Text>
+                <Ionicons name="arrow-forward" size={18} color={ui.invertText} style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
+              <TouchableOpacity style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
                 {loading
-                  ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                  : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Guardar y continuar</Text>
+                  ? <ActivityIndicator color={ui.invertText} />
+                  : <Text style={[styles.btnText, { color: ui.invertText }]}>Guardar y continuar</Text>
                 }
               </TouchableOpacity>
             )}

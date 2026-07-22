@@ -18,6 +18,7 @@ import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
 import { useColors } from '../../hooks/useColors';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
+import { useUI } from '../../theme/ui';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const { email } = route.params;
@@ -28,6 +29,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
+  const ui = useUI();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -120,10 +122,10 @@ const ResetPasswordScreen = ({ navigation, route }) => {
               <View style={styles.header}>
                 <View
                   style={[styles.logoContainer, {
-                    backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
+                    backgroundColor: ui.invertBg,
                   }]}
                 >
-                  <Ionicons name="lock-open-outline" size={40} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                  <Ionicons name="lock-open-outline" size={40} color={ui.invertText} />
                 </View>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>Nueva Contraseña</Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -203,13 +205,13 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 >
                   <View
                     style={[styles.button, {
-                      backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
+                      backgroundColor: ui.invertBg,
                     }]}
                   >
                     {loading ? (
-                      <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                      <ActivityIndicator color={ui.invertText} />
                     ) : (
-                      <Text style={[styles.buttonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Restablecer Contraseña</Text>
+                      <Text style={[styles.buttonText, { color: ui.invertText }]}>Restablecer Contraseña</Text>
                     )}
                   </View>
                 </TouchableOpacity>

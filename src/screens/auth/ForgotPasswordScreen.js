@@ -16,6 +16,7 @@ import { post_public } from '../../services/apiService';
 import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
 import { useColors } from '../../hooks/useColors';
+import { useUI } from '../../theme/ui';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -23,11 +24,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
   const { isDarkMode } = useColors();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui = useUI();
+
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const handleResetPassword = async () => {
@@ -88,14 +91,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
           {/* Button */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleResetPassword}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Enviar código</Text>
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Enviar código</Text>
             }
           </TouchableOpacity>
 
