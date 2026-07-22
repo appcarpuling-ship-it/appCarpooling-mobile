@@ -667,17 +667,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  // Ancho completo: con 220 fijos quedaba una tarjeta chica pegada a la
+  // izquierda y el resto de la fila vacío.
   regCardRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
   regCardPreview: {
-    maxWidth: '100%',
+    width: '100%',
   },
   regCardImg: {
-    width: 220,
-    height: 132,
+    width: '100%',
+    height: 190,
     borderRadius: 20,
   },
   regCardHint: {
@@ -687,20 +687,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   regCardReplace: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    marginTop: 12,
+    paddingVertical: 13,
     borderRadius: 999,
     borderWidth: 1,
+    alignItems: 'center',
   },
   regCardReplaceText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Sora_600SemiBold',
   },
   regCardAdd: {
-    width: 220,
-    minHeight: 132,
+    width: '100%',
+    minHeight: 150,
     borderRadius: 20,
     borderWidth: 1,
     borderStyle: 'dashed',
