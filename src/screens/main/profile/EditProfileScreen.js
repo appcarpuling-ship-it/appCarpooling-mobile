@@ -239,6 +239,20 @@ const EditProfileScreen = ({ navigation }) => {
   const genderLabel =
     user?.gender === 'female' ? 'Femenino' : user?.gender === 'male' ? 'Masculino' : '—';
 
+  const dniCount = (user?.dniFrontUrl ? 1 : 0) + (user?.dniBackUrl ? 1 : 0);
+  const dniDone = dniCount === 2;
+
+  // Lo que un pasajero mira antes de subirse: foto, datos de contacto, de dónde
+  // sos, una presentación y el documento.
+  const completion = (() => {
+    const done = [
+      formData.firstName, formData.lastName, formData.phone, formData.age,
+      formData.province, formData.city, formData.bio,
+      user?.avatar, user?.dniFrontUrl, user?.dniBackUrl,
+    ].filter(Boolean).length;
+    return Math.round((done / 10) * 100);
+  })();
+
   const fields = [
     { key: 'firstName', label: 'Nombre',    placeholder: 'Tu nombre',          keyboard: 'default' },
     { key: 'lastName',  label: 'Apellido',   placeholder: 'Tu apellido',         keyboard: 'default' },
@@ -252,11 +266,12 @@ const EditProfileScreen = ({ navigation }) => {
 
   // Campo relleno con la etiqueta adentro: reemplaza la fila subrayada, que hacía
   // ver la pantalla como un formulario de ajustes y no como el resto de la app.
-  const renderField = (field) => (
+  const renderField = (field, half) => (
     <View
       key={field.key}
       style={[
         styles.field,
+        half && styles.fieldHalf,
         { backgroundColor: ui.surface, borderColor: focusedField === field.key ? textPrimary : 'transparent' },
       ]}
     >
@@ -276,11 +291,13 @@ const EditProfileScreen = ({ navigation }) => {
     </View>
   );
 
-  // Dato que no se edita (email, sexo): mismo contenedor, sin input.
-  const renderReadOnly = (label, value) => (
-    <View style={[styles.field, { backgroundColor: ui.surface, borderColor: 'transparent' }]}>
-      <Text style={[styles.fieldLabel, { color: textMuted }]}>{label}</Text>
-      <Text style={[styles.fieldInput, styles.fieldReadOnly, { color: textMuted }]}>{value}</Text>
+  // Dato que no se edita acá: fila compacta, no un campo del mismo peso que los
+  // editables (ocupaban el mismo espacio sin poder tocarlos).
+  const renderReadOnly = (icon, label, value) => (
+    <View style={[styles.accountRow, { borderTopColor: bg }]}>
+      <Ionicons name={icon} size={17} color={textMuted} />
+      <Text style={[styles.accountLabel, { color: textMuted }]}>{label}</Text>
+      <Text style={[styles.accountValue, { color: textPrimary }]} numberOfLines={1}>{value}</Text>
     </View>
   );
 
@@ -332,13 +349,32 @@ const EditProfileScreen = ({ navigation }) => {
               {formData.firstName || 'Tu'} <Text style={styles.heroNameStrong}>{formData.lastName || 'perfil'}</Text>
             </Text>
             <Text style={[styles.heroMail, { color: textMuted }]} numberOfLines={1}>{user?.email || '—'}</Text>
+
+            {/* Un perfil completo se reserva más: mostrar cuánto falta da un
+                motivo para llenar los campos en vez de dejarlos vacíos. */}
+            <View style={styles.progressBlock}>
+              <View style={styles.progressTop}>
+                <Text style={[styles.progressLabel, { color: textMuted }]}>Perfil completo</Text>
+                <Text style={[styles.progressPct, { color: textPrimary }]}>{completion}%</Text>
+              </View>
+              <View style={[styles.progressTrack, { backgroundColor: ui.surface }]}>
+                <View style={[styles.progressFill, { backgroundColor: accent, width: `${completion}%` }]} />
+              </View>
+            </View>
           </View>
 
           {/* Datos personales */}
           <View style={styles.section}>
             <SectionLabel>Datos personales</SectionLabel>
             <View style={styles.fieldStack}>
-              {fields.map(renderField)}
+              <View style={styles.row}>
+                {renderField(fields[0], true)}
+                {renderField(fields[1], true)}
+              </View>
+              <View style={styles.row}>
+                {renderField(fields[2], true)}
+                {renderField(fields[3], true)}
+              </View>
 
               {/* Provincia va antes que Ciudad: es el orden en que uno las piensa */}
               <TouchableOpacity
@@ -379,59 +415,82 @@ const EditProfileScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* DNI — verificación para todos los usuarios */}
+          {/* Verificación de identidad. Antes eran dos recuadros enormes para algo
+              secundario; ahora es una tarjeta con estado y dos filas compactas. */}
           <View style={styles.section}>
-            <SectionLabel>Documentación (DNI)</SectionLabel>
-            <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Lo solicitamos a conductores y pasajeros para verificar identidad. Necesitás frente y dorso. Las fotos se guardan de forma segura.
-            </Text>
-            <View style={styles.dniRow}>
+            <SectionLabel>Identidad</SectionLabel>
+            <View style={[styles.verifyCard, { backgroundColor: ui.surface }]}>
+              <View style={styles.verifyHead}>
+                <View style={[styles.verifyIcon, { backgroundColor: dniDone ? accent : bg }]}>
+                  <Ionicons
+                    name={dniDone ? 'shield-checkmark' : 'shield-outline'}
+                    size={20}
+                    color={dniDone ? accentInv : textMuted}
+                  />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={[styles.verifyTitle, { color: textPrimary }]}>
+                    {dniDone ? 'Identidad verificada' : 'Verificá tu identidad'}
+                  </Text>
+                  <Text style={[styles.verifySub, { color: textMuted }]}>
+                    {dniDone
+                      ? 'Ya tenemos las dos caras de tu DNI.'
+                      : `Faltan ${2 - dniCount} de 2 fotos.`}
+                  </Text>
+                </View>
+              </View>
+
               {[
-                { side: 'front', label: 'Frente', url: user?.dniFrontUrl, busy: dniFrontLoading },
-                { side: 'back',  label: 'Dorso',  url: user?.dniBackUrl,  busy: dniBackLoading },
+                { side: 'front', label: 'Frente del DNI', url: user?.dniFrontUrl, busy: dniFrontLoading },
+                { side: 'back',  label: 'Dorso del DNI',  url: user?.dniBackUrl,  busy: dniBackLoading },
               ].map((slot) => (
                 <TouchableOpacity
                   key={slot.side}
-                  style={[styles.dniSlot, { backgroundColor: ui.surface }]}
+                  style={[styles.verifyRow, { borderTopColor: bg }]}
                   onPress={() => pickDniDocument(slot.side)}
-                  activeOpacity={0.85}
+                  activeOpacity={0.75}
                   disabled={slot.busy}
                   accessibilityRole="button"
-                  accessibilityLabel={`Subir ${slot.label} del DNI`}
+                  accessibilityLabel={`Subir ${slot.label}`}
                 >
-                  {slot.busy && (
-                    <View style={styles.dniSlotOverlay}>
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    </View>
-                  )}
+                  <View style={[styles.verifyThumb, { backgroundColor: bg }]}>
+                    {slot.busy ? (
+                      <ActivityIndicator size="small" color={textMuted} />
+                    ) : slot.url ? (
+                      <Image source={{ uri: buildImageUri(slot.url) }} style={styles.verifyThumbImg} />
+                    ) : (
+                      <Ionicons name="camera-outline" size={19} color={textMuted} />
+                    )}
+                  </View>
+
+                  <View style={styles.flex}>
+                    <Text style={[styles.verifyRowLabel, { color: textPrimary }]}>{slot.label}</Text>
+                    <Text style={[styles.verifyRowState, { color: textMuted }]}>
+                      {slot.url ? 'Cargada · tocá para reemplazar' : 'Tocá para subir la foto'}
+                    </Text>
+                  </View>
+
                   {slot.url ? (
-                    <>
-                      <Image source={{ uri: buildImageUri(slot.url) }} style={styles.dniSlotImage} />
-                      {/* Tilde de "ya cargado": antes la foto se veía pero nada confirmaba el estado */}
-                      <View style={[styles.dniCheck, { backgroundColor: accent }]}>
-                        <Ionicons name="checkmark" size={13} color={accentInv} />
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.dniSlotInner}>
-                      <View style={[styles.dniSlotIcon, { backgroundColor: accent }]}>
-                        <Ionicons name="camera" size={19} color={accentInv} />
-                      </View>
-                      <Text style={[styles.dniSlotLabel, { color: textPrimary }]}>{slot.label} del DNI</Text>
-                      <Text style={[styles.dniSlotHint, { color: textMuted }]}>Tocá para subir la foto</Text>
+                    <View style={[styles.verifyTick, { backgroundColor: accent }]}>
+                      <Ionicons name="checkmark" size={13} color={accentInv} />
                     </View>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={textMuted} />
                   )}
                 </TouchableOpacity>
               ))}
             </View>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              Se la pedimos a conductores y pasajeros. Las fotos se guardan de forma segura y no se muestran en tu perfil.
+            </Text>
           </View>
 
           {/* Cuenta — datos que no se editan acá */}
           <View style={styles.section}>
             <SectionLabel>Cuenta</SectionLabel>
-            <View style={styles.fieldStack}>
-              {renderReadOnly('Email', user?.email || '—')}
-              {renderReadOnly('Sexo', genderLabel)}
+            <View style={[styles.accountCard, { backgroundColor: ui.surface }]}>
+              {renderReadOnly('mail-outline', 'Email', user?.email || '—')}
+              {renderReadOnly('person-outline', 'Sexo', genderLabel)}
             </View>
           </View>
 
@@ -557,6 +616,18 @@ const styles = StyleSheet.create({
   heroNameStrong: { fontFamily: 'Sora_800ExtraBold' },
   heroMail:       { fontFamily: 'Sora_400Regular', fontSize: 14, marginTop: 5 },
 
+  progressBlock: { width: '100%', marginTop: 24 },
+  progressTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  progressLabel: { fontFamily: 'Sora_500Medium', fontSize: 12 },
+  progressPct:   { fontFamily: 'Sora_800ExtraBold', fontSize: 15 },
+  progressTrack: { height: 7, borderRadius: 999, overflow: 'hidden' },
+  progressFill:  { height: '100%', borderRadius: 999 },
+
   // Secciones
   section: { paddingHorizontal: 24, marginBottom: 28 },
   sectionLabel: {
@@ -567,10 +638,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginLeft: 4,
   },
-  sectionHint: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 19, marginBottom: 14, marginLeft: 4 },
+  sectionHint: { fontFamily: 'Sora_400Regular', fontSize: 12, lineHeight: 18, marginTop: 10, marginLeft: 4, marginRight: 4 },
 
   // Campos
   fieldStack: { gap: 10 },
+  row:        { flexDirection: 'row', gap: 10 },
+  fieldHalf:  { flex: 1 },
   field: {
     borderRadius: 18,
     borderWidth: 1.5,
@@ -603,51 +676,62 @@ const styles = StyleSheet.create({
     minHeight: 110,
   },
 
-  // DNI
-  // Apilados y a todo el ancho: a media pantalla la foto del DNI quedaba
-  // demasiado chica para verificar que se lee.
-  dniRow: { gap: 12 },
-  dniSlot: {
-    width: '100%',
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 180,
-    position: 'relative',
-  },
-  dniSlotImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  dniSlotInner: {
-    flex: 1,
-    justifyContent: 'center',
+  // Verificación de identidad
+  verifyCard: { borderRadius: 24, overflow: 'hidden' },
+  verifyHead: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 14,
+    padding: 18,
   },
-  dniSlotIcon: {
-    width: 42,
-    height: 42,
+  verifyIcon: {
+    width: 44,
+    height: 44,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
-  dniSlotLabel: { fontSize: 14, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
-  dniSlotHint:  { fontSize: 12, fontFamily: 'Sora_400Regular', textAlign: 'center' },
-  dniCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+  verifyTitle: { fontFamily: 'Sora_700Bold', fontSize: 16 },
+  verifySub:   { fontFamily: 'Sora_400Regular', fontSize: 13, marginTop: 2 },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderTopWidth: 2,
+  },
+  verifyThumb: {
+    width: 52,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  verifyThumbImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  verifyRowLabel: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
+  verifyRowState: { fontFamily: 'Sora_400Regular', fontSize: 12, marginTop: 2 },
+  verifyTick: {
     width: 24,
     height: 24,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dniSlotOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
+
+  // Cuenta (solo lectura)
+  accountCard: { borderRadius: 24, overflow: 'hidden' },
+  accountRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 2,
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderTopWidth: 2,
   },
+  accountLabel: { fontFamily: 'Sora_500Medium', fontSize: 14 },
+  accountValue: { flex: 1, fontFamily: 'Sora_600SemiBold', fontSize: 14, textAlign: 'right' },
 
   save: { marginHorizontal: 24, marginTop: 4 },
 
