@@ -17,10 +17,10 @@ import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 
 const STATUS_MAP = {
-  open:             { label: 'Abierta',       color: '#22C55E' },
-  awaiting_payment: { label: 'Pago pendiente', color: '#F59E0B' },
-  paid:             { label: 'Confirmada',     color: '#3B82F6' },
-  cancelled:        { label: 'Cancelada',      color: '#EF4444' },
+  open:             { label: 'Abierta',       solid: true },
+  awaiting_payment: { label: 'Pago pendiente', solid: true },
+  paid:             { label: 'Confirmada',     solid: true },
+  cancelled:        { label: 'Cancelada',      solid: false },
   expired:          { label: 'Vencida',        color: '#9CA3AF' },
 };
 
@@ -234,9 +234,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Status badge */}
         <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
-            <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
+            <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
           </View>
         </View>
 

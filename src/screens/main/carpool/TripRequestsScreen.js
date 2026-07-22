@@ -292,10 +292,10 @@ const TripRequestsScreen = ({ route }) => {
 
   const getStatus = (status) => {
     const map = {
-      pending:          { color: '#F59E0B', label: 'Pendiente' },
-      confirmed:        { color: '#10B981', label: 'Confirmado' },
-      cancelled:        { color: '#EF4444', label: 'Cancelado' },
-      completed:        { color: '#3B82F6', label: 'Completado' },
+      pending:          { solid: true,  label: 'Pendiente' },
+      confirmed:        { solid: true,  label: 'Confirmado' },
+      cancelled:        { solid: false, label: 'Cancelado' },
+      completed:        { solid: false, label: 'Completado' },
       pending_approval: { color: '#F59E0B', label: 'Esperando tu aprobación' },
       pending_payment:  { color: '#8B5CF6', label: 'Pago pendiente' },
       reserved:         { color: '#10B981', label: 'Confirmada' },
@@ -473,8 +473,8 @@ const TripRequestsScreen = ({ route }) => {
               {item.passenger?.firstName} {item.passenger?.lastName}
             </Text>
             <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+              <View style={[styles.statusDot, { backgroundColor: status.solid ? ui.text : textMuted }]} />
+              <Text style={[styles.statusText, { color: status.solid ? ui.text : textMuted }]}>{status.label}</Text>
             </View>
           </View>
           {amount != null && (

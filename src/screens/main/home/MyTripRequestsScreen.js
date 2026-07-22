@@ -12,11 +12,11 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 
 const STATUS_LABELS = {
-  open: { label: 'Abierta', color: '#22C55E' },
-  awaiting_payment: { label: 'Pago pendiente', color: '#F59E0B' },
-  paid: { label: 'Confirmada', color: '#3B82F6' },
-  cancelled: { label: 'Cancelada', color: '#EF4444' },
-  expired: { label: 'Vencida', color: '#9CA3AF' }
+  open: { label: 'Abierta', solid: true },
+  awaiting_payment: { label: 'Pago pendiente', solid: true },
+  paid: { label: 'Confirmada', solid: true },
+  cancelled: { label: 'Cancelada', solid: false },
+  expired: { label: 'Vencida', solid: false }
 };
 
 const isUpcoming = (req) => {
@@ -114,8 +114,8 @@ const MyTripRequestsScreen = ({ navigation }) => {
             <Ionicons name="arrow-forward" size={13} color={textMuted} />
             <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.destination.city}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '22' }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.solid ? ui.invertBg : ui.surface }]}>
+            <Text style={[styles.statusText, { color: statusInfo.solid ? ui.invertText : textMuted }]}>{statusInfo.label}</Text>
           </View>
         </View>
 
@@ -133,7 +133,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
         {item.status === 'open' && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
             <View style={styles.metaItem}>
-              <Ionicons name="people-outline" size={14} color={pendingApps > 0 ? '#F59E0B' : textMuted} />
+              <Ionicons name="people-outline" size={14} color={textMuted} />
               <Text style={[styles.metaText, { color: pendingApps > 0 ? '#F59E0B' : textMuted }]}>
                 {totalApps}/5 postulaciones
                 {pendingApps > 0 ? ` · ${pendingApps} esperando respuesta` : ''}
