@@ -337,7 +337,10 @@ export default function AssistantScreen() {
         fontFamily={fontFamily}
         isDarkMode={isDarkMode}
       />
-      <View
+      {/* El header estaba vacío: solo pintaba una barra. Ahora identifica a Rumbo
+          y es el acceso a su perfil, que antes solo se abría tocando un avatar
+          suelto entre los mensajes. */}
+      <TouchableOpacity
         style={[
           styles.header,
           {
@@ -346,7 +349,17 @@ export default function AssistantScreen() {
             borderBottomColor: colors.border,
           },
         ]}
-      />
+        onPress={() => setShowProfile(true)}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel="Ver el perfil de Rumbo"
+      >
+        <Image source={isDarkMode ? RUMBO_AVATAR_DARK : RUMBO_AVATAR_LIGHT} style={styles.headerAvatar} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.headerName, { color: colors.textPrimary, fontFamily: fontFamily.bold }]}>Rumbo</Text>
+          <Text style={[styles.headerRole, { color: colors.textMuted, fontFamily: fontFamily.regular }]}>Tu asistente de viajes</Text>
+        </View>
+      </TouchableOpacity>
 
       <FlatList
         ref={flatListRef}
@@ -366,9 +379,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
     borderBottomWidth: 1,
+  },
+  headerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+  },
+  headerName: {
+    fontSize: 18,
+    letterSpacing: -0.4,
+  },
+  headerRole: {
+    fontSize: 12,
+    marginTop: 1,
   },
   chatContent: {
     paddingHorizontal: 16,
@@ -412,16 +439,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
     borderWidth: 1,
   },
-  botBubble: { borderBottomLeftRadius: 4 },
-  userBubble: { borderWidth: 0, borderBottomRightRadius: 4 },
+  botBubble: { borderBottomLeftRadius: 6 },
+  userBubble: { borderWidth: 0, borderBottomRightRadius: 6 },
   bubbleText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   thinkingText: {
     fontStyle: 'italic',
@@ -429,9 +456,9 @@ const styles = StyleSheet.create({
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 999,
     borderWidth: 1,
     gap: 8,
   },
@@ -473,7 +500,8 @@ const styles = StyleSheet.create({
     height: 90,
   },
   profileName: {
-    fontSize: 22,
+    fontSize: 26,
+    letterSpacing: -0.6,
     marginBottom: 4,
   },
   profileRole: {
@@ -507,9 +535,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 18,
     borderWidth: 1,
   },
   capabilityText: {
@@ -517,11 +545,12 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
+    height: 58,
+    borderRadius: 999,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 15,
+    fontSize: 16,
   },
 });
