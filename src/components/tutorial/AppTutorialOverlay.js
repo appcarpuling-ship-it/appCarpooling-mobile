@@ -194,10 +194,10 @@ const AppTutorialOverlay = ({ onComplete }) => {
                 <Ionicons name="chevron-back" size={20} color={ui.text} />
               </TouchableOpacity>
             )}
+            {/* Sin trailingIcon: la flecha del círculo repetía los chevrons. */}
             <PillButton
               label={isLast ? '¡Empezar!' : 'Siguiente'}
               onPress={goNext}
-              trailingIcon={isLast ? 'checkmark' : 'arrow-forward'}
               style={styles.cta}
             />
           </View>
