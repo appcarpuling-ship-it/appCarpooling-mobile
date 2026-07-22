@@ -55,11 +55,11 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                 accessibilityRole="button"
                 accessibilityState={{ selected: isFocused }}
                 accessibilityLabel={label}
-                // El anillo va del color de la pantalla, no del de la barra: la
-                // mitad de arriba del FAB queda fuera de la barra y con el color
-                // de la barra se veía ahí un arco gris. Del color del fondo se
-                // funde arriba y abajo hace de recorte contra la barra.
-                style={[styles.fab, { borderColor: ui.bg, opacity: isFocused ? 1 : 0.75 }]}
+                // Sin anillo, como en la referencia: el círculo apoya directo
+                // sobre la barra. Lleva solo un contorno fino porque el relleno
+                // es blanco y sobre la página clara la mitad de arriba
+                // desaparecía y el botón se veía cortado.
+                style={[styles.fab, { borderColor: ui.invertBg, opacity: isFocused ? 1 : 0.75 }]}
               >
                 <Image source={RUMBO_AVATAR} style={styles.fabAvatar} />
               </TouchableOpacity>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 64, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  fab:       { width: 56, height: 56, borderRadius: 999, marginTop: -20, backgroundColor: '#FFFFFF', borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
+  fab:       { width: 58, height: 58, borderRadius: 999, marginTop: -22, backgroundColor: '#FFFFFF', borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   fabAvatar: { width: 40, height: 40, borderRadius: 999 },
   badge:     { position: 'absolute', top: 2, right: 4, minWidth: 17, height: 17, borderRadius: 999, borderWidth: 2, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   badgeText: { fontFamily: 'Sora_700Bold', fontSize: 9, color: '#000000' },
