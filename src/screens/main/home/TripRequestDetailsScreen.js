@@ -21,11 +21,10 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
+  const ui = useUI();
   const bg       = ui.bg;
   const cardBg   = ui.surface;
-  const border   = dark ? '#2E2E2E' : '#E5E7EB';
-
-  const ui = useUI();  const divider  = ui.bg;
+  const border   = dark ? '#2E2E2E' : '#E5E7EB';  const divider  = ui.bg;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
   const accent      = ui.invertBg;

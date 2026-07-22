@@ -364,14 +364,13 @@ const HomeScreen = ({ navigation, route }) => {
 
   // Dynamic colors
   const bg = colors.background;
+  const ui = useUI();
   const cardBg = ui.surface;
   const inputBg = ui.surface;
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
   const textMuted = colors.textMuted;
-  const borderColor = ui.bg;
-
-  const ui = useUI();  const accent = ui.invertBg;
+  const borderColor = ui.bg;  const accent = ui.invertBg;
   const accentInverse = ui.invertText;
   const divider = ui.bg;
   /** Contraste fuerte en claro: labels, paradas, flechas */

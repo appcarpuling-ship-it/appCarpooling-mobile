@@ -30,14 +30,13 @@ const isUpcoming = (req) => {
 const MyTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
+  const ui = useUI();
   const bg = ui.bg;
   const cardBg = ui.surface;
   const border = ui.border;
   const textPrimary = ui.text;
   const textMuted = ui.textMuted;
-  const accent = ui.text;
-
-  const ui = useUI();  const accentInverse = ui.invertText;
+  const accent = ui.text;  const accentInverse = ui.invertText;
   const divider = ui.bg;
 
   const [requests, setRequests] = useState([]);

@@ -32,15 +32,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const { showAlert }  = useAlert();
 
   const dark        = isDarkMode;
+  const ui = useUI();
   const bg          = ui.bg;
   const cardBg      = ui.surface;
   const textPrimary = dark ? '#FFFFFF'  : '#1F2937';
   const textSecondary = dark ? '#D1D5DB' : '#374151';
   const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
   const divider     = dark ? '#2A2A2A'  : '#E5E7EB';
-  const accent      = dark ? '#FFFFFF'  : '#1F2937';
-
-  const ui = useUI();  const accentInverse = ui.invertText;
+  const accent      = dark ? '#FFFFFF'  : '#1F2937';  const accentInverse = ui.invertText;
 
   const [request,        setRequest]        = useState(null);
   const [loading,        setLoading]        = useState(true);

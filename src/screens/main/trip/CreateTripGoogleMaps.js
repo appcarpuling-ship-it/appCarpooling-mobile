@@ -71,7 +71,6 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const waypointDebounceTimers = useRef([]);
   const mapSelectionModeRef = useRef(null);
   const mapSelectionIdleTimerRef = useRef(null);
-  const lastRegionRef = useRef(region);
   const hasMapGestureForSelectionRef = useRef(false);
 
 
@@ -100,6 +99,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     latitude: -34.6037, longitude: -58.3816,
     latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA,
   });
+
+  // Va despues de region: arriba quedaba en zona muerta y useRef(region)
+  // lanzaba ReferenceError al abrir la pantalla.
+  const lastRegionRef = useRef(region);
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
   const [waypointMarkers, setWaypointMarkers] = useState([]);

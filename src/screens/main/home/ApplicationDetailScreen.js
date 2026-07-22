@@ -19,14 +19,13 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
+  const ui = useUI();
   const bg         = ui.bg;
   const cardBg     = ui.surface;
   const border     = ui.border;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const divider     = ui.bg;
-
-  const ui = useUI();  const accent      = ui.invertBg;
+  const divider     = ui.bg;  const accent      = ui.invertBg;
   const accentInverse = ui.invertText;
 
   const [accepting, setAccepting] = useState(false);
