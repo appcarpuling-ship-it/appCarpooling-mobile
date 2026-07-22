@@ -17,6 +17,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { buildImageUri } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useTutorial } from '../../../context/TutorialContext';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
@@ -30,14 +31,15 @@ const ProfileScreen = () => {
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const sectionMenuTitleColor = isDarkMode ? textMuted : '#000000';
+  const ui = useUI();
+  const isDarkMode  = ui.isDarkMode;
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg; // separa las filas dentro de la card gris
+  const sectionMenuTitleColor = ui.textMuted;
 
   const handleLogout = () => {
     showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
@@ -242,9 +244,9 @@ const ProfileScreen = () => {
             const pct = user.discountPercentage;
             const count = Math.round(pct / 20) || 1;
             return (
-              <View style={[styles.discountBadge, { backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5' }]}>
-                <Ionicons name="pricetag" size={13} color="#10B981" />
-                <Text style={[styles.discountText, { color: '#10B981' }]}>
+              <View style={[styles.discountBadge, { backgroundColor: ui.invertBg }]}>
+                <Ionicons name="pricetag" size={13} color={ui.invertText} />
+                <Text style={[styles.discountText, { color: ui.invertText }]}>
                   {count} descuento{count !== 1 ? 's' : ''} activo{count !== 1 ? 's' : ''} · {pct}% de ahorro
                 </Text>
               </View>
@@ -268,25 +270,23 @@ const ProfileScreen = () => {
                     onPress={item.onPress}
                     activeOpacity={0.7}
                   >
+                    {/* El destructivo se marca invirtiendo el fondo, no con rojo. */}
                     <View style={[
                       styles.iconBox,
-                      { backgroundColor: item.danger ? (isDarkMode ? '#3D1A1A' : '#FEE2E2') : divider },
+                      { backgroundColor: item.danger ? ui.invertBg : divider },
                     ]}>
                       <Ionicons
                         name={item.icon}
                         size={19}
-                        color={item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary}
+                        color={item.danger ? ui.invertText : textPrimary}
                       />
                     </View>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <Text style={[
-                        styles.menuItemText,
-                        { color: item.danger ? (isDarkMode ? '#F87171' : '#DC2626') : textPrimary },
-                      ]}>
+                      <Text style={[styles.menuItemText, { color: textPrimary }]}>
                         {item.title}
                       </Text>
                       {item.subtitle ? (
-                        <Text numberOfLines={1} style={{ fontSize: 11, color: (user?.discountPercentage ?? 0) > 0 && item.id === 8 ? '#10B981' : textMuted, marginTop: 2 }}>
+                        <Text numberOfLines={1} style={[styles.menuItemSub, { color: textMuted }]}>
                           {item.subtitle}
                         </Text>
                       ) : null}
@@ -359,16 +359,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatarInitials: {
-    fontSize: 46,
-    fontWeight: '700',
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 44,
     letterSpacing: 1,
   },
   name: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Sora_800ExtraBold',
+    fontSize: 26,
+    letterSpacing: -0.6,
     marginBottom: 4,
   },
   email: {
+    fontFamily: 'Sora_400Regular',
     fontSize: 14,
   },
   discountBadge: {
@@ -381,43 +383,47 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   discountText: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 13,
-    fontWeight: '600',
   },
 
   // Menu
-  menuContent: { paddingHorizontal: 16 },
-  section:     { marginBottom: 24 },
+  menuContent: { paddingHorizontal: 24 },
+  section:     { marginBottom: 28 },
   sectionLabel: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 11,
-    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 10,
     marginLeft: 4,
   },
   sectionCard: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     gap: 14,
   },
   iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuItemText: {
+    fontFamily: 'Sora_600SemiBold',
     fontSize: 15,
-    fontWeight: '500',
+  },
+  menuItemSub: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: 11,
+    marginTop: 2,
   },
 });
 

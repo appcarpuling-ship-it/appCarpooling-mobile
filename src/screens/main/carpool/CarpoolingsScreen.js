@@ -20,6 +20,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import useColors from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -70,11 +71,12 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [activeTrip, setActiveTrip] = useState(null);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
-  const bg = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
-  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const ui = useUI();
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const border = ui.border;
+  const textPrimary = ui.text;
+  const textSecondary = ui.textMuted;
 
   useEffect(() => {
     loadBanners();
@@ -197,8 +199,11 @@ const CarpoolingsScreen = ({ navigation }) => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.title, { color: textPrimary }]}>Gestionar Viajes</Text>
-          <Text style={[styles.subtitle, { color: textSecondary }]}>Crea viajes o revisa tus reservas</Text>
+          <Text style={[styles.title, { color: textPrimary }]}>
+            Gestioná{'\n'}
+            <Text style={styles.titleStrong}>tus viajes</Text>
+          </Text>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>Creá viajes o revisá tus reservas.</Text>
         </View>
 
         {/* Menu Items */}
@@ -210,7 +215,7 @@ const CarpoolingsScreen = ({ navigation }) => {
               onPress={() => navigation.navigate(item.screen)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconBox, { backgroundColor: isDarkMode ? '#333333' : '#F0F0F0' }]}>
+              <View style={[styles.iconBox, { backgroundColor: ui.bg }]}>
                 <Ionicons name={item.icon} size={24} color={textPrimary} />
               </View>
               <View style={styles.menuText}>
@@ -280,69 +285,47 @@ const styles = StyleSheet.create({
 
   header: {
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 28,
     paddingHorizontal: 24,
-    alignItems: 'center',
   },
-  logo: { width: 36, height: 36, marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, textAlign: 'center' },
+  logo: { width: 30, height: 30, marginBottom: 18 },
+  title: { fontFamily: 'Sora_300Light', fontSize: 34, lineHeight: 42, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  subtitle: { fontFamily: 'Sora_400Regular', fontSize: 15, marginTop: 12 },
 
-  menuList: { paddingHorizontal: 16 },
+  menuList: { paddingHorizontal: 24, gap: 12 },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 10,
+    borderRadius: 24,
+    padding: 18,
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
-  menuTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
-  menuDesc: { fontSize: 13, lineHeight: 18 },
+  menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, marginBottom: 3 },
+  menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18 },
 
-  bannerSection: { marginTop: 24 },
+  bannerSection: { marginTop: 32 },
   bannerListContent: { paddingHorizontal: 24 },
   bannerSlide: {
     width: BANNER_WIDTH,
     height: BANNER_HEIGHT,
     marginRight: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   bannerImage: { width: '100%', height: '100%' },
   bannerContent: { flex: 1 },
 
-  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
-  dot: { width: 6, height: 6, borderRadius: 3, marginHorizontal: 3 },
-  dotActive: { width: 18 },
-
-  activeTripWrapper: { marginHorizontal: 24, marginTop: 16, marginBottom: 4 },
-  activeTripRing: { ...StyleSheet.absoluteFillObject, borderRadius: 16, borderWidth: 0.8, borderColor: '#F59E0B' },
-  activeTripBanner: {
-    backgroundColor: '#111111',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  activeTripLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  activeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
-  activeTripLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  activeTripDest: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
+  dot: { width: 6, height: 6, borderRadius: 999, marginHorizontal: 3 },
+  dotActive: { width: 22 },
 });
 
 export default CarpoolingsScreen;
