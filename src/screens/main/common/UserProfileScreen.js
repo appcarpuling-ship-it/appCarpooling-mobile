@@ -18,6 +18,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { useColors } from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const REPORT_REASONS = [
   { value: 'harassment', label: 'Acoso o amenazas' },
@@ -29,6 +30,7 @@ const REPORT_REASONS = [
 ];
 
 const UserProfileScreen = ({ route, navigation }) => {
+  const ui = useUI();
   const { userId, tripId, conversationId, fromChat, openReport } = route.params || {};
   const { colors, isDarkMode } = useColors();
   const { user, refreshUser } = useAuth();
@@ -264,14 +266,14 @@ const UserProfileScreen = ({ route, navigation }) => {
               styles.secondaryBtn,
               isBlocked
                 ? { borderColor: colors.border, backgroundColor: cardBg }
-                : { borderColor: '#DC2626', backgroundColor: cardBg },
+                : { borderColor: ui.textMuted, backgroundColor: cardBg },
             ]}
             onPress={confirmBlock}
             disabled={blockLoading}
             activeOpacity={0.8}
           >
             {blockLoading ? (
-              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : '#DC2626'} />
+              <ActivityIndicator size="small" color={isBlocked ? colors.textMuted : ui.textMuted} />
             ) : isBlocked ? (
               <>
                 <Ionicons name="lock-open-outline" size={18} color={colors.textPrimary} />
@@ -280,7 +282,7 @@ const UserProfileScreen = ({ route, navigation }) => {
             ) : (
               <>
                 <Ionicons name="ban-outline" size={18} color="#DC2626" />
-                <Text style={[styles.secondaryBtnText, { color: '#DC2626' }]}>Bloquear</Text>
+                <Text style={[styles.secondaryBtnText, { color: ui.textMuted }]}>Bloquear</Text>
               </>
             )}
           </TouchableOpacity>
@@ -289,16 +291,16 @@ const UserProfileScreen = ({ route, navigation }) => {
 
       {!isSelf && !!tripId && (
         <TouchableOpacity
-          style={[styles.chatButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+          style={[styles.chatButton, { backgroundColor: ui.invertBg }]}
           onPress={handleStartChat}
           disabled={chatLoading}
         >
           {chatLoading ? (
-            <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
+            <ActivityIndicator size="small" color={ui.invertText} />
           ) : (
             <>
-              <Ionicons name="chatbubble-outline" size={20} color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              <Text style={[styles.chatButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Enviar mensaje</Text>
+              <Ionicons name="chatbubble-outline" size={20} color={ui.invertText} />
+              <Text style={[styles.chatButtonText, { color: ui.invertText }]}>Enviar mensaje</Text>
             </>
           )}
         </TouchableOpacity>
@@ -401,14 +403,14 @@ const UserProfileScreen = ({ route, navigation }) => {
                 <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: ui.invertBg }]}
                 onPress={submitReport}
                 disabled={reportSubmitting}
               >
                 {reportSubmitting ? (
                   <ActivityIndicator color={isDarkMode ? '#000' : '#FFF'} />
                 ) : (
-                  <Text style={{ color: isDarkMode ? '#000000' : '#FFFFFF', fontWeight: '700' }}>Enviar</Text>
+                  <Text style={{ color: ui.invertText, fontWeight: '700' }}>Enviar</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -434,8 +436,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  avatarInitials: { fontSize: 36, fontWeight: '700' },
-  name: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  avatarInitials: { fontSize: 36, fontFamily: 'Sora_700Bold' },
+  name: { fontSize: 24, fontFamily: 'Sora_700Bold', marginBottom: 6 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   location: { fontSize: 14 },
   actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
@@ -449,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   chatButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -459,7 +461,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 24,
   },
-  chatButtonText: { fontSize: 16, fontWeight: '600' },
+  chatButtonText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   card: {
     borderRadius: 12,
     borderWidth: 1,
@@ -468,7 +470,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 6,
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
   vehicleThumb: { width: 56, height: 56, borderRadius: 8, marginRight: 12 },
   vehicleThumbPh: { justifyContent: 'center', alignItems: 'center' },
   vehicleInfo: { flex: 1 },
-  vehicleTitle: { fontSize: 15, fontWeight: '600' },
+  vehicleTitle: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   vehicleMeta: { fontSize: 13, marginTop: 2 },
   modalOverlay: {
     flex: 1,
@@ -497,7 +499,7 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: '85%',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 8 },
   modalHint: { fontSize: 13, marginBottom: 12 },
   reasonList: { maxHeight: 220 },
   reasonChip: {

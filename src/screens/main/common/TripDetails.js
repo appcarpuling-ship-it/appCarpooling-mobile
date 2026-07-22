@@ -19,21 +19,22 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
 
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, vehicles } = route.params;
     const { showAlert } = useAlert();
-    const { isDarkMode } = useColors();
     const { user } = useAuth();
 
-    const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-    const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-    const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-    const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-    const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-    const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+    const ui          = useUI();
+    const bg          = ui.bg;
+    const cardBg      = ui.surface;
+    const border      = ui.border;
+    const textPrimary = ui.text;
+    const textMuted   = ui.textMuted;
+    const divider     = ui.bg;
 
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -339,7 +340,7 @@ const TripDetails = ({ navigation, route }) => {
                                     ]}>
                                         <View style={[
                                             styles.toggleCircle,
-                                            { backgroundColor: formData[p.key] ? (isDarkMode ? '#000000' : '#FFFFFF') : textMuted },
+                                            { backgroundColor: formData[p.key] ? (ui.invertText) : textMuted },
                                             formData[p.key] && styles.toggleOn,
                                         ]} />
                                     </View>
@@ -351,7 +352,7 @@ const TripDetails = ({ navigation, route }) => {
                         <TouchableOpacity
                             style={[
                                 styles.submitBtn,
-                                { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
+                                { backgroundColor: ui.invertBg },
                                 loading && { opacity: 0.6 },
                             ]}
                             onPress={handleCreateTrip}
@@ -359,8 +360,8 @@ const TripDetails = ({ navigation, route }) => {
                             activeOpacity={0.85}
                         >
                             {loading
-                                ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} size="small" />
-                                : <Text style={[styles.submitText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+                                ? <ActivityIndicator color={ui.invertText} size="small" />
+                                : <Text style={[styles.submitText, { color: ui.invertText }]}>
                                     Publicar viaje
                                   </Text>
                             }
@@ -483,7 +484,7 @@ const styles = StyleSheet.create({
 
     sectionLabel: {
         fontSize: 11,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
         letterSpacing: 1,
         textTransform: 'uppercase',
         marginLeft: 4,
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
     },
     routeText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
     routeMeta: {
         fontSize: 13,
@@ -566,7 +567,7 @@ const styles = StyleSheet.create({
     },
     chipText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
 
     // Input row
@@ -587,7 +588,7 @@ const styles = StyleSheet.create({
     },
     capacityHint: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
 
     // Preferences
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
     prefText: {
         flex: 1,
         fontSize: 15,
-        fontWeight: '500',
+        fontFamily: 'Sora_500Medium',
     },
     toggle: {
         width: 46,
@@ -635,7 +636,7 @@ const styles = StyleSheet.create({
     },
     submitText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
     },
 
     // Modal vehículo
@@ -649,7 +650,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     modalCancel: { fontSize: 16 },
-    modalTitle:  { fontSize: 17, fontWeight: '600' },
+    modalTitle:  { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
     vehicleOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -659,7 +660,7 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     vehicleInfo: { flex: 1 },
-    vehicleName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+    vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginBottom: 2 },
     vehiclePlateTxt: { fontSize: 13 },
 
     // Pickers
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
     },
     pickerTitle: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Sora_600SemiBold',
         textAlign: 'center',
         paddingVertical: 14,
         borderBottomWidth: StyleSheet.hairlineWidth,

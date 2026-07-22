@@ -17,16 +17,19 @@ import { ENDPOINTS } from '../../../config/api';
 import useColors from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
+import { useUI } from '../../../theme/ui';
 
 const EditTripScreen = ({ navigation, route }) => {
   const { showAlert } = useAlert();
   const { isDarkMode } = useColors();
 
-  const bg      = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg  = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border  = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const tp      = isDarkMode ? '#FFFFFF' : '#000000';
-  const tm      = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+  const ui = useUI();
+  const bg      = ui.bg;
+  const cardBg  = ui.surface;
+  const border  = ui.border;
+  const tp      = ui.invertBg;
+  const tm      = ui.textMuted;
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal]     = useState(false);
@@ -577,14 +580,14 @@ const styles = StyleSheet.create({
   // Estados vacíos/carga
   centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   loadingText: { marginTop: 12, fontSize: 14 },
-  emptyTitle:  { fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 },
+  emptyTitle:  { fontSize: 18, fontFamily: 'Sora_700Bold', marginTop: 16, marginBottom: 8 },
   emptySubtext:{ fontSize: 14, textAlign: 'center', lineHeight: 20 },
   emptyBtn:    { marginTop: 24, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14 },
 
   // Secciones
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -620,8 +623,8 @@ const styles = StyleSheet.create({
   routeDotSm: { width: 7,  height: 7,  borderRadius: 3.5 },
   routeLine:  { width: 1, flex: 1, marginTop: 4, minHeight: 20 },
   routeInfo:  { flex: 1, paddingBottom: 14 },
-  routeTag:   { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  routeAddress: { fontSize: 14, fontWeight: '500' },
+  routeTag:   { fontSize: 10, fontFamily: 'Sora_700Bold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  routeAddress: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   routeCity:    { fontSize: 12, marginTop: 2 },
 
   // Stepper
@@ -631,7 +634,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
-  stepperVal: { fontSize: 18, fontWeight: '700', minWidth: 24, textAlign: 'center' },
+  stepperVal: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 24, textAlign: 'center' },
 
   // Botón
   saveBtn: {
@@ -640,7 +643,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  saveBtnText: { fontSize: 16, fontWeight: '700' },
+  saveBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 
   // Bottom sheet (vehículo)
   sheetOverlay: {
@@ -674,7 +677,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700' },
+  sheetTitle: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   vehicleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -683,7 +686,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  vehicleName:  { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  vehicleName:  { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginBottom: 2 },
   vehiclePlate: { fontSize: 13 },
 
   // Modal centrado (fecha/hora)

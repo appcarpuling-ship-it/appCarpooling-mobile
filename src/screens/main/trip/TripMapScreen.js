@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
   waypointMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   driverMarker: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  waypointNumber: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  waypointNumber: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   stopTooltip: {
     position: 'absolute',
     bottom: 40,
@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
-  stopTooltipLabel: { fontSize: 11, fontWeight: '600', opacity: 0.5, marginBottom: 4 },
-  stopTooltipAddress: { fontSize: 14, fontWeight: '600' },
+  stopTooltipLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', opacity: 0.5, marginBottom: 4 },
+  stopTooltipAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default TripMapScreen;

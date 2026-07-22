@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
+import { useUI } from '../../theme/ui';
 
 const VerificationScreen = ({ route, navigation }) => {
   const { email, sendCodeOnMount } = route.params || {};
@@ -25,11 +26,13 @@ const VerificationScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
   const { isDarkMode } = useColors();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui = useUI();
+
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const autoSendStarted = useRef(false);
@@ -150,7 +153,7 @@ const VerificationScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.btn,
-              { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
+              { backgroundColor: ui.invertBg },
               !isReady && { opacity: 0.4 },
             ]}
             onPress={handleVerify}
@@ -158,8 +161,8 @@ const VerificationScreen = ({ route, navigation }) => {
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Verificar código</Text>
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Verificar código</Text>
             }
           </TouchableOpacity>
 
@@ -184,16 +187,16 @@ const styles = StyleSheet.create({
   content:    { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
   header:     { alignItems: 'center', marginBottom: 32 },
   iconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title:      { fontSize: 26, fontWeight: '700', marginBottom: 8 },
+  title:      { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 8 },
   subtitle:   { fontSize: 14, marginBottom: 4 },
-  email:      { fontSize: 15, fontWeight: '600' },
+  email:      { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
-  codeInput:  { height: 72, fontSize: 32, fontWeight: '700', textAlign: 'center', letterSpacing: 12 },
+  codeInput:  { height: 72, fontSize: 32, fontFamily: 'Sora_700Bold', textAlign: 'center', letterSpacing: 12 },
   btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  btnText:    { fontSize: 16, fontWeight: '700' },
+  btnText:    { fontSize: 16, fontFamily: 'Sora_700Bold' },
   resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   resendText: { fontSize: 14 },
-  resendLink: { fontSize: 14, fontWeight: '600' },
+  resendLink: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default VerificationScreen;

@@ -20,8 +20,10 @@ import { useColors } from '../../../hooks/useColors';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
+import { useUI } from '../../../theme/ui';
 
 const MyTripsScreen = ({ navigation }) => {
+  const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
@@ -174,13 +176,13 @@ const MyTripsScreen = ({ navigation }) => {
   const getStatusConfig = (status) => {
     switch (status) {
       case 'active':
-        return { color: isDarkMode ? '#34D399' : '#10B981', bg: isDarkMode ? '#064E3B' : '#D1FAE5', text: 'Activo' };
+        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#064E3B' : '#D1FAE5', text: 'Activo' };
       case 'started':
-        return { color: isDarkMode ? '#FBBF24' : '#F59E0B', bg: isDarkMode ? '#78350F' : '#FEF3C7', text: 'Viaje iniciado' };
+        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#78350F' : '#FEF3C7', text: 'Viaje iniciado' };
       case 'completed':
-        return { color: isDarkMode ? '#60A5FA' : '#3B82F6', bg: isDarkMode ? '#1E3A5F' : '#DBEAFE', text: 'Completado' };
+        return { color: isDarkMode ? ui.text : ui.text, bg: isDarkMode ? '#1E3A5F' : '#DBEAFE', text: 'Completado' };
       case 'cancelled':
-        return { color: isDarkMode ? '#F87171' : '#EF4444', bg: isDarkMode ? '#7F1D1D' : '#FEE2E2', text: 'Cancelado' };
+        return { color: isDarkMode ? ui.textMuted : ui.textMuted, bg: isDarkMode ? '#7F1D1D' : '#FEE2E2', text: 'Cancelado' };
       default:
         return { color: colors.textTertiary, bg: colors.borderLight, text: status };
     }
@@ -227,12 +229,12 @@ const MyTripsScreen = ({ navigation }) => {
   const renderTripItem = ({ item }) => {
     const { color, text: statusText } = getStatusConfig(item.status);
     const freeNow = tripRemainingSeats(item);
-    const textPrimary   = isDarkMode ? '#FFFFFF' : '#000000';
-    const textMuted     = isDarkMode ? '#6B7280' : '#9CA3AF';
+    const textPrimary   = ui.invertBg;
+    const textMuted     = ui.textMuted;
     const cardBg        = colors.cardBackground;
-    const divider       = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+    const divider       = ui.bg;
     const accent        = textPrimary;
-    const accentInv     = isDarkMode ? '#000000' : '#FFFFFF';
+    const accentInv     = ui.invertText;
     const isActive      = item.status === 'started';
 
     const activeTxt   = isActive ? '#FFFFFF' : textPrimary;
@@ -363,9 +365,9 @@ const MyTripsScreen = ({ navigation }) => {
 
   const filteredTrips = getFilteredTrips();
 
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -464,7 +466,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabText: { fontSize: 14, fontWeight: '600' },
+  tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   listContent: { padding: 16, gap: 12 },
 
@@ -489,7 +491,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 14,
     borderWidth: 0.8,
-    borderColor: '#F59E0B',
+    borderColor: '#8A8A8E',
   },
   activeHeader: {
     flexDirection: 'row',
@@ -500,11 +502,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#000000',
   },
   activeLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -526,7 +528,7 @@ const styles = StyleSheet.create({
   routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
   dotDest:   { width: 9, height: 9, borderRadius: 2 },
   routeLabels: { flex: 1 },
-  cityText:  { fontSize: 14, fontWeight: '600' },
+  cityText:  { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   // Status pill
   statusPill: {
@@ -535,7 +537,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
-  statusPillText: { fontSize: 11, fontWeight: '600' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
   // Meta row
   metaRow: {
@@ -567,7 +569,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
   },
-  footerBtnText: { fontSize: 13, fontWeight: '600' },
+  footerBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   footerBadge: {
     borderRadius: 10,
     minWidth: 18,
@@ -576,7 +578,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 5,
   },
-  footerBadgeText: { fontSize: 10, fontWeight: '700' },
+  footerBadgeText: { fontSize: 10, fontFamily: 'Sora_700Bold' },
   footerBtnOutline: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -587,14 +589,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 5,
   },
-  footerBtnOutlineText: { fontSize: 13, fontWeight: '500' },
+  footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   // Empty
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     gap: 10, padding: 32,
   },
-  emptyTitle:    { fontSize: 16, fontWeight: '600', marginTop: 4 },
+  emptyTitle:    { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
   emptySubtitle: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });
 

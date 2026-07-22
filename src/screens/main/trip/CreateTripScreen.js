@@ -44,14 +44,12 @@ const CreateTripScreen = ({ navigation }) => {
     sectionTitle: {
       fontSize: fontSize.lg,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       color: colors.textPrimary,
       marginLeft: spacing.sm,
     },
     label: {
       fontSize: fontSize.md,
       fontFamily: fontFamily.medium,
-      fontWeight: '500',
       color: colors.textSecondary,
       marginBottom: spacing.md,
     },
@@ -118,13 +116,11 @@ const CreateTripScreen = ({ navigation }) => {
       color: '#ffffff',
       fontSize: fontSize.lg,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       marginLeft: spacing.sm,
     },
     emptyText: {
       fontSize: fontSize.xl,
       fontFamily: fontFamily.bold,
-      fontWeight: '600',
       color: colors.textSecondary,
       marginTop: spacing.lg,
       textAlign: 'center',
@@ -146,7 +142,6 @@ const CreateTripScreen = ({ navigation }) => {
       color: colors.textPrimary,
       fontSize: fontSize.md,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
     },
     modalContainer: {
       backgroundColor: colors.surface,
@@ -171,7 +166,6 @@ const CreateTripScreen = ({ navigation }) => {
     modalTitle: {
       fontSize: fontSize.lg,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       color: colors.textPrimary,
     },
     modalPicker: {
@@ -201,13 +195,11 @@ const CreateTripScreen = ({ navigation }) => {
     modalButtonText: {
       fontSize: fontSize.md,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       color: colors.textPrimary,
     },
     modalButtonCancel: {
       fontSize: fontSize.md,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       color: colors.textSecondary,
     },
     vehicleItem: {
@@ -228,7 +220,6 @@ const CreateTripScreen = ({ navigation }) => {
     vehicleName: {
       fontSize: fontSize.md,
       fontFamily: fontFamily.semiBold,
-      fontWeight: '600',
       color: colors.textPrimary,
       marginBottom: spacing.xs,
     },

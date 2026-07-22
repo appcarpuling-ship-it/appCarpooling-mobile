@@ -103,13 +103,6 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
             );
           })}
 
-          {/* La bajadita: círculo del color del fondo, más grande que el botón
-              y concéntrico con él. Va DENTRO de la barra, que tiene
-              overflow:hidden, así solo se ve el arco que le come el borde y no
-              queda ningún aro por encima. */}
-          <View pointerEvents="none" style={styles.cutoutLayer}>
-            <View style={[styles.cutout, { backgroundColor: ui.bg }]} />
-          </View>
         </View>
 
         {/* El botón, fuera de la barra para que el recorte no lo tape */}
@@ -148,11 +141,6 @@ const styles = StyleSheet.create({
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 
   fabSpacer: { width: 54 },
-  // Capa que llena la barra y centra el círculo en horizontal
-  cutoutLayer: { ...StyleSheet.absoluteFillObject, alignItems: 'center' },
-  // Concéntrico con el botón: su centro cae 9px dentro de la barra, así que
-  // arrancando en -24 el borde inferior queda a 42 y esa es la bajadita.
-  cutout:    { width: 66, height: 66, borderRadius: 999, marginTop: -24 },
 
   // top:0 de barWrap = 18px por encima del borde de la barra
   fabLayer:  { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },

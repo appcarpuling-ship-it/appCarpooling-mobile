@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 });
 

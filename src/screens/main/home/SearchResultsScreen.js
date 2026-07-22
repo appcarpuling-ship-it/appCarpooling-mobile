@@ -18,6 +18,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { useUI } from '../../../theme/ui';
 
 const SORT_OPTIONS = ['price', 'time'];
 
@@ -43,8 +44,9 @@ const SearchResultsScreen = ({ route, navigation }) => {
   const cardBg = isDarkMode ? '#292929' : '#FFFFFF';
   const cardBorder = isDarkMode ? '#404040' : '#E5E7EB';
   const textPrimary = isDarkMode ? '#FFFFFF' : '#1F2937';
-  const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+
+  const ui = useUI();  const textMuted = ui.textMuted;
+  const textSecondary = ui.textMuted;
 
   const loadResults = useCallback(async (sort, pageNum = 1, reset = true) => {
     if (fetchingRef.current) return;
@@ -163,7 +165,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="people-outline" size={13} color={textMuted} />
-              <Text style={[styles.metaText, { color: freeSeats === 0 ? colors.error : textMuted }]}>
+              <Text style={[styles.metaText, { color: freeSeats === 0 ? ui.textMuted : textMuted }]}>
                 {freeSeats === 0 ? 'Completo' : `${freeSeats} libre${freeSeats !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -235,7 +237,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
             onPress={() => navigation.goBack()}
             style={[styles.tryAgainBtn, { backgroundColor: textPrimary }]}
           >
-            <Text style={[styles.tryAgainText, { color: isDarkMode ? '#161616' : '#FFFFFF' }]}>
+            <Text style={[styles.tryAgainText, { color: ui.bg }]}>
               Modificar búsqueda
             </Text>
           </TouchableOpacity>
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     flexShrink: 1,
   },
   resultCount: {
@@ -296,7 +298,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  sortText: { fontSize: 12, fontWeight: '500' },
+  sortText: { fontSize: 12, fontFamily: 'Sora_500Medium' },
   list: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -323,14 +325,14 @@ const styles = StyleSheet.create({
   routeText: {
     flex: 1,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
     lineHeight: 18,
   },
   arrow: { marginTop: 1, flexShrink: 0 },
   price: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
-    color: '#10B981',
+    fontFamily: 'Sora_700Bold',
+    color: '#000000',
     flexShrink: 0,
     marginLeft: 2,
   },
@@ -352,12 +354,12 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   driverName: {
     flex: 1,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -366,7 +368,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   metaRow: {
     flexDirection: 'row',
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loadingText: { fontSize: 14, marginTop: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', marginTop: 4 },
+  emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   tryAgainBtn: {
     marginTop: 12,
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  tryAgainText: { fontSize: 14, fontWeight: '600' },
+  tryAgainText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default SearchResultsScreen;

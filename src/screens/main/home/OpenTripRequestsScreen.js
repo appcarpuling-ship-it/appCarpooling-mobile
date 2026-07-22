@@ -17,6 +17,7 @@ import { buildImageUri } from '../../../services/apiService';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
 import { PROVINCE_IMAGES } from '../../../constants/provinceImages';
 import { getDepartmentsForProvince } from '../../../constants/departmentImages';
+import { useUI } from '../../../theme/ui';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -24,8 +25,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const { isAuthenticated, user } = useAuth();
 
   const dark          = isDarkMode;
-  const bg            = dark ? '#161616' : '#F9FAFB';
-  const cardBg        = dark ? '#222222' : '#F7F7F7';
+
+  const ui = useUI();  const bg            = ui.bg;
+  const cardBg        = ui.surface;
   const textPrimary   = dark ? '#FFFFFF'  : '#1F2937';
   const textMuted     = dark ? '#9CA3AF'  : '#6B7280';
   const divider       = dark ? '#2A2A2A'  : '#F0F0F0';
@@ -151,18 +153,19 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     const title = step === 'province' ? provTitle : selectedProv;
 
     return (
-      <Modal transparent animationType="fade" visible={visible} onRequestClose={handleClose}>
+      <Modal transparent animationType="slide" visible={visible} onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: dark ? '#161616' : '#FFFFFF' }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
+          <View style={[styles.pickerContainer, { backgroundColor: ui.bg }]}>
+            <View style={styles.pickerHeader}>
               {step === 'department' && (
                 <TouchableOpacity onPress={() => onStepChange('province')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 10 }}>
                   <Ionicons name="arrow-back" size={22} color={textPrimary} />
                 </TouchableOpacity>
               )}
               <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={24} color={textPrimary} />
+              <TouchableOpacity style={[styles.pickerClose, { backgroundColor: ui.surface }]} onPress={handleClose}>
+                <Ionicons name="close" size={19} color={textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -176,9 +179,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => {
                   const isSelected = selectedProv === item.key;
-                  const cardBgItem = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint    = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textMuted;
+                  const cardBgItem = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint    = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textMuted;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
@@ -203,7 +206,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
             {step === 'department' && (
               <>
                 <TouchableOpacity
-                  style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor }]}
+                  style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor }]}
                   onPress={() => { onCitySelect(''); handleClose(); }}
                   activeOpacity={0.75}
                 >
@@ -218,8 +221,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
                   contentContainerStyle={{ paddingTop: 12, paddingBottom: 24, gap: 12 }}
                   showsVerticalScrollIndicator={false}
                   renderItem={({ item }) => {
-                    const cardBgItem = dark ? '#252525' : '#FFFFFF';
-                    const imgTint    = dark ? '#FFFFFF' : '#1F2937';
+                    const cardBgItem = ui.surface;
+                    const imgTint    = ui.text;
                     return (
                       <TouchableOpacity
                         style={[styles.provinceGridItem, { flex: 1, backgroundColor: cardBgItem, borderColor }]}
@@ -321,7 +324,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           {passenger.avatar ? (
             <Image source={{ uri: buildImageUri(passenger.avatar) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Text style={[styles.initials, { color: textMuted }]}>{initials}</Text>
             </View>
           )}
@@ -388,9 +391,9 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     );
   };
 
-  const chipActive  = { backgroundColor: dark ? '#FFFFFF' : '#000000', borderColor: dark ? 'transparent' : '#000000' };
+  const chipActive  = { backgroundColor: ui.invertBg, borderColor: dark ? 'transparent' : '#000000' };
   const chipDefault = { backgroundColor: dark ? '#292929' : '#FFFFFF', borderColor: borderColor };
-  const chipTextActive  = { color: dark ? '#000000' : '#FFFFFF' };
+  const chipTextActive  = { color: ui.invertText };
   const chipTextDefault = { color: textMuted };
 
   return (
@@ -437,8 +440,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
               onPress={clearFilters}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle-outline" size={14} color={dark ? '#F87171' : '#DC2626'} />
-              <Text style={[styles.filterChipText, { color: dark ? '#F87171' : '#DC2626' }]}>Limpiar</Text>
+              <Ionicons name="close-circle-outline" size={14} color={textMuted} />
+              <Text style={[styles.filterChipText, { color: textMuted }]}>Limpiar</Text>
             </TouchableOpacity>
           )}
         </ScrollView>
@@ -510,15 +513,15 @@ const styles = StyleSheet.create({
   filtersSection: { borderBottomWidth: StyleSheet.hairlineWidth },
   filtersRow:     { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   filterChip:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  filterChipText: { fontSize: 13, fontWeight: '500' },
+  filterChipText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   card:            { borderRadius: 14, marginBottom: 12 },
   headerRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14 },
   avatar:          { width: 40, height: 40, borderRadius: 20 },
   avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  initials:        { fontSize: 14, fontWeight: '600' },
+  initials:        { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   headerInfo:      { flex: 1, gap: 3 },
-  passengerName:   { fontSize: 15, fontWeight: '600' },
+  passengerName:   { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   dateText:        { fontSize: 12 },
   innerDivider:    { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   routeRow:        { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, gap: 14 },
@@ -527,26 +530,27 @@ const styles = StyleSheet.create({
   routeLine:       { width: 1.5, height: 28, marginVertical: 3 },
   routeDotFilled:  { width: 9, height: 9, borderRadius: 5 },
   routeInfo:       { flex: 1 },
-  routeLabel:      { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  routeValue:      { fontSize: 14, fontWeight: '500' },
+  routeLabel:      { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  routeValue:      { fontSize: 14, fontFamily: 'Sora_500Medium' },
   footer:          { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth },
   footerItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerText:      { fontSize: 12 },
 
   // Picker modals
   modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerContainer: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' },
-  pickerHeader:    { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: StyleSheet.hairlineWidth },
-  pickerTitle:     { fontSize: 17, fontWeight: '600' },
+  pickerContainer: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%' },
+  pickerHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 14 },
+  pickerTitle:     { fontSize: 24, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  pickerClose:     { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   pickerLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   pickerButtons:   { flexDirection: 'row', gap: 12, padding: 16 },
-  pickerButton:    { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
-  pickerButtonText: { fontSize: 15, fontWeight: '600' },
+  pickerButton:    { flex: 1, paddingVertical: 14, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
+  pickerButtonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
 
-  provinceGridItem:  { borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' },
+  provinceGridItem:  { borderRadius: 18, padding: 14, alignItems: 'center' },
   provinceGridImage: { width: 48, height: 48, marginBottom: 8 },
-  provinceGridLabel: { fontSize: 12, fontWeight: '500', textAlign: 'center' },
-  deptAllItem:       { borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center', marginHorizontal: 16, marginTop: 16 },
+  provinceGridLabel: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center' },
+  deptAllItem:       { borderRadius: 18, padding: 14, alignItems: 'center', marginHorizontal: 24, marginTop: 16 },
 });
 
 export default OpenTripRequestsScreen;

@@ -9,13 +9,14 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { useUI } from '../../../theme/ui';
 
 const STATUS_LABELS = {
-  open: { label: 'Abierta', color: '#22C55E' },
-  awaiting_payment: { label: 'Pago pendiente', color: '#F59E0B' },
-  paid: { label: 'Confirmada', color: '#3B82F6' },
-  cancelled: { label: 'Cancelada', color: '#EF4444' },
-  expired: { label: 'Vencida', color: '#9CA3AF' }
+  open: { label: 'Abierta', solid: true },
+  awaiting_payment: { label: 'Pago pendiente', solid: true },
+  paid: { label: 'Confirmada', solid: true },
+  cancelled: { label: 'Cancelada', solid: false },
+  expired: { label: 'Vencida', solid: false }
 };
 
 const isUpcoming = (req) => {
@@ -29,16 +30,14 @@ const isUpcoming = (req) => {
 const MyTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
-
-  const dark = isDarkMode;
-  const bg = dark ? '#161616' : '#F9FAFB';
-  const cardBg = dark ? '#1F1F1F' : '#FFFFFF';
-  const border = dark ? '#333333' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted = dark ? '#9CA3AF' : '#6B7280';
-  const accent = dark ? '#FFFFFF' : '#1F2937';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
-  const divider = dark ? '#2A2A2A' : '#F3F4F6';
+  const ui = useUI();
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const border = ui.border;
+  const textPrimary = ui.text;
+  const textMuted = ui.textMuted;
+  const accent = ui.text;  const accentInverse = ui.invertText;
+  const divider = ui.bg;
 
   const [requests, setRequests] = useState([]);
   const [page, setPage] = useState(1);
@@ -114,8 +113,8 @@ const MyTripRequestsScreen = ({ navigation }) => {
             <Ionicons name="arrow-forward" size={13} color={textMuted} />
             <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.destination.city}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '22' }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.solid ? ui.invertBg : ui.surface }]}>
+            <Text style={[styles.statusText, { color: statusInfo.solid ? ui.invertText : textMuted }]}>{statusInfo.label}</Text>
           </View>
         </View>
 
@@ -133,8 +132,8 @@ const MyTripRequestsScreen = ({ navigation }) => {
         {item.status === 'open' && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
             <View style={styles.metaItem}>
-              <Ionicons name="people-outline" size={14} color={pendingApps > 0 ? '#F59E0B' : textMuted} />
-              <Text style={[styles.metaText, { color: pendingApps > 0 ? '#F59E0B' : textMuted }]}>
+              <Ionicons name="people-outline" size={14} color={textMuted} />
+              <Text style={[styles.metaText, { color: pendingApps > 0 ? ui.textMuted : textMuted }]}>
                 {totalApps}/5 postulaciones
                 {pendingApps > 0 ? ` · ${pendingApps} esperando respuesta` : ''}
               </Text>
@@ -144,7 +143,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
 
         {item.status === 'awaiting_payment' && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: '#F59E0B', fontSize: 12, flex: 1 }}>
+            <Text style={{ color: ui.textMuted, fontSize: 12, flex: 1 }}>
               Conductor aceptado — pendiente de pago
             </Text>
             <Ionicons name="chevron-forward" size={15} color={textMuted} />
@@ -153,7 +152,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
 
         {item.status === 'paid' && item.createdTrip && (
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: '#22C55E', fontSize: 12, flex: 1 }}>
+            <Text style={{ color: ui.text, fontSize: 12, flex: 1 }}>
               ¡Viaje confirmado!
             </Text>
             <Ionicons name="chevron-forward" size={15} color={textMuted} />
@@ -232,20 +231,20 @@ const styles = StyleSheet.create({
   centerFlex: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   emptyText: { fontSize: 15 },
   createBtn: { marginTop: 8, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
-  createBtnText: { fontWeight: '700', fontSize: 14 },
+  createBtnText: { fontFamily: 'Sora_700Bold', fontSize: 14 },
 
   // Tabs
   tabsContainer: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
   tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabText: { fontSize: 14, fontWeight: '600' },
+  tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   list: { padding: 16, gap: 12 },
   card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8 },
-  city: { fontSize: 14, fontWeight: '600', flex: 1 },
+  city: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1 },
   statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  statusText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   meta: { borderTopWidth: 1, paddingTop: 8, gap: 5 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 12 },

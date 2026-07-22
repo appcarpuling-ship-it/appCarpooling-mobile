@@ -16,6 +16,7 @@ import { post_public } from '../../services/apiService';
 import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
 import { useColors } from '../../hooks/useColors';
+import { useUI } from '../../theme/ui';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -23,11 +24,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
   const { isDarkMode } = useColors();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui = useUI();
+
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const handleResetPassword = async () => {
@@ -88,14 +91,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
           {/* Button */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleResetPassword}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Enviar código</Text>
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Enviar código</Text>
             }
           </TouchableOpacity>
 
@@ -111,14 +114,14 @@ const styles = StyleSheet.create({
   backBtn:      { width: 44, height: 44, justifyContent: 'center', marginBottom: 24 },
   header:       { alignItems: 'center', marginBottom: 32 },
   iconCircle:   { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title:        { fontSize: 26, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
+  title:        { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 10, textAlign: 'center' },
   subtitle:     { fontSize: 14, textAlign: 'center', lineHeight: 22 },
   card:         { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
   inputRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   inputIcon:    { marginRight: 10 },
   input:        { flex: 1, height: 52, fontSize: 15 },
   btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
-  btnText:      { fontSize: 16, fontWeight: '700' },
+  btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
 export default ForgotPasswordScreen;

@@ -32,6 +32,7 @@ import {
 import { useColors } from '../../../hooks/useColors';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -70,15 +71,16 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const waypointDebounceTimers = useRef([]);
   const mapSelectionModeRef = useRef(null);
   const mapSelectionIdleTimerRef = useRef(null);
-  const lastRegionRef = useRef(region);
   const hasMapGestureForSelectionRef = useRef(false);
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
   const iconBg      = isDarkMode ? '#2A2A2A' : '#F3F4F6';
 
   const [vehicles, setVehicles] = useState([]);
@@ -97,6 +99,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     latitude: -34.6037, longitude: -58.3816,
     latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA,
   });
+
+  // Va despues de region: arriba quedaba en zona muerta y useRef(region)
+  // lanzaba ReferenceError al abrir la pantalla.
+  const lastRegionRef = useRef(region);
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
   const [waypointMarkers, setWaypointMarkers] = useState([]);
@@ -685,12 +691,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             Necesitás registrar un vehículo antes de crear un viaje
           </Text>
           <TouchableOpacity
-            style={[styles.emptyCtaBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+            style={[styles.emptyCtaBtn, { backgroundColor: ui.invertBg }]}
             onPress={handleGoToVehicles}
             activeOpacity={0.85}
           >
-            <Text style={[styles.emptyCtaText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Ir a mis vehículos</Text>
-            <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 4 }} />
+            <Text style={[styles.emptyCtaText, { color: ui.invertText }]}>Ir a mis vehículos</Text>
+            <Ionicons name="chevron-forward" size={18} color={ui.invertText} style={{ marginLeft: 4 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -845,7 +851,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                     {wp.address ? [wp.address, wp.city].filter(Boolean).join(', ') : `Parada ${i + 1}`}
                   </Text>
                   <TouchableOpacity onPress={() => removeWaypoint(i)} style={styles.rowBtn}>
-                    <Ionicons name="close-circle" size={17} color={wp.address ? '#DC2626' : textMuted} />
+                    <Ionicons name="close-circle" size={17} color={wp.address ? ui.textMuted : textMuted} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -879,14 +885,14 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
                 <Text style={[styles.routeMeta, { color: textMuted }]}>{distance} · {duration}</Text>
               )} */}
               <TouchableOpacity
-                style={[styles.confirmBtn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loadingRoute && { opacity: 0.7 }]}
+                style={[styles.confirmBtn, { backgroundColor: ui.invertBg }, loadingRoute && { opacity: 0.7 }]}
                 onPress={handleContinueToDetails}
                 disabled={loadingVehicles || loadingRoute}
                 activeOpacity={0.85}
               >
                 {loadingRoute
-                  ? <ActivityIndicator size="small" color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                  : <Text style={[styles.confirmText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Confirmar ruta</Text>
+                  ? <ActivityIndicator size="small" color={ui.invertText} />
+                  : <Text style={[styles.confirmText, { color: ui.invertText }]}>Confirmar ruta</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -1117,8 +1123,8 @@ const styles = StyleSheet.create({
     zIndex: 50,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
-  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
-  selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
+  selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
 
   // Mini sheet
@@ -1136,7 +1142,7 @@ const styles = StyleSheet.create({
     minHeight: 48, borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },
-  miniRowText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  miniRowText: { flex: 1, fontSize: 15, fontFamily: 'Sora_500Medium' },
   miniAddText: { flex: 1, fontSize: 14, marginLeft: 4 },
   rowBtn: { padding: 4 },
   mapIconBtn: { padding: 8, borderRadius: 8 },
@@ -1153,7 +1159,7 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 9, borderRadius: 10,
   },
-  mapPillText: { fontSize: 12, fontWeight: '600' },
+  mapPillText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   // Route section
   routeSection: {
@@ -1162,7 +1168,7 @@ const styles = StyleSheet.create({
   },
   routeMeta: { fontSize: 13, textAlign: 'center' },
   confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  confirmText: { fontSize: 16, fontWeight: '700' },
+  confirmText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 
   // Timeline dots (shared)
   tlDotOrigin: { width: 8, height: 8, borderRadius: 4 },
@@ -1196,7 +1202,7 @@ const styles = StyleSheet.create({
   results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
   resultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultMain: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   resultSub:  { fontSize: 12, marginTop: 2 },
 
   // Markers
@@ -1204,12 +1210,12 @@ const styles = StyleSheet.create({
   destMarkerOuter: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },
   waypointMarker: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  waypointMarkerText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  waypointMarkerText: { fontSize: 11, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
 
   // Loading
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 300 },
   loadingBox: { borderRadius: 16, padding: 24, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
-  loadingText: { fontSize: 14, fontWeight: '500' },
+  loadingText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Empty
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
@@ -1225,9 +1231,9 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', textAlign: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center' },
 });
 

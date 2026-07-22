@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     letterSpacing: 0.2,
     marginBottom: 8,
     marginLeft: 4,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     lineHeight: 22,
   },
   answer: {

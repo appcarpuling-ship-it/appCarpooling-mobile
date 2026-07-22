@@ -14,12 +14,13 @@ import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } f
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
+import { useUI } from '../../../theme/ui';
 
 const STATUS_MAP = {
-  open:             { label: 'Abierta',       color: '#22C55E' },
-  awaiting_payment: { label: 'Pago pendiente', color: '#F59E0B' },
-  paid:             { label: 'Confirmada',     color: '#3B82F6' },
-  cancelled:        { label: 'Cancelada',      color: '#EF4444' },
+  open:             { label: 'Abierta',       solid: true },
+  awaiting_payment: { label: 'Pago pendiente', solid: true },
+  paid:             { label: 'Confirmada',     solid: true },
+  cancelled:        { label: 'Cancelada',      solid: false },
   expired:          { label: 'Vencida',        color: '#9CA3AF' },
 };
 
@@ -31,14 +32,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const { showAlert }  = useAlert();
 
   const dark        = isDarkMode;
-  const bg          = dark ? '#161616' : '#F9FAFB';
-  const cardBg      = dark ? '#1F1F1F' : '#FFFFFF';
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
   const textPrimary = dark ? '#FFFFFF'  : '#1F2937';
   const textSecondary = dark ? '#D1D5DB' : '#374151';
   const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
   const divider     = dark ? '#2A2A2A'  : '#E5E7EB';
-  const accent      = dark ? '#FFFFFF'  : '#1F2937';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const accent      = dark ? '#FFFFFF'  : '#1F2937';  const accentInverse = ui.invertText;
 
   const [request,        setRequest]        = useState(null);
   const [loading,        setLoading]        = useState(true);
@@ -232,9 +233,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Status badge */}
         <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
-            <Text style={[styles.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
+            <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
           </View>
         </View>
 
@@ -415,7 +416,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   </View>
                   {app.status === 'rejected' ? (
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#FEE2E2' }}>
-                      <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
+                      <Text style={{ color: ui.textMuted, fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
                     </View>
                   ) : (
                     <Ionicons name="chevron-forward" size={16} color={textMuted} />
@@ -434,15 +435,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={styles.pendingWrap}>
               <View style={styles.pendingTopRow}>
                 <View style={styles.pendingIndicator}>
-                  <View style={[styles.pendingDot, { backgroundColor: '#F59E0B' }]} />
-                  <Text style={[styles.pendingLabel, { color: '#F59E0B' }]}>Pago pendiente</Text>
+                  <View style={[styles.pendingDot, { backgroundColor: ui.textMuted }]} />
+                  <Text style={[styles.pendingLabel, { color: ui.textMuted }]}>Pago pendiente</Text>
                 </View>
               </View>
               <Text style={[{ fontSize: 13, color: textMuted, marginBottom: 14 }]}>
                 Tu conductor está reservado. Completá el pago para confirmar el viaje.
               </Text>
               <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: '#F59E0B' }]}
+                style={[styles.footerBtn, { backgroundColor: ui.textMuted }]}
                 onPress={() => setCheckoutModal({ visible: true, paymentUrl: request.paymentData.paymentUrl })}
                 activeOpacity={0.85}
               >
@@ -475,14 +476,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isAcceptedDriver && request.status === 'paid' && (
             <View style={[styles.footerRow, { marginTop: 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancelTrip}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar viaje</Text>
+                  ? <ActivityIndicator size="small" color={ui.textMuted} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar viaje</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -493,7 +494,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
               <View style={[styles.statusFooter, { backgroundColor: dark ? '#0D2B1A' : '#F0FDF4' }]}>
                 <Ionicons name="checkmark-circle" size={17} color="#22C55E" />
-                <Text style={[styles.statusFooterText, { color: '#22C55E' }]}>Ya te postulaste a este viaje</Text>
+                <Text style={[styles.statusFooterText, { color: ui.text }]}>Ya te postulaste a este viaje</Text>
               </View>
             ) : canApply ? (
               <TouchableOpacity
@@ -513,14 +514,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: dark ? '#4B1A1A' : '#FECACA', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={dark ? '#F87171' : '#DC2626'} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: dark ? '#F87171' : '#DC2626' }]}>Cancelar solicitud</Text>
+                  ? <ActivityIndicator size="small" color={ui.textMuted} />
+                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar solicitud</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -577,7 +578,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                           <Text style={[styles.vehicleName, { color: textPrimary }]}>{v.brand} {v.model} {v.year}</Text>
                           <Text style={{ color: textMuted, fontSize: 12 }}>{v.color} · {v.licensePlate}</Text>
                           {insufficient && (
-                            <Text style={{ color: '#EF4444', fontSize: 11, marginTop: 2 }}>
+                            <Text style={{ color: ui.textMuted, fontSize: 11, marginTop: 2 }}>
                               Capacidad insuficiente ({v.capacity} de {request.seatsNeeded} requeridos)
                             </Text>
                           )}
@@ -613,11 +614,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6,
   },
   statusDot:  { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: '600' },
+  statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Section
   section:      { paddingHorizontal: 20, paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth },
-  sectionLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
+  sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
 
   // Route
   routeRow:       { flexDirection: 'row', gap: 16 },
@@ -627,8 +628,8 @@ const styles = StyleSheet.create({
   routeDotDest:   { width: 10, height: 10, borderRadius: 5 },
   routeLabelsCol: { flex: 1 },
   routeStop:      { paddingBottom: 16 },
-  routeStopLabel:   { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  routeStopAddress: { fontSize: 15, fontWeight: '500' },
+  routeStopLabel:   { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  routeStopAddress: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   routeStopCity:    { fontSize: 13, marginTop: 1 },
 
   // Meta row
@@ -640,17 +641,17 @@ const styles = StyleSheet.create({
   // Cost banner
   costBanner:      { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 16, padding: 16, borderRadius: 12, borderWidth: 1 },
   costBannerLeft:  { flex: 1 },
-  costBannerLabel: { fontSize: 14, fontWeight: '500' },
+  costBannerLabel: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   costBannerSub:   { fontSize: 12, marginTop: 2 },
-  costBannerValue: { fontSize: 22, fontWeight: '700' },
+  costBannerValue: { fontSize: 22, fontFamily: 'Sora_700Bold' },
 
   // Driver / person row
   driverRow:              { flexDirection: 'row', alignItems: 'center', gap: 14 },
   driverAvatar:           { width: 56, height: 56, borderRadius: 28 },
   driverAvatarPlaceholder:{ width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-  driverInitials:         { fontSize: 16, fontWeight: '600' },
+  driverInitials:         { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   driverInfo:             { flex: 1 },
-  driverName:             { fontSize: 16, fontWeight: '600' },
+  driverName:             { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   driverPhotoHint:        { fontSize: 12, marginTop: 4 },
 
   // Passengers / applications list
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
   passengerAvatar:           { width: 40, height: 40, borderRadius: 20 },
   passengerAvatarPlaceholder:{ width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   passengerInfo:             { flex: 1 },
-  passengerName:             { fontSize: 14, fontWeight: '500' },
+  passengerName:             { fontSize: 14, fontFamily: 'Sora_500Medium' },
   passengerSeats:            { fontSize: 12 },
   chatBtn:                   { width: 60, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 
@@ -666,29 +667,29 @@ const styles = StyleSheet.create({
   footer:           { padding: 16, paddingTop: 12, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 4, gap: 4 },
   footerRow:        { flexDirection: 'row', gap: 10 },
   footerBtn:        { borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
-  footerBtnText:    { fontSize: 15, fontWeight: '700' },
+  footerBtnText:    { fontSize: 15, fontFamily: 'Sora_700Bold' },
   footerBtnOutline: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1 },
-  footerBtnOutlineText: { fontSize: 14, fontWeight: '600' },
+  footerBtnOutlineText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   statusFooter:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12 },
-  statusFooterText: { fontSize: 13, fontWeight: '500', flex: 1 },
+  statusFooterText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
 
   // Map button
   mapBtn:     { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  mapBtnText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Pending payment
   pendingWrap:      { marginBottom: 4 },
   pendingTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   pendingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pendingDot:       { width: 7, height: 7, borderRadius: 4 },
-  pendingLabel:     { fontSize: 13, fontWeight: '600' },
+  pendingLabel:     { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Modal
   modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent:  { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' },
-  modalTitle:    { fontSize: 16, fontWeight: '700', marginBottom: 16 },
+  modalTitle:    { fontSize: 16, fontFamily: 'Sora_700Bold', marginBottom: 16 },
   vehicleItem:   { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1, borderRadius: 10, marginBottom: 8 },
-  vehicleName:   { fontSize: 14, fontWeight: '600' },
+  vehicleName:   { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   modalCancelBtn:{ marginTop: 8, borderWidth: 1, borderRadius: 10, padding: 12, alignItems: 'center' },
 });
 

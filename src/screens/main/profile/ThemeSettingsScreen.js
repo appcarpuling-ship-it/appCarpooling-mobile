@@ -109,9 +109,9 @@ const ThemeSettingsScreen = ({ navigation }) => {
           
           {isSelected && (
             <Ionicons 
-              name=\"checkmark-circle\" 
+              name="checkmark-circle" 
               size={24} 
-              color={colors.accentGreen}
+              color={colors.textPrimary}
             />
           )}
         </View>
@@ -164,7 +164,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
 
         {/* Información adicional */}
         <View style={[styles.infoContainer, { backgroundColor: colors.surface }]}>
-          <Ionicons name=\"information-circle-outline\" size={20} color={colors.info} />
+          <Ionicons name="information-circle-outline" size={20} color={colors.textMuted} />
           <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: SORA_FONTS.regular }]}>
             El modo automático cambiará entre claro y oscuro según la configuración de tu dispositivo.
           </Text>
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     marginBottom: 12,
   },
   previewCard: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   previewText: {
     fontSize: 16,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
     marginBottom: 8,
   },
   previewSubtext: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 16,
     marginLeft: 4,
   },
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     marginBottom: 4,
   },
   optionDescription: {

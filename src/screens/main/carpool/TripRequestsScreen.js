@@ -21,6 +21,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { approveOrRejectReservation } from '../../../services/seatReservationService';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -56,14 +57,16 @@ const TripRequestsScreen = ({ route }) => {
     });
   }, [navigation, isDarkMode]);
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
-  const accent      = isDarkMode ? '#FFFFFF' : '#000000';
-  const accentInv   = isDarkMode ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
+  const accent      = ui.invertBg;
+  const accentInv   = ui.invertText;
 
   const [trips, setTrips] = useState([]);
   const [tripsPage, setTripsPage] = useState(1);
@@ -289,14 +292,14 @@ const TripRequestsScreen = ({ route }) => {
 
   const getStatus = (status) => {
     const map = {
-      pending:          { color: '#F59E0B', label: 'Pendiente' },
-      confirmed:        { color: '#10B981', label: 'Confirmado' },
-      cancelled:        { color: '#EF4444', label: 'Cancelado' },
-      completed:        { color: '#3B82F6', label: 'Completado' },
-      pending_approval: { color: '#F59E0B', label: 'Esperando tu aprobación' },
+      pending:          { solid: true,  label: 'Pendiente' },
+      confirmed:        { solid: true,  label: 'Confirmado' },
+      cancelled:        { solid: false, label: 'Cancelado' },
+      completed:        { solid: false, label: 'Completado' },
+      pending_approval: { color: ui.textMuted, label: 'Esperando tu aprobación' },
       pending_payment:  { color: '#8B5CF6', label: 'Pago pendiente' },
-      reserved:         { color: '#10B981', label: 'Confirmada' },
-      rejected:         { color: '#EF4444', label: 'Rechazada' },
+      reserved:         { color: ui.text, label: 'Confirmada' },
+      rejected:         { color: ui.textMuted, label: 'Rechazada' },
     };
     return map[status] || { color: textMuted, label: status };
   };
@@ -458,7 +461,7 @@ const TripRequestsScreen = ({ route }) => {
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Text style={[styles.avatarInitials, { color: textMuted }]}>
                 {item.passenger?.firstName?.[0]}
                 {item.passenger?.lastName?.[0]}
@@ -470,8 +473,8 @@ const TripRequestsScreen = ({ route }) => {
               {item.passenger?.firstName} {item.passenger?.lastName}
             </Text>
             <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+              <View style={[styles.statusDot, { backgroundColor: status.solid ? ui.text : textMuted }]} />
+              <Text style={[styles.statusText, { color: status.solid ? ui.text : textMuted }]}>{status.label}</Text>
             </View>
           </View>
           {amount != null && (
@@ -526,7 +529,7 @@ const TripRequestsScreen = ({ route }) => {
               }}
               activeOpacity={0.7}
             >
-              <Text style={[styles.btnRejectText, { color: isDarkMode ? '#F87171' : '#DC2626' }]}>Rechazar</Text>
+              <Text style={[styles.btnRejectText, { color: isDarkMode ? ui.textMuted : ui.textMuted }]}>Rechazar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btnAccept, { backgroundColor: accent }]}
@@ -718,7 +721,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn:     { marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700' },
+  headerTitle: { fontSize: 20, fontFamily: 'Sora_700Bold' },
   headerSub:   { fontSize: 13, marginTop: 2 },
 
   listPad:      { padding: 16, paddingBottom: 40 },
@@ -745,13 +748,13 @@ const styles = StyleSheet.create({
 
   tripContextLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   tripContextLine: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     lineHeight: 21,
   },
   tripContextMetaRow: {
@@ -762,7 +765,7 @@ const styles = StyleSheet.create({
   },
   tripContextMetaText: { fontSize: 13 },
   tripContextSwitchBtn: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 },
-  tripContextSwitchText: { fontSize: 14, fontWeight: '600' },
+  tripContextSwitchText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   emptyBlock: { alignItems: 'center', gap: 12, paddingVertical: 32 },
   emptyBlockGrow: { flex: 1, justifyContent: 'center', paddingVertical: 48 },
@@ -801,8 +804,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   routeTextCol:   { flex: 1 },
-  routeTextLabel: { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  routeTextValue: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  routeTextLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  routeTextValue: { fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 20 },
   tripCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -819,7 +822,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 20,
   },
-  pendingBadgeText: { fontSize: 12, fontWeight: '600', color: '#B45309' },
+  pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold', color: '#B45309' },
 
   reqSectionPad: {
     paddingHorizontal: 16,
@@ -844,12 +847,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarInitials: { fontSize: 16, fontWeight: '600' },
-  passengerName:  { fontSize: 15, fontWeight: '600' },
+  avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
+  passengerName:  { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   statusRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot:      { width: 7, height: 7, borderRadius: 4 },
-  statusText:     { fontSize: 12, fontWeight: '500' },
-  amountText:     { fontSize: 15, fontWeight: '700' },
+  statusText:     { fontSize: 12, fontFamily: 'Sora_500Medium' },
+  amountText:     { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   metaRow: {
     flexDirection: 'row',
@@ -886,7 +889,7 @@ const styles = StyleSheet.create({
   },
   rejectionText: {
     fontSize: 13,
-    color: '#EF4444',
+    color: '#8A8A8E',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -907,7 +910,7 @@ const styles = StyleSheet.create({
   },
   btnRejectText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   btnAccept: {
     flex: 1,
@@ -918,7 +921,7 @@ const styles = StyleSheet.create({
   },
   btnAcceptText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   modalCancelBtn: {
     flex: 1,
@@ -928,19 +931,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCancelText: { fontSize: 14, fontWeight: '600' },
+  modalCancelText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   modalRejectBtn: {
     flex: 1,
     height: 46,
     borderRadius: 10,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#8A8A8E',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalRejectText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  modalRejectText: { fontSize: 14, fontFamily: 'Sora_600SemiBold', color: '#FFFFFF' },
 
   // Empty
-  emptyTitle:    { fontSize: 17, fontWeight: '600' },
+  emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
   // Modal
@@ -965,7 +968,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  modalTitle:   { fontSize: 17, fontWeight: '700' },
+  modalTitle:   { fontSize: 17, fontFamily: 'Sora_700Bold' },
   modalLabel:   { fontSize: 13, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   textArea: {
     marginHorizontal: 20,

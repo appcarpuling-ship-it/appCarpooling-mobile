@@ -31,6 +31,7 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import * as Location from 'expo-location';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../../services/mapsService';
+import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -90,11 +91,12 @@ const BookingScreen = ({ route, navigation }) => {
   const cardBg = colors.cardBackground || (dark ? '#1C1C1E' : '#FFFFFF');
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const divider = ui.bg;
+  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
   const sectionLabelColor = dark ? textMuted : '#374151';
-  const successColor = colors.success || '#10B981';
+  const successColor = ui.text || ui.text;
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -251,7 +253,7 @@ const BookingScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
         <View style={styles.centerContainer}>
-          <Text style={[styles.errorText, { color: colors.error || '#EF4444' }]}>
+          <Text style={[styles.errorText, { color: ui.textMuted || ui.textMuted }]}>
             Error: Datos del viaje incompletos
           </Text>
         </View>
@@ -507,7 +509,7 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           ) : error ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.errorInline, { color: colors.error || '#EF4444' }]}>{error}</Text>
+              <Text style={[styles.errorInline, { color: ui.textMuted || ui.textMuted }]}>{error}</Text>
             </View>
           ) : priceData ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -617,7 +619,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.smokingAllowed ? 'checkmark-circle-outline' : 'close-circle-outline'}
                     size={18}
-                    color={trip.rules?.smokingAllowed ? successColor : '#EF4444'}
+                    color={trip.rules?.smokingAllowed ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.smokingAllowed ? 'Permite fumar' : 'No fumar'}
@@ -627,7 +629,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.petsAllowed ? 'checkmark-circle-outline' : 'close-circle-outline'}
                     size={18}
-                    color={trip.rules?.petsAllowed ? successColor : '#EF4444'}
+                    color={trip.rules?.petsAllowed ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.petsAllowed ? 'Mascotas OK' : 'Sin mascotas'}
@@ -637,7 +639,7 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons
                     name={trip.rules?.musicAllowed !== false ? 'musical-notes-outline' : 'musical-notes-outline'}
                     size={18}
-                    color={trip.rules?.musicAllowed !== false ? successColor : '#EF4444'}
+                    color={trip.rules?.musicAllowed !== false ? successColor : ui.textMuted}
                   />
                   <Text style={[styles.prefText, { color: textMuted }]}>
                     {trip.rules?.musicAllowed !== false ? 'Música OK' : 'Sin música'}
@@ -682,7 +684,7 @@ const BookingScreen = ({ route, navigation }) => {
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.pickupIconWrap, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+            <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
               <Ionicons name="location-outline" size={18} color={textMuted} />
             </View>
             <View style={{ flex: 1 }}>
@@ -779,11 +781,11 @@ const BookingScreen = ({ route, navigation }) => {
               {!pickupSearchVisible && (
                 <View style={[pickupStyles.miniSheet, { backgroundColor: cardBg, paddingBottom: Math.max(insets.bottom, 16) }]}>
                   <View style={pickupStyles.handleContainer}>
-                    <View style={[pickupStyles.handle, { backgroundColor: dark ? '#2E2E2E' : '#E8E8E8' }]} />
+                    <View style={[pickupStyles.handle, { backgroundColor: ui.border }]} />
                   </View>
 
                   <TouchableOpacity
-                    style={[pickupStyles.addressRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                    style={[pickupStyles.addressRow, { borderBottomColor: ui.bg }]}
                     onPress={openPickupSearch}
                     activeOpacity={0.7}
                   >
@@ -796,14 +798,14 @@ const BookingScreen = ({ route, navigation }) => {
 
                   <View style={pickupStyles.sheetActions}>
                     <TouchableOpacity
-                      style={[pickupStyles.confirmBtn, { backgroundColor: dark ? '#FFFFFF' : '#000000' }, (pickupResolving || !pickupPinCoords) && { opacity: 0.6 }]}
+                      style={[pickupStyles.confirmBtn, { backgroundColor: ui.invertBg }, (pickupResolving || !pickupPinCoords) && { opacity: 0.6 }]}
                       onPress={confirmPickupLocation}
                       disabled={pickupResolving || !pickupPinCoords}
                       activeOpacity={0.85}
                     >
                       {pickupResolving
-                        ? <ActivityIndicator color={dark ? '#000000' : '#FFFFFF'} />
-                        : <Text style={[pickupStyles.confirmBtnText, { color: dark ? '#000000' : '#FFFFFF' }]}>Confirmar punto de recogida</Text>
+                        ? <ActivityIndicator color={ui.invertText} />
+                        : <Text style={[pickupStyles.confirmBtnText, { color: ui.invertText }]}>Confirmar punto de recogida</Text>
                       }
                     </TouchableOpacity>
                   </View>
@@ -814,7 +816,7 @@ const BookingScreen = ({ route, navigation }) => {
               {pickupSearchVisible && (
                 <Animated.View style={[pickupStyles.searchOverlay, { backgroundColor: cardBg, opacity: pickupOverlayOpacity, transform: [{ translateY: pickupOverlayY }] }]}>
                   <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-                    <View style={[pickupStyles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}>
+                    <View style={[pickupStyles.searchHeader, { paddingTop: insets.top + 8, borderBottomColor: ui.bg }]}>
                       <TouchableOpacity onPress={closePickupSearch} style={pickupStyles.searchBackBtn} activeOpacity={0.7}>
                         <Ionicons name="arrow-back" size={22} color={textPrimary} />
                       </TouchableOpacity>
@@ -835,13 +837,13 @@ const BookingScreen = ({ route, navigation }) => {
                     </View>
 
                     <ScrollView
-                      style={[pickupStyles.results, { borderTopColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                      style={[pickupStyles.results, { borderTopColor: ui.bg }]}
                       keyboardShouldPersistTaps="handled"
                       keyboardDismissMode="on-drag"
                       showsVerticalScrollIndicator={false}
                     >
                       <TouchableOpacity
-                        style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                        style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                         onPress={() => {
                           closePickupSearch();
                           setPickupMapSelectionMode(true);
@@ -849,7 +851,7 @@ const BookingScreen = ({ route, navigation }) => {
                         }}
                         activeOpacity={0.6}
                       >
-                        <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                        <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                           <Ionicons name="map-outline" size={16} color={textPrimary} />
                         </View>
                         <Text style={[pickupStyles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
@@ -863,11 +865,11 @@ const BookingScreen = ({ route, navigation }) => {
                           {frequentAddresses.map((addr, i) => (
                             <TouchableOpacity
                               key={`freq-${i}`}
-                              style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                              style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                               onPress={() => selectFrequentPickup(addr)}
                               activeOpacity={0.6}
                             >
-                              <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                              <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                                 <Ionicons name="time-outline" size={16} color={textPrimary} />
                               </View>
                               <View style={{ flex: 1 }}>
@@ -882,11 +884,11 @@ const BookingScreen = ({ route, navigation }) => {
                       {pickupSearchResults.map((item) => (
                         <TouchableOpacity
                           key={item.place_id}
-                          style={[pickupStyles.resultRow, { borderBottomColor: dark ? '#2A2A2A' : '#F0F0F0' }]}
+                          style={[pickupStyles.resultRow, { borderBottomColor: ui.bg }]}
                           onPress={() => selectPickupFromSearch(item)}
                           activeOpacity={0.6}
                         >
-                          <View style={[pickupStyles.resultIcon, { backgroundColor: dark ? '#2A2A2A' : '#F3F4F6' }]}>
+                          <View style={[pickupStyles.resultIcon, { backgroundColor: ui.bg }]}>
                             <Ionicons name="location-sharp" size={16} color={textPrimary} />
                           </View>
                           <View style={{ flex: 1 }}>
@@ -912,7 +914,7 @@ const BookingScreen = ({ route, navigation }) => {
               styles.confirmBtn,
               {
                 backgroundColor:
-                  tripFreeNow <= 0 ? (colors.error || '#EF4444') : accent,
+                  tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
                 opacity:
                   loading ||
                   calculatingPrice ||
@@ -996,7 +998,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textAlign: 'center',
   },
   animatedContainer: {
@@ -1037,7 +1039,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 14,
@@ -1077,7 +1079,7 @@ const styles = StyleSheet.create({
   routeStop: {},
   routeCity: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   routeProvince: {
     fontSize: 12,
@@ -1132,7 +1134,7 @@ const styles = StyleSheet.create({
   },
   seatCount: {
     fontSize: 36,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     lineHeight: 40,
   },
   seatCountLabel: {
@@ -1145,7 +1147,7 @@ const styles = StyleSheet.create({
   },
   errorInline: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   // Price
@@ -1160,7 +1162,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   priceDivider: {
     height: StyleSheet.hairlineWidth,
@@ -1168,11 +1170,11 @@ const styles = StyleSheet.create({
   },
   priceTotalLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   priceTotalValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   discountBadge: {
     flexDirection: 'row',
@@ -1185,7 +1187,7 @@ const styles = StyleSheet.create({
   },
   discountBadgeText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     flex: 1,
   },
 
@@ -1204,7 +1206,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   driverInfo: {
     flex: 1,
@@ -1212,7 +1214,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -1242,7 +1244,7 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   vehicleYear: {
     fontSize: 13,
@@ -1256,7 +1258,7 @@ const styles = StyleSheet.create({
   },
   plateText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 1,
   },
 
@@ -1272,7 +1274,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   // Preferences
@@ -1324,7 +1326,7 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 6,
   },
   bannerDesc: {
@@ -1347,14 +1349,14 @@ const styles = StyleSheet.create({
   },
   pickupLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 3,
   },
   pickupValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 
   confirmBtn: {
@@ -1368,11 +1370,11 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   confirmBtnPrice: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
 });
 
@@ -1408,10 +1410,10 @@ const pickupStyles = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 16,
     gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 56,
   },
-  addressText: { flex: 1, fontSize: 15, fontWeight: '500' },
+  addressText: { flex: 1, fontSize: 15, fontFamily: 'Sora_500Medium' },
   sheetActions: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
   confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnText: { fontSize: 16, fontWeight: '700' },
+  confirmBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   searchOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
   },
@@ -1421,7 +1423,7 @@ const pickupStyles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, gap: 8,
   },
   searchBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  searchTextInput: { flex: 1, height: 44, fontSize: 15, fontWeight: '500' },
+  searchTextInput: { flex: 1, height: 44, fontSize: 15, fontFamily: 'Sora_500Medium' },
   results: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth },
   resultRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -1429,7 +1431,7 @@ const pickupStyles = StyleSheet.create({
     gap: 12, borderBottomWidth: StyleSheet.hairlineWidth,
   },
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  resultMain: { fontSize: 14, fontWeight: '500' },
+  resultMain: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   resultSub: { fontSize: 12, marginTop: 2 },
   markerDot: {
     width: 14, height: 14, borderRadius: 7,
@@ -1443,8 +1445,8 @@ const pickupStyles = StyleSheet.create({
     zIndex: 50,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
-  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
-  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
+  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default BookingScreen;

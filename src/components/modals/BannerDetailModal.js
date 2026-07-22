@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     marginBottom: 10,
     lineHeight: 26,
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   linkBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   closeActionBtn: {
     borderRadius: 12,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   closeActionBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 });
 

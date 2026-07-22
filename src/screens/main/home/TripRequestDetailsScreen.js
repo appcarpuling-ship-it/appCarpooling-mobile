@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
+import { useUI } from '../../../theme/ui';
 
 const pad = (n) => String(n).padStart(2, '0');
 const formatDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
@@ -20,14 +21,14 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
-  const bg       = dark ? '#161616' : '#F9FAFB';
-  const cardBg   = dark ? '#1F1F1F' : '#FFFFFF';
-  const border   = dark ? '#2E2E2E' : '#E5E7EB';
-  const divider  = dark ? '#2A2A2A' : '#F0F0F0';
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
-  const accent      = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const ui = useUI();
+  const bg       = ui.bg;
+  const cardBg   = ui.surface;
+  const border   = dark ? '#2E2E2E' : '#E5E7EB';  const divider  = ui.bg;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const accent      = ui.invertBg;
+  const accentInverse = ui.invertText;
 
   const tomorrow = new Date(Date.now() + 86400000);
   tomorrow.setHours(8, 0, 0, 0);
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 16 },
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginTop: 20,
@@ -257,14 +258,14 @@ const styles = StyleSheet.create({
   rowText: { fontSize: 15 },
   seatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24 },
   seatsBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  seatsNum: { fontSize: 22, fontWeight: '700', width: 32, textAlign: 'center' },
+  seatsNum: { fontSize: 22, fontFamily: 'Sora_700Bold', width: 32, textAlign: 'center' },
   footer: { padding: 16, paddingBottom: 24, borderTopWidth: 1 },
   btn:     { borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  btnText: { fontSize: 16, fontWeight: '700' },
+  btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   // Pickers
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   pickerBox:     { borderRadius: 14, margin: 20, minWidth: 300, overflow: 'hidden' },
-  pickerTitle:   { fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  pickerTitle:   { fontSize: 15, fontFamily: 'Sora_600SemiBold', textAlign: 'center', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   pickerFooter:  { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
   pickerBtn:     { fontSize: 16, paddingHorizontal: 12 },
 });

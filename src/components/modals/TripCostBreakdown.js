@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   total: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   details: {
     marginTop: 8,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
 });
 

@@ -18,6 +18,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
+import { useUI } from '../../../theme/ui';
 
 const MyBookingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -33,12 +34,14 @@ const MyBookingsScreen = ({ navigation }) => {
   const fetchingRef = useRef(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
-  const bg = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
-  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+
+  const ui = useUI();
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const border = ui.border;
+  const textPrimary = ui.invertBg;
+  const textSecondary = ui.textMuted;
+  const divider = ui.bg;
 
   useEffect(() => {
     setupTripCancellationListener();
@@ -152,15 +155,15 @@ const MyBookingsScreen = ({ navigation }) => {
 
   const getStatusConfig = (item) => {
     const rs = item.seatReservation?.reservationStatus;
-    if (rs === 'pending_approval') return { color: '#F59E0B', label: 'Pendiente' };
-    if (rs === 'pending_payment')  return { color: '#F59E0B', label: 'Pendiente de pago' };
-    if (rs === 'reserved')         return { color: '#10B981', label: 'Reserva paga' };
-    if (rs === 'cancelled')        return { color: '#EF4444', label: 'Cancelado' };
+    if (rs === 'pending_approval') return { color: ui.textMuted, label: 'Pendiente' };
+    if (rs === 'pending_payment')  return { color: ui.textMuted, label: 'Pendiente de pago' };
+    if (rs === 'reserved')         return { color: ui.text, label: 'Reserva paga' };
+    if (rs === 'cancelled')        return { color: ui.textMuted, label: 'Cancelado' };
     switch (item.status) {
-      case 'pending':   return { color: '#F59E0B', label: 'Pendiente' };
-      case 'confirmed': return { color: '#10B981', label: 'Reserva paga' };
-      case 'cancelled': return { color: '#EF4444', label: 'Cancelado' };
-      case 'completed': return { color: '#3B82F6', label: 'Completado' };
+      case 'pending':   return { color: ui.textMuted, label: 'Pendiente' };
+      case 'confirmed': return { color: ui.text, label: 'Reserva paga' };
+      case 'cancelled': return { color: ui.textMuted, label: 'Cancelado' };
+      case 'completed': return { color: ui.text, label: 'Completado' };
       default:          return { color: textSecondary, label: item.status };
     }
   };
@@ -210,7 +213,7 @@ const MyBookingsScreen = ({ navigation }) => {
     const seats = item.seats || item.seatsBooked || 1;
     const isActive = item.trip?.status === 'started';
     const activeBg      = isDarkMode ? '#111111' : '#FFFFFF';
-    const activeBorder  = isActive ? '#F59E0B' : border;
+    const activeBorder  = isActive ? ui.textMuted : border;
     const activeTxt     = isActive ? (isDarkMode ? '#FFFFFF' : textPrimary) : textPrimary;
     const activeMuted   = isActive ? (isDarkMode ? 'rgba(255,255,255,0.5)' : textSecondary) : textSecondary;
     const activeDivider = isActive ? (isDarkMode ? '#333333' : divider) : divider;
@@ -291,7 +294,7 @@ const MyBookingsScreen = ({ navigation }) => {
             <Text style={[styles.driverName, { color: activeTxt }]}>{driver.firstName} {driver.lastName}</Text>
             <Text style={[styles.driverLabel, { color: activeMuted }]}>Conductor</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={isActive ? (isDarkMode ? 'rgba(255,255,255,0.3)' : '#D97706') : (isDarkMode ? '#555' : '#CCC')} />
+          <Ionicons name="chevron-forward" size={18} color={isActive ? (isDarkMode ? 'rgba(255,255,255,0.3)' : ui.textMuted) : (isDarkMode ? '#555' : '#CCC')} />
         </View>
 
         {/* Actions */}
@@ -307,7 +310,7 @@ const MyBookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : '#D97706') : (isDarkMode ? '#666666' : '#888888') }]}
+              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : ui.textMuted) : (isDarkMode ? '#666666' : '#888888') }]}
               onPress={() => handleCancelBooking(item._id)}
               activeOpacity={0.7}
               disabled={cancellingId === item._id}
@@ -404,7 +407,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 12,
     borderWidth: 0.8,
-    borderColor: '#F59E0B',
+    borderColor: '#8A8A8E',
   },
   activeHeader: {
     flexDirection: 'row',
@@ -418,11 +421,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#000000',
   },
   activeLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -440,7 +443,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '600' },
+  statusText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   route: { padding: 16, paddingBottom: 12 },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -449,7 +452,7 @@ const styles = StyleSheet.create({
   },
   routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
   routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
-  routeText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  routeText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   meta: {
     flexDirection: 'row',
@@ -474,9 +477,9 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarInitials: { fontSize: 14, fontWeight: '600' },
+  avatarInitials: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   driverInfo: { flex: 1 },
-  driverName: { fontSize: 14, fontWeight: '600' },
+  driverName: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   driverLabel: { fontSize: 12, marginTop: 2 },
 
   actions: {
@@ -489,21 +492,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  btnPrimaryText: { fontSize: 14, fontWeight: '600' },
+  btnPrimaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   btnSecondary: {
     paddingVertical: 13,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
   },
-  btnSecondaryText: { fontSize: 14, fontWeight: '500' },
+  btnSecondaryText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyIconBox: {
     width: 72, height: 72, borderRadius: 36,
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
   },
-  emptyTitle: { fontSize: 17, fontWeight: '600', marginBottom: 6 },
+  emptyTitle: { fontSize: 17, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });
 

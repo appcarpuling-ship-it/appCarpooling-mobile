@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semiBold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#FFFFFF',
   },
   webview: {
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     fontSize: fontSize.md,
     color: '#374151',
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
 });
 

@@ -17,8 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
-import { useColors } from '../../hooks/useColors';
 import { appendFile } from '../../utils/formDataFile';
+import { useUI } from '../../theme/ui';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
 import FormInput from '../../components/forms/FormInput';
 import FormPicker from '../../components/forms/FormPicker';
@@ -41,14 +41,14 @@ const RegisterScreen = ({ navigation }) => {
     return () => { ScreenCapture.allowScreenCaptureAsync(); };
   }, []);
 
-  const { isDarkMode } = useColors();
   const { showAlert } = useAlert();
 
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const ui          = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
 
   const [currentStep, setCurrentStep] = useState(0);
   const stepAnim = useRef(new Animated.Value(1)).current;
@@ -252,7 +252,7 @@ const RegisterScreen = ({ navigation }) => {
                       <ActivityIndicator size="small" color={textMuted} />
                       <Text style={[styles.referralMsg, { color: textMuted }]}>  Validando código...</Text>
                     </View>
-                  : <Text style={[styles.referralMsg, { color: referralMessage.includes('válido') && !referralMessage.includes('no') ? '#10B981' : '#EF4444' }]}>
+                  : <Text style={[styles.referralMsg, { color: textPrimary }]}>
                       {referralMessage}
                     </Text>
                 }
@@ -333,7 +333,7 @@ const RegisterScreen = ({ navigation }) => {
                       <Ionicons name="camera-outline" size={40} color={textMuted} />
                     </View>
                 }
-                <View style={[styles.cameraBadge, { backgroundColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' }]}>
+                <View style={[styles.cameraBadge, { backgroundColor: ui.surface }]}>
                   <Ionicons name="camera" size={14} color={textPrimary} />
                 </View>
               </TouchableOpacity>
@@ -358,23 +358,23 @@ const RegisterScreen = ({ navigation }) => {
         <View style={[styles.btnContainer, { backgroundColor: bg }]}>
           {currentStep < STEPS.length - 1 ? (
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+              style={[styles.btn, { backgroundColor: ui.invertBg }]}
               onPress={handleNext}
               activeOpacity={0.85}
             >
-              <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Siguiente</Text>
-              <Ionicons name="arrow-forward" size={18} color={isDarkMode ? '#000000' : '#FFFFFF'} style={{ marginLeft: 8 }} />
+              <Text style={[styles.btnText, { color: ui.invertText }]}>Siguiente</Text>
+              <Ionicons name="arrow-forward" size={18} color={ui.invertText} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+              style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
               onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.85}
             >
               {loading
-                ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Crear cuenta</Text>
+                ? <ActivityIndicator color={ui.invertText} />
+                : <Text style={[styles.btnText, { color: ui.invertText }]}>Crear cuenta</Text>
               }
             </TouchableOpacity>
           )}
@@ -400,23 +400,23 @@ const styles = StyleSheet.create({
   backBtn:      { width: 40, height: 40, justifyContent: 'center' },
   dotsRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot:          { height: 8, borderRadius: 4 },
-  stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontWeight: '600' },
+  stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   scrollContent:{ paddingHorizontal: 24, paddingBottom: 16 },
   avatarCenter:          { alignSelf: 'center', position: 'relative', marginBottom: 12 },
   avatarLarge:           { width: 130, height: 130, borderRadius: 65, borderWidth: 2 },
   avatarPlaceholderLarge: { width: 130, height: 130, borderRadius: 65, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
   cameraBadge:           { position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  avatarHint:            { textAlign: 'center', fontSize: 13, marginBottom: 28, fontWeight: '500' },
-  stepTitle:    { fontSize: 26, fontWeight: '700', marginBottom: 6 },
+  avatarHint:            { textAlign: 'center', fontSize: 13, marginBottom: 28, fontFamily: 'Sora_500Medium' },
+  stepTitle:    { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 6 },
   stepSubtitle: { fontSize: 14 },
   btnContainer: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
   btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
-  btnText:      { fontSize: 16, fontWeight: '700' },
+  btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   loginText:    { fontSize: 14 },
-  loginLink:    { fontSize: 14, fontWeight: '600' },
-  referralMsg:  { fontSize: 12, fontWeight: '500' },
-  dniSectionTitle: { fontSize: 15, fontWeight: '700', marginTop: 8, marginBottom: 6 },
+  loginLink:    { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  referralMsg:  { fontSize: 12, fontFamily: 'Sora_500Medium' },
+  dniSectionTitle: { fontSize: 15, fontFamily: 'Sora_700Bold', marginTop: 8, marginBottom: 6 },
   dniHint: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
   dniRow: { flexDirection: 'row', gap: 12 },
   dniCard: {
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   dniThumb: { width: '100%', height: '100%' },
   dniPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
-  dniCardLabel: { fontSize: 12, fontWeight: '600', marginTop: 6 },
+  dniCardLabel: { fontSize: 12, fontFamily: 'Sora_600SemiBold', marginTop: 6 },
 });
 
 export default RegisterScreen;

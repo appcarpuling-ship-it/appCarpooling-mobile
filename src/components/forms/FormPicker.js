@@ -260,7 +260,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.semiBold,
-    fontWeight: fontWeight.semibold,
     color: styleColors.textSecondary,
     marginBottom: spacing.xs,
   },
@@ -268,7 +267,6 @@ const styles = StyleSheet.create({
     color: styleColors.error || '#EF4444',
     fontSize: fontSize.sm,
     fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
   },
   pickerButton: {
     flexDirection: 'row',
@@ -339,7 +337,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: fontSize.lg,
     fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
     color: '#000000',
   },
   closeButton: {
@@ -367,13 +364,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: fontSize.md,
     fontFamily: SORA_FONTS.medium,
-    fontWeight: fontWeight.medium,
     color: '#000000',
   },
   optionTextSelected: {
     color: '#1F2937',
     fontFamily: SORA_FONTS.bold,
-    fontWeight: fontWeight.bold,
   },
   emptyContainer: {
     flex: 1,

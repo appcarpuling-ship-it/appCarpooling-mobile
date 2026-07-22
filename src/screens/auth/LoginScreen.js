@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
 import { useColors } from '../../hooks/useColors';
 import { API_CONFIG } from '../../config/api';
+import { useUI } from '../../theme/ui';
 
 // Derivado de la API configurada (EXPO_PUBLIC_API_BASE_URL / eas.json), no clavado:
 // antes apuntaba siempre a producción y el SSO de un build dev terminaba en el server equivocado.
@@ -39,11 +40,12 @@ const LoginScreen = ({ navigation }) => {
   // el usuario sigue al sistema, y comparar contra 'dark' dejaba el login en
   // claro aunque el sistema estuviera en oscuro.
   const { isDarkMode } = useColors();
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+  const ui = useUI();  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
 
   const LOGO_SOURCE = isDarkMode
     ? require('../../../assets/logo/192x192-white.png')
@@ -161,14 +163,14 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Login button */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
-              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Iniciar Sesión</Text>
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Iniciar Sesión</Text>
             }
           </TouchableOpacity>
 
@@ -204,7 +206,7 @@ const LoginScreen = ({ navigation }) => {
               >
                 {ssoLoading === 'apple'
                   ? <ActivityIndicator color={textMuted} size="small" />
-                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+                  : <FontAwesome name="apple" size={24} color={ui.invertBg} />
                 }
               </TouchableOpacity>
             )}
@@ -235,7 +237,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
   header:        { alignItems: 'center', marginBottom: 40 },
   logo:          { width: 64, height: 64, resizeMode: 'contain', marginBottom: 16 },
-  title:         { fontSize: 28, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
+  title:         { fontSize: 28, fontFamily: 'Sora_700Bold', letterSpacing: 0.5, marginBottom: 6 },
   subtitle:      { fontSize: 15 },
   card:          { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
   inputRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
@@ -243,12 +245,12 @@ const styles = StyleSheet.create({
   input:         { flex: 1, height: 52, fontSize: 15 },
   eyeBtn:        { padding: 8 },
   btn:           { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  btnText:       { fontSize: 16, fontWeight: '700' },
+  btnText:       { fontSize: 16, fontFamily: 'Sora_700Bold' },
   linkBtn:       { alignItems: 'center', paddingVertical: 12 },
   linkText:      { fontSize: 14 },
   registerRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
   registerText:  { fontSize: 14 },
-  registerLink:  { fontSize: 14, fontWeight: '600' },
+  registerLink:  { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
   divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
   dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },

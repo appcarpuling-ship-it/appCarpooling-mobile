@@ -165,7 +165,7 @@ const UserReviewsScreen = ({ route, navigation }) => {
           </View>
           <View style={styles.reviewTypeContainer}>
             <LinearGradient
-              colors={review.type === 'driver' ? ['#10B981', '#059669'] : ['#F59E0B', '#D97706']}
+              colors={review.type === 'driver' ? ['#2B2B2B', '#111111'] : ['#6B6B6B', '#4A4A4A']}
               style={styles.reviewTypeBadge}
             >
               <Ionicons
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#000000',
     marginBottom: spacing.lg,
     textAlign: 'center',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
     color: '#000000',
     marginBottom: spacing.xs,
   },
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   reviewsList: {
     flex: 1,
@@ -398,14 +398,14 @@ const styles = StyleSheet.create({
   reviewerAvatarText: {
     color: '#FFF',
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
+    fontFamily: 'Sora_700Bold',
   },
   reviewerInfo: {
     flex: 1,
   },
   reviewerName: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#000000',
     marginBottom: spacing.xs,
   },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   reviewTypeText: {
     fontSize: fontSize.xs,
     color: '#FFF',
-    fontWeight: fontWeight.medium,
+    fontFamily: 'Sora_500Medium',
   },
   reviewComment: {
     fontSize: fontSize.md,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontFamily: 'Sora_600SemiBold',
     color: '#6B7280',
     marginTop: spacing.lg,
     marginBottom: spacing.sm,

@@ -615,14 +615,14 @@ const styles = StyleSheet.create({
   },
   headerAvatarText: {
     fontSize: 16,
-    fontWeight: 'bold'
+    fontFamily: 'Sora_700Bold'
   },
   headerTextContainer: {
     justifyContent: 'center'
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 2
   },
   headerSubtitle: {
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   },
   smallAvatarText: {
     fontSize: 13,
-    fontWeight: 'bold'
+    fontFamily: 'Sora_700Bold'
   },
   // Message bubbles
   messageBubble: {

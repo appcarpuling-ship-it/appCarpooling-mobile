@@ -10,24 +10,28 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyApplications, cancelTripRequestApplication } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { useUI } from '../../../theme/ui';
 
+// Sin color: aceptado y pendiente siguen en juego y llevan badge solido;
+// rechazado va apagado.
 const APP_STATUS = {
-  pending:  { label: 'Pendiente',  color: '#F59E0B' },
-  accepted: { label: 'Aceptado',   color: '#22C55E' },
-  rejected: { label: 'Rechazado',  color: '#EF4444' },
+  pending:  { label: 'Pendiente', solid: true },
+  accepted: { label: 'Aceptado',  solid: true },
+  rejected: { label: 'Rechazado', solid: false },
 };
 
 const MyApplicationsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
+  const ui = useUI();
   const dark = isDarkMode;
-  const bg        = dark ? '#161616' : '#F9FAFB';
-  const cardBg    = dark ? '#1F1F1F' : '#FFFFFF';
-  const border    = dark ? '#333333' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
-  const divider     = dark ? '#2A2A2A' : '#F3F4F6';
+  const bg        = ui.bg;
+  const cardBg    = ui.surface;
+  const border    = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;
 
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -105,7 +109,7 @@ const MyApplicationsScreen = ({ navigation }) => {
     });
 
   const renderItem = ({ item }) => {
-    const appStatus = APP_STATUS[item.myApplication?.status] || { label: item.myApplication?.status, color: textMuted };
+    const appStatus = APP_STATUS[item.myApplication?.status] || { label: item.myApplication?.status, solid: false };
     const passenger = item.passenger;
     const passengerName = passenger?.firstName
       ? `${passenger.firstName}${passenger.lastName ? ` ${passenger.lastName}` : ''}`
@@ -132,8 +136,8 @@ const MyApplicationsScreen = ({ navigation }) => {
             </View>
             <Text style={[styles.passengerName, { color: textPrimary }]}>{passengerName}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: appStatus.color + '22' }]}>
-            <Text style={[styles.statusText, { color: appStatus.color }]}>{appStatus.label}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: appStatus.solid ? ui.invertBg : ui.surface }]}>
+            <Text style={[styles.statusText, { color: appStatus.solid ? ui.invertText : textMuted }]}>{appStatus.label}</Text>
           </View>
         </View>
 
@@ -166,7 +170,7 @@ const MyApplicationsScreen = ({ navigation }) => {
         {item.myApplication?.status === 'accepted' && (
           <View style={[styles.acceptedBanner, { borderTopColor: divider }]}>
             <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
-            <Text style={{ color: '#22C55E', fontSize: 12, fontWeight: '600' }}>
+            <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>
               El pasajero te eligió como conductor
             </Text>
           </View>
@@ -180,7 +184,7 @@ const MyApplicationsScreen = ({ navigation }) => {
               style={styles.cancelBtn}
             >
               {cancelling === item._id
-                ? <ActivityIndicator size="small" color="#EF4444" />
+                ? <ActivityIndicator size="small" color={textMuted} />
                 : <Text style={styles.cancelBtnText}>Retirar postulación</Text>
               }
             </TouchableOpacity>
@@ -238,19 +242,19 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
   passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 },
   avatar: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 12, fontWeight: '700' },
-  passengerName: { fontSize: 14, fontWeight: '600', flex: 1 },
+  avatarText: { fontSize: 12, fontFamily: 'Sora_700Bold' },
+  passengerName: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1 },
   statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: '600' },
+  statusText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  city: { fontSize: 13, fontWeight: '500', flex: 1 },
+  city: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 12 },
   acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
   cancelRow: { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, alignItems: 'flex-end' },
   cancelBtn: { paddingHorizontal: 12, paddingVertical: 6 },
-  cancelBtnText: { color: '#EF4444', fontSize: 12, fontWeight: '600' },
+  cancelBtnText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default MyApplicationsScreen;

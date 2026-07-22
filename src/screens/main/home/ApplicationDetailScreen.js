@@ -11,6 +11,7 @@ import { buildImageUri } from '../../../services/apiService';
 import { acceptTripRequestApplication } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
+import { useUI } from '../../../theme/ui';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId } = route.params;
@@ -18,14 +19,14 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
 
   const dark = isDarkMode;
-  const bg         = dark ? '#161616' : '#F9FAFB';
-  const cardBg     = dark ? '#1F1F1F' : '#FFFFFF';
-  const border     = dark ? '#333333' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF' : '#1F2937';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
-  const divider     = dark ? '#2A2A2A' : '#F3F4F6';
-  const accent      = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+  const ui = useUI();
+  const bg         = ui.bg;
+  const cardBg     = ui.surface;
+  const border     = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg;  const accent      = ui.invertBg;
+  const accentInverse = ui.invertText;
 
   const [accepting, setAccepting] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
@@ -104,7 +105,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               {driver.verified && (
                 <View style={styles.verifiedRow}>
                   <Ionicons name="shield-checkmark" size={13} color="#22C55E" />
-                  <Text style={{ color: '#22C55E', fontSize: 12, fontWeight: '600' }}>Verificado</Text>
+                  <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>Verificado</Text>
                 </View>
               )}
             </View>
@@ -193,7 +194,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
           <View style={[styles.acceptedBadge, { backgroundColor: '#DCFCE7' }]}>
             <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-            <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
+            <Text style={{ color: ui.text, fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>
           </View>
         </View>
       )}
@@ -208,27 +209,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   content: { padding: 16, gap: 12 },
   card: { borderRadius: 14, borderWidth: 1, padding: 16 },
   driverTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 72, height: 72, borderRadius: 36 },
   avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
-  driverName: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  driverName: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 4 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { fontSize: 13 },
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
   vehiclePhoto: { width: '100%', height: 160, borderRadius: 10, marginBottom: 12 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  vehicleMain: { fontSize: 16, fontWeight: '700' },
+  vehicleMain: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   dividerLine: { height: StyleSheet.hairlineWidth, marginBottom: 12 },
   vehicleDetail: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
   vehicleDetailLabel: { fontSize: 13 },
-  vehicleDetailValue: { fontSize: 13, fontWeight: '600' },
+  vehicleDetailValue: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   footer: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
   acceptBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  acceptBtnText: { fontSize: 15, fontWeight: '700' },
+  acceptBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
   acceptedBadge: { borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
 });
 

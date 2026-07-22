@@ -16,6 +16,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { navigateFromNotification } from '../../../utils/notificationNavigation';
 import { get_withauth } from '../../../services/apiService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { useUI } from '../../../theme/ui';
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
@@ -40,9 +41,10 @@ const NotificationsScreen = ({ navigation }) => {
   const bg = colors.background;
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
+
+  const ui = useUI();  const divider = ui.bg;
+  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
   const unreadBg = dark ? '#1A1F2E' : '#F5F7FF';
   const unreadDot = dark ? '#6B7280' : '#111111';
 
@@ -141,7 +143,7 @@ const NotificationsScreen = ({ navigation }) => {
         {/* Icon */}
         <View style={[
           styles.iconWrap,
-          { backgroundColor: dark ? '#2A2A2A' : '#F0F0F0' },
+          { backgroundColor: ui.bg },
           !isRead && { backgroundColor: dark ? '#252B3D' : '#E8ECFF' },
         ]}>
           <Ionicons

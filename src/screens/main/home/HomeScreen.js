@@ -36,6 +36,7 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
+import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -363,15 +364,15 @@ const HomeScreen = ({ navigation, route }) => {
 
   // Dynamic colors
   const bg = colors.background;
-  const cardBg = dark ? '#222222' : '#F7F7F7';
-  const inputBg = dark ? '#222222' : '#F7F7F7';
+  const ui = useUI();
+  const cardBg = ui.surface;
+  const inputBg = ui.surface;
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
   const textMuted = colors.textMuted;
-  const borderColor = dark ? '#2A2A2A' : '#E8E8E8';
-  const accent = dark ? '#FFFFFF' : '#000000';
-  const accentInverse = dark ? '#000000' : '#FFFFFF';
-  const divider = dark ? '#2A2A2A' : '#F0F0F0';
+  const borderColor = ui.bg;  const accent = ui.invertBg;
+  const accentInverse = ui.invertText;
+  const divider = ui.bg;
   /** Contraste fuerte en claro: labels, paradas, flechas */
   const tripRouteMuted = dark ? textMuted : '#111827';
   const tripCardChevron = dark ? '#444444' : '#111827';
@@ -400,7 +401,7 @@ const HomeScreen = ({ navigation, route }) => {
             style={styles.driverAvatar}
           />
         ) : (
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
             <Text style={[styles.driverInitials, { color: textSecondary }]}>
               {getDriverInitials(trip.driver)}
             </Text>
@@ -479,7 +480,7 @@ const HomeScreen = ({ navigation, route }) => {
           {req.passenger?.avatar ? (
             <Image source={{ uri: buildImageUri(req.passenger.avatar) }} style={styles.driverAvatar} />
           ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: dark ? '#2A2A2A' : '#E8E8E8' }]}>
+            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
               <Ionicons name="person-outline" size={18} color={textMuted} />
             </View>
           )}
@@ -591,15 +592,15 @@ const HomeScreen = ({ navigation, route }) => {
                 windowSize={5}
                 renderItem={({ item }) => {
                   const isSelected = selectedProvince === item.key;
-                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        borderColor: isSelected ? cardBackground : (ui.border),
                         shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,
@@ -636,7 +637,7 @@ const HomeScreen = ({ navigation, route }) => {
                 windowSize={5}
                 ListHeaderComponent={
                   <TouchableOpacity
-                    style={[styles.deptAllItem, { backgroundColor: dark ? '#252525' : '#FFFFFF', borderColor: dark ? '#333333' : '#E5E7EB' }]}
+                    style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor: ui.border }]}
                     onPress={() => { onDeptSelect(''); handleClose(); }}
                     activeOpacity={0.75}
                   >
@@ -646,15 +647,15 @@ const HomeScreen = ({ navigation, route }) => {
                 }
                 renderItem={({ item }) => {
                   const isSelected = selectedDept === item.label;
-                  const cardBackground = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-                  const imgTint = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-                  const labelColor = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textSecondary;
+                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
+                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
+                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
                   return (
                     <TouchableOpacity
                       style={[styles.provinceGridItem, {
                         width: ITEM_SIZE,
                         backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (dark ? '#333333' : '#E5E7EB'),
+                        borderColor: isSelected ? cardBackground : (ui.border),
                         shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
                         shadowOpacity: isSelected ? 0.15 : 0,
                         shadowRadius: 8,
@@ -1234,7 +1235,7 @@ const styles = StyleSheet.create({
   },
   activeTripLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1242,7 +1243,7 @@ const styles = StyleSheet.create({
   },
   activeTripDest: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: '#FFFFFF',
   },
 
@@ -1337,7 +1338,7 @@ const styles = StyleSheet.create({
   searchRowText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
   },
   searchRowContent: {
     flex: 1,
@@ -1346,17 +1347,17 @@ const styles = StyleSheet.create({
   },
   searchRowLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   searchRowValue: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
   },
   searchRowInput: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: 'Sora_400Regular',
     padding: 0,
     margin: 0,
     ...Platform.select({
@@ -1467,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   hubCardTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     marginBottom: 3,
   },
   // 2 renglones fijos, como las cards de Viajes: las descripciones más cortas
@@ -1507,7 +1508,7 @@ const styles = StyleSheet.create({
   },
   reqCity: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
     maxWidth: 90,
   },
   reqStatusBadge: {
@@ -1517,7 +1518,7 @@ const styles = StyleSheet.create({
   },
   reqStatusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
   },
   reqMeta: {
     flexDirection: 'row',
@@ -1542,7 +1543,7 @@ const styles = StyleSheet.create({
   },
   bannerSectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     marginBottom: 10,
     paddingHorizontal: 24,
   },
@@ -1629,7 +1630,7 @@ const styles = StyleSheet.create({
   },
   driverInitials: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   driverInfo: {
     flex: 1,
@@ -1637,7 +1638,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   tripDateTime: {
     fontSize: 12,
@@ -1679,14 +1680,14 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 2,
   },
   routeText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
   tripFooterRow: {
     flexDirection: 'row',
@@ -1749,7 +1750,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
   },
   provinceOption: {
     flexDirection: 'row',
@@ -1824,7 +1825,7 @@ const styles = StyleSheet.create({
   },
   dateBtnText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Sora_500Medium',
   },
 });
 
