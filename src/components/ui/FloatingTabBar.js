@@ -118,14 +118,14 @@ const styles = StyleSheet.create({
   // layout, así ninguna lista queda tapada por debajo.
   // Proporciones tomadas de la captura de referencia: el botón sobresale ~58%
   // de su alto sobre la barra y la bajadita baja otro tanto.
-  wrap:      { paddingHorizontal: 16, paddingTop: 36 },
+  wrap:      { paddingHorizontal: 16, paddingTop: 32 },
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 
-  // marginTop deja el botón 31px por encima del borde de la barra
-  fabSlot:   { alignItems: 'center', justifyContent: 'center', marginTop: -78 },
-  fabCutout: { position: 'absolute', width: 70, height: 70, borderRadius: 999, top: -8, left: -8 },
+  // marginTop deja el botón 27px por encima del borde de la barra
+  fabSlot:   { alignItems: 'center', justifyContent: 'center', marginTop: -70 },
+  fabCutout: { position: 'absolute', width: 68, height: 68, borderRadius: 999, top: -7, left: -7 },
   fab:       { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   fabAvatar:    { width: 34, height: 34, borderRadius: 999 },
   // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
