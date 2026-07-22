@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
@@ -13,6 +13,7 @@ import PushNotificationRouter from './src/components/PushNotificationRouter';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { soraFonts } from './src/theme/typography';
+import { useUI } from './src/theme/ui';
 import { Linking, View, Text, StyleSheet, Platform } from 'react-native';
 import NativeCheckout from './src/components/payment/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
@@ -26,7 +27,7 @@ Text.defaultProps.style = { fontFamily: 'Sora_400Regular' };
 const AppWithTheme = () => {
   const { useTheme } = require('./src/context/ThemeContext');
   let isDarkMode = false;
-  
+
   try {
     const theme = useTheme();
     isDarkMode = theme.isDarkMode;
@@ -35,8 +36,19 @@ const AppWithTheme = () => {
     isDarkMode = false;
   }
 
+  const ui = useUI();
+
+  // Sin theme propio, React Navigation pinta su fondo por defecto
+  // (rgb(242,242,242)), que asomaba como una banda gris alrededor de la barra
+  // inferior y en cualquier hueco entre pantallas.
+  const base = isDarkMode ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: { ...base.colors, background: ui.bg },
+  };
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <AppNavigator />
       <PushNotificationRouter />
