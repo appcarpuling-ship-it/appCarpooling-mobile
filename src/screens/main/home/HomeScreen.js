@@ -133,9 +133,9 @@ const HomeScreen = ({ navigation, route }) => {
   const { unreadCount = 0 } = useNotifications();
   useTheme();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
 
   const LOGO_SOURCE = dark
     ? require('../../../../assets/logo/192x192-white.png')

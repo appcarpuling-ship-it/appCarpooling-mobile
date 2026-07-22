@@ -41,9 +41,8 @@ const isPlaceholder = (name) =>
 const CompleteProfileScreen = () => {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { showAlert } = useAlert();
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
 
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';

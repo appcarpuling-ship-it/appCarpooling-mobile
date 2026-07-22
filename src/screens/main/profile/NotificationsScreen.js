@@ -22,7 +22,7 @@ const isInAppNotification = (n) => n && n.type !== 'new_message';
 
 const NotificationsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
 
   useTheme();
   const { markAsRead, markAllAsRead } = useNotifications();
@@ -36,7 +36,7 @@ const NotificationsScreen = ({ navigation }) => {
   const [optimisticRead, setOptimisticRead] = useState(new Set());
   const fetchingRef = useRef(false);
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   const textPrimary = colors.textPrimary;
   const textMuted = colors.textMuted;

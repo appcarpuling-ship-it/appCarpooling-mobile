@@ -25,9 +25,8 @@ import PermissionModal from '../../../components/modals/PermissionModal';
 import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
   const headerHeight = useHeaderHeight();
-  const isDarkMode = getCurrentThemeMode() === 'dark';
 
   const bg          = isDarkMode ? '#161616' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';

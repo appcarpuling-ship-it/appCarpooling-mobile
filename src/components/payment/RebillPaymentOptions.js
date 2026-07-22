@@ -13,8 +13,8 @@ const RebillPaymentOptions = ({
   style,
 }) => {
   const { colors } = useColors();
-  const { getCurrentThemeMode } = useTheme();
-  const dark = getCurrentThemeMode() === 'dark';
+  const { isDarkMode } = useTheme();
+  const dark = isDarkMode;
   const [showQR, setShowQR] = useState(false);
 
   const hasCheckout = !!paymentUrl;

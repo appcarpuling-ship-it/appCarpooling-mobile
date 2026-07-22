@@ -23,11 +23,10 @@ import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 
 const VehicleFormScreen = ({ navigation, route }) => {
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
   const { showAlert } = useAlert();
   const headerHeight = useHeaderHeight();
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';

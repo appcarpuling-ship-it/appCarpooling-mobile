@@ -40,13 +40,13 @@ const decodePolyline = (encoded) => {
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
   const insets = useSafeAreaInsets();
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
   const { user } = useAuth();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
 
-  const isDark = getCurrentThemeMode() === 'dark';
+  const isDark = isDarkMode;
   const cardBg = isDark ? '#1E1E1E' : '#FFFFFF';
   const textPrimary = isDark ? '#FFFFFF' : '#000000';
 

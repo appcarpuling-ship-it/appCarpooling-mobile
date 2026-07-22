@@ -58,7 +58,7 @@ const cityFromGoogleComponents = (components) => {
 
 const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const isRequestMode = navRoute?.params?.mode === 'request';
-  const { getCurrentThemeMode } = useColors();
+  const { isDarkMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const frequentAddresses = useFrequentAddresses();
@@ -73,7 +73,6 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const lastRegionRef = useRef(region);
   const hasMapGestureForSelectionRef = useRef(false);
 
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
   const bg          = isDarkMode ? '#161616' : '#F5F5F5';
   const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
   const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';

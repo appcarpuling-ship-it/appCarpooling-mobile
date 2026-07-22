@@ -21,9 +21,9 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
   const { colors } = useColors();
-  const { getCurrentThemeMode } = useTheme();
+  const { isDarkMode } = useTheme();
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   const cardBg = colors.cardBackground;
   const divider = dark ? '#2A2A2A' : '#ECECEC';

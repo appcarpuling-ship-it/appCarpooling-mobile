@@ -126,9 +126,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
-  const { colors, getCurrentThemeMode } = useColors();
+  const { colors, isDarkMode } = useColors();
 
-  const dark = getCurrentThemeMode() === 'dark';
+  const dark = isDarkMode;
   const bg = colors.background;
   const textPrimary = colors.textPrimary;
   const textSecondary = colors.textSecondary;
