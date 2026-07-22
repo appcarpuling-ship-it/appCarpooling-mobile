@@ -16,9 +16,11 @@ import { colors as themeColors, spacing, borderRadius, fontSize, fontWeight } fr
 import useColors from '../../../hooks/useColors';
 import AdvancedFiltersModal from '../../../components/modals/AdvancedFiltersModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { useUI } from '../../../theme/ui';
 
 const SearchTripsScreen = ({ route, navigation }) => {
   const { colors, gradients, createColorArray } = useColors();
+  const ui = useUI();
   
   // Dynamic styles that depend on colors hook
   const dynamicStyles = StyleSheet.create({
@@ -575,7 +577,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
               <Ionicons name="arrow-down" size={16} color={colors.textTertiary} />
             </View>
             <View style={staticStyles.searchRoute}>
-              <Ionicons name="location" size={18} color={colors.accentRed} />
+              <Ionicons name="location" size={18} color={ui.text} />
               <Text style={dynamicStyles.searchText}>{destination}</Text>
             </View>
             <Text style={staticStyles.resultsText}>
@@ -591,7 +593,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
               activeOpacity={0.7}
             >
               <View
-                style={[staticStyles.filtersButtonGradient, { backgroundColor: getActiveFiltersCount() > 0 ? colors.success : colors.textMuted }]}
+                style={[staticStyles.filtersButtonGradient, { backgroundColor: getActiveFiltersCount() > 0 ? ui.text : ui.textMuted }]}
               >
                 <Ionicons
                   name={getActiveFiltersCount() > 0 ? "filter" : "filter-outline"}
@@ -970,14 +972,6 @@ const staticStyles = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     color: '#000000',
     letterSpacing: 0.5,
-  },
-  priceText: {
-    fontSize: fontSize.xl,
-    fontFamily: 'Sora_700Bold',
-    color: '#10B981',
-    textShadowColor: 'rgba(52, 211, 153, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   driverSection: {
     flexDirection: 'row',

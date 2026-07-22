@@ -16,11 +16,13 @@ import { ENDPOINTS } from '../../../config/api';
 import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colors';
 import { useColors } from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
+import { useUI } from '../../../theme/ui';
 
 const UserReviewsScreen = ({ route, navigation }) => {
   const { userId, userName } = route.params || {};
   const { showAlert } = useAlert();
   const { colors, createColorArray } = useColors();
+  const ui = useUI();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

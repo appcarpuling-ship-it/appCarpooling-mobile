@@ -25,6 +25,7 @@ import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import { useColors } from '../../../hooks/useColors';
 import apiService, { buildImageUri } from '../../../services/apiService';
 import socketService from '../../../services/socketService';
+import { useUI } from '../../../theme/ui';
 
 /** Misma distancia borde superior del compositor ↔ cabecera del input, e input ↔ teclado (teclado abierto). */
 const COMPOSER_VERTICAL_INSET = 12;
@@ -50,6 +51,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
 
   const { user } = useAuth();
   const { colors } = useColors();
+  const ui = useUI();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const isFocused = useIsFocused();
