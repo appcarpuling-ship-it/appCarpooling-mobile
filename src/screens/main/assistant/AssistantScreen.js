@@ -41,6 +41,7 @@ const RUMBO_CAPABILITIES = [
 ];
 
 function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode }) {
+  const ui = useUI();
   const slideAnim = useRef(new Animated.Value(400)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
@@ -70,14 +71,14 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
         style={[
           styles.profileSheet,
           {
-            backgroundColor: colors.surface,
+            backgroundColor: ui.bg,
             paddingBottom: insets.bottom + 16,
             transform: [{ translateY: slideAnim }],
           },
         ]}
       >
         {/* Handle */}
-        <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+        <View style={[styles.sheetHandle, { backgroundColor: ui.border }]} />
 
         {/* Avatar grande */}
         <View style={styles.profileAvatarWrapper}>
@@ -85,31 +86,31 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
         </View>
 
         {/* Nombre */}
-        <Text style={[styles.profileName, { color: colors.textPrimary, fontFamily: fontFamily.bold }]}>
+        <Text style={[styles.profileName, { color: ui.text, fontFamily: 'Sora_800ExtraBold' }]}>
           {BOT_NAME}
         </Text>
-        <Text style={[styles.profileRole, { color: colors.textTertiary, fontFamily: fontFamily.regular }]}>
+        <Text style={[styles.profileRole, { color: ui.textMuted, fontFamily: 'Sora_400Regular' }]}>
           Asistente virtual de Carpuling
         </Text>
 
         {/* Separador */}
-        <View style={[styles.profileDivider, { backgroundColor: colors.border }]} />
+        
 
         {/* Descripción */}
-        <Text style={[styles.profileBio, { color: colors.textSecondary, fontFamily: fontFamily.regular }]}>
+        <Text style={[styles.profileBio, { color: ui.textMuted, fontFamily: 'Sora_400Regular' }]}>
           Hola, soy Rumbo. Estoy aquí para ayudarte con todo lo que necesites dentro de Carpuling. Desde buscar viajes hasta resolver dudas sobre pagos.
         </Text>
 
         {/* Lo que puedo hacer */}
-        <Text style={[styles.profileSectionTitle, { color: colors.textPrimary, fontFamily: fontFamily.semiBold }]}>
+        <Text style={[styles.profileSectionTitle, { color: ui.textMuted, fontFamily: 'Sora_600SemiBold' }]}>
           ¿En qué puedo ayudarte?
         </Text>
 
         <View style={styles.capabilitiesList}>
           {RUMBO_CAPABILITIES.map((cap) => (
-            <View key={cap.label} style={[styles.capabilityRow, { borderColor: colors.border }]}>
-              <Ionicons name={cap.icon} size={18} color={colors.textTertiary} />
-              <Text style={[styles.capabilityText, { color: colors.textPrimary, fontFamily: fontFamily.regular }]}>
+            <View key={cap.label} style={[styles.capabilityRow, { backgroundColor: ui.surface }]}>
+              <Ionicons name={cap.icon} size={18} color={ui.text} />
+              <Text style={[styles.capabilityText, { color: ui.text, fontFamily: 'Sora_500Medium' }]}>
                 {cap.label}
               </Text>
             </View>
@@ -117,11 +118,11 @@ function RumboProfileModal({ visible, onClose, colors, fontFamily, isDarkMode })
         </View>
 
         <TouchableOpacity
-          style={[styles.closeBtn, { backgroundColor: colors.primary }]}
+          style={[styles.closeBtn, { backgroundColor: ui.invertBg }]}
           onPress={onClose}
           activeOpacity={0.8}
         >
-          <Text style={[styles.closeBtnText, { color: isDarkMode ? colors.background : '#FFFFFF', fontFamily: fontFamily.semiBold }]}>
+          <Text style={[styles.closeBtnText, { color: ui.invertText, fontFamily: 'Sora_600SemiBold' }]}>
             Cerrar
           </Text>
         </TouchableOpacity>
@@ -348,7 +349,7 @@ export default function AssistantScreen() {
           styles.header,
           {
             paddingTop: insets.top + 8,
-            backgroundColor: colors.surface,
+            backgroundColor: ui.bg,
             borderBottomColor: colors.border,
           },
         ]}
@@ -479,8 +480,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 12,
     alignItems: 'center',
@@ -541,7 +542,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 18,
-    borderWidth: 1,
   },
   capabilityText: {
     fontSize: 14,
