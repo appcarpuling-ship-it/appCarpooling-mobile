@@ -30,6 +30,12 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
   // La barra es oscura en ambos temas (es el contraste de la referencia); en
   // modo oscuro se aclara apenas para despegarse del fondo.
   const barBg = ui.isDarkMode ? '#262626' : '#111111';
+
+  // El botón tiene que distinguirse de la barra Y de la página, y el único
+  // recurso en blanco y negro es el tono intermedio. En claro la página es
+  // blanca y la barra casi negra, así que va un gris oscuro; en oscuro las dos
+  // son oscuras, así que el que se despega es el blanco.
+  const fabBg = ui.isDarkMode ? '#FFFFFF' : '#636363';
   const activeFg = '#FFFFFF';
   const inactiveFg = '#8A8A8E';
 
@@ -69,7 +75,7 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                   // Opacidad siempre 1: al bajarla, la mitad que sobresale de la
                   // barra dejaba pasar el fondo y se veía descolorida. El estado
                   // activo lo marca el avatar.
-                  style={[styles.fab, { backgroundColor: ui.invertBg }]}
+                  style={[styles.fab, { backgroundColor: fabBg }]}
                 >
                   <Image
                     source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
