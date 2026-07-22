@@ -55,7 +55,11 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                 accessibilityRole="button"
                 accessibilityState={{ selected: isFocused }}
                 accessibilityLabel={label}
-                style={[styles.fab, { borderColor: barBg, opacity: isFocused ? 1 : 0.75 }]}
+                // El anillo va del color de la pantalla, no del de la barra: la
+                // mitad de arriba del FAB queda fuera de la barra y con el color
+                // de la barra se veía ahí un arco gris. Del color del fondo se
+                // funde arriba y abajo hace de recorte contra la barra.
+                style={[styles.fab, { borderColor: ui.bg, opacity: isFocused ? 1 : 0.75 }]}
               >
                 <Image source={RUMBO_AVATAR} style={styles.fabAvatar} />
               </TouchableOpacity>
