@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useColors from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { HELP_GUIDE_CATALOG } from '../../../content/helpGuideContent';
 import GuidedHelpOverlay from '../../../components/help/GuidedHelpOverlay';
 
 const HelpScreen = () => {
-  const { getCurrentThemeMode } = useColors();
+  const ui = useUI();
   const [guidedTourId, setGuidedTourId] = useState(null);
 
-  const isDarkMode = getCurrentThemeMode() === 'dark';
-  const bg = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg = isDarkMode ? '#222222' : '#FFFFFF';
-  const border = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const textLabel = isDarkMode ? '#E5E7EB' : '#374151';
-  const textHint = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const divider = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const textPrimary = ui.text;
+  const textMuted = ui.textMuted;
+  const textLabel = ui.text;
+  const textHint = ui.textMuted;
+  const divider = ui.bg; // separa las filas dentro de la card gris
 
   const faqItems = [
     {
@@ -103,7 +101,7 @@ const HelpScreen = () => {
         <Text style={[styles.guideIntro, { color: textHint }]}>
           Elegí un tema. Te llevamos a la pantalla correcta en la app y te explicamos cada paso con calma. Podés cerrar cuando quieras con «Cerrar» arriba a la derecha.
         </Text>
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {HELP_GUIDE_CATALOG.map((item, index) => (
             <TouchableOpacity
               key={item.id}
@@ -131,7 +129,7 @@ const HelpScreen = () => {
 
         {/* FAQ */}
         <Text style={[styles.sectionLabel, styles.sectionLabelSpaced, { color: textLabel }]}>Preguntas frecuentes</Text>
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {faqItems.map((item, index) => (
             <View
               key={item.id}
@@ -148,7 +146,7 @@ const HelpScreen = () => {
 
         {/* Contacto */}
         <Text style={[styles.sectionLabel, { color: textLabel, marginTop: 8 }]}>Contacto</Text>
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {contactItems.map((item, index) => (
             <TouchableOpacity
               key={item.id}
@@ -178,7 +176,7 @@ const HelpScreen = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: 24, paddingBottom: 40 },
 
   sectionLabel: {
     fontSize: 15,
@@ -212,8 +210,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   guideTextCol: { flex: 1 },
-  guideTitle: { fontSize: 16, fontWeight: '700' },
-  guideSubtitle: { fontSize: 13, marginTop: 3, lineHeight: 18 },
+  guideTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16 },
+  guideSubtitle: { fontFamily: 'Sora_400Regular', fontSize: 13, marginTop: 3, lineHeight: 18 },
   card: {
     borderRadius: 14,
     borderWidth: 1,
@@ -251,7 +249,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contactInfo: { flex: 1 },
-  contactTitle: { fontSize: 16, fontWeight: '600' },
+  contactTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16 },
   contactSub: {
     fontSize: 13,
     marginTop: 2,

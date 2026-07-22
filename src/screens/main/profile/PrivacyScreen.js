@@ -1,17 +1,14 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 
 const PrivacyScreen = () => {
-  const { getCurrentThemeMode } = useColors();
-
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg; // separa las secciones dentro de la card gris
 
   const sections = [
     {
@@ -51,7 +48,7 @@ const PrivacyScreen = () => {
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {sections.map((s, index) => (
             <View
               key={index}
@@ -72,22 +69,22 @@ const PrivacyScreen = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: 24, paddingBottom: 40 },
   card: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   section: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 15,
   },
   sectionText: {
+    fontFamily: 'Sora_400Regular',
     fontSize: 13,
     lineHeight: 20,
   },

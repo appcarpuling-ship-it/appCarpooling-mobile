@@ -1,17 +1,14 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 
 const TermsScreen = () => {
-  const { getCurrentThemeMode } = useColors();
-
-  const isDarkMode  = getCurrentThemeMode() === 'dark';
-  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
-  const cardBg      = isDarkMode ? '#222222' : '#FFFFFF';
-  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
-  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
-  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const divider     = isDarkMode ? '#2A2A2A' : '#F0F0F0';
+  const ui = useUI();
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
+  const divider     = ui.bg; // separa las secciones dentro de la card gris
 
   const sections = [
     {
@@ -60,7 +57,7 @@ const TermsScreen = () => {
     <View style={[styles.screen, { backgroundColor: bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {sections.map((s, index) => (
             <View
               key={index}
@@ -82,7 +79,7 @@ const TermsScreen = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: 24, paddingBottom: 40 },
 
   header: {
     marginBottom: 12,

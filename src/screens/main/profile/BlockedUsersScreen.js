@@ -13,12 +13,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { useColors } from '../../../hooks/useColors';
+import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 
 const BlockedUsersScreen = () => {
-  const { colors, isDarkMode } = useColors();
+  const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const [blocked, setBlocked] = useState([]);
@@ -73,14 +73,13 @@ const BlockedUsersScreen = () => {
     load();
   };
 
-  const bg = colors.background;
-  const cardBg = isDarkMode ? '#292929' : colors.cardBackground;
-  const border = colors.border;
+  const bg = ui.bg;
+  const cardBg = ui.surface;
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
+        <ActivityIndicator size="large" color={ui.text} />
       </View>
     );
   }
@@ -91,40 +90,40 @@ const BlockedUsersScreen = () => {
       keyExtractor={(item) => item._id}
       contentContainerStyle={[styles.list, blocked.length === 0 && styles.center, { backgroundColor: bg }]}
       style={{ backgroundColor: bg }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ui.textMuted} />}
       ListEmptyComponent={
         <View style={styles.emptyWrap}>
-          <Ionicons name="shield-checkmark-outline" size={52} color={colors.textMuted} />
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>No tenés usuarios bloqueados</Text>
+          <Ionicons name="shield-checkmark-outline" size={52} color={ui.textMuted} />
+          <Text style={[styles.emptyText, { color: ui.textMuted }]}>No tenés usuarios bloqueados</Text>
         </View>
       }
       renderItem={({ item }) => {
         const avatarUrl = item.avatar ? buildImageUri(item.avatar) : null;
         const isUnlocking = unlockingId === item._id;
         return (
-          <View style={[styles.row, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[styles.row, { backgroundColor: cardBg }]}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#3A3A3A' : '#E8E8E8' }]}>
-                <Text style={[styles.initials, { color: colors.textMuted }]}>
+              <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
+                <Text style={[styles.initials, { color: ui.textMuted }]}>
                   {item.firstName?.[0]}{item.lastName?.[0]}
                 </Text>
               </View>
             )}
-            <Text style={[styles.name, { color: colors.textPrimary }]}>
+            <Text style={[styles.name, { color: ui.text }]}>
               {item.firstName} {item.lastName}
             </Text>
             <TouchableOpacity
-              style={[styles.unblockBtn, { borderColor: colors.accent || '#3B82F6' }]}
+              style={[styles.unblockBtn, { backgroundColor: ui.invertBg }]}
               onPress={() => confirmUnblock(item)}
               disabled={isUnlocking}
               activeOpacity={0.7}
             >
               {isUnlocking ? (
-                <ActivityIndicator size="small" color={colors.accent || '#3B82F6'} />
+                <ActivityIndicator size="small" color={ui.invertText} />
               ) : (
-                <Text style={[styles.unblockText, { color: colors.accent || '#3B82F6' }]}>Desbloquear</Text>
+                <Text style={[styles.unblockText, { color: ui.invertText }]}>Desbloquear</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -136,16 +135,16 @@ const BlockedUsersScreen = () => {
 
 const styles = StyleSheet.create({
   center:           { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list:             { padding: 16, gap: 10 },
+  list:             { padding: 24, gap: 12 },
   emptyWrap:        { alignItems: 'center', gap: 12, marginTop: 40 },
-  emptyText:        { fontSize: 15, textAlign: 'center' },
-  row:              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
-  avatar:           { width: 44, height: 44, borderRadius: 22 },
-  avatarPlaceholder:{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  initials:         { fontSize: 16, fontWeight: '600' },
-  name:             { flex: 1, fontSize: 15, fontWeight: '500' },
-  unblockBtn:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  unblockText:      { fontSize: 13, fontWeight: '600' },
+  emptyText:        { fontFamily: 'Sora_400Regular', fontSize: 15, textAlign: 'center' },
+  row:              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 24 },
+  avatar:           { width: 44, height: 44, borderRadius: 999 },
+  avatarPlaceholder:{ width: 44, height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  initials:         { fontFamily: 'Sora_600SemiBold', fontSize: 16 },
+  name:             { flex: 1, fontFamily: 'Sora_600SemiBold', fontSize: 15 },
+  unblockBtn:       { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999 },
+  unblockText:      { fontFamily: 'Sora_600SemiBold', fontSize: 13 },
 });
 
 export default BlockedUsersScreen;
