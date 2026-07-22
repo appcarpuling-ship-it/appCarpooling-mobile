@@ -153,18 +153,19 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     const title = step === 'province' ? provTitle : selectedProv;
 
     return (
-      <Modal transparent animationType="fade" visible={visible} onRequestClose={handleClose}>
+      <Modal transparent animationType="slide" visible={visible} onRequestClose={handleClose}>
         <View style={styles.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
           <View style={[styles.pickerContainer, { backgroundColor: ui.bg }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: borderColor }]}>
+            <View style={styles.pickerHeader}>
               {step === 'department' && (
                 <TouchableOpacity onPress={() => onStepChange('province')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 10 }}>
                   <Ionicons name="arrow-back" size={22} color={textPrimary} />
                 </TouchableOpacity>
               )}
               <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={24} color={textPrimary} />
+              <TouchableOpacity style={[styles.pickerClose, { backgroundColor: ui.surface }]} onPress={handleClose}>
+                <Ionicons name="close" size={19} color={textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -537,18 +538,19 @@ const styles = StyleSheet.create({
 
   // Picker modals
   modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerContainer: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' },
-  pickerHeader:    { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: StyleSheet.hairlineWidth },
-  pickerTitle:     { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
+  pickerContainer: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%' },
+  pickerHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 14 },
+  pickerTitle:     { fontSize: 24, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  pickerClose:     { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   pickerLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   pickerButtons:   { flexDirection: 'row', gap: 12, padding: 16 },
-  pickerButton:    { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
+  pickerButton:    { flex: 1, paddingVertical: 14, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
   pickerButtonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
 
-  provinceGridItem:  { borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' },
+  provinceGridItem:  { borderRadius: 18, padding: 14, alignItems: 'center' },
   provinceGridImage: { width: 48, height: 48, marginBottom: 8 },
   provinceGridLabel: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center' },
-  deptAllItem:       { borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center', marginHorizontal: 16, marginTop: 16 },
+  deptAllItem:       { borderRadius: 18, padding: 14, alignItems: 'center', marginHorizontal: 24, marginTop: 16 },
 });
 
 export default OpenTripRequestsScreen;
