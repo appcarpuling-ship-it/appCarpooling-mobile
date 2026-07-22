@@ -566,8 +566,15 @@ const AllTripsScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+          <View style={styles.screenHeader}>
+            <Text style={[styles.screenTitle, { color: ui.text }]}>
+              Todos los{'\n'}
+              <Text style={styles.screenTitleStrong}>viajes</Text>
+            </Text>
+          </View>
+
           {/* Filters */}
-          <View style={[styles.filtersSection, { borderBottomColor: ui.border }]}>
+          <View style={styles.filtersSection}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
               {/* Origin */}
               <TouchableOpacity
@@ -859,11 +866,11 @@ const styles = StyleSheet.create({
   },
 
   // Filters
+  screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
+  screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
   filtersSection: {
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: spacing.md,
   },
   filtersRow: {
     paddingHorizontal: spacing.md,

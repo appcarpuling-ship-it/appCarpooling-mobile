@@ -398,8 +398,15 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
+      <View style={styles.screenHeader}>
+        <Text style={[styles.screenTitle, { color: ui.text }]}>
+          Pasajeros{'\n'}
+          <Text style={styles.screenTitleStrong}>buscando viaje</Text>
+        </Text>
+      </View>
+
       {/* Filter chips */}
-      <View style={[styles.filtersSection, { borderBottomColor: borderColor }]}>
+      <View style={styles.filtersSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
           <TouchableOpacity
             style={[styles.filterChip, originCity || originProvince ? chipActive : chipDefault]}
@@ -510,12 +517,15 @@ const styles = StyleSheet.create({
   center:       { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list:         { padding: 16 },
 
-  filtersSection: { borderBottomWidth: StyleSheet.hairlineWidth },
-  filtersRow:     { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  filterChip:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20 },
+  screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  filtersSection: { paddingBottom: 6 },
+  filtersRow:     { paddingHorizontal: 24, paddingVertical: 6, gap: 8 },
+  filterChip:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1 },
   filterChipText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
-  card:            { borderRadius: 14, marginBottom: 12 },
+  card:            { borderRadius: 24, marginBottom: 12 },
   headerRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14 },
   avatar:          { width: 40, height: 40, borderRadius: 20 },
   avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
