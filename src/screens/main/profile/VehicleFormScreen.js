@@ -21,6 +21,7 @@ import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
+import PillButton from '../../../components/ui/PillButton';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const ui = useUI();
@@ -33,7 +34,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const border      = ui.border;
   const textPrimary     = ui.text;
   const textMuted       = ui.textMuted;
-  const textLabel       = ui.text;
   const textHint        = ui.textMuted;
   const placeholderColor = ui.textMuted;
   const divider         = ui.bg;
@@ -51,6 +51,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
   ];
 
   const [selectedType, setSelectedType] = useState(vehicleData?.type || 'sedan');
+  const [focusedField, setFocusedField] = useState(null);
   const maxCapacityForType = VEHICLE_TYPES.find(t => t.key === selectedType)?.maxCapacity ?? 8;
 
   const [formData, setFormData] = useState({
@@ -301,6 +302,33 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const totalPhotos = existingPhotos.length + photos.length;
 
+  // Mismo campo relleno que en editar perfil: etiqueta adentro y foco marcado
+  // con el borde, en vez de la fila subrayada.
+  const renderField = (f, half) => (
+    <View
+      key={f.key}
+      style={[
+        styles.field,
+        half && styles.fieldHalf,
+        { backgroundColor: cardBg, borderColor: focusedField === f.key ? textPrimary : 'transparent' },
+      ]}
+    >
+      <Text style={[styles.fieldLabel, { color: textMuted }]} numberOfLines={1}>{f.label}</Text>
+      <TextInput
+        style={[styles.fieldInput, { color: textPrimary }]}
+        value={formData[f.key]}
+        onChangeText={v => handleChange(f.key, f.noAutoUpper ? v : (f.caps ? v.toUpperCase() : v))}
+        onFocus={() => setFocusedField(f.key)}
+        onBlur={() => setFocusedField(null)}
+        placeholder={f.placeholder}
+        placeholderTextColor={placeholderColor}
+        keyboardType={f.keyboard || 'default'}
+        maxLength={f.max}
+        autoCapitalize={f.autoCapitalize ?? (f.caps ? 'characters' : 'sentences')}
+      />
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       {/* keyboardVerticalOffset: esta pantalla tiene header nativo del stack, que queda FUERA
@@ -319,11 +347,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
           keyboardShouldPersistTaps="handled"
         >
 
+          {/* Titulo */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: textPrimary }]}>
+              {isEdit ? 'Editá tu' : 'Sumá tu'}{'\n'}
+              <Text style={styles.titleStrong}>vehículo</Text>
+            </Text>
+            <Text style={[styles.subtitle, { color: textMuted }]}>
+              {isEdit
+                ? 'Actualizá las fotos, los datos o lo que ofrecés a bordo.'
+                : 'Cargá las fotos y los datos para empezar a publicar viajes.'}
+            </Text>
+          </View>
+
           {/* Photos */}
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textLabel }]}>Fotos</Text>
-            <Text style={[styles.sectionHint, { color: textHint }]}>
-              {isEdit ? 'Agrega o elimina fotos' : 'Mínimo 3, máximo 10'}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Fotos</Text>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              {isEdit ? 'Agregá o eliminá fotos.' : `Mínimo 3, máximo 10. Llevás ${totalPhotos}.`}
             </Text>
 
             <ScrollView
@@ -366,7 +407,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
               {totalPhotos < 10 && (
                 <TouchableOpacity
-                  style={[styles.photoAdd, { backgroundColor: divider, borderColor: border }]}
+                  style={[styles.photoAdd, { backgroundColor: cardBg, borderColor: border }]}
                   onPress={pickImages}
                   disabled={processingNewPhotos}
                   activeOpacity={0.7}
@@ -374,14 +415,16 @@ const VehicleFormScreen = ({ navigation, route }) => {
                   {processingNewPhotos ? (
                     <>
                       <ActivityIndicator size="small" color={textPrimary} />
-                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textHint }]}>
+                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textMuted }]}>
                         Procesando…
                       </Text>
                     </>
                   ) : (
                     <>
-                      <Ionicons name="add" size={28} color={textHint} />
-                      <Text style={[styles.photoAddText, { color: textHint }]}>{totalPhotos}/10</Text>
+                      <View style={[styles.photoAddIcon, { backgroundColor: ui.invertBg }]}>
+                        <Ionicons name="add" size={22} color={ui.invertText} />
+                      </View>
+                      <Text style={[styles.photoAddText, { color: textMuted }]}>{totalPhotos}/10</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -389,10 +432,36 @@ const VehicleFormScreen = ({ navigation, route }) => {
             </ScrollView>
           </View>
 
+          {/* Tipo de vehículo */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Tipo</Text>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              Define el máximo de pasajeros que podés ofrecer.
+            </Text>
+            <View style={styles.chipsWrap}>
+              {VEHICLE_TYPES.map((t) => {
+                const on = selectedType === t.key;
+                return (
+                  <TouchableOpacity
+                    key={t.key}
+                    style={[styles.chip, { backgroundColor: on ? ui.invertBg : cardBg }]}
+                    onPress={() => handleTypeChange(t.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                  >
+                    <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{t.label}</Text>
+                    <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{t.maxCapacity}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Tarjeta verde / cédula */}
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textLabel }]}>Documentación</Text>
-            <Text style={[styles.sectionHint, { color: textHint }]}>
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Documentación</Text>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
               Tarjeta verde o cédula del vehículo. La patente debe coincidir con lo que cargás abajo (se verifica automáticamente).
             </Text>
             <View style={styles.regCardRow}>
@@ -429,21 +498,23 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 </View>
               ) : (
                 <TouchableOpacity
-                  style={[styles.regCardAdd, { backgroundColor: divider, borderColor: border }]}
+                  style={[styles.regCardAdd, { backgroundColor: cardBg, borderColor: border }]}
                   onPress={pickRegistrationCard}
                   disabled={processingRegistration}
                 >
                   {processingRegistration ? (
                     <>
                       <ActivityIndicator size="small" color={textPrimary} />
-                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textHint }]}>
+                      <Text style={[styles.photoAddText, styles.photoAddHint, { color: textMuted }]}>
                         Procesando…
                       </Text>
                     </>
                   ) : (
                     <>
-                      <Ionicons name="document-text-outline" size={28} color={textHint} />
-                      <Text style={[styles.photoAddText, { color: textHint }]}>Subir documento</Text>
+                      <View style={[styles.photoAddIcon, { backgroundColor: ui.invertBg }]}>
+                        <Ionicons name="document-text-outline" size={20} color={ui.invertText} />
+                      </View>
+                      <Text style={[styles.photoAddText, { color: textMuted }]}>Subir documento</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -452,94 +523,50 @@ const VehicleFormScreen = ({ navigation, route }) => {
           </View>
 
           {/* Info */}
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textLabel }]}>Información</Text>
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Información</Text>
 
-            <View style={styles.row}>
-              {fields.filter(f => f.half).map(f => (
-                <View key={f.key} style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={[styles.label, { color: textLabel }]}>{f.label}</Text>
-                  <TextInput
-                    style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
-                    value={formData[f.key]}
-                    onChangeText={v => handleChange(f.key, f.noAutoUpper ? v : (f.caps ? v.toUpperCase() : v))}
-                    placeholder={f.placeholder}
-                    placeholderTextColor={placeholderColor}
-                    keyboardType={f.keyboard || 'default'}
-                    maxLength={f.max}
-                    autoCapitalize={f.autoCapitalize ?? (f.caps ? 'characters' : 'sentences')}
-                  />
-                </View>
-              ))}
-            </View>
-
-            {fields.filter(f => !f.half).map(f => (
-              <View key={f.key} style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textLabel }]}>{f.label}</Text>
-                <TextInput
-                  style={[styles.input, { borderBottomColor: border, color: textPrimary }]}
-                  value={formData[f.key]}
-                  onChangeText={v => handleChange(f.key, f.noAutoUpper ? v : (f.caps ? v.toUpperCase() : v))}
-                  placeholder={f.placeholder}
-                  placeholderTextColor={placeholderColor}
-                  keyboardType={f.keyboard || 'default'}
-                  maxLength={f.max}
-                  autoCapitalize={f.autoCapitalize ?? (f.caps ? 'characters' : 'sentences')}
-                />
+            <View style={styles.fieldStack}>
+              <View style={styles.row}>
+                {fields.filter(f => f.half).map(f => renderField(f, true))}
               </View>
-            ))}
+              {fields.filter(f => !f.half).map(f => renderField(f, false))}
+            </View>
           </View>
 
-          {/* Features */}
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textLabel }]}>Características</Text>
-
-            {featuresList.map((f, index) => (
-              <TouchableOpacity
-                key={f.key}
-                style={[
-                  styles.featureRow,
-                  index < featuresList.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
-                ]}
-                onPress={() => toggleFeature(f.key)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.featureIcon, { backgroundColor: divider }]}>
-                  <Ionicons name={f.icon} size={18} color={textPrimary} />
-                </View>
-                <Text style={[styles.featureLabel, { color: textPrimary }]}>{f.label}</Text>
-                <View style={[
-                  styles.toggle,
-                  { backgroundColor: features[f.key] ? textPrimary : divider },
-                ]}>
-                  <View style={[
-                    styles.toggleCircle,
-                    { backgroundColor: features[f.key] ? (isDarkMode ? '#000000' : '#FFFFFF') : textMuted },
-                    features[f.key] && styles.toggleCircleOn,
-                  ]} />
-                </View>
-              </TouchableOpacity>
-            ))}
+          {/* Features: chips que se prenden, como los tags de la referencia */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Características</Text>
+            <Text style={[styles.sectionHint, { color: textMuted }]}>
+              Tocá lo que ofrecés a bordo.
+            </Text>
+            <View style={styles.chipsWrap}>
+              {featuresList.map((f) => {
+                const on = features[f.key];
+                return (
+                  <TouchableOpacity
+                    key={f.key}
+                    style={[styles.featureChip, { backgroundColor: on ? ui.invertBg : cardBg }]}
+                    onPress={() => toggleFeature(f.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                  >
+                    <Ionicons name={f.icon} size={16} color={on ? ui.invertText : textMuted} />
+                    <Text style={[styles.featureChipText, { color: on ? ui.invertText : textPrimary }]}>{f.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          {/* Submit */}
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' },
-              (loading || processingNewPhotos || processingRegistration) && { opacity: 0.6 },
-            ]}
+          <PillButton
+            label={isEdit ? 'Guardar cambios' : 'Crear vehículo'}
             onPress={handleSubmit}
-            disabled={loading || processingNewPhotos || processingRegistration}
-            activeOpacity={0.85}
-          >
-            {loading
-              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} size="small" />
-              : <Text style={[styles.submitText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>
-                  {isEdit ? 'Guardar cambios' : 'Crear vehículo'}
-                </Text>
-            }
-          </TouchableOpacity>
+            loading={loading}
+            disabled={processingNewPhotos || processingRegistration}
+            style={styles.submit}
+          />
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -559,32 +586,39 @@ const VehicleFormScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container:   { flex: 1 },
   flex:        { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40, gap: 12 },
+  scrollContent: { paddingBottom: 48 },
 
-  section: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-  },
+  header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 30 },
+  title:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  subtitle:    { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, marginTop: 12 },
+
+  // Las secciones ya no son cards con borde: la etiqueta va afuera y el gris lo
+  // aportan los campos, igual que en editar perfil.
+  section: { paddingHorizontal: 24, marginBottom: 30 },
   sectionLabel: {
-    fontSize: 15,
-    fontFamily: 'Sora_700Bold',
-    letterSpacing: 0.2,
-    marginBottom: 6,
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   sectionHint: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 16,
+    fontFamily: 'Sora_400Regular',
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 14,
+    marginLeft: 4,
   },
 
   // Photos
-  photosScroll:    { marginHorizontal: -20 },
-  photosContainer: { paddingHorizontal: 20, gap: 10 },
+  photosScroll:    { marginHorizontal: -24 },
+  photosContainer: { paddingHorizontal: 24, gap: 12 },
   photoWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 10,
+    width: 108,
+    height: 108,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   photoImg: {
@@ -593,27 +627,34 @@ const styles = StyleSheet.create({
   },
   photoRemove: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoAdd: {
-    width: 90,
-    height: 90,
-    borderRadius: 10,
+    width: 108,
+    height: 108,
+    borderRadius: 20,
     borderWidth: 1,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+  },
+  photoAddIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoAddText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Sora_600SemiBold',
   },
   photoAddHint: {
@@ -631,114 +672,88 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   regCardImg: {
-    width: 200,
-    height: 120,
-    borderRadius: 10,
+    width: 220,
+    height: 132,
+    borderRadius: 20,
   },
   regCardHint: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
+    fontFamily: 'Sora_400Regular',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 10,
   },
   regCardReplace: {
     marginTop: 10,
     alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
     borderWidth: 1,
   },
   regCardReplaceText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Sora_600SemiBold',
   },
   regCardAdd: {
-    width: 200,
-    minHeight: 120,
-    borderRadius: 10,
+    width: 220,
+    minHeight: 132,
+    borderRadius: 20,
     borderWidth: 1,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     padding: 16,
   },
 
-  // Type chips
-  typeScroll:    { marginHorizontal: -20, marginBottom: 20 },
-  typeContainer: { paddingHorizontal: 20, gap: 8, flexDirection: 'row' },
-  typeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-  },
-  typeChipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-
-  // Form
-  row:       { flexDirection: 'row', gap: 20 },
-  halfWidth: { flex: 1 },
-  inputGroup: { marginBottom: 20 },
-  label: {
-    fontSize: 14,
-    fontFamily: 'Sora_600SemiBold',
-    letterSpacing: 0,
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 17,
-    lineHeight: 24,
-    fontFamily: 'Sora_500Medium',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-
-  // Features
-  featureRow: {
+  // Chips (tipo y caracteristicas)
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    gap: 14,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 999,
   },
-  featureIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    justifyContent: 'center',
+  chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  chipMeta: { fontSize: 12, fontFamily: 'Sora_500Medium', opacity: 0.7 },
+  featureChip: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 999,
   },
-  featureLabel: {
-    flex: 1,
-    fontSize: 16,
+  featureChipText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
+
+  // Campos
+  fieldStack: { gap: 10 },
+  row:        { flexDirection: 'row', gap: 10 },
+  field: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    paddingTop: 11,
+    paddingBottom: 13,
+  },
+  fieldHalf: { flex: 1 },
+  fieldLabel: {
     fontFamily: 'Sora_600SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  toggle: {
-    width: 46,
-    height: 26,
-    borderRadius: 13,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-  },
-  toggleCircleOn: {
-    alignSelf: 'flex-end',
+  fieldInput: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: 16,
+    padding: 0,
+    marginTop: 3,
+    minHeight: 22,
   },
 
-  // Submit
-  submitBtn: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitText: {
-    fontSize: 16,
-    fontFamily: 'Sora_600SemiBold',
-  },
+  submit: { marginHorizontal: 24, marginTop: 4 },
 });
 
 export default VehicleFormScreen;
