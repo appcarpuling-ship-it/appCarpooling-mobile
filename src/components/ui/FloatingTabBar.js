@@ -98,7 +98,10 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
 const styles = StyleSheet.create({
   // Sin position:absolute a propósito: la barra sigue ocupando su lugar en el
   // layout, así ninguna lista queda tapada por debajo.
-  wrap:      { paddingHorizontal: 16, paddingTop: 8 },
+  // paddingTop >= lo que sobresale el FAB, o su parte de arriba queda fuera del
+  // área pintada y se ve el contenido de la pantalla por detrás.
+  // Sobresale 16: marginTop 20 menos los 4 que lo centran en la barra de 64.
+  wrap:      { paddingHorizontal: 16, paddingTop: 22 },
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 64, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
