@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Keyboard, Platform } from 'react-native';
+import { Keyboard, Platform } from 'react-native';
 
-const RUMBO_AVATAR_DARK = require('../../assets/agent/rumbo_128.png');
-const RUMBO_AVATAR_LIGHT = require('../../assets/agent/rumbo_black_128.png');
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '../hooks/useColors';
-import { useTheme } from '../context/ThemeContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import { useNotifications } from '../context/NotificationContext';
+import FloatingTabBar from '../components/ui/FloatingTabBar';
 
 // Stack Navigators
 import HomeStackNavigator from './stacks/HomeStackNavigator';
@@ -25,9 +20,6 @@ import { useTutorial } from '../context/TutorialContext';
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
-  const insets = useSafeAreaInsets();
-  const colors = useColors();
-  const { isDarkMode } = useTheme();
   const { unreadCount } = useUnreadMessages();
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
   const { tutorialReady, tutorialCompleted, completeTutorial } = useTutorial();
@@ -49,77 +41,13 @@ const MainTabNavigator = () => {
     <>
     <Tab.Navigator
       id="MainTabs"
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <FloatingTabBar {...props} unreadCount={unreadCount} />}
+      screenOptions={{
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          // Ícono custom de Rumbo
-          if (route.name === 'AssistantTab') {
-            return (
-              <View style={[
-                styles.rumboContainer,
-                {
-                  borderColor: focused
-                    ? (isDarkMode ? '#FFFFFF' : '#1F2937')
-                    : 'transparent',
-                },
-              ]}>
-                <Image
-                  source={isDarkMode ? RUMBO_AVATAR_DARK : RUMBO_AVATAR_LIGHT}
-                  style={styles.rumboAvatar}
-                />
-              </View>
-            );
-          }
-
-          let iconName;
-          if (route.name === 'HomeTab') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'CarpoolingsTab') {
-            iconName = focused ? 'car' : 'car-outline';
-          } else if (route.name === 'ChatsTab') {
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          // Badge de mensajes no leídos
-          if (route.name === 'ChatsTab' && unreadCount > 0) {
-            return (
-              <View style={styles.iconContainer}>
-                <Ionicons name={iconName} size={size} color={color} />
-                <View style={[
-                  styles.badge,
-                  {
-                    backgroundColor: isDarkMode ? '#F87171' : '#EF4444',
-                    borderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                    shadowColor: '#000000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 2,
-                    elevation: 3,
-                  }
-                ]}>
-                  <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              </View>
-            );
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
-        tabBarInactiveTintColor: isDarkMode ? '#9CA3AF' : '#6B7280',
-        tabBarStyle: keyboardVisible ? { display: 'none' } : {
-          backgroundColor: isDarkMode ? '#1F1F1F' : '#FFFFFF',
-          borderTopColor: colors.border,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
-          paddingTop: 8,
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
-        },
-        tabBarShowLabel: false,
-      })}
+        // FloatingTabBar lee este display:'none' para ocultarse (teclado abierto
+        // en Android, y las pantallas que ya lo declaraban en sus options).
+        tabBarStyle: keyboardVisible ? { display: 'none' } : undefined,
+      }}
     >
       <Tab.Screen
         name="HomeTab"
@@ -247,44 +175,5 @@ const MainTabNavigator = () => {
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  rumboContainer: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 2,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rumboAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-  },
-  iconContainer: {
-    width: 24,
-    height: 24,
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -8,
-    right: -10,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-});
 
 export default MainTabNavigator;
