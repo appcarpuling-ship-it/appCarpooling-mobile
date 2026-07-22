@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
@@ -19,8 +20,7 @@ import * as Updates from 'expo-updates';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
-import { useUI } from '../../theme/ui';
-import PillButton from '../../components/ui/PillButton';
+import { useColors } from '../../hooks/useColors';
 import { API_CONFIG } from '../../config/api';
 
 // Derivado de la API configurada (EXPO_PUBLIC_API_BASE_URL / eas.json), no clavado:
@@ -33,10 +33,21 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
   const [showPassword, setShowPassword] = useState(false);
-  const [focused, setFocused] = useState(null); // 'email' | 'password' | null
   const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
-  const ui = useUI();
+  // isDarkMode ya viene resuelto: getCurrentThemeMode() devuelve 'system' cuando
+  // el usuario sigue al sistema, y comparar contra 'dark' dejaba el login en
+  // claro aunque el sistema estuviera en oscuro.
+  const { isDarkMode } = useColors();
+  const bg          = isDarkMode ? '#161616' : '#F5F5F5';
+  const cardBg      = isDarkMode ? '#1E1E1E' : '#FFFFFF';
+  const border      = isDarkMode ? '#2E2E2E' : '#E8E8E8';
+  const textPrimary = isDarkMode ? '#FFFFFF' : '#000000';
+  const textMuted   = isDarkMode ? '#6B7280' : '#9CA3AF';
+
+  const LOGO_SOURCE = isDarkMode
+    ? require('../../../assets/logo/192x192-white.png')
+    : require('../../../assets/logo/192x192-black.png');
 
   useEffect(() => {
     ScreenCapture.preventScreenCaptureAsync();
@@ -104,114 +115,115 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  // El foco se marca con un borde del color del texto: es el único "acento"
-  // disponible en una paleta blanco y negro.
-  const fieldStyle = (name) => [
-    styles.field,
-    { backgroundColor: ui.surface, borderColor: focused === name ? ui.text : 'transparent' },
-  ];
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: ui.bg }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-          <Text style={[styles.title, { color: ui.text }]}>
-            Hola de nuevo,{'\n'}
-            <Text style={styles.titleStrong}>iniciá sesión</Text>
-          </Text>
-          <Text style={[styles.subtitle, { color: ui.textMuted }]}>Viajá inteligente, ahorrá más.</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <Image source={LOGO_SOURCE} style={styles.logo} />
+            <Text style={[styles.title, { color: textPrimary }]}>Carpuling</Text>
+            <Text style={[styles.subtitle, { color: textMuted }]}>Viajá inteligente, ahorrá más</Text>
+          </View>
 
-          <View style={styles.form}>
-            <View style={fieldStyle('email')}>
-              <Ionicons name="mail-outline" size={18} color={ui.textMuted} />
+          {/* Form card */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[styles.inputRow, { borderBottomColor: border }]}>
+              <Ionicons name="mail-outline" size={18} color={textMuted} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: ui.text }]}
+                style={[styles.input, { color: textPrimary }]}
                 placeholder="Email"
-                placeholderTextColor={ui.textMuted}
+                placeholderTextColor={textMuted}
                 value={email}
                 onChangeText={setEmail}
-                onFocus={() => setFocused('email')}
-                onBlur={() => setFocused(null)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
               />
             </View>
-
-            <View style={fieldStyle('password')}>
-              <Ionicons name="lock-closed-outline" size={18} color={ui.textMuted} />
+            <View style={styles.inputRow}>
+              <Ionicons name="lock-closed-outline" size={18} color={textMuted} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: ui.text }]}
+                style={[styles.input, { color: textPrimary }]}
                 placeholder="Contraseña"
-                placeholderTextColor={ui.textMuted}
+                placeholderTextColor={textMuted}
                 value={password}
                 onChangeText={setPassword}
-                onFocus={() => setFocused('password')}
-                onBlur={() => setFocused(null)}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={10}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color={ui.textMuted} />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color={textMuted} />
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.forgot} onPress={() => navigation.navigate('ForgotPassword')} hitSlop={8}>
-              <Text style={[styles.forgotText, { color: ui.textMuted }]}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
           </View>
 
-          <PillButton label="Iniciar sesión" onPress={handleLogin} loading={loading} style={styles.cta} />
+          {/* Login button */}
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }, loading && { opacity: 0.7 }]}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
+              : <Text style={[styles.btnText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Iniciar Sesión</Text>
+            }
+          </TouchableOpacity>
 
+          {/* Divider SSO */}
           <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: ui.border }]} />
-            <Text style={[styles.dividerLabel, { color: ui.textMuted }]}>o continuá con</Text>
-            <View style={[styles.dividerLine, { backgroundColor: ui.border }]} />
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+            <Text style={[styles.dividerLabel, { color: textMuted }]}>o continuá con</Text>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
           </View>
 
+          {/* SSO icons */}
           <View style={styles.ssoRow}>
             {Platform.OS !== 'web' && (
               <TouchableOpacity
-                style={[styles.sso, { backgroundColor: ui.surface }, ssoLoading === 'google' && styles.off]}
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'google' && { opacity: 0.6 }]}
                 onPress={handleGoogleLogin}
                 disabled={!!ssoLoading}
                 activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Continuar con Google"
               >
                 {ssoLoading === 'google'
-                  ? <ActivityIndicator color={ui.textMuted} size="small" />
-                  : <FontAwesome name="google" size={20} color={ui.text} />
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="google" size={22} color="#DB4437" />
                 }
               </TouchableOpacity>
             )}
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={[styles.sso, { backgroundColor: ui.surface }, ssoLoading === 'apple' && styles.off]}
+                style={[styles.ssoIconBtn, { borderColor: border, backgroundColor: cardBg }, ssoLoading === 'apple' && { opacity: 0.6 }]}
                 onPress={handleAppleLogin}
                 disabled={!!ssoLoading}
                 activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Continuar con Apple"
               >
                 {ssoLoading === 'apple'
-                  ? <ActivityIndicator color={ui.textMuted} size="small" />
-                  : <FontAwesome name="apple" size={22} color={ui.text} />
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <FontAwesome name="apple" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
                 }
               </TouchableOpacity>
             )}
           </View>
 
+          {/* Forgot password */}
+          <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={[styles.linkText, { color: textMuted }]}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
+          {/* Register */}
           <View style={styles.registerRow}>
-            <Text style={[styles.registerText, { color: ui.textMuted }]}>¿No tenés cuenta? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')} hitSlop={8}>
-              <Text style={[styles.registerLink, { color: ui.text }]}>Registrate</Text>
+            <Text style={[styles.registerText, { color: textMuted }]}>¿No tenés cuenta? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={[styles.registerLink, { color: textPrimary }]}>Registrate</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.version, { color: ui.textMuted }]}>{versionLabel}</Text>
+          <Text style={[styles.version, { color: textMuted }]}>{versionLabel}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -219,27 +231,30 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container:    { flex: 1 },
-  scroll:       { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-  title:        { fontFamily: 'Sora_300Light', fontSize: 34, lineHeight: 42, letterSpacing: -1 },
-  titleStrong:  { fontFamily: 'Sora_800ExtraBold' },
-  subtitle:     { fontFamily: 'Sora_400Regular', fontSize: 15, marginTop: 12 },
-  form:         { marginTop: 36, gap: 12 },
-  field:        { flexDirection: 'row', alignItems: 'center', gap: 12, height: 58, borderRadius: 18, paddingHorizontal: 18, borderWidth: 1.5 },
-  input:        { flex: 1, fontFamily: 'Sora_400Regular', fontSize: 15 },
-  forgot:       { alignSelf: 'flex-end', paddingVertical: 4 },
-  forgotText:   { fontFamily: 'Sora_500Medium', fontSize: 13 },
-  cta:          { marginTop: 24 },
-  divider:      { flexDirection: 'row', alignItems: 'center', marginVertical: 28 },
-  dividerLine:  { flex: 1, height: StyleSheet.hairlineWidth },
-  dividerLabel: { fontFamily: 'Sora_400Regular', fontSize: 13, marginHorizontal: 12 },
-  ssoRow:       { flexDirection: 'row', justifyContent: 'center', gap: 12 },
-  sso:          { width: 64, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  off:          { opacity: 0.5 },
-  registerRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 32 },
-  registerText: { fontFamily: 'Sora_400Regular', fontSize: 14 },
-  registerLink: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
-  version:      { fontFamily: 'Sora_400Regular', textAlign: 'center', fontSize: 12, marginTop: 28 },
+  container:     { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+  header:        { alignItems: 'center', marginBottom: 40 },
+  logo:          { width: 64, height: 64, resizeMode: 'contain', marginBottom: 16 },
+  title:         { fontSize: 28, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
+  subtitle:      { fontSize: 15 },
+  card:          { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
+  inputRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  inputIcon:     { marginRight: 10 },
+  input:         { flex: 1, height: 52, fontSize: 15 },
+  eyeBtn:        { padding: 8 },
+  btn:           { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  btnText:       { fontSize: 16, fontWeight: '700' },
+  linkBtn:       { alignItems: 'center', paddingVertical: 12 },
+  linkText:      { fontSize: 14 },
+  registerRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  registerText:  { fontSize: 14 },
+  registerLink:  { fontSize: 14, fontWeight: '600' },
+  version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
+  divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
+  ssoRow:        { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 12 },
+  ssoIconBtn:    { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default LoginScreen;
