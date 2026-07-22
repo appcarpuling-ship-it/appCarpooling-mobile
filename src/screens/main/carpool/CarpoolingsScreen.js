@@ -21,6 +21,7 @@ import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -281,7 +282,7 @@ const CarpoolingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingBottom: 32 },
+  scrollContent: { paddingBottom: TAB_BAR_SPACE },
 
   header: {
     paddingTop: 60,

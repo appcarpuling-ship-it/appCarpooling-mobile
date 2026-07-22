@@ -18,6 +18,11 @@ const ICONS = {
 // Rumbo va al medio y sobresale del pill, como el botón central de la referencia.
 const CENTER_TAB = 'AssistantTab';
 
+// Alto que ocupa la barra flotante (18 que sobresale el botón + 70 de la barra
+// + separación de abajo). Las pantallas raíz lo usan como paddingBottom para
+// que la última card se pueda scrollear por encima de la barra.
+export const TAB_BAR_SPACE = 104;
+
 const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -131,11 +136,10 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
 };
 
 const styles = StyleSheet.create({
-  // Sin position:absolute a propósito: la barra sigue ocupando su lugar en el
-  // layout, así ninguna lista queda tapada por debajo.
-  // Proporciones tomadas de la captura de referencia: el botón sobresale ~58%
-  // de su alto sobre la barra y la bajadita baja otro tanto.
-  wrap:      { paddingHorizontal: 16 },
+  // Flota sobre el contenido: si ocupara lugar en el layout, la franja del
+  // fondo de la pantalla cortaba la última card. Las pantallas raíz dejan
+  // TAB_BAR_SPACE de aire al final de sus listas.
+  wrap:      { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
   // paddingTop = lo que sobresale el botón (18)
   barWrap:   { paddingTop: 18 },
   // overflow hidden: es lo que recorta la bajadita contra la barra

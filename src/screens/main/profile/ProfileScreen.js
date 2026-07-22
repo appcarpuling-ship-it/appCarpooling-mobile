@@ -18,6 +18,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { buildImageUri } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useTutorial } from '../../../context/TutorialContext';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
@@ -306,7 +307,7 @@ const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   container:     { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: TAB_BAR_SPACE },
 
   // Header
   header: {

@@ -28,6 +28,7 @@ import { colors as staticColors, spacing, borderRadius, fontSize, fontWeight } f
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -819,6 +820,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.md,
     paddingTop: spacing.sm,
+    paddingBottom: TAB_BAR_SPACE,
   },
   conversationItem: {
     marginBottom: spacing.sm + 4,

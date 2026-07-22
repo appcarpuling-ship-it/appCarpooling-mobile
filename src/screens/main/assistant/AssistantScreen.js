@@ -17,6 +17,7 @@ import { useColors } from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import apiService from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 const RUMBO_AVATAR_DARK = require('../../../../assets/agent/rumbo_128.png');
 const RUMBO_AVATAR_LIGHT = require('../../../../assets/agent/rumbo_black_128.png');
@@ -366,7 +367,7 @@ export default function AssistantScreen() {
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={[styles.chatContent, { paddingBottom: insets.bottom + 16 }]}
+        contentContainerStyle={[styles.chatContent, { paddingBottom: insets.bottom + TAB_BAR_SPACE }]}
         onContentSizeChange={scrollToEnd}
         showsVerticalScrollIndicator={false}
       />

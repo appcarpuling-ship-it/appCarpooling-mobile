@@ -35,6 +35,7 @@ import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -1192,7 +1193,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: TAB_BAR_SPACE,
   },
 
   // Active trip banner
