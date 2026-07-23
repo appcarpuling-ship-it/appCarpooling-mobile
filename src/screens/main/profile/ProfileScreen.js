@@ -155,6 +155,13 @@ const ProfileScreen = () => {
           icon: 'gift-outline',
           onPress: () => navigation.navigate('ReferralScreen'),
         },
+        {
+          id: 13,
+          title: 'Mis Cupones',
+          subtitle: 'Canjeá un código y consultá tu estado',
+          icon: 'pricetag-outline',
+          onPress: () => navigation.navigate('Coupons'),
+        },
       ],
     },
     {

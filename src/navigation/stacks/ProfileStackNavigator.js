@@ -16,6 +16,7 @@ import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import ReferralScreen from '../../screens/main/profile/ReferralScreen';
+import CouponsScreen from '../../screens/main/profile/CouponsScreen';
 import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 
 const Stack = createStackNavigator();
@@ -63,6 +64,11 @@ const ProfileStackNavigator = () => {
         name="ReferralScreen"
         component={ReferralScreen}
         options={{ title: 'Código Promocional' }}
+      />
+      <Stack.Screen
+        name="Coupons"
+        component={CouponsScreen}
+        options={{ title: 'Mis Cupones' }}
       />
       <Stack.Screen
         name="Vehicles"
