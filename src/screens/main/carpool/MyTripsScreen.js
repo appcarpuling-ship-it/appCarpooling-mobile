@@ -19,6 +19,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
+import { reportError } from '../../../utils/sentry';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
 
@@ -72,6 +73,7 @@ const MyTripsScreen = ({ navigation }) => {
         setHasMore(response.hasMore ?? false);
       }
     } catch (error) {
+      reportError(error, { screen: 'MyTripsScreen', action: 'loadTrips' });
       showAlert('Ocurrió algo', 'No se pudieron cargar los viajes');
     } finally {
       fetchingRef.current = false;

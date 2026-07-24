@@ -16,6 +16,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import { reportError } from '../../../utils/sentry';
 
 // Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
 // tipo se muestra con dos nombres distintos según la pantalla.
@@ -75,7 +76,8 @@ const VehiclesScreen = () => {
         setVehicles([]);
         setHasMore(false);
       }
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'VehiclesScreen', action: 'loadVehicles' });
       showAlert('Ocurrió algo', 'No pudimos cargar tus vehículos.');
       if (reset || pageNum === 1) setVehicles([]);
     } finally {

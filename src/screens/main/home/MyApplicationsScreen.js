@@ -12,6 +12,7 @@ import { getMyApplications, cancelTripRequestApplication } from '../../../servic
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 // Sin color: aceptado y pendiente siguen en juego y llevan badge solido;
 // rechazado va apagado.
@@ -54,6 +55,7 @@ const MyApplicationsScreen = ({ navigation }) => {
         setHasMore(res.hasMore ?? false);
       }
     } catch (err) {
+      reportError(err, { screen: 'MyApplicationsScreen', action: 'loadApplications' });
       showAlert('Error', err.message);
     } finally {
       fetchingRef.current = false;

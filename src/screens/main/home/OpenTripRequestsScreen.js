@@ -16,6 +16,7 @@ import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRe
 import { buildImageUri } from '../../../services/apiService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -106,6 +107,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         openRes.status === 'fulfilled' ? (openRes.value?.hasMore ?? false) : false
       );
     } catch (err) {
+      reportError(err, { screen: 'OpenTripRequestsScreen', action: 'loadRequests' });
       showAlert('Error', err.message);
     } finally {
       fetchingRef.current = false;

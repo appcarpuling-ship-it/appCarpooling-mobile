@@ -11,6 +11,7 @@ import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequ
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const STATUS_LABELS = {
   open: { label: 'Abierta', solid: true },
@@ -62,6 +63,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
         setHasMore(res.hasMore ?? false);
       }
     } catch (err) {
+      reportError(err, { screen: 'MyTripRequestsScreen', action: 'loadRequests' });
       showAlert('Error', err.message);
     } finally {
       fetchingRef.current = false;

@@ -12,6 +12,7 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../context/AlertContext';
+import { reportError } from '../../utils/sentry';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -101,6 +102,7 @@ const CheckoutWebView = ({
       }
     } catch (error) {
       console.error('Error procesando mensaje:', error);
+      reportError(error, { component: 'CheckoutWebView', action: 'onMessage' });
     }
   };
 

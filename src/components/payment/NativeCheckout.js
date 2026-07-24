@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Linking } from 'react-native';
 import { showAlertAsync } from '../../context/AlertContext';
 import * as WebBrowser from 'expo-web-browser';
+import { reportError } from '../../utils/sentry';
 
 /**
  * Componente para manejar el checkout nativo de MercadoPago
@@ -60,6 +61,7 @@ const NativeCheckout = {
       }
     } catch (error) {
       console.error('❌ [NativeCheckout] Error:', error?.message || error);
+      reportError(error, { component: 'NativeCheckout', action: 'openCheckout' });
       // Fallback: abrir en navegador externo (más estable en algunos dispositivos)
       try {
         const canOpen = await Linking.canOpenURL(paymentUrl);
@@ -164,6 +166,7 @@ const NativeCheckout = {
       }
     } catch (error) {
       console.error('❌ [NativeCheckout] Error procesando deep link:', error);
+      reportError(error, { component: 'NativeCheckout', action: 'handleDeepLink' });
       if (onPaymentError) {
         onPaymentError(error);
       }

@@ -14,6 +14,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { redeemCoupon, getMyCoupons } from '../../../services/couponService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const describeCoupon = (coupon) => {
   if (!coupon) return '';
@@ -54,7 +55,8 @@ const CouponsScreen = () => {
     try {
       const response = await getMyCoupons();
       if (response.success) setCoupons(response.data || []);
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'CouponsScreen', action: 'loadCoupons' });
       showAlert('Ocurrió algo', 'No se pudieron cargar tus cupones');
     } finally {
       setLoading(false);

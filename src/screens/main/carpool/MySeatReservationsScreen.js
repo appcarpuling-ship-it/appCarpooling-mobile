@@ -18,6 +18,7 @@ import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
@@ -76,7 +77,8 @@ const MySeatReservationsScreen = ({ navigation }) => {
         setPage(pageNum);
         setHasMore(response.data.pagination?.hasMore ?? false);
       }
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'MySeatReservationsScreen', action: 'loadReservations' });
       showAlert('Ocurrió algo', 'No se pudieron cargar las reservas');
     } finally {
       fetchingRef.current = false;

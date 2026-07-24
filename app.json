@@ -86,6 +86,7 @@
     "plugins": [
       "expo-updates",
       "expo-apple-authentication",
+      "@sentry/react-native/expo",
       [
         "expo-build-properties",
         {

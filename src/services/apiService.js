@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, tunnelExtraHeaders } from '../config/api';
 import { sanitizeImageUrl } from '../utils/imageUtils';
 import { notifySessionInvalid } from './authSession';
+import { reportError } from '../utils/sentry';
 
 const NATIVE_APP_VERSION =
   Constants.expoConfig?.version ??
@@ -265,8 +266,18 @@ const connectionHintForBaseUrl = (baseUrl) => {
   return `No se pudo conectar con el servidor (${baseUrl}). Verificá tu conexión e intentá de nuevo.`;
 };
 
+// Choke point único: toda llamada get/post/put/patch/delete _withauth y
+// _public pasa por acá. Reportar acá cubre creación/edición/listado/detalle
+// de toda la app sin instrumentar cada catch de pantalla por separado.
 const handleError = (error) => {
   const baseUrl = API_CONFIG.BASE_URL;
+
+  reportError(error, {
+    url: error.config?.url,
+    method: error.config?.method,
+    status: error.response?.status,
+    responseMessage: error.response?.data?.message,
+  });
 
   if (error.response) {
     // El servidor respondi? con un c?digo de estado fuera del rango 2xx

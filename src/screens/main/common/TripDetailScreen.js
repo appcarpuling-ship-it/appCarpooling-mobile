@@ -36,6 +36,7 @@ import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 
 const BANNER_SCROLL_SPEED = 30;
@@ -250,6 +251,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
       }
     } catch (error) {
+      reportError(error, { screen: 'TripDetailScreen', action: 'loadTrip' });
       showAlert('Ocurrió algo', 'No se pudo cargar el viaje');
     } finally {
       setLoading(false);
@@ -347,6 +349,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
       }
     } catch (error) {
+      reportError(error, { screen: 'TripDetailScreen', action: 'processPayment' });
       showAlert('Ocurrió algo', 'No se pudo procesar el pago');
     } finally {
       setPaymentLoading(false);
@@ -484,6 +487,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               showAlert('Ocurrió algo', response.message || 'No se pudo iniciar el viaje');
             }
           } catch (error) {
+            reportError(error, { screen: 'TripDetailScreen', action: 'startTrip' });
             showAlert('Ocurrió algo', error.message || 'Error al iniciar el viaje');
           } finally {
             setStartingTrip(false);
@@ -521,6 +525,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               showAlert('Ocurrió algo', response.message || 'No se pudo cancelar el viaje');
             }
           } catch (error) {
+            reportError(error, { screen: 'TripDetailScreen', action: 'cancelTrip' });
             showAlert('Ocurrió algo', error.message || 'Error al cancelar el viaje');
           } finally {
             setCancellingTrip(false);

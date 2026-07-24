@@ -31,6 +31,7 @@ import { useColors } from '../../../hooks/useColors';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
+import { reportError } from '../../../utils/sentry';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
@@ -220,6 +221,7 @@ const HomeScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       console.error('Error loading trips:', error);
+      reportError(error, { screen: 'HomeScreen', action: 'loadTrips' });
     } finally {
       setLoading(false);
       setRefreshing(false);

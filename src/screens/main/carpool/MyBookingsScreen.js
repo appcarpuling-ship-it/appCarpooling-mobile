@@ -20,6 +20,7 @@ import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const MyBookingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -123,7 +124,8 @@ const MyBookingsScreen = ({ navigation }) => {
         setPage(pageNum);
         setHasMore(response.hasMore ?? false);
       }
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'MyBookingsScreen', action: 'loadBookings' });
       showAlert('Ocurrió algo', 'No se pudieron cargar las reservas');
     } finally {
       fetchingRef.current = false;

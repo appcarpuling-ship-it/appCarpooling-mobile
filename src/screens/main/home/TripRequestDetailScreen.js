@@ -16,6 +16,7 @@ import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import VehicleOptionCard from '../../../components/vehicle/VehicleOptionCard';
+import { reportError } from '../../../utils/sentry';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -76,6 +77,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         if (!res.data.isPassenger) loadVehicles();
       }
     } catch (err) {
+      reportError(err, { screen: 'TripRequestDetailScreen', action: 'load' });
       showAlert('Error', err.message);
     } finally {
       setLoading(false);

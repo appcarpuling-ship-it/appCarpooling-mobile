@@ -27,6 +27,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const AllTripsScreen = ({ navigation }) => {
   const ui = useUI();
@@ -137,6 +138,7 @@ const AllTripsScreen = ({ navigation }) => {
         }
       } catch (error) {
         console.error('Error loading trips:', error);
+        reportError(error, { screen: 'AllTripsScreen', action: 'loadTrips' });
         if (!append) {
           setTrips([]);
           setTotalTrips(0);

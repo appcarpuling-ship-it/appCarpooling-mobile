@@ -2,6 +2,7 @@ import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSocketURL, SOCKET_CONFIG } from '../config/socket.config';
 import { notifySessionInvalid, isSocketAuthFailure } from './authSession';
+import { reportError } from '../utils/sentry';
 
 class SocketService {
   constructor() {
@@ -68,6 +69,7 @@ class SocketService {
 
     } catch (error) {
       console.error('Error al conectar socket:', error);
+      reportError(error, { service: 'socketService', action: 'connect' });
     }
   }
 

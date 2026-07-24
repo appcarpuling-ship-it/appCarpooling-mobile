@@ -14,6 +14,7 @@ jobs:
       # La URL real del build la fija eas.json (perfil `development`): el bundle se arma en EAS, no acá.
       # Se deja igual para que app.config.js resuelva lo mismo si algo se evalúa localmente.
       EXPO_PUBLIC_API_BASE_URL: https://api.appcarpuling.online/api
+      EXPO_PUBLIC_SENTRY_DSN: https://c95e3ddc1f3cedda5dfd938443b504c5@o4511792921837568.ingest.us.sentry.io/4511792924393472
     steps:
       - uses: actions/checkout@v4
 

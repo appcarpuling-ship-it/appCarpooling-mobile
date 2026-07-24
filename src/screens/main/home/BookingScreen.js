@@ -131,11 +131,16 @@ const BookingScreen = ({ route, navigation }) => {
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
   const tripCap = useMemo(() => tripSeatCapacity(trip), [trip]);
 
-  /** Cupos libres ahora mismo (0 si el viaje está lleno o hay holds pendientes). */
+  /**
+   * Tope del selector: se usa el número mostrado (sin holds), no el del guard,
+   * para no dejar "2 disponibles" en pantalla y solo permitir elegir 1 — muy
+   * confuso. Si justo en el medio otro usuario confirma el cupo que faltaba,
+   * el backend lo rechaza al confirmar con un mensaje claro para reintentar.
+   */
   const maxSelectableSeats = useMemo(() => {
-    if (!tripFreeNow || tripFreeNow <= 0) return 0;
-    return Math.min(99, tripFreeNow);
-  }, [tripFreeNow]);
+    if (!tripShownSeats || tripShownSeats <= 0) return 0;
+    return Math.min(99, tripShownSeats);
+  }, [tripShownSeats]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -386,10 +391,18 @@ const BookingScreen = ({ route, navigation }) => {
       if (!reservationResponse?.success) {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
       }
+      // El backend aplica el cupón/descuento bancado al crear la reserva (se cobra
+      // recién cuando el conductor apruebe), pero nunca se lo confirmamos al pasajero.
+      const { couponApplied, couponDiscountAmount, discountApplied } = reservationResponse.data || {};
+      const discountNote = couponApplied
+        ? ` Se aplicó tu cupón ${couponApplied}: ahorrás $${Number(couponDiscountAmount || 0).toLocaleString('es-AR')} ARS en el costo de la reserva.`
+        : discountApplied > 0
+          ? ` Se aplicó tu descuento del ${discountApplied}% en el costo de la reserva.`
+          : '';
       navigation.navigate('Result', {
         type: 'success',
         title: 'Solicitud Enviada',
-        message: 'Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.',
+        message: `Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.${discountNote}`,
         primaryLabel: 'Continuar',
         // Con navigate (no replace) el formulario de reserva queda debajo en el
         // stack; sin esto "Continuar" volvería ahí en vez de a Mis Reservas.

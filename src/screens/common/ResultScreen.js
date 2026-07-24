@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
+import { reportError } from '../../utils/sentry';
 
 // Imagen por defecto según el tipo, para cuando el caller no pasa una
 // específica (ej. "Solicitud enviada"). Nunca se usan íconos de relleno.
@@ -27,10 +28,20 @@ const ResultScreen = ({ route, navigation }) => {
     onPrimary,
     onClose,
     image,
+    error, // opcional: el Error original capturado en el catch, para mejor stack trace en Sentry
   } = route.params || {};
 
   const isError = type === 'error';
   const resolvedImage = image || DEFAULT_IMAGES[type] || DEFAULT_IMAGES.success;
+
+  // Choke point: cualquier pantalla que navegue acá con type:'error' queda
+  // reportada a Sentry automáticamente, sin instrumentar cada catch a mano.
+  useEffect(() => {
+    if (!isError) return;
+    if (error) reportError(error, { screen: 'Result', title, message });
+    else reportError(new Error(`[Result] ${title || 'Error'}: ${message || ''}`), { screen: 'Result' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePrimary = () => {
     try {

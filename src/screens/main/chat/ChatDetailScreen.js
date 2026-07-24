@@ -24,6 +24,7 @@ import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import apiService, { buildImageUri } from '../../../services/apiService';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
+import { reportError } from '../../../utils/sentry';
 
 /** Misma distancia borde superior del compositor ↔ cabecera del input, e input ↔ teclado (teclado abierto). */
 const COMPOSER_VERTICAL_INSET = 12;
@@ -294,6 +295,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Error al cargar mensajes:', error);
+      reportError(error, { screen: 'ChatDetailScreen', action: 'loadMessages' });
     } finally {
       setLoading(false);
     }

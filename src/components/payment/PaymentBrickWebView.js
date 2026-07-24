@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, spacing, borderRadius, fontSize, fontWeight } from '../../theme/colors';
 import { useAlert } from '../../context/AlertContext';
+import { reportError } from '../../utils/sentry';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -560,6 +561,7 @@ const PaymentBrickWebView = ({
 
             } catch (error) {
               console.error('❌ Error fatal:', error);
+              reportError(error, { component: 'PaymentBrickWebView', action: 'fatal' });
               const errorMsg = error?.message || 'Error desconocido';
               updateDebugInfo('❌ Error: ' + errorMsg);
               
@@ -678,6 +680,7 @@ const PaymentBrickWebView = ({
           } catch (error) {
             console.error('❌ [PaymentBrick] Error:', error);
             console.error('❌ [PaymentBrick] Error response data:', error?.response?.data);
+            reportError(error, { component: 'PaymentBrickWebView', action: 'submit' });
             
             // Extraer información detallada del error
             const statusMP = error?.response?.data?.statusMP;
@@ -761,6 +764,7 @@ const PaymentBrickWebView = ({
     } catch (error) {
       console.error('❌ [PaymentBrick] Error parseando mensaje:', error);
       console.error('❌ [PaymentBrick] Datos recibidos:', event.nativeEvent.data);
+      reportError(error, { component: 'PaymentBrickWebView', action: 'onMessage' });
     }
   };
 

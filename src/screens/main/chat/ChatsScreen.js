@@ -31,6 +31,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -97,6 +98,7 @@ const ChatsScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
+      reportError(error, { screen: 'ChatsScreen', action: 'loadConversations' });
     } finally {
       convFetchLock.current = false;
       setLoading(false);

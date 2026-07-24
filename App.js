@@ -18,6 +18,9 @@ import { Linking, View, Text, StyleSheet, Platform } from 'react-native';
 import NativeCheckout from './src/components/payment/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
 import OtaUpdateListener from './src/components/OtaUpdateListener';
+import { initSentry } from './src/utils/sentry';
+
+initSentry();
 
 // Forzar Sora como fuente por defecto en todos los Text de la app
 Text.defaultProps = Text.defaultProps || {};

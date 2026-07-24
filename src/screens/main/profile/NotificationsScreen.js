@@ -18,6 +18,7 @@ import { get_withauth } from '../../../services/apiService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
@@ -61,7 +62,9 @@ const NotificationsScreen = ({ navigation }) => {
         setPage(pageNum);
         setHasMore(response.hasMore ?? false);
       }
-    } catch (_) {}
+    } catch (error) {
+      reportError(error, { screen: 'NotificationsScreen', action: 'loadPage' });
+    }
     finally {
       fetchingRef.current = false;
       setLoading(false);

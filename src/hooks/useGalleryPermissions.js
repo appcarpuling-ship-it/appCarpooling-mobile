@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Linking, AppState } from 'react-native';
 import { showAlertAsync } from '../context/AlertContext';
+import { reportError } from '../utils/sentry';
 
 export const useGalleryPermissions = () => {
   const [permissionStatus, setPermissionStatus] = useState(null);
@@ -222,6 +223,7 @@ export const useGalleryPermissions = () => {
       return null;
     } catch (error) {
       console.error('Error seleccionando imagen:', error);
+      reportError(error, { hook: 'useGalleryPermissions', action: 'pickImage' });
       showAlertAsync('Error', 'No se pudo seleccionar la imagen');
       return null;
     }
@@ -264,6 +266,7 @@ export const useGalleryPermissions = () => {
       return result.canceled ? null : result.assets[0];
     } catch (error) {
       console.error('Error sacando foto:', error);
+      reportError(error, { hook: 'useGalleryPermissions', action: 'takePhoto' });
       showAlertAsync('Error', 'No se pudo abrir la cámara');
       return null;
     }

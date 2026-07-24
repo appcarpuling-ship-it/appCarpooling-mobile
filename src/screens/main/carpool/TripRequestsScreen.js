@@ -23,6 +23,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -141,7 +142,8 @@ const TripRequestsScreen = ({ route }) => {
         setTrips([]);
         setTripsHasMore(false);
       }
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'TripRequestsScreen', action: 'loadTrips' });
       showAlert('Ocurrió algo', 'No se pudieron cargar tus viajes');
     } finally {
       tripsFetchLock.current = false;
@@ -168,7 +170,8 @@ const TripRequestsScreen = ({ route }) => {
       setRequests((prev) => (append ? [...prev, ...rows] : rows));
       setReqPage(pageNum);
       setReqHasMore(response.hasMore === true);
-    } catch {
+    } catch (error) {
+      reportError(error, { screen: 'TripRequestsScreen', action: 'loadRequests' });
       if (tid === selectedTripId) {
         showAlert('Ocurrió algo', 'No se pudieron cargar las solicitudes');
       }

@@ -17,6 +17,7 @@ import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import EmptyState from '../../../components/ui/EmptyState';
+import { reportError } from '../../../utils/sentry';
 
 const BlockedUsersScreen = () => {
   const ui = useUI();
@@ -31,7 +32,8 @@ const BlockedUsersScreen = () => {
     try {
       const res = await get_withauth(ENDPOINTS.GET_BLOCKED_USERS);
       if (res.success) setBlocked(res.data);
-    } catch (_) {
+    } catch (error) {
+      reportError(error, { screen: 'BlockedUsersScreen', action: 'load' });
       showAlert('Error', 'No se pudo cargar la lista de bloqueados.');
     } finally {
       setLoading(false);
@@ -62,6 +64,7 @@ const BlockedUsersScreen = () => {
       await refreshUser();
       setBlocked((prev) => prev.filter((u) => u._id !== item._id));
     } catch (e) {
+      reportError(e, { screen: 'BlockedUsersScreen', action: 'runUnblock' });
       const msg = e?.response?.data?.message || 'No se pudo desbloquear';
       showAlert('Error', msg);
     } finally {

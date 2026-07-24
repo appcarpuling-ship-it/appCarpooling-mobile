@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { put_withauth, delete_withauth } from './apiService';
+import { reportError } from '../utils/sentry';
 
 // Configurar cómo se manejan las notificaciones cuando la app está en primer plano
 Notifications.setNotificationHandler({
@@ -66,6 +67,7 @@ export const registerForPushNotificationsAsync = async () => {
     return token;
   } catch (error) {
     console.error('❌ Error registrando push notifications:', error);
+    reportError(error, { service: 'pushNotificationService', action: 'registerForPushNotifications' });
     return null;
   }
 };
