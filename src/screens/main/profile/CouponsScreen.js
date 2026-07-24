@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAlert } from '../../../context/AlertContext';
 import { redeemCoupon, getMyCoupons } from '../../../services/couponService';
 import { useUI } from '../../../theme/ui';
@@ -29,6 +30,7 @@ const describeCoupon = (coupon) => {
 
 const CouponsScreen = () => {
   const { showAlert } = useAlert();
+  const navigation = useNavigation();
   const ui = useUI();
 
   const bg          = ui.bg;
@@ -66,8 +68,8 @@ const CouponsScreen = () => {
       const response = await redeemCoupon(trimmed);
       if (response.success) {
         setCode('');
-        showAlert('¡Listo!', response.message || 'Cupón canjeado correctamente');
         loadCoupons();
+        navigation.navigate('Result', { type: 'success', title: '¡Listo!', message: response.message || 'Cupón canjeado correctamente' });
       } else {
         showAlert('No se pudo canjear', response.message || 'Código inválido');
       }

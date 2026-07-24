@@ -75,16 +75,13 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         newPassword,
       });
 
-      showAlert(
-        'Contraseña restablecida',
-        'Tu contraseña se ha cambiado exitosamente. Ya puedes iniciar sesión.',
-        [
-          {
-            text: 'Iniciar Sesión',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]
-      );
+      navigation.navigate('Result', {
+        type: 'success',
+        title: 'Contraseña restablecida',
+        message: 'Tu contraseña se ha cambiado exitosamente. Ya puedes iniciar sesión.',
+        primaryLabel: 'Iniciar Sesión',
+        onPrimary: () => navigation.navigate('Login'),
+      });
     } catch (error) {
       showAlert('Ocurrió algo', error.message || 'Error al restablecer la contraseña');
     } finally {

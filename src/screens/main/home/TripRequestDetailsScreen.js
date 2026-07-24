@@ -90,18 +90,19 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         estimatedPrice: Math.round((distanceKm || 0) * 1500 / 100) * 100,
       });
 
-      showAlert('¡Solicitud publicada!', 'Los conductores podrán postularse a tu viaje.', [
-        {
-          text: 'Ver',
-          onPress: () => navigation.navigate('Main', {
-            screen: 'HomeTab',
-            params: {
-              screen: 'Home',
-              params: { openTab: 'solicitudes' },
-            },
-          }),
-        },
-      ]);
+      navigation.navigate('Result', {
+        type: 'success',
+        title: '¡Solicitud publicada!',
+        message: 'Los conductores podrán postularse a tu viaje.',
+        primaryLabel: 'Ver',
+        onPrimary: () => navigation.navigate('Main', {
+          screen: 'HomeTab',
+          params: {
+            screen: 'Home',
+            params: { openTab: 'solicitudes' },
+          },
+        }),
+      });
     } catch (err) {
       showAlert('Error', err?.response?.data?.message || 'No se pudo publicar la solicitud.');
     } finally {

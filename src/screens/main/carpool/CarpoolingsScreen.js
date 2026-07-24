@@ -11,14 +11,18 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
+import { useAuth } from '../../../context/AuthContext';
+import { useNotifications } from '../../../context/NotificationContext';
 import { get_public, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import NotificationsScreen from '../profile/NotificationsScreen';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
@@ -62,6 +66,9 @@ const menuItems = [
 const CarpoolingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const { colors } = useColors();
+  const { isAuthenticated, user } = useAuth();
+  const { unreadCount = 0 } = useNotifications();
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [refreshing, setRefreshing] = useState(false);
@@ -193,13 +200,34 @@ const CarpoolingsScreen = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textSecondary} colors={[textPrimary]} />}
       >
 
-        {/* Header */}
+        {/* Header estilo home: logo + saludo + campana */}
         <View style={styles.header}>
-          <Image
-            source={isDarkMode ? require('../../../../assets/logo/192x192-white.png') : require('../../../../assets/logo/192x192-black.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.headerRow}>
+            <Image
+              source={isDarkMode ? require('../../../../assets/logo/192x192-white.png') : require('../../../../assets/logo/192x192-black.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={[styles.headerGreeting, { color: textSecondary }]} numberOfLines={1}>
+              {user?.firstName ? `Hola, ${user.firstName}` : 'Carpuling'}
+            </Text>
+            {isAuthenticated && (
+              <TouchableOpacity
+                onPress={() => setShowNotificationsModal(true)}
+                style={[styles.notifBtn, { backgroundColor: cardBg }]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="notifications-outline" size={20} color={textPrimary} />
+                {unreadCount > 0 && (
+                  <View style={[styles.notifBadge, { borderColor: bg, backgroundColor: textPrimary }]}>
+                    <Text style={[styles.notifBadgeText, { color: bg }]}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
           <Text style={[styles.title, { color: textPrimary }]}>
             Gestioná{'\n'}
             <Text style={styles.titleStrong}>tus viajes</Text>
@@ -276,6 +304,27 @@ const CarpoolingsScreen = ({ navigation }) => {
         navigation={navigation}
         colors={colors}
       />
+
+      {/* Notifications Modal (mismo patrón que Home) */}
+      <Modal
+        visible={showNotificationsModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        statusBarTranslucent={true}
+        transparent={false}
+        onRequestClose={() => setShowNotificationsModal(false)}
+      >
+        <NotificationsScreen
+          navigation={{
+            ...navigation,
+            goBack: () => setShowNotificationsModal(false),
+            navigate: (screen, params) => {
+              setShowNotificationsModal(false);
+              setTimeout(() => navigation.navigate(screen, params), 300);
+            },
+          }}
+        />
+      </Modal>
     </View>
   );
 };
@@ -289,7 +338,12 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 24,
   },
-  logo: { width: 30, height: 30, marginBottom: 18 },
+  logo: { width: 30, height: 30 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },
+  headerGreeting: { flex: 1, fontFamily: 'Sora_500Medium', fontSize: 15 },
+  notifBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  notifBadge: { position: 'absolute', top: -2, right: -2, borderRadius: 999, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 2 },
+  notifBadgeText: { fontFamily: 'Sora_700Bold', fontSize: 9 },
   title: { fontFamily: 'Sora_300Light', fontSize: 34, lineHeight: 42, letterSpacing: -1 },
   titleStrong: { fontFamily: 'Sora_800ExtraBold' },
   subtitle: { fontFamily: 'Sora_400Regular', fontSize: 15, marginTop: 12 },

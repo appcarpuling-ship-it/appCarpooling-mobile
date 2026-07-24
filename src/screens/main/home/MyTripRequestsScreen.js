@@ -165,19 +165,29 @@ const MyTripRequestsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
 
-      {/* Tabs */}
-      <View style={[styles.tabsContainer, { borderBottomColor: border }]}>
-        {['upcoming', 'past'].map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && { borderBottomColor: textPrimary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, { color: activeTab === tab ? textPrimary : textMuted }]}>
-              {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: ui.text }]}>
+          Tus solicitudes{'\n'}
+          <Text style={styles.titleStrong}>publicadas</Text>
+        </Text>
+      </View>
+
+      {/* Tabs en pill, como el resto de la app */}
+      <View style={styles.tabsContainer}>
+        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+          {['upcoming', 'past'].map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {loading ? (
@@ -234,8 +244,12 @@ const styles = StyleSheet.create({
   createBtnText: { fontFamily: 'Sora_700Bold', fontSize: 14 },
 
   // Tabs
-  tabsContainer: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20 },
+  title: { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  tabsContainer: { paddingHorizontal: 24, paddingBottom: 8 },
+  tabPill: { flexDirection: 'row', borderRadius: 999, padding: 5 },
+  tab: { flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
   tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   list: { padding: 16, gap: 12 },

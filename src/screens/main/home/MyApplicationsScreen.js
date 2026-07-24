@@ -90,7 +90,7 @@ const MyApplicationsScreen = ({ navigation }) => {
               const res = await cancelTripRequestApplication(requestId);
               if (res.success) {
                 await load();
-                showAlert('Postulación cancelada', 'Ya no estás postulado a esta solicitud.');
+                navigation.navigate('Result', { type: 'success', title: 'Postulación cancelada', message: 'Ya no estás postulado a esta solicitud.' });
               }
             } catch (err) {
               showAlert('Error', err.message);

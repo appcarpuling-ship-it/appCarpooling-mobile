@@ -148,7 +148,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={textPrimary} />
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 16 }}>
+            <View style={{ padding: 16, alignItems: 'center' }}>
               <DateTimePicker
                 value={tempDate || selectedDate || new Date()}
                 mode="date"

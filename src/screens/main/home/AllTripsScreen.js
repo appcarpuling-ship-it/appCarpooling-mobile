@@ -986,11 +986,13 @@ const styles = StyleSheet.create({
   datePickerWrapper: {
     backgroundColor: '#FFFFFF',
     paddingVertical: spacing.md,
+    alignItems: 'center', // centra el spinner de fecha/hora horizontalmente
   },
   pickerButtons: {
     flexDirection: 'row',
     gap: spacing.md,
     paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg, // los botones no tocan los bordes de la card
   },
   pickerButton: {
     flex: 1,

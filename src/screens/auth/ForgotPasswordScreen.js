@@ -41,9 +41,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
     setLoading(true);
     try {
       await post_public(ENDPOINTS.FORGOT_PASSWORD, { email });
-      showAlert('Código enviado', 'Enviamos un código de recuperación a tu email', [
-        { text: 'Ingresar código', onPress: () => navigation.navigate('ResetPassword', { email }) },
-      ]);
+      navigation.navigate('Result', {
+        type: 'success',
+        title: 'Código enviado',
+        message: 'Enviamos un código de recuperación a tu email',
+        primaryLabel: 'Ingresar código',
+        onPrimary: () => navigation.navigate('ResetPassword', { email }),
+      });
     } catch (error) {
       showAlert('Ocurrió algo', error.message || 'Error al enviar el email');
     } finally {

@@ -134,20 +134,21 @@ const TripDetails = ({ navigation, route }) => {
 
             const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
             if (response.success) {
-                showAlert('Viaje Publicado', 'Tu viaje ha sido creado con éxito. Ahora otros usuarios podrán verlo.', [
-                    {
-                        text: 'Continuar',
-                        onPress: () => navigation.navigate('Main', {
-                            screen: 'CarpoolingsTab',
-                            params: { screen: 'Carpoolings' },
-                        }),
-                    },
-                ], 'success');
+                navigation.navigate('Result', {
+                    type: 'success',
+                    title: 'Viaje Publicado',
+                    message: 'Tu viaje ha sido creado con éxito. Ahora otros usuarios podrán verlo.',
+                    primaryLabel: 'Continuar',
+                    onPrimary: () => navigation.navigate('Main', {
+                        screen: 'CarpoolingsTab',
+                        params: { screen: 'Carpoolings' },
+                    }),
+                });
             } else {
-                showAlert('Ocurrió algo', response.message || 'No pudimos crear el viaje en este momento.', [], 'error');
+                navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: response.message || 'No pudimos crear el viaje en este momento.' });
             }
         } catch (error) {
-            showAlert('Ocurrió algo', error.message || 'No pudimos crear el viaje en este momento.', [], 'error');
+            navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No pudimos crear el viaje en este momento.' });
         } finally {
             setLoading(false);
         }
@@ -391,7 +392,7 @@ const TripDetails = ({ navigation, route }) => {
                                     <Ionicons name="close" size={24} color={textPrimary} />
                                 </TouchableOpacity>
                             </View>
-                            <View style={{ paddingHorizontal: 16 }}>
+                            <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
                                 <DateTimePicker
                                     value={date}
                                     mode="date"
@@ -429,7 +430,7 @@ const TripDetails = ({ navigation, route }) => {
                                     <Ionicons name="close" size={24} color={textPrimary} />
                                 </TouchableOpacity>
                             </View>
-                            <View style={{ paddingHorizontal: 16 }}>
+                            <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
                                 <DateTimePicker
                                     value={time}
                                     mode="time"

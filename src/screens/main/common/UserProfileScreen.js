@@ -127,7 +127,7 @@ const UserProfileScreen = ({ route, navigation }) => {
       });
       setReportOpen(false);
       setReportDetail('');
-      showAlert('Enviado', 'Recibimos tu reporte. Lo revisará el equipo de moderación.');
+      navigation.navigate('Result', { type: 'success', title: 'Enviado', message: 'Recibimos tu reporte. Lo revisará el equipo de moderación.' });
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo enviar el reporte';
       showAlert('Ocurrió algo', msg);
@@ -163,18 +163,19 @@ const UserProfileScreen = ({ route, navigation }) => {
     try {
       await post_withauth(ENDPOINTS.BLOCK_USER(userId), {});
       await refreshUser();
-      showAlert('Listo', 'Usuario bloqueado.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (fromChat) {
-              navigation.popToTop();
-            } else {
-              navigation.goBack();
-            }
-          },
+      navigation.navigate('Result', {
+        type: 'success',
+        title: 'Listo',
+        message: 'Usuario bloqueado.',
+        onPrimary: () => {
+          if (fromChat) {
+            navigation.popToTop();
+          } else {
+            navigation.goBack();
+            navigation.goBack();
+          }
         },
-      ]);
+      });
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
       showAlert('Ocurrió algo', msg);
@@ -188,7 +189,7 @@ const UserProfileScreen = ({ route, navigation }) => {
     try {
       await delete_withauth(ENDPOINTS.UNBLOCK_USER(userId));
       await refreshUser();
-      showAlert('Listo', 'Usuario desbloqueado.');
+      navigation.navigate('Result', { type: 'success', title: 'Listo', message: 'Usuario desbloqueado.' });
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'No se pudo desbloquear';
       showAlert('Ocurrió algo', msg);

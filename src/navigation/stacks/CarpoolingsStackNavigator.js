@@ -68,7 +68,7 @@ const CarpoolingsStackNavigator = () => {
       <Stack.Screen
         name="MyTrips"
         component={MyTripsScreen}
-        options={{ title: 'Viajes Creados' }}
+        options={{ title: 'Mis Viajes' }}
       />
       <Stack.Screen
         name="MyBookings"

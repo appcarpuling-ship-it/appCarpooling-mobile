@@ -263,17 +263,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
         : await post_withauth_formdata('/vehicles', fd);
 
       if (response.success) {
-        showAlert(
-          isEdit ? 'Vehículo Actualizado' : 'Vehículo Registrado',
-          isEdit ? 'Los cambios en tu vehículo se guardaron correctamente.' : 'Tu vehículo fue registrado con éxito.',
-          [{ text: 'Continuar', onPress: () => navigation.navigate('Vehicles', { refreshVehicles: true }) }],
-          'success'
-        );
+        navigation.replace('Result', {
+          type: 'success',
+          title: isEdit ? 'Vehículo Actualizado' : 'Vehículo Registrado',
+          message: isEdit ? 'Los cambios en tu vehículo se guardaron correctamente.' : 'Tu vehículo fue registrado con éxito.',
+          primaryLabel: 'Continuar',
+          onPrimary: () => navigation.navigate('Vehicles', { refreshVehicles: true }),
+        });
       } else {
-        showAlert('Ocurrió algo', response.message || 'No pudimos guardar el vehículo.', [], 'error');
+        navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: response.message || 'No pudimos guardar el vehículo.' });
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'No pudimos guardar el vehículo.', [], 'error');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No pudimos guardar el vehículo.' });
     } finally {
       setLoading(false);
     }

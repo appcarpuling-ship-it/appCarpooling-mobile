@@ -24,7 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
-import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
@@ -160,7 +160,8 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const canReserveWomenOnlyTrip = trip ? (!trip.womenOnly || user?.gender === 'female') : false;
 
-  const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]);
+  const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]); // guard: incluye holds
+  const tripShownSeats = useMemo(() => (trip ? tripDisplaySeats(trip) : 0), [trip]); // display: sin holds
   const tripSeatCap = useMemo(() => (trip ? tripSeatCapacity(trip) : 0), [trip]);
 
   const headerBackTint = ui.text;
@@ -353,7 +354,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handlePaymentSuccess = async (paymentData) => {
-    showAlert('Pago Confirmado', 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.', [], 'success');
+    navigation.navigate('Result', { type: 'success', title: 'Pago Confirmado', message: 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.' });
     let confirmOk = false;
     try {
       if (paymentData?.externalReference && paymentData?.status === 'approved') {
@@ -373,7 +374,7 @@ const TripDetailScreen = ({ route, navigation }) => {
     }
     await checkUserBooking();
     await loadTripDetail();
-    if (confirmOk) showAlert('Reserva Confirmada', 'Tu lugar está asegurado. El conductor fue notificado.', [], 'success');
+    // El Result de "Pago Confirmado" ya se mostró arriba; no apilamos un segundo.
     setTimeout(async () => {
       await checkUserBooking();
       await loadTripDetail();
@@ -381,7 +382,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handlePaymentError = (error) => {
-    showAlert('Ocurrió algo', error.message || 'No se pudo procesar el pago.', [], 'error');
+    navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No se pudo procesar el pago.' });
   };
 
   const handleCancelPendingReservation = async () => {
@@ -406,8 +407,8 @@ const TripDetailScreen = ({ route, navigation }) => {
             await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
             setUserBooking(null);
             await checkUserBooking();
-            showAlert('Reserva Cancelada', 'Tu reserva fue cancelada correctamente.', [], 'success');
             if (typeof refreshUser === 'function') await refreshUser();
+            navigation.navigate('Result', { type: 'success', title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' });
           } catch (error) {
             const msg =
               error?.response?.data?.message ||
@@ -510,9 +511,12 @@ const TripDetailScreen = ({ route, navigation }) => {
                   timestamp: new Date().toISOString(),
                 });
               }
-              showAlert('Cancelado', 'El viaje ha sido cancelado.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
+              navigation.navigate('Result', {
+                type: 'success',
+                title: 'Cancelado',
+                message: 'El viaje ha sido cancelado.',
+                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+              });
             } else {
               showAlert('Ocurrió algo', response.message || 'No se pudo cancelar el viaje');
             }
@@ -697,7 +701,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={styles.metaItem}>
             <Ionicons name="person-outline" size={16} color={textMuted} />
             <Text style={[styles.metaText, { color: textPrimary }]}>
-              {tripFreeSeats}/{tripSeatCap} libres
+              {tripShownSeats}/{tripSeatCap} libres
             </Text>
           </View>
         </View>

@@ -20,6 +20,19 @@ export function tripRemainingSeats(trip) {
 }
 
 /**
+ * Asientos a MOSTRAR: cupos físicos menos pasajeros CONFIRMADOS (aceptados por
+ * el conductor). NO resta pendingSeatHolds — así una reserva sin aceptar todavía
+ * no baja el número visible (se resta recién cuando el conductor acepta).
+ * OJO: para el guard anti-overbooking usar `tripRemainingSeats` (ese sí resta holds).
+ */
+export function tripDisplaySeats(trip) {
+  if (!trip) return 0;
+  const cap = Number(trip.availableSeats ?? 0);
+  const occ = Number(trip.occupiedSeats ?? trip.passengers?.length ?? 0);
+  return Math.max(0, cap - occ);
+}
+
+/**
  * Devuelve la capacidad total del vehículo para el viaje.
  */
 export function tripSeatCapacity(trip) {

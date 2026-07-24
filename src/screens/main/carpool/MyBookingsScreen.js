@@ -160,8 +160,8 @@ const MyBookingsScreen = ({ navigation }) => {
               );
               return;
             }
-            showAlert('Reserva cancelada', 'Ya no tenés esa reserva activa.');
             await loadMyBookings(1, true, { force: true });
+            navigation.navigate('Result', { type: 'success', title: 'Reserva cancelada', message: 'Ya no tenés esa reserva activa.' });
           } catch (error) {
             showAlert('Ocurrió algo', error.message || 'No se pudo cancelar.');
           } finally {

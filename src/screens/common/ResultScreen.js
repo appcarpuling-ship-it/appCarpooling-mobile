@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
 
-const ILLUSTRATIONS = {
-  success: require('../../../assets/illustrations/result-success.png'),
-  error: require('../../../assets/illustrations/result-error.png'),
+// ponytail: los PNG result-success/error eran placeholders de 68 bytes (cuadrado
+// negro). El rediseño es monocromo, así que un ícono vectorial en ui.text alcanza.
+const ICONS = {
+  success: 'checkmark-circle',
+  error: 'alert-circle',
 };
 
 // Pantalla de éxito/error tras crear algo (viaje, reserva, perfil, etc.).
@@ -45,7 +47,7 @@ const ResultScreen = ({ route, navigation }) => {
 
       <View style={styles.body}>
         <View style={[styles.illustrationWrap, { backgroundColor: ui.surface }]}>
-          <Image source={ILLUSTRATIONS[type] || ILLUSTRATIONS.success} style={styles.illustration} resizeMode="contain" />
+          <Ionicons name={ICONS[type] || ICONS.success} size={96} color={ui.text} />
         </View>
 
         <Text style={[styles.title, { color: ui.text }]}>{title || (isError ? 'Ocurrió un error' : '¡Listo!')}</Text>

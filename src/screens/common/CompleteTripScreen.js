@@ -5,8 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
 
-const num = (v) => parseFloat(v) || 0;
 const formatMoney = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+// El input muestra el número con separador de miles; num() lo lee sacando los puntos.
+const num = (v) => parseFloat(String(v).replace(/\./g, '')) || 0;
+const formatInput = (v) => {
+  const digits = String(v).replace(/\D/g, '');
+  return digits ? formatMoney(Number(digits)) : '';
+};
 
 // Completar viaje como pantalla (antes era CompleteTripCostModal). El caller
 // pasa onSubmit(data) que hace el PUT y devuelve { ok, message }. En éxito se
@@ -26,10 +31,10 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const total = num(fuel) + num(food) + num(other) + num(driverPay);
 
   const fields = [
-    { key: 'fuel', label: 'Combustible', value: fuel, set: setFuel, placeholder: 'Ej: 2000' },
-    { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: 'Ej: 1000' },
+    { key: 'fuel', label: 'Combustible', value: fuel, set: setFuel, placeholder: 'Ej: 2.000' },
+    { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: 'Ej: 1.000' },
     { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: 'Ej: 500' },
-    { key: 'driverPay', label: 'Extra conductor', value: driverPay, set: setDriverPay, placeholder: 'Ej: 1500' },
+    { key: 'driverPay', label: 'Extra conductor', value: driverPay, set: setDriverPay, placeholder: 'Ej: 1.500' },
   ];
 
   const handleSubmit = async () => {
@@ -66,9 +71,9 @@ const CompleteTripScreen = ({ route, navigation }) => {
                 style={[styles.input, { borderColor: ui.border, color: ui.text, backgroundColor: ui.surface }]}
                 placeholder={f.placeholder}
                 placeholderTextColor={ui.textMuted}
-                keyboardType="decimal-pad"
+                keyboardType="number-pad"
                 value={f.value}
-                onChangeText={(v) => { f.set(v); if (error) setError(''); }}
+                onChangeText={(v) => { f.set(formatInput(v)); if (error) setError(''); }}
               />
             </View>
           ))}

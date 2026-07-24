@@ -179,9 +179,13 @@ const RegisterScreen = ({ navigation }) => {
       await appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
       const result = await register(formDataToSend);
       if (result.success) {
-        showAlert('Registro exitoso', 'Te enviamos un código de verificación a tu email. Recuerda revisar la carpeta (spam).', [
-          { text: 'OK', onPress: () => navigation.navigate('Verification', { email: values.email }) },
-        ]);
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Registro exitoso',
+          message: 'Te enviamos un código de verificación a tu email. Recuerda revisar la carpeta (spam).',
+          primaryLabel: 'Continuar',
+          onPrimary: () => navigation.navigate('Verification', { email: values.email }),
+        });
       } else {
         showAlert('Ocurrió algo', result.message || 'Error al registrar usuario');
       }

@@ -77,9 +77,13 @@ const VerificationScreen = ({ route, navigation }) => {
     try {
       const result = await verifyEmail(email, verificationCode);
       if (result.success) {
-        showAlert('Verificación exitosa', 'Tu cuenta fue verificada correctamente. Ya podés iniciar sesión.', [
-          { text: 'Continuar', onPress: () => navigation.navigate('Login') },
-        ]);
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Verificación exitosa',
+          message: 'Tu cuenta fue verificada correctamente. Ya podés iniciar sesión.',
+          primaryLabel: 'Continuar',
+          onPrimary: () => navigation.navigate('Login'),
+        });
       } else {
         if (result.isBackendIssue) {
           showAlert('Problema del servidor', 'Hay un problema con la verificación. Por favor contactá al soporte técnico.', [

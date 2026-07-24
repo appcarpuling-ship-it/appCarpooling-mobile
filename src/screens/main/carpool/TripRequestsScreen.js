@@ -237,13 +237,15 @@ const TripRequestsScreen = ({ route }) => {
               if (isSeatReservation && seatReservationId) {
                 const res = await approveOrRejectReservation(seatReservationId, 'approve');
                 if (res.success) {
-                  showAlert('Aprobado', 'El pasajero recibirá una notificación para completar el pago.', [
-                    { text: 'OK', onPress: () => loadRequests(1, { append: false }) },
-                  ]);
+                  loadRequests(1, { append: false });
+                  navigation.navigate('Result', { type: 'success', title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' });
                 }
               } else {
                 const res = await put_withauth(`/bookings/${requestId}/confirm`);
-                if (res.success) { showAlert('Éxito', 'Solicitud aceptada'); loadRequests(1, { append: false }); }
+                if (res.success) {
+                  loadRequests(1, { append: false });
+                  navigation.navigate('Result', { type: 'success', title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' });
+                }
               }
             } catch (error) {
               showAlert(

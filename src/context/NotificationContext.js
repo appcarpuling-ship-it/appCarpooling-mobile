@@ -61,9 +61,15 @@ export const NotificationProvider = ({ children }) => {
         
         console.log('✅ [NotificationContext] Notificaciones cargadas:', notificationsData.length);
         setNotifications(notificationsData);
-        
-        // ✅ Contar no leídas de forma segura - usar isRead (backend usa isRead)
-        const unread = notificationsData.filter(n => n && !n.isRead).length;
+
+        // Usar el unreadCount AUTORITATIVO del backend (cuenta todas las no leídas
+        // excluyendo new_message, no solo la página traída). Recontar del lado del
+        // cliente sobre la página 1 dejaba el badge en 1 por un unread fuera de esa
+        // página. Fallback al conteo local si el backend no lo manda.
+        const serverUnread = Number(response.unreadCount);
+        const unread = Number.isFinite(serverUnread)
+          ? serverUnread
+          : notificationsData.filter(n => n && !n.isRead).length;
         setUnreadCount(unread);
       } else {
         console.warn('⚠️ [NotificationContext] Respuesta inválida:', response);

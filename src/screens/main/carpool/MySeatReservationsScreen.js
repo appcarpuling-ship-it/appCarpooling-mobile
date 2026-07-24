@@ -137,8 +137,8 @@ const MySeatReservationsScreen = ({ navigation }) => {
           setCancellingId(seatReservationId);
           try {
             await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-            showAlert('Reserva Cancelada', 'Tu reserva fue cancelada correctamente.', [], 'success');
             await loadReservations(1, true, { force: true });
+            navigation.navigate('Result', { type: 'success', title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' });
           } catch (error) {
             showAlert('Ocurrió algo', error?.response?.data?.message || error.message || 'No se pudo cancelar.', [], 'error');
           } finally {

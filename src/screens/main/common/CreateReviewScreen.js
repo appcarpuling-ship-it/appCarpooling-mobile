@@ -65,11 +65,12 @@ const CreateReviewScreen = ({ route, navigation }) => {
       const response = await post_withauth(ENDPOINTS.CREATE_REVIEW, reviewData);
 
       if (response.success) {
-        showAlert(
-          'Reseña Enviada',
-          'Tu reseña ha sido enviada exitosamente',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Reseña Enviada',
+          message: 'Tu reseña ha sido enviada exitosamente',
+          onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+        });
       } else {
         showAlert('Ocurrió algo', response.message || 'Error al enviar la reseña');
       }

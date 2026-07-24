@@ -340,7 +340,7 @@ const ChatsScreen = ({ navigation }) => {
           conversationsRef.current = next;
           return next;
         });
-        showAlert('Listo', 'Usuario bloqueado.');
+        navigation.navigate('Result', { type: 'success', title: 'Listo', message: 'Usuario bloqueado.' });
       } catch (e) {
         const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
         showAlert('Ocurrió algo', msg);

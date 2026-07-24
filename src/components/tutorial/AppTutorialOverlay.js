@@ -168,6 +168,8 @@ const AppTutorialOverlay = ({ onComplete }) => {
                 />
               ) : current.illustration ? (
                 <Image
+                  // key por paso: fuerza remount para que RN refresque el source al pasar de paso.
+                  key={current.key}
                   source={current.illustration}
                   style={styles.illustrationImage}
                   resizeMode="contain"

@@ -98,9 +98,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             setCancelling(true);
             try {
               await cancelTripRequest(requestId);
-              showAlert('Solicitud cancelada', 'Tu solicitud fue cancelada.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
+              navigation.navigate('Result', {
+                type: 'success',
+                title: 'Solicitud cancelada',
+                message: 'Tu solicitud fue cancelada.',
+                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+              });
             } catch (err) {
               showAlert('Error', err.message);
             } finally {
@@ -125,9 +128,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             try {
               const tripId = request?.createdTrip?._id || request?.createdTrip;
               await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-              showAlert('Viaje cancelado', 'El viaje fue cancelado y el pasajero fue notificado.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
+              navigation.navigate('Result', {
+                type: 'success',
+                title: 'Viaje cancelado',
+                message: 'El viaje fue cancelado y el pasajero fue notificado.',
+                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+              });
             } catch (err) {
               showAlert('Error', err.message);
             } finally {
@@ -156,7 +162,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     try {
       const res = await applyToTripRequest(requestId, vehicleId);
       if (res.success) {
-        showAlert('¡Propuesta enviada!', 'El pasajero revisará tu perfil y vehículo.');
+        navigation.navigate('Result', { type: 'success', title: '¡Propuesta enviada!', message: 'El pasajero revisará tu perfil y vehículo.' });
         setAlreadyApplied(true);
         setCanApply(false);
       }

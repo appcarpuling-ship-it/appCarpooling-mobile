@@ -121,7 +121,8 @@ const AppNavigator = () => {
           <Stack.Screen
             name="Result"
             component={ResultScreen}
-            options={{ headerShown: false, presentation: 'modal' }}
+            // ponytail: 'card' (default) = push de pantalla real, no modal desde abajo.
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="LocationPicker"
