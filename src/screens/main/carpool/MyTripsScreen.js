@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,7 +20,6 @@ import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { isTripToday } from '../../../utils/tripDateUtils';
-import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
 import { useUI } from '../../../theme/ui';
 
 const MyTripsScreen = ({ navigation }) => {
@@ -37,9 +37,6 @@ const MyTripsScreen = ({ navigation }) => {
   const fetchingRef = useRef(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
   const [startingTripId, setStartingTripId] = useState(null);
-  const [showCostModal, setShowCostModal] = useState(false);
-  const [completingTripId, setCompletingTripId] = useState(null);
-  const [submittingComplete, setSubmittingComplete] = useState(false);
 
   useEffect(() => {
     loadMyTrips(1, true);
@@ -142,34 +139,30 @@ const MyTripsScreen = ({ navigation }) => {
     );
   };
 
-  const handleCompleteTrip = (tripId) => {
-    setCompletingTripId(tripId);
-    setShowCostModal(true);
-  };
-
   const formatNumber = (num) => {
     if (typeof num !== 'number') num = parseFloat(num);
     if (isNaN(num)) return num;
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
-  const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
-    setSubmittingComplete(true);
+  const handleCompleteTrip = (tripId) => {
+    navigation.navigate('CompleteTrip', {
+      onSubmit: (data) => submitCompleteTrip(tripId, data),
+    });
+  };
+
+  const submitCompleteTrip = async (tripId, { costBreakdown, driverPay }) => {
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(completingTripId), { costBreakdown, driverPay });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { costBreakdown, driverPay });
       if (response.success) {
         const updatedTrip = response.data?.trip || response.data;
         await loadMyTrips(1, true);
         await refreshUser();
-        setShowCostModal(false);
-        showAlert('Viaje Completado', `Costo final: $${formatNumber(updatedTrip?.actualCost)}`);
-      } else {
-        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
+        return { ok: true, message: `Costo final: $${formatNumber(updatedTrip?.actualCost)}` };
       }
+      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
-    } finally {
-      setSubmittingComplete(false);
+      return { ok: false, message: error.message || 'Error al completar el viaje' };
     }
   };
 
@@ -439,7 +432,11 @@ const MyTripsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Ionicons name="car-outline" size={40} color={textMuted} />
+          <Image
+            source={require('../../../../assets/illustrations/empty-trips.png')}
+            style={styles.emptyIllustration}
+            resizeMode="contain"
+          />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>
             {activeTab === 'upcoming' ? 'Sin viajes próximos' : 'Sin viajes pasados'}
           </Text>
@@ -451,13 +448,6 @@ const MyTripsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Cost Modal */}
-      <CompleteTripCostModal
-        visible={showCostModal}
-        onClose={() => setShowCostModal(false)}
-        onSubmit={submitCompleteTrip}
-        submitting={submittingComplete}
-      />
     </View>
   );
 };
@@ -604,6 +594,7 @@ const styles = StyleSheet.create({
   footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   // Empty
+  emptyIllustration: { width: 200, height: 200 },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     gap: 10, padding: 32,

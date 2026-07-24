@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyReservations, cancelSeatReservation, confirmFromCallback } from '../../../services/seatReservationService';
-import { post_withauth } from '../../../services/apiService';
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { useUI } from '../../../theme/ui';
@@ -25,6 +24,23 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const ui = useUI();
   const { isDarkMode } = useTheme();
 
+  // Flecha de volver garantizada aunque la pantalla quede como raíz (deep-link).
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Carpoolings'))}
+          style={{ marginLeft: 8, paddingVertical: 10, paddingRight: 10, paddingLeft: 4 }}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
+          <Ionicons name="chevron-back" size={26} color={ui.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, ui.text]);
+
   const dark = isDarkMode;
   const bg = colors.background;
   const cardBg = colors.cardBackground;
@@ -36,7 +52,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [chatLoading, setChatLoading] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +102,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
   };
 
   const handlePaymentSuccess = async (paymentData) => {
-    showAlert('Pago Confirmado', 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.', [], 'success');
     try {
       if (paymentData?.externalReference && paymentData?.status === 'approved') {
         await confirmFromCallback(paymentData.externalReference, 'approved');
@@ -96,10 +110,19 @@ const MySeatReservationsScreen = ({ navigation }) => {
       console.warn('Confirmación de pago:', e?.message);
     }
     await loadReservations(1, true);
+    navigation.navigate('Result', {
+      type: 'success',
+      title: 'Pago confirmado',
+      message: 'Tu pago fue procesado correctamente. La reserva será confirmada en breve.',
+    });
   };
 
   const handlePaymentError = (error) => {
-    showAlert('Ocurrió algo', error.message || 'No se pudo procesar el pago.', [], 'error');
+    navigation.navigate('Result', {
+      type: 'error',
+      title: 'No se pudo procesar el pago',
+      message: error.message || 'No se pudo procesar el pago.',
+    });
   };
 
   const handleCancelReservation = (reservation) => {
@@ -166,37 +189,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
       case 'rejected':         return { ...cerrado, t: 'Rechazada' };
       case 'cancelled':        return { ...cerrado, t: 'Cancelada' };
       default:                 return { ...cerrado, t: '—' };
-    }
-  };
-
-  const handleOpenChat = async (item) => {
-    const driverId = item.trip?.driver?._id || item.trip?.driver?.id;
-    if (!driverId) { showAlert('Ocurrió algo', 'Sin datos del conductor'); return; }
-    const reservationId = item.seatReservation?._id;
-    setChatLoading(prev => ({ ...prev, [reservationId]: true }));
-    try {
-      const response = await post_withauth('/chat/conversation', { participantId: driverId });
-      if (response?.success && response?.data?.conversation) {
-        const driver = item.trip.driver;
-        navigation.navigate('ChatsTab', {
-          screen: 'ChatDetail',
-          params: {
-            conversation: response.data.conversation,
-            otherUser: {
-              _id: driverId,
-              firstName: driver.firstName || driver.name?.split(' ')[0] || 'Conductor',
-              lastName: driver.lastName || driver.name?.split(' ').slice(1).join(' ') || '',
-              avatar: driver.avatar || null,
-            },
-          },
-        });
-      } else {
-        showAlert('Ocurrió algo', 'No se pudo abrir el chat');
-      }
-    } catch {
-      showAlert('Ocurrió algo', 'No se pudo abrir el chat');
-    } finally {
-      setChatLoading(prev => ({ ...prev, [reservationId]: false }));
     }
   };
 
@@ -350,25 +342,6 @@ const MySeatReservationsScreen = ({ navigation }) => {
           </View>
         )}
 
-        {rs === 'reserved' && (
-          <View style={[styles.actions, { borderTopColor: divider }]}>
-            <TouchableOpacity
-              style={[styles.btnGhost, { borderColor: divider }]}
-              onPress={() => handleOpenChat(item)}
-              disabled={!!chatLoading[item.seatReservation?._id]}
-            >
-              {chatLoading[item.seatReservation?._id]
-                ? <ActivityIndicator size="small" color={textPrimary} />
-                : (
-                  <>
-                    <Ionicons name="chatbubble-outline" size={16} color={textPrimary} />
-                    <Text style={[styles.btnGhostText, { color: textPrimary }]}>Mensaje al conductor</Text>
-                  </>
-                )}
-            </TouchableOpacity>
-          </View>
-        )}
-
         {(rs === 'rejected' || rs === 'cancelled') && (
           <View style={[styles.actions, { borderTopColor: divider }]}>
             <View style={[styles.metaChip, { backgroundColor: ui.surface, alignSelf: 'flex-start' }]}>
@@ -478,8 +451,6 @@ const styles = StyleSheet.create({
   cancelBtn:      { alignSelf: 'stretch', paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
   cancelText:     { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
-  btnGhost:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  btnGhostText:   { fontSize: 14, fontFamily: 'Sora_500Medium' },
   emptyTitle:     { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   emptySub:       { fontSize: 13, textAlign: 'center' },
 });

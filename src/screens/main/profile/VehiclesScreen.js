@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -15,7 +16,6 @@ import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
-import { Image } from 'react-native';
 
 // Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
 // tipo se muestra con dos nombres distintos según la pantalla.
@@ -267,9 +267,11 @@ const VehiclesScreen = () => {
         />
       ) : (
         <View style={styles.empty}>
-          <View style={[styles.emptyIcon, { backgroundColor: cardBg, borderColor: border }]}>
-            <Ionicons name="car-sport-outline" size={40} color={textMuted} />
-          </View>
+          <Image
+            source={require('../../../../assets/illustrations/empty-vehicles.png')}
+            style={styles.emptyIllustration}
+            resizeMode="contain"
+          />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin vehículos</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             Cargá tu primer vehículo para empezar a publicar viajes.
@@ -401,15 +403,7 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 12,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
+  emptyIllustration: { width: 220, height: 220, marginBottom: 4 },
   emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center' },
 

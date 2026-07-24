@@ -112,12 +112,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
       useNativeDriver: true
     }).start();
 
-    // Detectar si venimos de fuera del ChatsTab
-    const navigationState = navigation.getState();
-    const isFromOutsideChatsTab = navigationState?.routes?.some(route =>
-      route.name !== 'ChatsTab' && route.state?.index !== undefined
-    );
-
     navigation.setOptions({
       headerStyle: {
         backgroundColor: ui.bg
@@ -136,12 +130,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
-            // Si venimos de fuera del ChatsTab, ir al tab anterior
-            if (isFromOutsideChatsTab) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Chats');
-            }
+            // ChatDetail siempre se empuja sobre el stack actual (Chats, o el
+            // detalle del viaje si venís de afuera): goBack vuelve al origen sin
+            // el bucle que causaba saltar al ChatsTab.
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.navigate('Chats');
           }}
           activeOpacity={0.7}
         >
@@ -256,13 +249,10 @@ const ChatDetailScreen = ({ route, navigation }) => {
       }
     };
 
-    // Escuchar cuando se cierra la conversación
+    // Escuchar cuando se cierra la conversación (ej: viaje completado).
+    // Se cierra en silencio: el alert nativo era intrusivo.
     const handleConversationClosed = (data) => {
       if (String(data.conversationId) === String(conversationId)) {
-        // Mostrar alerta y redirigir
-        alert(`Conversación cerrada: ${data.message}`);
-        
-        // Redirigir a la lista de chats
         navigation.goBack();
       }
     };

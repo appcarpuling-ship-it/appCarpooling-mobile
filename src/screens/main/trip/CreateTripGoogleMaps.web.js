@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -215,7 +216,11 @@ const CreateTripGoogleMaps = ({ navigation }) => {
   if (!vehicles || vehicles.length === 0) {
     return (
       <View style={[styles.centered, { backgroundColor: ui.bg }]}>
-        <Ionicons name="car-outline" size={64} color={ui.textMuted} />
+        <Image
+          source={require('../../../../assets/illustrations/empty-vehicles.png')}
+          style={styles.emptyIllustration}
+          resizeMode="contain"
+        />
         <Text style={[styles.emptyText, { color: ui.textMuted }]}>No tienes vehículos registrados</Text>
         <Text style={[styles.emptySubtext, { color: ui.textMuted }]}>
           Necesitas registrar un vehículo antes de crear un viaje
@@ -448,6 +453,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   statusText: { marginTop: 16, fontSize: 14 },
+  emptyIllustration: { width: 220, height: 220 },
   emptyText: { fontSize: 20, fontFamily: 'Sora_600SemiBold', marginTop: 24, textAlign: 'center' },
   emptySubtext: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   header: {

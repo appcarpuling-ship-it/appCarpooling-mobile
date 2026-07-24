@@ -26,7 +26,6 @@ import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
-import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import * as Location from 'expo-location';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
@@ -98,8 +97,6 @@ const BookingScreen = ({ route, navigation }) => {
   const sectionLabelColor = dark ? textMuted : '#374151';
   const successColor = ui.text || ui.text;
   
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
   const [pickupLocation, setPickupLocation] = useState(null);
   const [pickupMapVisible, setPickupMapVisible] = useState(false);
   const [pickupSearch, setPickupSearch] = useState('');
@@ -118,7 +115,6 @@ const BookingScreen = ({ route, navigation }) => {
   const pickupMapReady = useRef(false);
   const [pickupMapSelectionMode, setPickupMapSelectionMode] = useState(false);
   const pickupMapSelectionModeRef = useRef(false);
-  const [modalMessage, setModalMessage] = useState('');
   const [priceData, setPriceData] = useState(null);
   const [seats, setSeats] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -389,13 +385,18 @@ const BookingScreen = ({ route, navigation }) => {
       if (!reservationResponse?.success) {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
       }
-      setModalMessage('Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.');
-      setShowSuccessModal(true);
+      navigation.replace('Result', {
+        type: 'success',
+        title: 'Solicitud Enviada',
+        message: 'Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.',
+        primaryLabel: 'Continuar',
+      });
     } catch (err) {
-      setModalMessage(
-        err?.response?.data?.message || err?.message || 'Error al procesar la reserva'
-      );
-      setShowErrorModal(true);
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'Error',
+        message: err?.response?.data?.message || err?.message || 'Error al procesar la reserva',
+      });
     } finally {
       setLoading(false);
     }
@@ -961,27 +962,6 @@ const BookingScreen = ({ route, navigation }) => {
         colors={colors}
       />
 
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => { setShowSuccessModal(false); navigation.goBack(); }}
-        type="success"
-        title="Solicitud Enviada"
-        message={modalMessage}
-        confirmText="Continuar"
-        showCancel={false}
-      />
-
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        type="error"
-        title="Error"
-        message={modalMessage}
-        confirmText="Entendido"
-        showCancel={false}
-      />
     </View>
   );
 };

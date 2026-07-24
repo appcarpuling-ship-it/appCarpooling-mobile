@@ -190,8 +190,6 @@ const TripMapScreen = ({ route, navigation }) => {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={initialRegion}
-        showsUserLocation
-        showsMyLocationButton
         paddingAdjustmentBehavior="never"
       >
         {!isDriver && driverLocation?.latitude && (

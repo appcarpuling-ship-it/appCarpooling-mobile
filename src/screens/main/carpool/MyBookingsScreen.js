@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,25 @@ const MyBookingsScreen = ({ navigation }) => {
 
 
   const ui = useUI();
+
+  // Flecha de volver garantizada: si la pantalla queda como raíz (ej. deep-link
+  // de pago) canGoBack es false y el header por defecto no dibujaba flecha.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Carpoolings'))}
+          style={{ marginLeft: 8, paddingVertical: 10, paddingRight: 10, paddingLeft: 4 }}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
+          <Ionicons name="chevron-back" size={26} color={ui.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, ui.text]);
+
   const bg = ui.bg;
   const cardBg = ui.surface;
   const border = ui.border;

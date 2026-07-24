@@ -16,7 +16,6 @@ import { get_withauth, put_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import useColors from '../../../hooks/useColors';
 import { useAlert } from '../../../context/AlertContext';
-import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import { useUI } from '../../../theme/ui';
 
 const EditTripScreen = ({ navigation, route }) => {
@@ -31,9 +30,6 @@ const EditTripScreen = ({ navigation, route }) => {
   const tp      = ui.invertBg;
   const tm      = ui.textMuted;
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal]     = useState(false);
-  const [modalMessage, setModalMessage]         = useState('');
   const { tripId } = route.params;
   const [vehicles, setVehicles]                 = useState([]);
   const [loading, setLoading]                   = useState(false);
@@ -184,25 +180,21 @@ const EditTripScreen = ({ navigation, route }) => {
   const handleUpdateTrip = async () => {
     const { vehicle, departureDate, departureTime, availableSeats } = formData;
     if (!vehicle || !departureDate || !departureTime) {
-      setModalMessage('Seleccioná fecha, hora y vehículo.');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: 'Seleccioná fecha, hora y vehículo.' });
       return;
     }
     const seatsNum = parseInt(availableSeats);
     if (!seatsNum || seatsNum < 1) {
-      setModalMessage('Indicá cuántos asientos tiene el viaje.');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: 'Indicá cuántos asientos tiene el viaje.' });
       return;
     }
     if (seatsNum < occupiedSeats) {
-      setModalMessage(`No podés bajar los asientos a ${seatsNum}: ya hay ${occupiedSeats} pasajero${occupiedSeats !== 1 ? 's' : ''} confirmado${occupiedSeats !== 1 ? 's' : ''}.`);
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: `No podés bajar los asientos a ${seatsNum}: ya hay ${occupiedSeats} pasajero${occupiedSeats !== 1 ? 's' : ''} confirmado${occupiedSeats !== 1 ? 's' : ''}.` });
       return;
     }
     const maxSeats = selectedVehicle?.capacity ?? 8;
     if (seatsNum > maxSeats) {
-      setModalMessage(`El vehículo elegido tiene capacidad máxima de ${maxSeats} pasajeros.`);
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: `El vehículo elegido tiene capacidad máxima de ${maxSeats} pasajeros.` });
       return;
     }
     setLoading(true);
@@ -214,12 +206,10 @@ const EditTripScreen = ({ navigation, route }) => {
         availableSeats: parseInt(formData.availableSeats) || undefined,
       });
       if (response.success) {
-        setModalMessage('Los cambios se guardaron correctamente.');
-        setShowSuccessModal(true);
+        navigation.replace('Result', { type: 'success', title: 'Viaje Actualizado', message: 'Los cambios se guardaron correctamente.', primaryLabel: 'Continuar' });
       }
     } catch (error) {
-      setModalMessage(error.message || 'No pudimos actualizar el viaje.');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No pudimos actualizar el viaje.' });
     } finally {
       setLoading(false);
     }
@@ -548,27 +538,6 @@ const EditTripScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
-
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => { setShowSuccessModal(false); navigation.goBack(); }}
-        type="success"
-        title="Viaje Actualizado"
-        message={modalMessage}
-        confirmText="Continuar"
-        showCancel={false}
-      />
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        type="error"
-        title="Ocurrió algo"
-        message={modalMessage}
-        confirmText="Entendido"
-        showCancel={false}
-      />
     </View>
   );
 };

@@ -38,7 +38,7 @@ const menuItems = [
   },
   {
     id: 2,
-    title: 'Mis Viajes Creados',
+    title: 'Mis Viajes',
     description: 'Mirá los viajes que publicaste como conductor',
     icon: 'car-outline',
     screen: 'MyTrips',
@@ -52,7 +52,7 @@ const menuItems = [
   },
   {
     id: 4,
-    title: 'Reservas Recibidas',
+    title: 'Reservas\nRecibidas',
     description: 'Revisá quién quiere sumarse a tus viajes',
     icon: 'people-outline',
     screen: 'TripRequests',
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
-  menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, marginBottom: 3 },
+  menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, lineHeight: 20, marginBottom: 3 },
   // 2 renglones fijos: "Crear Viaje" entraba en uno y su card quedaba más baja
   // que las demás. El alto no depende del ancho de pantalla.
   menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18, minHeight: 36 },

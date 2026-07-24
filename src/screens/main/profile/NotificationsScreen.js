@@ -26,7 +26,7 @@ const NotificationsScreen = ({ navigation }) => {
   const { colors, isDarkMode } = useColors();
 
   useTheme();
-  const { markAsRead, markAllAsRead } = useNotifications();
+  const { markAsRead, markAllAsRead, loadNotifications } = useNotifications();
 
   const [items, setItems]           = useState([]);
   const [page, setPage]             = useState(1);
@@ -71,7 +71,10 @@ const NotificationsScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadPage(1, true);
-  }, [loadPage]);
+    // Reconcilia el badge de la campanita con el server: se calculaba una sola
+    // vez al inicio y quedaba en 1 aunque ya estuvieran todas leídas.
+    loadNotifications();
+  }, [loadPage, loadNotifications]);
 
   const onRefresh = () => {
     setRefreshing(true);

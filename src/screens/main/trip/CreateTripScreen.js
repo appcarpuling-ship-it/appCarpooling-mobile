@@ -12,13 +12,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
-import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import PillButton from '../../../components/ui/PillButton';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
@@ -33,9 +33,6 @@ const CreateTripScreen = ({ navigation }) => {
   const textPrimary = ui.text;
   const textMuted = ui.textMuted;
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
 
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -157,16 +154,14 @@ const CreateTripScreen = ({ navigation }) => {
       !destination.address || !destination.city || !destination.province ||
       !departureDate || !departureTime || !availableSeats
     ) {
-      setModalMessage('Por favor completa todos los campos obligatorios');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'Por favor completa todos los campos obligatorios' });
       return;
     }
 
     const seatsNum = parseInt(availableSeats);
     const selectedVehicle = vehicles.find(v => v._id === vehicle);
     if (selectedVehicle?.capacity && seatsNum > selectedVehicle.capacity) {
-      setModalMessage(`El vehículo tiene capacidad máxima de ${selectedVehicle.capacity} pasajero${selectedVehicle.capacity !== 1 ? 's' : ''}`);
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: `El vehículo tiene capacidad máxima de ${selectedVehicle.capacity} pasajero${selectedVehicle.capacity !== 1 ? 's' : ''}` });
       return;
     }
 
@@ -187,12 +182,12 @@ const CreateTripScreen = ({ navigation }) => {
 
       const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
       if (response.success) {
-        setModalMessage('Viaje creado exitosamente');
-        setShowSuccessModal(true);
+        // replace (no push): al confirmar, el goBack de ResultScreen vuelve
+        // directo a la pantalla previa a la creación, no a este formulario.
+        navigation.replace('Result', { type: 'success', title: 'Éxito', message: 'Viaje creado exitosamente' });
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al crear el viaje');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: error.message || 'Error al crear el viaje' });
     } finally {
       setLoading(false);
     }
@@ -262,7 +257,11 @@ const CreateTripScreen = ({ navigation }) => {
   if (!loadingVehicles && vehicles.length === 0) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: bg }]}>
-        <Ionicons name="car-outline" size={64} color={textMuted} />
+        <Image
+          source={require('../../../../assets/illustrations/empty-vehicles.png')}
+          style={styles.emptyIllustration}
+          resizeMode="contain"
+        />
         <Text style={[styles.emptyText, { color: textPrimary }]}>No tienes vehículos registrados</Text>
         <Text style={[styles.emptySubtext, { color: textMuted }]}>
           Necesitas registrar un vehículo antes de crear un viaje
@@ -583,28 +582,6 @@ const CreateTripScreen = ({ navigation }) => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => { setShowSuccessModal(false); navigation.goBack(); }}
-        type="success"
-        title="Éxito"
-        message={modalMessage}
-        confirmText="Entendido"
-        showCancel={false}
-      />
-
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        type="error"
-        title="Error"
-        message={modalMessage}
-        confirmText="Entendido"
-        showCancel={false}
-      />
     </View>
   );
 };
@@ -678,6 +655,7 @@ const styles = StyleSheet.create({
   submit: { marginHorizontal: 24, marginTop: 4 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyIllustration: { width: 220, height: 220 },
   emptyText: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 16, textAlign: 'center' },
   emptySubtext: { fontSize: 14, fontFamily: 'Sora_400Regular', marginTop: 8, textAlign: 'center' },
   addVehicleButton: { borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, marginTop: 24 },

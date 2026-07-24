@@ -228,7 +228,11 @@ const SearchResultsScreen = ({ route, navigation }) => {
         </View>
       ) : trips.length === 0 ? (
         <View style={styles.centered}>
-          <Ionicons name="search-outline" size={56} color={textMuted} />
+          <Image
+            source={require('../../../../assets/illustrations/empty-search.png')}
+            style={styles.emptyIllustration}
+            resizeMode="contain"
+          />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin resultados</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             No hay viajes de {originLabel} a {destinationLabel}
@@ -392,6 +396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loadingText: { fontSize: 14, marginTop: 8 },
+  emptyIllustration: { width: 200, height: 200 },
   emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   tryAgainBtn: {

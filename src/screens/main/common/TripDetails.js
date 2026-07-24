@@ -39,7 +39,6 @@ const TripDetails = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
-    const [showVehicleModal, setShowVehicleModal] = useState(false);
 
     const [date, setDate] = useState(new Date());
     const [time, setTime] = useState(new Date());
@@ -204,7 +203,11 @@ const TripDetails = ({ navigation, route }) => {
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
                                 style={styles.selectRow}
-                                onPress={() => setShowVehicleModal(true)}
+                                onPress={() => navigation.navigate('VehiclePicker', {
+                                    vehicles,
+                                    selectedId: formData.vehicle,
+                                    onSelect: (vehicleId) => handleChange('vehicle', vehicleId),
+                                })}
                                 activeOpacity={0.7}
                             >
                                 <Ionicons name="car-outline" size={19} color={textPrimary} />
@@ -281,13 +284,14 @@ const TripDetails = ({ navigation, route }) => {
                         {/* Detalles */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>DETALLES</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}>
+                            <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
                                     style={[styles.input, { color: textPrimary }]}
-                                    placeholder="Asientos disponibles *"
+                                    placeholder={selectedVehicle ? 'Asientos disponibles *' : 'Primero elegí un vehículo'}
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
+                                    editable={!!selectedVehicle}
                                     onChangeText={v => {
                                         const num = parseInt(v);
                                         const cap = selectedVehicle?.capacity;
@@ -371,48 +375,6 @@ const TripDetails = ({ navigation, route }) => {
                     </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
 
-                {/* Modal vehículo */}
-                <Modal
-                    visible={showVehicleModal}
-                    animationType="slide"
-                    presentationStyle="pageSheet"
-                    onRequestClose={() => setShowVehicleModal(false)}
-                >
-                    <SafeAreaView style={[styles.modalContainer, { backgroundColor: bg }]}>
-                        <View style={[styles.modalHeader, { borderBottomColor: border }]}>
-                            <TouchableOpacity onPress={() => setShowVehicleModal(false)}>
-                                <Text style={[styles.modalCancel, { color: textMuted }]}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <Text style={[styles.modalTitle, { color: textPrimary }]}>Vehículo</Text>
-                            <View style={{ width: 60 }} />
-                        </View>
-                        <ScrollView>
-                            {vehicles?.map((vehicle) => (
-                                <TouchableOpacity
-                                    key={vehicle._id}
-                                    style={[
-                                        styles.vehicleOption,
-                                        { borderBottomColor: divider },
-                                        formData.vehicle === vehicle._id && { backgroundColor: cardBg },
-                                    ]}
-                                    onPress={() => { handleChange('vehicle', vehicle._id); setShowVehicleModal(false); }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="car-outline" size={22} color={textPrimary} />
-                                    <View style={styles.vehicleInfo}>
-                                        <Text style={[styles.vehicleName, { color: textPrimary }]}>
-                                            {vehicle.brand} {vehicle.model}
-                                        </Text>
-                                        <Text style={[styles.vehiclePlateTxt, { color: textMuted }]}>{vehicle.licensePlate}</Text>
-                                    </View>
-                                    {formData.vehicle === vehicle._id && (
-                                        <Ionicons name="checkmark" size={20} color={textPrimary} />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </SafeAreaView>
-                </Modal>
             </SafeAreaView>
 
             {/* Date Picker */}
@@ -423,21 +385,29 @@ const TripDetails = ({ navigation, route }) => {
                 <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
                     <View style={styles.pickerOverlay}>
                         <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-                            <Text style={[styles.pickerTitle, { color: textPrimary, borderBottomColor: divider }]}>Fecha de salida</Text>
-                            <DateTimePicker
-                                value={date}
-                                mode="date"
-                                display="spinner"
-                                onChange={(_, d) => { if (d) setDate(d); }}
-                                minimumDate={new Date()}
-                                textColor={textPrimary}
-                            />
-                            <View style={[styles.pickerFooter, { borderTopColor: divider }]}>
+                            <View style={styles.pickerHeader}>
+                                <Text style={[styles.pickerHeaderTitle, { color: textPrimary }]}>Fecha de salida</Text>
                                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                    <Text style={[styles.pickerBtn, { color: textMuted }]}>Cancelar</Text>
+                                    <Ionicons name="close" size={24} color={textPrimary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => onDateChange({ type: 'set' }, date)}>
-                                    <Text style={[styles.pickerBtn, { color: textPrimary, fontWeight: '600' }]}>Confirmar</Text>
+                            </View>
+                            <View style={{ paddingHorizontal: 16 }}>
+                                <DateTimePicker
+                                    value={date}
+                                    mode="date"
+                                    display="spinner"
+                                    onChange={(_, d) => { if (d) setDate(d); }}
+                                    minimumDate={new Date()}
+                                    textColor={textPrimary}
+                                    themeVariant={ui.isDarkMode ? 'dark' : 'light'}
+                                />
+                            </View>
+                            <View style={styles.pickerButtons}>
+                                <TouchableOpacity style={[styles.pickerButton, { borderColor: border }]} onPress={() => setShowDatePicker(false)}>
+                                    <Text style={[styles.pickerButtonText, { color: textMuted }]}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.pickerButton, { backgroundColor: ui.invertBg, borderColor: ui.invertBg }]} onPress={() => onDateChange({ type: 'set' }, date)}>
+                                    <Text style={[styles.pickerButtonText, { color: ui.invertText }]}>Confirmar</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -453,20 +423,28 @@ const TripDetails = ({ navigation, route }) => {
                 <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => setShowTimePicker(false)}>
                     <View style={styles.pickerOverlay}>
                         <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-                            <Text style={[styles.pickerTitle, { color: textPrimary, borderBottomColor: divider }]}>Hora de salida</Text>
-                            <DateTimePicker
-                                value={time}
-                                mode="time"
-                                display="spinner"
-                                onChange={(_, t) => { if (t) setTime(t); }}
-                                textColor={textPrimary}
-                            />
-                            <View style={[styles.pickerFooter, { borderTopColor: divider }]}>
+                            <View style={styles.pickerHeader}>
+                                <Text style={[styles.pickerHeaderTitle, { color: textPrimary }]}>Hora de salida</Text>
                                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                                    <Text style={[styles.pickerBtn, { color: textMuted }]}>Cancelar</Text>
+                                    <Ionicons name="close" size={24} color={textPrimary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => onTimeChange({ type: 'set' }, time)}>
-                                    <Text style={[styles.pickerBtn, { color: textPrimary, fontWeight: '600' }]}>Confirmar</Text>
+                            </View>
+                            <View style={{ paddingHorizontal: 16 }}>
+                                <DateTimePicker
+                                    value={time}
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={(_, t) => { if (t) setTime(t); }}
+                                    textColor={textPrimary}
+                                    themeVariant={ui.isDarkMode ? 'dark' : 'light'}
+                                />
+                            </View>
+                            <View style={styles.pickerButtons}>
+                                <TouchableOpacity style={[styles.pickerButton, { borderColor: border }]} onPress={() => setShowTimePicker(false)}>
+                                    <Text style={[styles.pickerButtonText, { color: textMuted }]}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.pickerButton, { backgroundColor: ui.invertBg, borderColor: ui.invertBg }]} onPress={() => onTimeChange({ type: 'set' }, time)}>
+                                    <Text style={[styles.pickerButtonText, { color: ui.invertText }]}>Confirmar</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -639,29 +617,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Sora_600SemiBold',
     },
 
-    // Modal vehículo
-    modalContainer: { flex: 1 },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    modalCancel: { fontSize: 16 },
-    modalTitle:  { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
-    vehicleOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        gap: 14,
-    },
-    vehicleInfo: { flex: 1 },
-    vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginBottom: 2 },
-    vehiclePlateTxt: { fontSize: 13 },
 
     // Pickers
     pickerOverlay: {
@@ -671,27 +626,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pickerBox: {
-        borderRadius: 24,
-        margin: 20,
-        minWidth: 300,
+        borderRadius: 28,
+        marginHorizontal: 24,
+        width: '88%',
+        maxHeight: '85%',
         overflow: 'hidden',
     },
-    pickerTitle: {
+    pickerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingTop: 22,
+        paddingBottom: 14,
+    },
+    pickerHeaderTitle: {
+        fontSize: 22,
+        fontFamily: 'Sora_800ExtraBold',
+        letterSpacing: -0.5,
+    },
+    pickerButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        padding: 16,
+    },
+    pickerButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 999,
+        borderWidth: 1,
+        alignItems: 'center',
+    },
+    pickerButtonText: {
         fontSize: 15,
         fontFamily: 'Sora_600SemiBold',
-        textAlign: 'center',
-        paddingVertical: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    pickerFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 14,
-        borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    pickerBtn: {
-        fontSize: 16,
-        paddingHorizontal: 12,
     },
 });
 

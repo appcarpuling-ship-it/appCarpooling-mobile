@@ -26,11 +26,11 @@ const RebillPaymentOptions = ({
     <View style={[styles.container, style]}>
       {hasCheckout && (
         <TouchableOpacity
-          style={styles.checkoutButton}
+          style={[styles.checkoutButton, { backgroundColor: dark ? '#FFFFFF' : '#000000' }]}
           onPress={() => onCheckoutPress?.(paymentUrl)}
           activeOpacity={0.8}
         >
-          <Text style={styles.checkoutButtonText}>Completar pago</Text>
+          <Text style={[styles.checkoutButtonText, { color: dark ? '#000000' : '#FFFFFF' }]}>Completar pago</Text>
         </TouchableOpacity>
       )}
 
@@ -88,13 +88,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#16A34A',
     paddingVertical: 13,
     paddingHorizontal: 16,
     borderRadius: 12,
   },
   checkoutButtonText: {
-    color: '#fff',
     fontSize: 15,
     fontFamily: 'Sora_700Bold',
   },

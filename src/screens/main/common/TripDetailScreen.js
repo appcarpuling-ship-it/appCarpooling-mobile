@@ -36,7 +36,6 @@ import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
-import CompleteTripCostModal from '../../../components/modals/CompleteTripCostModal';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 
 const BANNER_SCROLL_SPEED = 30;
@@ -150,8 +149,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [checkoutWebViewUrl, setCheckoutWebViewUrl] = useState(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [showCostModal, setShowCostModal] = useState(false);
-  const [submittingComplete, setSubmittingComplete] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
@@ -224,6 +221,8 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
     raw = raw.replace(/, [A-Z][0-9]{4}[A-Z0-9]{0,3}\s+/g, ', ');
+    // Saca comas/espacios colgando (ej: "…, entre rios ," -> "…, entre rios")
+    raw = raw.replace(/,\s*,/g, ',').replace(/[\s,]+$/, '').trim();
     return raw || location.city || location.name || '';
   };
 
@@ -435,10 +434,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           response.data?.conversation?.participants?.find(p => p._id !== (user?._id || user?.id)) ||
           response.data?.participants?.find(p => p._id !== (user?._id || user?.id)) ||
           { _id: driverId, firstName: trip.driver?.firstName || 'Conductor', lastName: trip.driver?.lastName || '', avatar: trip.driver?.avatar || null };
-        navigation.navigate('ChatsTab', {
-          screen: 'ChatDetail',
-          params: { conversation, otherUser },
-        });
+        navigation.navigate('ChatDetail', { conversation, otherUser });
       } else {
         showAlert('Ocurrió algo', 'No se pudo abrir el chat');
       }
@@ -456,12 +452,9 @@ const TripDetailScreen = ({ route, navigation }) => {
         tripId: trip._id,
       });
       if (response.success) {
-        navigation.navigate('ChatsTab', {
-          screen: 'ChatDetail',
-          params: {
-            conversation: response.data,
-            otherUser: response.data.participants?.find(p => p._id !== (user?._id || user?.id)),
-          },
+        navigation.navigate('ChatDetail', {
+          conversation: response.data,
+          otherUser: response.data.participants?.find(p => p._id !== (user?._id || user?.id)),
         });
       }
     } catch (_) {
@@ -535,11 +528,10 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
-    setShowCostModal(true);
+    navigation.navigate('CompleteTrip', { onSubmit: submitCompleteTrip });
   };
 
   const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
-    setSubmittingComplete(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { costBreakdown, driverPay });
       if (response.success) {
@@ -549,15 +541,11 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
         await loadTripDetail();
         await refreshUser();
-        setShowCostModal(false);
-        showAlert('Viaje Completado', `Costo final: $${formatNumber(updatedTrip?.actualCost)}`);
-      } else {
-        showAlert('Ocurrió algo', response.message || 'No se pudo completar el viaje');
+        return { ok: true, message: `Costo final: $${formatNumber(updatedTrip?.actualCost)}` };
       }
+      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al completar el viaje');
-    } finally {
-      setSubmittingComplete(false);
+      return { ok: false, message: error.message || 'Error al completar el viaje' };
     }
   };
 
@@ -1191,14 +1179,6 @@ const TripDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Cost Modal */}
-      <CompleteTripCostModal
-        visible={showCostModal}
-        onClose={() => setShowCostModal(false)}
-        onSubmit={submitCompleteTrip}
-        submitting={submittingComplete}
-      />
-
     </View>
   );
 };
@@ -1213,7 +1193,7 @@ const styles = StyleSheet.create({
   statusRow: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 4,
+    paddingBottom: 16,
   },
   statusBadge: {
     flexDirection: 'row',

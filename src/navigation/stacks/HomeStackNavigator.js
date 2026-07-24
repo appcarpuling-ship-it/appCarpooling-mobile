@@ -11,6 +11,7 @@ import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
 import BookingScreen from '../../screens/main/home/BookingScreen';
 import AllTripsScreen from '../../screens/main/home/AllTripsScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
+import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
 import TripMapScreen from '../../screens/main/trip/TripMapScreen';
 import CreateTripGoogleMaps from '../../screens/main/trip/CreateTripGoogleMaps';
 import MyTripRequestsScreen from '../../screens/main/home/MyTripRequestsScreen';
@@ -89,6 +90,11 @@ const HomeStackNavigator = () => {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
+        options={{ headerBackTitleVisible: false }}
       />
       <Stack.Screen
         name="TripMap"

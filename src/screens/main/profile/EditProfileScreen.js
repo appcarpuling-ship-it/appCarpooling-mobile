@@ -22,7 +22,6 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
-import ConfirmationModal from '../../../components/modals/ConfirmationModal';
 import PillButton from '../../../components/ui/PillButton';
 import { appendFile } from '../../../utils/formDataFile';
 
@@ -37,10 +36,6 @@ const EditProfileScreen = ({ navigation }) => {
   const accent      = ui.invertBg;
   const accentInv   = ui.invertText;
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal]   = useState(false);
-  const [modalMessage, setModalMessage]       = useState('');
-  const [successMessage, setSuccessMessage]   = useState('');
 
   const { user, refreshUser } = useAuth();
   const [showProvincePicker, setShowProvincePicker] = useState(false);
@@ -94,17 +89,14 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
       if (response.success) {
         await refreshUser();
-        setSuccessMessage('Foto de perfil actualizada');
-        setShowSuccessModal(true);
+        navigation.navigate('Result', { type: 'success', title: 'Perfil Actualizado', message: 'Foto de perfil actualizada', primaryLabel: 'Continuar' });
         setAvatarUri(null);
       } else {
-        setModalMessage(response.message || 'Error al actualizar la foto');
-        setShowErrorModal(true);
+        navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'Error al actualizar la foto' });
         setAvatarUri(null);
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al actualizar la foto');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: error.message || 'Error al actualizar la foto' });
       setAvatarUri(null);
     } finally {
       setAvatarLoading(false);
@@ -125,8 +117,7 @@ const EditProfileScreen = ({ navigation }) => {
           if (uri) { setAvatarUri(uri); await updateAvatarOnly(uri); }
         }
       } catch {
-        setModalMessage('No se pudo cargar la imagen');
-        setShowErrorModal(true);
+        navigation.navigate('Result', { type: 'error', title: 'Error', message: 'No se pudo cargar la imagen' });
       }
     };
 
@@ -147,15 +138,17 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, fd);
       if (response.success) {
         await refreshUser();
-        setSuccessMessage(side === 'front' ? 'Frente del DNI actualizado' : 'Dorso del DNI actualizado');
-        setShowSuccessModal(true);
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Perfil Actualizado',
+          message: side === 'front' ? 'Frente del DNI actualizado' : 'Dorso del DNI actualizado',
+          primaryLabel: 'Continuar',
+        });
       } else {
-        setModalMessage(response.message || 'No se pudo subir el DNI');
-        setShowErrorModal(true);
+        navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'No se pudo subir el DNI' });
       }
     } catch (error) {
-      setModalMessage(error.message || 'No se pudo subir el DNI');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: error.message || 'No se pudo subir el DNI' });
     } finally {
       setDniLoading(false);
     }
@@ -171,23 +164,22 @@ const EditProfileScreen = ({ navigation }) => {
       const uri = imageAsset?.uri || imageAsset?.assets?.[0]?.uri;
       if (uri) await uploadDniSide(side, uri);
     } catch {
-      setModalMessage('No se pudo seleccionar la imagen');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'No se pudo seleccionar la imagen' });
     }
   };
 
   const handleSave = async () => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setModalMessage('Nombre y apellido son obligatorios'); setShowErrorModal(true); return;
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'Nombre y apellido son obligatorios' }); return;
     }
     if (!formData.phone.trim()) {
-      setModalMessage('El teléfono es obligatorio'); setShowErrorModal(true); return;
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'El teléfono es obligatorio' }); return;
     }
     if (formData.age && (parseInt(formData.age) < 18 || parseInt(formData.age) > 100)) {
-      setModalMessage('La edad debe estar entre 18 y 100 años'); setShowErrorModal(true); return;
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'La edad debe estar entre 18 y 100 años' }); return;
     }
     if (!formData.city.trim() || !formData.province) {
-      setModalMessage('Ciudad y provincia son obligatorios'); setShowErrorModal(true); return;
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'Ciudad y provincia son obligatorios' }); return;
     }
 
     setLoading(true);
@@ -207,15 +199,17 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
         await refreshUser();
-        setSuccessMessage('Tus datos personales se han guardado correctamente.');
-        setShowSuccessModal(true);
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Perfil Actualizado',
+          message: 'Tus datos personales se han guardado correctamente.',
+          primaryLabel: 'Continuar',
+        });
       } else {
-        setModalMessage(response.message || 'Error al actualizar');
-        setShowErrorModal(true);
+        navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'Error al actualizar' });
       }
     } catch (error) {
-      setModalMessage(error.message || 'Error al actualizar');
-      setShowErrorModal(true);
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: error.message || 'Error al actualizar' });
     } finally {
       setLoading(false);
     }
@@ -560,27 +554,6 @@ const EditProfileScreen = ({ navigation }) => {
         onRefreshPermissions={forceRefreshPermissions}
       />
 
-      <ConfirmationModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onConfirm={() => setShowSuccessModal(false)}
-        type="success"
-        title="Perfil Actualizado"
-        message={successMessage}
-        confirmText="Continuar"
-        showCancel={false}
-      />
-
-      <ConfirmationModal
-        visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        type="error"
-        title="Error"
-        message={modalMessage}
-        confirmText="Entendido"
-        showCancel={false}
-      />
     </View>
   );
 };

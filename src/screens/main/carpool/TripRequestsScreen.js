@@ -511,15 +511,31 @@ const TripRequestsScreen = ({ route }) => {
           </Text>
         )}
 
-        {item.seatReservation?.pickupLocation?.address && (
-          <View style={[styles.pickupRow, { borderTopColor: divider }]}>
-            <Ionicons name="location-outline" size={13} color={textMuted} style={{ marginTop: 1 }} />
-            <Text style={[styles.pickupText, { color: textMuted }]} numberOfLines={2}>
-              <Text style={{ fontWeight: '600' }}>Punto de recogida: </Text>
-              {item.seatReservation.pickupLocation.address}
-            </Text>
-          </View>
-        )}
+        {item.seatReservation?.pickupLocation?.address && (() => {
+          const pickup = item.seatReservation.pickupLocation;
+          const hasCoords = pickup.coordinates?.latitude != null;
+          return (
+            <View style={[styles.pickupRow, { borderTopColor: divider }]}>
+              <Ionicons name="location-outline" size={13} color={textMuted} style={{ marginTop: 1 }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <Text style={[styles.pickupText, { color: textMuted }]} numberOfLines={2}>
+                  <Text style={{ fontWeight: '600' }}>Punto de recogida: </Text>
+                  {pickup.address}
+                </Text>
+                {hasCoords && (
+                  <TouchableOpacity
+                    style={styles.pickupMapBtn}
+                    onPress={() => navigation.navigate('PickupMap', { coordinates: pickup.coordinates, address: pickup.address })}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="map-outline" size={14} color={accent} />
+                    <Text style={[styles.pickupMapBtnText, { color: accent }]}>Ver punto de recogida en el mapa</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          );
+        })()}
 
         {item.status === 'rejected' && item.rejectionReason && (
           <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
@@ -885,6 +901,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     flex: 1,
   },
+  pickupMapBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  pickupMapBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   messageText: {
     fontSize: 13,

@@ -23,9 +23,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { get_public, get_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
-import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
-import { PROVINCE_IMAGES } from '../../../constants/provinceImages';
-import { getDepartmentsForProvince } from '../../../constants/departmentImages';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -154,10 +151,6 @@ const HomeScreen = ({ navigation, route }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showOriginPicker, setShowOriginPicker] = useState(false);
-  const [originStep, setOriginStep] = useState('province');
-  const [showDestinationPicker, setShowDestinationPicker] = useState(false);
-  const [destinationStep, setDestinationStep] = useState('province');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [activeTab, setActiveTab] = useState('inicio');
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
@@ -541,144 +534,6 @@ const HomeScreen = ({ navigation, route }) => {
     );
   };
 
-  const renderLocationPicker = (visible, onClose, step, onStepChange, selectedProvince, onProvinceSelect, selectedDept, onDeptSelect, provinceTitle, deptTitle) => {
-    const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
-    const provinces = ARGENTINA_PROVINCES.map((p) => ({ key: p, label: p }));
-    const depts = getDepartmentsForProvince(selectedProvince);
-
-    const handleProvinceSelect = (p) => {
-      onProvinceSelect(p);
-      onStepChange('loading');
-      setTimeout(() => onStepChange('department'), 2000);
-    };
-
-    const handleClose = () => {
-      onClose();
-      setTimeout(() => onStepChange('province'), 300);
-    };
-
-    const title = step === 'province' ? provinceTitle : step === 'loading' ? selectedProvince : `${selectedProvince}`;
-
-    return (
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-            <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
-              {step === 'department' && (
-                <TouchableOpacity
-                  onPress={() => onStepChange('province')}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  style={{ marginRight: 10 }}
-                >
-                  <Ionicons name="arrow-back" size={22} color={textSecondary} />
-                </TouchableOpacity>
-              )}
-              <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={22} color={textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {(step === 'province' || step === 'loading') && (
-              <FlatList
-                data={provinces}
-                keyExtractor={(item) => item.key}
-                numColumns={2}
-                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-                showsVerticalScrollIndicator={false}
-                initialNumToRender={provinces.length}
-                maxToRenderPerBatch={provinces.length}
-                windowSize={5}
-                renderItem={({ item }) => {
-                  const isSelected = selectedProvince === item.key;
-                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
-                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
-                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.provinceGridItem, {
-                        width: ITEM_SIZE,
-                        backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (ui.border),
-                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
-                        shadowOpacity: isSelected ? 0.15 : 0,
-                        shadowRadius: 8,
-                        elevation: isSelected ? 4 : 0,
-                      }]}
-                      onPress={() => handleProvinceSelect(item.key)}
-                      activeOpacity={0.75}
-                    >
-                      <Image source={PROVINCE_IMAGES[item.key]} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            )}
-            {step === 'loading' && (
-              <View style={styles.pickerLoadingOverlay}>
-                <ActivityIndicator size="large" color={accent} />
-              </View>
-            )}
-
-            {step === 'department' && (
-              <FlatList
-                data={depts}
-                keyExtractor={(item) => item.key}
-                numColumns={2}
-                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-                showsVerticalScrollIndicator={false}
-                initialNumToRender={depts.length}
-                maxToRenderPerBatch={depts.length}
-                windowSize={5}
-                ListHeaderComponent={
-                  <TouchableOpacity
-                    style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor: ui.border }]}
-                    onPress={() => { onDeptSelect(''); handleClose(); }}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="grid-outline" size={28} color={textSecondary} style={{ marginBottom: 6 }} />
-                    <Text style={[styles.provinceGridLabel, { color: textSecondary }]}>Todos los departamentos</Text>
-                  </TouchableOpacity>
-                }
-                renderItem={({ item }) => {
-                  const isSelected = selectedDept === item.label;
-                  const cardBackground = isSelected ? (ui.text) : (ui.surface);
-                  const imgTint = isSelected ? (ui.invertText) : (ui.text);
-                  const labelColor = isSelected ? (ui.invertText) : textSecondary;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.provinceGridItem, {
-                        width: ITEM_SIZE,
-                        backgroundColor: cardBackground,
-                        borderColor: isSelected ? cardBackground : (ui.border),
-                        shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
-                        shadowOpacity: isSelected ? 0.15 : 0,
-                        shadowRadius: 8,
-                        elevation: isSelected ? 4 : 0,
-                      }]}
-                      onPress={() => { onDeptSelect(item.label); handleClose(); }}
-                      activeOpacity={0.75}
-                    >
-                      <Image source={item.image} style={[styles.provinceGridImage, { tintColor: imgTint }]} resizeMode="contain" />
-                      <Text style={[styles.provinceGridLabel, { color: labelColor }, isSelected && { fontWeight: '700' }]} numberOfLines={2}>
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   const renderTop = () => (
     <>
       <View style={styles.header}>
@@ -785,8 +640,12 @@ const HomeScreen = ({ navigation, route }) => {
           {/* Origin */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => { setOriginStep(origin ? 'department' : 'province'); setShowOriginPicker(true); }}
-            onLongPress={() => { setOriginStep('province'); setShowOriginPicker(true); }}
+            onPress={() => navigation.navigate('LocationPicker', {
+              title: 'Provincia de origen',
+              province: origin,
+              city: originCity,
+              onSelect: ({ province, city }) => { setOrigin(province); setOriginCity(city); },
+            })}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -811,8 +670,12 @@ const HomeScreen = ({ navigation, route }) => {
           {/* Destination */}
           <TouchableOpacity
             style={styles.searchRow}
-            onPress={() => { setDestinationStep(destination ? 'department' : 'province'); setShowDestinationPicker(true); }}
-            onLongPress={() => { setDestinationStep('province'); setShowDestinationPicker(true); }}
+            onPress={() => navigation.navigate('LocationPicker', {
+              title: 'Provincia de destino',
+              province: destination,
+              city: destinationCity,
+              onSelect: ({ province, city }) => { setDestination(province); setDestinationCity(city); },
+            })}
             activeOpacity={0.7}
           >
             <View style={styles.routeIndicator}>
@@ -1077,32 +940,6 @@ const HomeScreen = ({ navigation, route }) => {
 
         </ScrollView>
       </View>
-
-      {/* Province & City Pickers */}
-      {renderLocationPicker(
-        showOriginPicker,
-        () => setShowOriginPicker(false),
-        originStep,
-        setOriginStep,
-        origin,
-        (p) => { setOrigin(p); setOriginCity(''); },
-        originCity,
-        setOriginCity,
-        'Provincia de origen',
-        'Departamento de origen',
-      )}
-      {renderLocationPicker(
-        showDestinationPicker,
-        () => setShowDestinationPicker(false),
-        destinationStep,
-        setDestinationStep,
-        destination,
-        (p) => { setDestination(p); setDestinationCity(''); },
-        destinationCity,
-        setDestinationCity,
-        'Provincia de destino',
-        'Departamento de destino',
-      )}
 
       {/* Date Picker */}
       {showDatePicker && (

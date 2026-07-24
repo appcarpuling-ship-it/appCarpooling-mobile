@@ -94,12 +94,9 @@ const UserProfileScreen = ({ route, navigation }) => {
         ...(tripId ? { tripId } : {}),
       });
       if (response.success) {
-        navigation.navigate('ChatsTab', {
-          screen: 'ChatDetail',
-          params: {
-            conversation: response.data,
-            otherUser: response.data.participants?.find((p) => p._id !== (user?._id || user?.id)),
-          },
+        navigation.navigate('ChatDetail', {
+          conversation: response.data,
+          otherUser: response.data.participants?.find((p) => p._id !== (user?._id || user?.id)),
         });
       }
     } catch (e) {

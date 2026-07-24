@@ -25,6 +25,7 @@ const STEPS = [
   {
     key: 'home',
     icon: 'home',
+    illustration: require('../../../assets/illustrations/tutorial-home.png'),
     title: 'Inicio',
     body: 'Desde acá podés explorar la app, ver novedades y buscar viajes que se ajusten a tu ruta y fecha.',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
@@ -32,6 +33,7 @@ const STEPS = [
   {
     key: 'requests',
     icon: 'megaphone',
+    illustration: require('../../../assets/illustrations/tutorial-requests.png'),
     title: 'Solicitudes de viaje',
     body: 'Si no encontrás un viaje, pedilo. En la pestaña «Solicitudes» del inicio publicás a dónde querés ir y los conductores se postulan; elegís uno y, al pagar, el viaje queda confirmado. Si manejás, ahí también podés ofrecer tus viajes.',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
@@ -39,6 +41,7 @@ const STEPS = [
   {
     key: 'carpool',
     icon: 'car',
+    illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
     title: 'Viajes compartidos',
     body: 'En este ícono vas a ver y administrar tus carpools: los que ofrecés y a los que te sumás como pasajero.',
     tabNav: { tab: 'CarpoolingsTab', screen: 'Carpoolings' },
@@ -46,6 +49,7 @@ const STEPS = [
   {
     key: 'chat',
     icon: 'chatbubbles',
+    illustration: require('../../../assets/illustrations/tutorial-chat.png'),
     title: 'Mensajes',
     body: 'Coordiná con conductores y pasajeros. Tus conversaciones aparecen acá, con aviso cuando hay mensajes nuevos.',
     tabNav: { tab: 'ChatsTab', screen: 'Chats' },
@@ -53,6 +57,7 @@ const STEPS = [
   {
     key: 'profile',
     icon: 'person',
+    illustration: require('../../../assets/illustrations/tutorial-profile.png'),
     title: 'Perfil',
     body: 'Editá tus datos, vehículos, notificaciones y preferencias. Cuando quieras, podés volver a ver esta guía desde tu perfil.',
     tabNav: { tab: 'ProfileTab', screen: 'Profile' },
@@ -60,6 +65,7 @@ const STEPS = [
   {
     key: 'tabs',
     icon: 'apps',
+    illustration: require('../../../assets/illustrations/tutorial-tabs.png'),
     title: 'Navegación inferior',
     body: 'Usá los cuatro botones de abajo para cambiar de sección en cualquier momento. ¡Ya estás listo para usar Carpuling!',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
@@ -160,6 +166,12 @@ const AppTutorialOverlay = ({ onComplete }) => {
                   resizeMode="contain"
                   accessibilityIgnoresInvertColors
                 />
+              ) : current.illustration ? (
+                <Image
+                  source={current.illustration}
+                  style={styles.illustrationImage}
+                  resizeMode="contain"
+                />
               ) : (
                 <Ionicons name={current.icon} size={96} color={ui.text} />
               )}
@@ -218,6 +230,7 @@ const styles = StyleSheet.create({
   // desbordaba en pantallas chicas. El ícono cede el espacio que pide el texto.
   iconWrap:   { flex: 1, maxHeight: 260, minHeight: 110, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   logoImage:  { width: 96, height: 96 },
+  illustrationImage: { width: '80%', height: '80%' },
   title:      { fontFamily: 'Sora_800ExtraBold', fontSize: 32, lineHeight: 39, letterSpacing: -1 },
   paragraph:  { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 23, marginTop: 14 },
   dots:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },

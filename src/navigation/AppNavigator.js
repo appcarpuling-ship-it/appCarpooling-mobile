@@ -21,6 +21,11 @@ import TripRequestDetailScreen from '../screens/main/home/TripRequestDetailScree
 import TripRequestDetailsScreen from '../screens/main/home/TripRequestDetailsScreen';
 import TripMapScreen from '../screens/main/trip/TripMapScreen';
 import ApplicationDetailScreen from '../screens/main/home/ApplicationDetailScreen';
+import ResultScreen from '../screens/common/ResultScreen';
+import LocationPickerScreen from '../screens/common/LocationPickerScreen';
+import VehiclePickerScreen from '../screens/common/VehiclePickerScreen';
+import CompleteTripScreen from '../screens/common/CompleteTripScreen';
+import PickupMapScreen from '../screens/common/PickupMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -111,6 +116,31 @@ const AppNavigator = () => {
             component={ApplicationDetailScreen}
             // La pantalla dibuja su propio header (flecha + "Detalle del conductor").
             // El header nativo "Conductor" duplicaba el título; se oculta.
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Result"
+            component={ResultScreen}
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="LocationPicker"
+            component={LocationPickerScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="VehiclePicker"
+            component={VehiclePickerScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CompleteTrip"
+            component={CompleteTripScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PickupMap"
+            component={PickupMapScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

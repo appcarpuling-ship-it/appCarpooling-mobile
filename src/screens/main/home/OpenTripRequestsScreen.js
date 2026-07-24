@@ -14,9 +14,6 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { buildImageUri } from '../../../services/apiService';
-import { ARGENTINA_PROVINCES } from '../../../constants/provinces';
-import { PROVINCE_IMAGES } from '../../../constants/provinceImages';
-import { getDepartmentsForProvince } from '../../../constants/departmentImages';
 import { useUI } from '../../../theme/ui';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
@@ -54,10 +51,6 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const [tempDate,            setTempDate]            = useState(null);
 
   // Picker modals
-  const [showOriginPicker,      setShowOriginPicker]      = useState(false);
-  const [originStep,            setOriginStep]            = useState('province');
-  const [showDestinationPicker, setShowDestinationPicker] = useState(false);
-  const [destinationStep,       setDestinationStep]       = useState('province');
   const [showDatePicker,        setShowDatePicker]        = useState(false);
 
   const hasActiveFilters = originProvince || originCity || destinationProvince || destinationCity || selectedDate;
@@ -130,117 +123,6 @@ const OpenTripRequestsScreen = ({ navigation }) => {
       return;
     }
     if (date) setTempDate(date);
-  };
-
-  const renderLocationModal = (
-    visible, onClose, step, onStepChange,
-    selectedProv, onProvSelect, onCitySelect, provTitle, cityTitle
-  ) => {
-    const provinces = ARGENTINA_PROVINCES.map(p => ({ key: p, label: p }));
-    const depts = getDepartmentsForProvince(selectedProv);
-
-    const handleProvSelect = (p) => {
-      onProvSelect(p);
-      onStepChange('loading');
-      setTimeout(() => onStepChange('department'), 2000);
-    };
-
-    const handleClose = () => {
-      onClose();
-      setTimeout(() => onStepChange('province'), 300);
-    };
-
-    const title = step === 'province' ? provTitle : selectedProv;
-
-    return (
-      <Modal transparent animationType="slide" visible={visible} onRequestClose={handleClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
-          <View style={[styles.pickerContainer, { backgroundColor: ui.bg }]}>
-            <View style={styles.pickerHeader}>
-              {step === 'department' && (
-                <TouchableOpacity onPress={() => onStepChange('province')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginRight: 10 }}>
-                  <Ionicons name="arrow-back" size={22} color={textPrimary} />
-                </TouchableOpacity>
-              )}
-              <Text style={[styles.pickerTitle, { color: textPrimary, flex: 1 }]}>{title}</Text>
-              <TouchableOpacity style={[styles.pickerClose, { backgroundColor: ui.surface }]} onPress={handleClose}>
-                <Ionicons name="close" size={19} color={textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            {(step === 'province' || step === 'loading') && (
-              <FlatList
-                data={provinces}
-                keyExtractor={item => item.key}
-                numColumns={2}
-                columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingTop: 16, paddingBottom: 24, gap: 12 }}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => {
-                  const isSelected = selectedProv === item.key;
-                  const cardBgItem = isSelected ? (ui.text) : (ui.surface);
-                  const imgTint    = isSelected ? (ui.invertText) : (ui.text);
-                  const labelColor = isSelected ? (ui.invertText) : textMuted;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.provinceGridItem, {
-                        flex: 1, backgroundColor: cardBgItem,
-                        borderColor: isSelected ? cardBgItem : borderColor,
-                      }]}
-                      onPress={() => handleProvSelect(item.key)}
-                      activeOpacity={0.75}
-                    >
-                      <Image source={PROVINCE_IMAGES[item.key]} style={styles.provinceGridImage} tintColor={imgTint} resizeMode="contain" />
-                      <Text style={[styles.provinceGridLabel, { color: labelColor }]} numberOfLines={2}>{item.label}</Text>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            )}
-            {step === 'loading' && (
-              <View style={styles.pickerLoadingOverlay}>
-                <ActivityIndicator size="large" color={accent} />
-              </View>
-            )}
-            {step === 'department' && (
-              <>
-                <TouchableOpacity
-                  style={[styles.deptAllItem, { backgroundColor: ui.surface, borderColor }]}
-                  onPress={() => { onCitySelect(''); handleClose(); }}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="grid-outline" size={28} color={textMuted} style={{ marginBottom: 6 }} />
-                  <Text style={[styles.provinceGridLabel, { color: textMuted }]}>Todos</Text>
-                </TouchableOpacity>
-                <FlatList
-                  data={depts}
-                  keyExtractor={item => item.key}
-                  numColumns={2}
-                  columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-                  contentContainerStyle={{ paddingTop: 12, paddingBottom: 24, gap: 12 }}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => {
-                    const cardBgItem = ui.surface;
-                    const imgTint    = ui.text;
-                    return (
-                      <TouchableOpacity
-                        style={[styles.provinceGridItem, { flex: 1, backgroundColor: cardBgItem, borderColor }]}
-                        onPress={() => { onCitySelect(item.label); handleClose(); }}
-                        activeOpacity={0.75}
-                      >
-                        <Image source={item.image} style={styles.provinceGridImage} tintColor={imgTint} resizeMode="contain" />
-                        <Text style={[styles.provinceGridLabel, { color: textMuted }]} numberOfLines={2}>{item.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-    );
   };
 
   const renderDateModal = () => {
@@ -410,7 +292,12 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
           <TouchableOpacity
             style={[styles.filterChip, originCity || originProvince ? chipActive : chipDefault]}
-            onPress={() => { setOriginStep(originProvince ? 'department' : 'province'); setShowOriginPicker(true); }}
+            onPress={() => navigation.navigate('LocationPicker', {
+              title: 'Provincia de origen',
+              province: originProvince,
+              city: originCity,
+              onSelect: ({ province, city }) => { setOriginProvince(province); setOriginCity(city); },
+            })}
             activeOpacity={0.7}
           >
             <Ionicons name="radio-button-on" size={14} color={originCity || originProvince ? chipTextActive.color : textMuted} />
@@ -421,7 +308,12 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.filterChip, destinationCity || destinationProvince ? chipActive : chipDefault]}
-            onPress={() => { setDestinationStep(destinationProvince ? 'department' : 'province'); setShowDestinationPicker(true); }}
+            onPress={() => navigation.navigate('LocationPicker', {
+              title: 'Provincia de destino',
+              province: destinationProvince,
+              city: destinationCity,
+              onSelect: ({ province, city }) => { setDestinationProvince(province); setDestinationCity(city); },
+            })}
             activeOpacity={0.7}
           >
             <Ionicons name="location" size={14} color={destinationCity || destinationProvince ? chipTextActive.color : textMuted} />
@@ -495,18 +387,6 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         />
       )}
 
-      {renderLocationModal(
-        showOriginPicker, () => setShowOriginPicker(false),
-        originStep, setOriginStep,
-        originProvince, setOriginProvince, (city) => { setOriginCity(city); },
-        'Seleccionar provincia de origen', 'Seleccionar ciudad de origen'
-      )}
-      {renderLocationModal(
-        showDestinationPicker, () => setShowDestinationPicker(false),
-        destinationStep, setDestinationStep,
-        destinationProvince, setDestinationProvince, (city) => { setDestinationCity(city); },
-        'Seleccionar provincia de destino', 'Seleccionar ciudad de destino'
-      )}
       {renderDateModal()}
     </SafeAreaView>
   );
@@ -546,21 +426,14 @@ const styles = StyleSheet.create({
   footerItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerText:      { fontSize: 12 },
 
-  // Picker modals
-  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerContainer: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%' },
-  pickerHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 14 },
-  pickerTitle:     { fontSize: 24, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
-  pickerClose:     { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  pickerLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
+  // Picker modal (fecha) — centrado en pantalla
+  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  pickerContainer: { borderRadius: 28, width: '100%', maxHeight: '85%', overflow: 'hidden' },
+  pickerHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 14 },
+  pickerTitle:     { fontSize: 22, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
   pickerButtons:   { flexDirection: 'row', gap: 12, padding: 16 },
   pickerButton:    { flex: 1, paddingVertical: 14, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
   pickerButtonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-
-  provinceGridItem:  { borderRadius: 18, padding: 14, alignItems: 'center' },
-  provinceGridImage: { width: 48, height: 48, marginBottom: 8 },
-  provinceGridLabel: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center' },
-  deptAllItem:       { borderRadius: 18, padding: 14, alignItems: 'center', marginHorizontal: 24, marginTop: 16 },
 });
 
 export default OpenTripRequestsScreen;
