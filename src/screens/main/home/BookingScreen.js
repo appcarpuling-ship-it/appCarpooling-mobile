@@ -385,11 +385,14 @@ const BookingScreen = ({ route, navigation }) => {
       if (!reservationResponse?.success) {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
       }
-      navigation.replace('Result', {
+      navigation.navigate('Result', {
         type: 'success',
         title: 'Solicitud Enviada',
         message: 'Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.',
         primaryLabel: 'Continuar',
+        // Con navigate (no replace) el formulario de reserva queda debajo en el
+        // stack; sin esto "Continuar" volvería ahí en vez de a Mis Reservas.
+        onPrimary: () => navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' }),
       });
     } catch (err) {
       navigation.navigate('Result', {

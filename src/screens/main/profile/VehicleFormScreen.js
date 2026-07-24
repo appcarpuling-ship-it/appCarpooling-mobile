@@ -51,6 +51,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
     { key: 'otro',     label: 'Otro',           maxCapacity: 8 },
   ];
 
+  // Sedán/Compacto y Pick-up/Combi comparten la misma etiqueta nueva ("Auto" /
+  // "Camioneta") y se mostraban como dos chips idénticos. Se agrupan en un
+  // solo chip seleccionable; el que tenga la capacidad más alta del grupo es
+  // el que se guarda al tocarlo (no resta permisos a nadie que ya tuviera el
+  // tipo más chico cargado, solo amplía el techo para vehículos nuevos).
+  const TYPE_CHIP_GROUPS = [
+    { label: 'Auto',           keys: ['sedan', 'hatchback'] },
+    { label: 'Auto-camioneta', keys: ['suv'] },
+    { label: 'Camioneta',      keys: ['pickup', 'van'] },
+    { label: 'Otro',           keys: ['otro'] },
+  ].map(g => ({
+    ...g,
+    canonicalKey: g.keys.reduce((a, b) =>
+      (VEHICLE_TYPES.find(t => t.key === b)?.maxCapacity ?? 0) > (VEHICLE_TYPES.find(t => t.key === a)?.maxCapacity ?? 0) ? b : a
+    ),
+    maxCapacity: Math.max(...g.keys.map(k => VEHICLE_TYPES.find(t => t.key === k)?.maxCapacity ?? 0)),
+  }));
+
   const [selectedType, setSelectedType] = useState(vehicleData?.type || 'sedan');
   const [focusedField, setFocusedField] = useState(null);
   const maxCapacityForType = VEHICLE_TYPES.find(t => t.key === selectedType)?.maxCapacity ?? 8;
@@ -263,7 +281,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
         : await post_withauth_formdata('/vehicles', fd);
 
       if (response.success) {
-        navigation.replace('Result', {
+        navigation.navigate('Result', {
           type: 'success',
           title: isEdit ? 'Vehículo Actualizado' : 'Vehículo Registrado',
           message: isEdit ? 'Los cambios en tu vehículo se guardaron correctamente.' : 'Tu vehículo fue registrado con éxito.',
@@ -437,22 +455,22 @@ const VehicleFormScreen = ({ navigation, route }) => {
               Define cuántos pasajeros vas a poder ofrecer.
             </Text>
             <View style={styles.chipsWrap}>
-              {VEHICLE_TYPES.map((t) => {
-                const on = selectedType === t.key;
+              {TYPE_CHIP_GROUPS.map((g) => {
+                const on = g.keys.includes(selectedType);
                 return (
                   <TouchableOpacity
-                    key={t.key}
+                    key={g.label}
                     style={[styles.chip, { backgroundColor: on ? ui.invertBg : cardBg }]}
-                    onPress={() => handleTypeChange(t.key)}
+                    onPress={() => handleTypeChange(g.canonicalKey)}
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                   >
-                    <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{t.label}</Text>
+                    <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{g.label}</Text>
                     {/* El número solo no se entendía: el ícono lo ancla a "pasajeros". */}
                     <View style={styles.chipMetaWrap}>
                       <Ionicons name="person" size={11} color={on ? ui.invertText : textMuted} />
-                      <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{t.maxCapacity}</Text>
+                      <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{g.maxCapacity}</Text>
                     </View>
                   </TouchableOpacity>
                 );

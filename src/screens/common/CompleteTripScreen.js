@@ -44,7 +44,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
     const res = await onSubmit?.({ costBreakdown: { fuel: num(fuel), food: num(food), other: num(other) }, driverPay: num(driverPay) });
     setSubmitting(false);
     if (res?.ok) {
-      navigation.replace('Result', { type: 'success', title: 'Viaje completado', message: res.message });
+      navigation.navigate('Result', { type: 'success', title: 'Viaje completado', message: res.message });
     } else {
       setError(res?.message || 'No se pudo completar el viaje');
     }

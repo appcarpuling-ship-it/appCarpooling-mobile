@@ -66,7 +66,9 @@ const ResultScreen = ({ route, navigation }) => {
         <Text style={[styles.title, { color: ui.text }]}>{title || (isError ? 'Ocurrió un error' : '¡Listo!')}</Text>
         {message ? <Text style={[styles.message, { color: ui.textMuted }]}>{message}</Text> : null}
 
-        <View style={[styles.illustrationWrap, { backgroundColor: ui.surface }]}>
+        <View style={styles.illustrationWrap}>
+          <View style={[styles.halo, styles.haloOuter, { backgroundColor: ui.surface }]} />
+          <View style={[styles.halo, styles.haloInner, { backgroundColor: ui.surface }]} />
           <Image source={resolvedImage} style={styles.illustration} resizeMode="contain" />
         </View>
       </View>
@@ -82,8 +84,11 @@ const styles = StyleSheet.create({
   body: { flex: 1, justifyContent: 'center' },
   title: { fontFamily: 'Sora_800ExtraBold', fontSize: 28, lineHeight: 34 },
   message: { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
-  illustrationWrap: { width: '100%', flex: 1, maxHeight: 320, minHeight: 200, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginTop: 28 },
-  illustration: { width: '80%', height: '80%' },
+  illustrationWrap: { width: '100%', flex: 1, maxHeight: 320, minHeight: 200, alignItems: 'center', justifyContent: 'center', marginTop: 28 },
+  halo: { position: 'absolute', borderRadius: 999 },
+  haloOuter: { width: '85%', height: '85%', opacity: 0.5 },
+  haloInner: { width: '62%', height: '62%', opacity: 0.9 },
+  illustration: { width: '68%', height: '68%' },
   cta: { marginTop: 16 },
 });
 

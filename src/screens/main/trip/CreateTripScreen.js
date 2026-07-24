@@ -182,9 +182,9 @@ const CreateTripScreen = ({ navigation }) => {
 
       const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
       if (response.success) {
-        // replace (no push): al confirmar, el goBack de ResultScreen vuelve
-        // directo a la pantalla previa a la creación, no a este formulario.
-        navigation.replace('Result', { type: 'success', title: 'Éxito', message: 'Viaje creado exitosamente' });
+        // navigate (no replace): @react-navigation/stack deja la pantalla nueva
+        // sin responder al tacto después de un replace() en algunos casos.
+        navigation.navigate('Result', { type: 'success', title: 'Éxito', message: 'Viaje creado exitosamente' });
       }
     } catch (error) {
       navigation.navigate('Result', { type: 'error', title: 'Error', message: error.message || 'Error al crear el viaje' });

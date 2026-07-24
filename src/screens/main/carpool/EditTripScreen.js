@@ -206,7 +206,7 @@ const EditTripScreen = ({ navigation, route }) => {
         availableSeats: parseInt(formData.availableSeats) || undefined,
       });
       if (response.success) {
-        navigation.replace('Result', { type: 'success', title: 'Viaje Actualizado', message: 'Los cambios se guardaron correctamente.', primaryLabel: 'Continuar' });
+        navigation.navigate('Result', { type: 'success', title: 'Viaje Actualizado', message: 'Los cambios se guardaron correctamente.', primaryLabel: 'Continuar' });
       }
     } catch (error) {
       navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No pudimos actualizar el viaje.' });
