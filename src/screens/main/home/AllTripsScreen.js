@@ -26,6 +26,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const AllTripsScreen = ({ navigation }) => {
   const ui = useUI();
@@ -595,18 +596,13 @@ const AllTripsScreen = ({ navigation }) => {
               }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="car-outline" size={64} color={ui.textMuted} />
-                  <Text style={[styles.emptyText, { color: ui.text }]}>No se encontraron viajes</Text>
-                  <Text style={[styles.emptySubtext, { color: ui.textMuted }]}>
-                    {hasActiveFilters
-                      ? 'Intenta ajustar los filtros'
-                      : 'No hay viajes disponibles por el momento'}
-                  </Text>
-                  {hasActiveFilters && (
-                    <TouchableOpacity style={[styles.clearButton, { borderColor: isDarkMode ? 'transparent' : '#000000' }]} onPress={clearFilters} activeOpacity={0.7}>
-                      <Text style={[styles.clearButtonText, { color: ui.invertBg }]}>Limpiar filtros</Text>
-                    </TouchableOpacity>
-                  )}
+                  <EmptyState
+                    image={require('../../../../assets/icons/pngwing.com (7).png')}
+                    title="No se encontraron viajes"
+                    subtitle={hasActiveFilters ? 'Intenta ajustar los filtros' : 'No hay viajes disponibles por el momento'}
+                    actionLabel={hasActiveFilters ? 'Limpiar filtros' : undefined}
+                    onAction={hasActiveFilters ? clearFilters : undefined}
+                  />
                 </View>
               }
             />

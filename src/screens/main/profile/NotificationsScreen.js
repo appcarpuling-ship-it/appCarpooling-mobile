@@ -17,6 +17,7 @@ import { navigateFromNotification } from '../../../utils/notificationNavigation'
 import { get_withauth } from '../../../services/apiService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 /** Mensajes de chat: solo push; no centro in-app (coherente con backend) */
 const isInAppNotification = (n) => n && n.type !== 'new_message';
@@ -246,10 +247,11 @@ const NotificationsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.emptyWrap}>
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin notificaciones</Text>
-          <Text style={[styles.emptyText, { color: textMuted }]}>
-            Cuando recibas notificaciones aparecerán aquí
-          </Text>
+          <EmptyState
+            icon="notifications-outline"
+            title="Sin notificaciones"
+            subtitle="Cuando recibas notificaciones aparecerán aquí"
+          />
         </View>
       )}
     </View>

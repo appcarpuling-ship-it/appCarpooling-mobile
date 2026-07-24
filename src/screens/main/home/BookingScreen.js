@@ -415,6 +415,37 @@ const BookingScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
         >
+          {/* Banners promocionales */}
+          {banners.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 10 }]}>Destacados</Text>
+              <FlatList
+                data={banners}
+                keyExtractor={(item) => item._id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 8 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.bannerThumb, { borderColor: divider }]}
+                    activeOpacity={0.92}
+                    onPress={() => setBannerModal({ visible: true, banner: item })}
+                  >
+                    {item.imageUrl ? (
+                      <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerThumbImage} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.bannerThumbFallback, { backgroundColor: cardBg }]}>
+                        <Text style={[styles.bannerTitle, { color: textPrimary }]} numberOfLines={2}>
+                          {item.title || 'Banner'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
+
           {/* Trip Summary */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
             <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Resumen del viaje</Text>
@@ -471,36 +502,43 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Banners promocionales */}
-          {banners.length > 0 && (
-            <View style={{ marginBottom: 12 }}>
-              <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 10 }]}>Destacados</Text>
-              <FlatList
-                data={banners}
-                keyExtractor={(item) => item._id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 8 }}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.bannerThumb, { borderColor: divider }]}
-                    activeOpacity={0.92}
-                    onPress={() => setBannerModal({ visible: true, banner: item })}
-                  >
-                    {item.imageUrl ? (
-                      <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerThumbImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.bannerThumbFallback, { backgroundColor: cardBg }]}>
-                        <Text style={[styles.bannerTitle, { color: textPrimary }]} numberOfLines={2}>
-                          {item.title || 'Banner'}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
+          {/* Pickup Location */}
+          <TouchableOpacity
+            style={[styles.card, styles.pickupRow, { backgroundColor: cardBg, borderColor: divider }]}
+            onPress={() => {
+              setPickupSearch('');
+              setPickupPinAddress(pickupLocation?.address || '');
+              setPickupMapSelectionMode(false);
+              pickupMapSelectionModeRef.current = false;
+              pickupMapReady.current = false;
+              setPickupMapVisible(true);
+              if (pickupLocation?.coordinates) {
+                setPickupPinCoords(pickupLocation.coordinates);
+                setPickupRegion({ ...pickupLocation.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+              } else {
+                setPickupRegion(null);
+                setPickupPinCoords(null);
+                gotoUserLocation();
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
+              <Ionicons name="location-outline" size={18} color={textMuted} />
             </View>
-          )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
+              <Text style={[styles.pickupValue, { color: pickupLocation ? textPrimary : textMuted }]} numberOfLines={1}>
+                {pickupLocation ? pickupLocation.address : 'Agregar punto de recogida'}
+              </Text>
+            </View>
+            {pickupLocation
+              ? <TouchableOpacity onPress={(e) => { e.stopPropagation(); setPickupLocation(null); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={18} color={textMuted} />
+                </TouchableOpacity>
+              : <Ionicons name="chevron-forward" size={16} color={textMuted} />
+            }
+          </TouchableOpacity>
 
           {/* Seat Selector */}
           {calculatingPrice ? (
@@ -663,44 +701,6 @@ const BookingScreen = ({ route, navigation }) => {
               <Text style={[styles.notesText, { color: textMuted }]}>{trip.notes}</Text>
             </View>
           )}
-
-          {/* Pickup Location */}
-          <TouchableOpacity
-            style={[styles.card, styles.pickupRow, { backgroundColor: cardBg, borderColor: divider }]}
-            onPress={() => {
-              setPickupSearch('');
-              setPickupPinAddress(pickupLocation?.address || '');
-              setPickupMapSelectionMode(false);
-              pickupMapSelectionModeRef.current = false;
-              pickupMapReady.current = false;
-              setPickupMapVisible(true);
-              if (pickupLocation?.coordinates) {
-                setPickupPinCoords(pickupLocation.coordinates);
-                setPickupRegion({ ...pickupLocation.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-              } else {
-                setPickupRegion(null);
-                setPickupPinCoords(null);
-                gotoUserLocation();
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
-              <Ionicons name="location-outline" size={18} color={textMuted} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
-              <Text style={[styles.pickupValue, { color: pickupLocation ? textPrimary : textMuted }]} numberOfLines={1}>
-                {pickupLocation ? pickupLocation.address : 'Agregar punto de recogida'}
-              </Text>
-            </View>
-            {pickupLocation
-              ? <TouchableOpacity onPress={(e) => { e.stopPropagation(); setPickupLocation(null); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={18} color={textMuted} />
-                </TouchableOpacity>
-              : <Ionicons name="chevron-forward" size={16} color={textMuted} />
-            }
-          </TouchableOpacity>
 
           {/* Pickup Map Modal */}
           <Modal

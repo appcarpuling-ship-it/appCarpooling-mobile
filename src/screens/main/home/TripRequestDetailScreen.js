@@ -15,6 +15,7 @@ import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
+import VehicleOptionCard from '../../../components/vehicle/VehicleOptionCard';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -568,9 +569,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 {vehicles.map(v => {
                     const insufficient = v.capacity < (request?.seatsNeeded || 1);
                     return (
-                      <TouchableOpacity
+                      <VehicleOptionCard
                         key={v._id}
-                        style={[styles.vehicleItem, { borderColor: divider, opacity: insufficient ? 0.5 : 1 }]}
+                        vehicle={v}
+                        compact
+                        disabledReason={
+                          insufficient
+                            ? `Capacidad insuficiente (${v.capacity} de ${request.seatsNeeded} requeridos)`
+                            : null
+                        }
                         onPress={() => {
                           if (insufficient) {
                             showAlert('Capacidad insuficiente', `Este vehículo tiene ${v.capacity} asiento${v.capacity === 1 ? '' : 's'} y el viaje necesita ${request.seatsNeeded}.`);
@@ -578,19 +585,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                             confirmApply(v._id);
                           }
                         }}
-                      >
-                        <Ionicons name="car-outline" size={20} color={textMuted} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.vehicleName, { color: textPrimary }]}>{v.brand} {v.model} {v.year}</Text>
-                          <Text style={{ color: textMuted, fontSize: 12 }}>{v.color} · {v.licensePlate}</Text>
-                          {insufficient && (
-                            <Text style={{ color: ui.textMuted, fontSize: 11, marginTop: 2 }}>
-                              Capacidad insuficiente ({v.capacity} de {request.seatsNeeded} requeridos)
-                            </Text>
-                          )}
-                        </View>
-                        {!insufficient && <Ionicons name="chevron-forward" size={16} color={textMuted} />}
-                      </TouchableOpacity>
+                      />
                     );
                   })}
               </ScrollView>
@@ -694,8 +689,6 @@ const styles = StyleSheet.create({
   modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent:  { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' },
   modalTitle:    { fontSize: 16, fontFamily: 'Sora_700Bold', marginBottom: 16 },
-  vehicleItem:   { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1, borderRadius: 10, marginBottom: 8 },
-  vehicleName:   { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   modalCancelBtn:{ marginTop: 8, borderWidth: 1, borderRadius: 10, padding: 12, alignItems: 'center' },
 });
 

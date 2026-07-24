@@ -19,6 +19,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const MyBookingsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -397,13 +398,11 @@ const MyBookingsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.empty}>
-          <View style={[styles.emptyIconBox, { backgroundColor: isDarkMode ? '#222' : '#EFEFEF' }]}>
-            <Ionicons name="calendar-outline" size={36} color={textSecondary} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin reservas</Text>
-          <Text style={[styles.emptySubtitle, { color: textSecondary }]}>
-            Cuando reserves un viaje aparecerá aquí
-          </Text>
+          <EmptyState
+            image={require('../../../../assets/icons/pngwing.com (20).png')}
+            title="Sin reservas"
+            subtitle="Cuando reserves un viaje aparecerá aquí"
+          />
         </View>
       )}
     </View>

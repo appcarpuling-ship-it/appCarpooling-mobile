@@ -10,6 +10,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const STATUS_LABELS = {
   open: { label: 'Abierta', solid: true },
@@ -215,18 +216,10 @@ const MyTripRequestsScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Ionicons name="search-outline" size={48} color={textMuted} style={{ marginBottom: 12 }} />
-              <Text style={[styles.emptyText, { color: textMuted }]}>
-                {activeTab === 'upcoming' ? 'No tenés solicitudes próximas' : 'No tenés solicitudes pasadas'}
-              </Text>
-              {/* {activeTab === 'upcoming' && (
-                <TouchableOpacity
-                  style={[styles.createBtn, { backgroundColor: accent }]}
-                  onPress={() => navigation.navigate('CreateTripRequest')}
-                >
-                  <Text style={[styles.createBtnText, { color: accentInverse }]}>Publicar solicitud</Text>
-                </TouchableOpacity>
-              )} */}
+              <EmptyState
+                image={require('../../../../assets/icons/pngwing.com (20).png')}
+                title={activeTab === 'upcoming' ? 'No tenés solicitudes próximas' : 'No tenés solicitudes pasadas'}
+              />
             </View>
           }
         />

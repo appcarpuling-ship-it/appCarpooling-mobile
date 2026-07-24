@@ -15,6 +15,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { buildImageUri } from '../../../services/apiService';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
   const { isDarkMode } = useTheme();
@@ -352,10 +353,14 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         </View>
       ) : requests.length === 0 ? (
         <View style={styles.center}>
-          <Ionicons name="search-outline" size={48} color={textMuted} style={{ marginBottom: 12 }} />
-          <Text style={{ color: textMuted, fontSize: 15, textAlign: 'center' }}>
-            {hasActiveFilters ? 'Sin resultados para estos filtros' : 'No hay solicitudes abiertas por ahora'}
-          </Text>
+          <EmptyState
+            image={
+              hasActiveFilters
+                ? require('../../../../assets/icons/pngwing.com (7).png')
+                : require('../../../../assets/icons/pngwing.com (20).png')
+            }
+            title={hasActiveFilters ? 'Sin resultados para estos filtros' : 'No hay solicitudes abiertas por ahora'}
+          />
         </View>
       ) : (
         <FlatList

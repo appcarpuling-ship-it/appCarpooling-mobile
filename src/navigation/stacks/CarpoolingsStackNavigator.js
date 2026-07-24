@@ -53,7 +53,7 @@ const CarpoolingsStackNavigator = () => {
       <Stack.Screen
         name="Carpoolings"
         component={CarpoolingsScreen}
-        options={{ title: 'Mis Viajes' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="TripDetails"

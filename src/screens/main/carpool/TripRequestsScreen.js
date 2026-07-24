@@ -22,6 +22,7 @@ import { approveOrRejectReservation } from '../../../services/seatReservationSer
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -654,13 +655,11 @@ const TripRequestsScreen = ({ route }) => {
               <View style={[styles.inCardFullBleedLine, { backgroundColor: divider }]} />
             )}
             {requests.length === 0 ? (
-              <View style={[styles.emptyBlock, styles.emptyInsideCard]}>
-                <Ionicons name="people-outline" size={40} color={textMuted} />
-                <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin solicitudes</Text>
-                <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-                  Las solicitudes aparecerán aquí
-                </Text>
-              </View>
+              <EmptyState
+                image={require('../../../../assets/icons/pngwing.com (20).png')}
+                title="Sin solicitudes"
+                subtitle="Las solicitudes aparecerán aquí"
+              />
             ) : (
               requests.map((item, index) => (
                 <View
@@ -683,11 +682,11 @@ const TripRequestsScreen = ({ route }) => {
           contentContainerStyle={[styles.centered, { flexGrow: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />}
         >
-          <Ionicons name="car-outline" size={48} color={textMuted} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin viajes activos</Text>
-          <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            Crea un viaje para recibir reservas
-          </Text>
+          <EmptyState
+            image={require('../../../../assets/icons/pngwing.com (20).png')}
+            title="Sin viajes activos"
+            subtitle="Crea un viaje para recibir reservas"
+          />
         </ScrollView>
       )}
 

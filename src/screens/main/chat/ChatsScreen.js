@@ -30,6 +30,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 // Usar valores directos para evitar problemas de carga
 const SORA_FONTS = {
@@ -604,17 +605,20 @@ const ChatsScreen = ({ navigation }) => {
             }
           >
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: ui.text }]}>
-                {conversations.length === 0
-                  ? 'No tienes conversaciones'
-                  : searchTerm
-                    ? 'No se encontraron conversaciones'
-                    : filter === 'trips'
-                      ? 'No tienes conversaciones de viajes'
-                      : filter === 'direct'
-                        ? 'No tienes mensajes directos'
-                        : 'No hay conversaciones'}
-              </Text>
+              <EmptyState
+                image={require('../../../../assets/icons/pngwing.com (20).png')}
+                title={
+                  conversations.length === 0
+                    ? 'No tienes conversaciones'
+                    : searchTerm
+                      ? 'No se encontraron conversaciones'
+                      : filter === 'trips'
+                        ? 'No tienes conversaciones de viajes'
+                        : filter === 'direct'
+                          ? 'No tienes mensajes directos'
+                          : 'No hay conversaciones'
+                }
+              />
             </View>
           </ScrollView>
         ) : (

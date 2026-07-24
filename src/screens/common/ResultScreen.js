@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -24,6 +24,8 @@ const ResultScreen = ({ route, navigation }) => {
     message,
     primaryLabel = 'Entendido',
     onPrimary,
+    onClose,
+    image,
   } = route.params || {};
 
   const isError = type === 'error';
@@ -33,10 +35,15 @@ const ResultScreen = ({ route, navigation }) => {
     else navigation.goBack();
   };
 
+  const handleClose = () => {
+    if (onClose) onClose();
+    else navigation.goBack();
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 14, paddingBottom: Math.max(insets.bottom, 12) + 10 }]}>
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={handleClose}
         hitSlop={12}
         style={styles.close}
         accessibilityRole="button"
@@ -47,7 +54,11 @@ const ResultScreen = ({ route, navigation }) => {
 
       <View style={styles.body}>
         <View style={[styles.illustrationWrap, { backgroundColor: ui.surface }]}>
-          <Ionicons name={ICONS[type] || ICONS.success} size={96} color={ui.text} />
+          {image ? (
+            <Image source={image} style={styles.illustration} resizeMode="contain" />
+          ) : (
+            <Ionicons name={ICONS[type] || ICONS.success} size={96} color={ui.text} />
+          )}
         </View>
 
         <Text style={[styles.title, { color: ui.text }]}>{title || (isError ? 'Ocurrió un error' : '¡Listo!')}</Text>

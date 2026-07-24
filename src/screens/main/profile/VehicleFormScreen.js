@@ -268,6 +268,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           title: isEdit ? 'Vehículo Actualizado' : 'Vehículo Registrado',
           message: isEdit ? 'Los cambios en tu vehículo se guardaron correctamente.' : 'Tu vehículo fue registrado con éxito.',
           primaryLabel: 'Continuar',
+          image: require('../../../../assets/icons/pngwing.com (4).png'),
           onPrimary: () => navigation.navigate('Vehicles', { refreshVehicles: true }),
         });
       } else {

@@ -1,28 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
+import VehicleOptionCard from '../../components/vehicle/VehicleOptionCard';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-
-// Una imagen por tipo de vehículo. Hoy todos caen al sedán isométrico; cuando
-// lleguen los PNG de pickup/suv se agregan acá (mismo formato, fondo transparente).
-const VEHICLE_IMAGES = {
-  sedan: require('../../../assets/illustrations/vehicle-sedan.png'),
-  hatchback: require('../../../assets/illustrations/vehicle-sedan.png'),
-  suv: require('../../../assets/illustrations/vehicle-sedan.png'),
-  pickup: require('../../../assets/illustrations/vehicle-sedan.png'),
-};
-const imageForType = (type) => VEHICLE_IMAGES[type] || VEHICLE_IMAGES.sedan;
-
-const FEATURES = [
-  { key: 'ac', label: 'A/C', icon: 'snow-outline' },
-  { key: 'music', label: 'Música', icon: 'musical-notes-outline' },
-  { key: 'luggage', label: 'Equipaje', icon: 'bag-handle-outline' },
-  { key: 'pets', label: 'Mascotas', icon: 'paw-outline' },
-];
 
 // Selección de vehículo como pantalla: carrusel con la foto del auto arriba,
 // se pasa de auto con swipe o flechas. Devuelve el _id elegido por onSelect.
@@ -47,30 +31,11 @@ const VehiclePickerScreen = ({ route, navigation }) => {
     navigation.goBack();
   };
 
-  const renderItem = ({ item }) => {
-    const activeFeatures = FEATURES.filter((f) => item.features?.[f.key]);
-    return (
-      <View style={[styles.page, { width: SCREEN_W }]}>
-        <View style={[styles.imageWrap, { backgroundColor: ui.surface }]}>
-          <Image source={imageForType(item.type)} style={styles.carImage} resizeMode="contain" />
-        </View>
-        <Text style={[styles.name, { color: ui.text }]}>{item.brand} {item.model}</Text>
-        <Text style={[styles.plate, { color: ui.textMuted }]}>
-          {item.licensePlate}{item.capacity ? `  ·  ${item.capacity} asientos` : ''}
-        </Text>
-        {activeFeatures.length > 0 && (
-          <View style={styles.chips}>
-            {activeFeatures.map((f) => (
-              <View key={f.key} style={[styles.chip, { backgroundColor: ui.surface }]}>
-                <Ionicons name={f.icon} size={13} color={ui.text} />
-                <Text style={[styles.chipText, { color: ui.text }]}>{f.label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    );
-  };
+  const renderItem = ({ item }) => (
+    <View style={[styles.page, { width: SCREEN_W }]}>
+      <VehicleOptionCard vehicle={item} />
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
@@ -129,14 +94,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
 
   carousel: { flex: 1, justifyContent: 'center' },
-  page: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 10 },
-  imageWrap: { width: '100%', aspectRatio: 1.3, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  carImage: { width: '80%', height: '80%' },
-  name: { fontFamily: 'Sora_800ExtraBold', fontSize: 24, letterSpacing: -0.5, textAlign: 'center' },
-  plate: { fontFamily: 'Sora_500Medium', fontSize: 14, textAlign: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
-  chipText: { fontFamily: 'Sora_500Medium', fontSize: 12 },
+  page: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
 
   arrow: { position: 'absolute', zIndex: 2, top: '38%', width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   arrowLeft: { left: 12 },

@@ -89,7 +89,7 @@ const EditProfileScreen = ({ navigation }) => {
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, formDataToSend);
       if (response.success) {
         await refreshUser();
-        navigation.navigate('Result', { type: 'success', title: 'Perfil Actualizado', message: 'Foto de perfil actualizada', primaryLabel: 'Continuar' });
+        navigation.navigate('Result', { type: 'success', title: 'Perfil Actualizado', message: 'Foto de perfil actualizada', primaryLabel: 'Continuar', image: require('../../../../assets/icons/pngwing.com (16).png') });
         setAvatarUri(null);
       } else {
         navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'Error al actualizar la foto' });
@@ -143,6 +143,7 @@ const EditProfileScreen = ({ navigation }) => {
           title: 'Perfil Actualizado',
           message: side === 'front' ? 'Frente del DNI actualizado' : 'Dorso del DNI actualizado',
           primaryLabel: 'Continuar',
+          image: require('../../../../assets/icons/pngwing.com (16).png'),
         });
       } else {
         navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'No se pudo subir el DNI' });
@@ -204,6 +205,7 @@ const EditProfileScreen = ({ navigation }) => {
           title: 'Perfil Actualizado',
           message: 'Tus datos personales se han guardado correctamente.',
           primaryLabel: 'Continuar',
+          image: require('../../../../assets/icons/pngwing.com (16).png'),
         });
       } else {
         navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'Error al actualizar' });

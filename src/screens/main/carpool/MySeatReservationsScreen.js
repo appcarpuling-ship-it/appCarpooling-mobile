@@ -17,6 +17,7 @@ import { useAlert } from '../../../context/AlertContext';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import RebillPaymentOptions from '../../../components/payment/RebillPaymentOptions';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
@@ -388,9 +389,11 @@ const MySeatReservationsScreen = ({ navigation }) => {
         />
       ) : (
         <View style={styles.centered}>
-          <Ionicons name="calendar-outline" size={40} color={textMuted} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin reservas</Text>
-          <Text style={[styles.emptySub, { color: textMuted }]}>Buscá un viaje y reservá tu asiento</Text>
+          <EmptyState
+            image={require('../../../../assets/icons/pngwing.com (20).png')}
+            title="Sin reservas"
+            subtitle="Buscá un viaje y reservá tu asiento"
+          />
         </View>
       )}
 
