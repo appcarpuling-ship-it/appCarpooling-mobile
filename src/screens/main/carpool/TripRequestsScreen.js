@@ -658,7 +658,7 @@ const TripRequestsScreen = ({ route }) => {
               <EmptyState
                 image={require('../../../../assets/icons/pngwing.com (20).png')}
                 title="Sin solicitudes"
-                subtitle="Las solicitudes aparecerán aquí"
+                subtitle="Cuando alguien quiera sumarse a este viaje, la solicitud va a aparecer acá."
               />
             ) : (
               requests.map((item, index) => (
@@ -685,7 +685,7 @@ const TripRequestsScreen = ({ route }) => {
           <EmptyState
             image={require('../../../../assets/icons/pngwing.com (20).png')}
             title="Sin viajes activos"
-            subtitle="Crea un viaje para recibir reservas"
+            subtitle="Creá un viaje para empezar a recibir solicitudes de otros pasajeros."
           />
         </ScrollView>
       )}

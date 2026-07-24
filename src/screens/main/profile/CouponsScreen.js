@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAlert } from '../../../context/AlertContext';
 import { redeemCoupon, getMyCoupons } from '../../../services/couponService';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const describeCoupon = (coupon) => {
   if (!coupon) return '';
@@ -133,10 +134,10 @@ const CouponsScreen = () => {
 
           {coupons.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="pricetag-outline" size={32} color={textMuted} />
-              <Text style={[styles.emptyText, { color: textMuted }]}>
-                Todavía no canjeaste ningún cupón
-              </Text>
+              <EmptyState
+                image={require('../../../../assets/icons/pngwing.com (24).png')}
+                title="Todavía no canjeaste ningún cupón"
+              />
             </View>
           ) : (
             coupons.map((redemption, idx) => {

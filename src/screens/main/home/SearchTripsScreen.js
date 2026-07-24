@@ -13,7 +13,7 @@ import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { spacing, borderRadius, fontSize } from '../../../theme/colors';
 import AdvancedFiltersModal from '../../../components/modals/AdvancedFiltersModal';
-import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
 
 const SearchTripsScreen = ({ route, navigation }) => {
@@ -265,7 +265,7 @@ const SearchTripsScreen = ({ route, navigation }) => {
     const tripDestination = item.destination || {};
     const originCity = tripOrigin.city || tripOrigin.name || tripOrigin.address || 'Ciudad origen';
     const destinationCity = tripDestination.city || tripDestination.name || tripDestination.address || 'Ciudad destino';
-    const freeSeats = tripRemainingSeats(item);
+    const freeSeats = tripDisplaySeats(item);
 
     return (
       <TouchableOpacity

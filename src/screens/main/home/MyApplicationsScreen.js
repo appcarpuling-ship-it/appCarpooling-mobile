@@ -11,6 +11,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { getMyApplications, cancelTripRequestApplication } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 // Sin color: aceptado y pendiente siguen en juego y llevan badge solido;
 // rechazado va apagado.
@@ -221,10 +222,11 @@ const MyApplicationsScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Ionicons name="car-outline" size={48} color={textMuted} style={{ marginBottom: 12 }} />
-              <Text style={{ color: textMuted, fontSize: 15, textAlign: 'center' }}>
-                Todavía no ofreciste viaje a ninguna solicitud
-              </Text>
+              <EmptyState
+                image={require('../../../../assets/icons/pngwing.com (20).png')}
+                title="Todavía no ofreciste viaje"
+                subtitle="Cuando te postules a una solicitud, la vas a ver acá."
+              />
             </View>
           }
         />

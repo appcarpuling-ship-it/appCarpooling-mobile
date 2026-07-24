@@ -17,7 +17,7 @@ import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
-import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
 
 const SORT_OPTIONS = ['price', 'time'];
@@ -106,7 +106,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
 
   const renderTrip = useCallback(({ item }) => {
     const driver = item.driver || {};
-    const freeSeats = tripRemainingSeats(item);
+    const freeSeats = tripDisplaySeats(item);
     const originAddr = formatAddress(item.origin);
     const destAddr = formatAddress(item.destination);
 

@@ -16,6 +16,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const BlockedUsersScreen = () => {
   const ui = useUI();
@@ -93,8 +94,10 @@ const BlockedUsersScreen = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ui.textMuted} />}
       ListEmptyComponent={
         <View style={styles.emptyWrap}>
-          <Ionicons name="shield-checkmark-outline" size={52} color={ui.textMuted} />
-          <Text style={[styles.emptyText, { color: ui.textMuted }]}>No tenés usuarios bloqueados</Text>
+          <EmptyState
+            image={require('../../../../assets/icons/pngwing.com (20).png')}
+            title="No tenés usuarios bloqueados"
+          />
         </View>
       }
       renderItem={({ item }) => {

@@ -18,7 +18,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
-import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
 
@@ -223,7 +223,7 @@ const MyTripsScreen = ({ navigation }) => {
 
   const renderTripItem = ({ item }) => {
     const { color, text: statusText } = getStatusConfig(item.status);
-    const freeNow = tripRemainingSeats(item);
+    const freeNow = tripDisplaySeats(item);
     const textPrimary   = ui.invertBg;
     const textMuted     = ui.textMuted;
     const cardBg        = colors.cardBackground;

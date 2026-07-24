@@ -24,7 +24,7 @@ import { spacing, borderRadius, fontSize, fontWeight } from '../../../theme/colo
 import useColors from '../../../hooks/useColors';
 import { useTheme } from '../../../context/ThemeContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
-import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 
@@ -237,7 +237,7 @@ const AllTripsScreen = ({ navigation }) => {
       
       const originAddress = formatAddress(item.origin);
       const destAddress = formatAddress(item.destination);
-      const freeSeats = tripRemainingSeats(item);
+      const freeSeats = tripDisplaySeats(item);
 
       return (
         <TouchableOpacity

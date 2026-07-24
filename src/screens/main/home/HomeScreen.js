@@ -30,7 +30,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useColors } from '../../../hooks/useColors';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
-import { tripRemainingSeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
@@ -375,7 +375,7 @@ const HomeScreen = ({ navigation, route }) => {
   const searchFieldEmpty = dark ? textMuted : '#000000';
 
   const renderTripCard = (trip) => {
-    const freeSeats = tripRemainingSeats(trip);
+    const freeSeats = tripDisplaySeats(trip);
     return (
     <TouchableOpacity
       key={trip._id}

@@ -23,7 +23,7 @@ import { calculateReservationPrice, createSeatReservation } from '../../../servi
 import { get_public } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
-import { tripRemainingSeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
@@ -127,7 +127,8 @@ const BookingScreen = ({ route, navigation }) => {
   const trip = routeParams.trip;
   const existingReservation = routeParams.existingReservation;
 
-  const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]);
+  const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
+  const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
   const tripCap = useMemo(() => tripSeatCapacity(trip), [trip]);
 
   /** Cupos libres ahora mismo (0 si el viaje está lleno o hay holds pendientes). */
@@ -499,7 +500,7 @@ const BookingScreen = ({ route, navigation }) => {
               <View style={styles.metaItem}>
                 <Ionicons name="people-outline" size={15} color={textMuted} />
                 <Text style={[styles.metaText, { color: textMuted }]}>
-                  {tripFreeNow} disponible{tripFreeNow !== 1 ? 's' : ''}
+                  {tripShownSeats} disponible{tripShownSeats !== 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
@@ -640,7 +641,7 @@ const BookingScreen = ({ route, navigation }) => {
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: textMuted }]}>Asientos disponibles</Text>
               <Text style={[styles.detailValue, { color: textPrimary }]}>
-                {tripFreeNow} de {tripCap || trip.totalSeats || 0}
+                {tripShownSeats} de {tripCap || trip.totalSeats || 0}
               </Text>
             </View>
 
