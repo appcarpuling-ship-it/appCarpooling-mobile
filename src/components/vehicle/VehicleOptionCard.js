@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import { imageForType } from '../../utils/vehicleImage';
+import { buildImageUri } from '../../services/apiService';
 
 const FEATURES = [
   { key: 'ac', label: 'A/C', icon: 'snow-outline' },
@@ -19,6 +20,7 @@ const VehicleOptionCard = ({ vehicle, compact = false, disabledReason = null, on
   const ui = useUI();
   const activeFeatures = FEATURES.filter((f) => vehicle.features?.[f.key]);
   const disabled = !!disabledReason;
+  const photos = (vehicle.photos || []).filter(Boolean);
 
   if (compact) {
     return (
@@ -80,6 +82,24 @@ const VehicleOptionCard = ({ vehicle, compact = false, disabledReason = null, on
           ))}
         </View>
       )}
+
+      {photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photosRow}
+          contentContainerStyle={styles.photosContent}
+        >
+          {photos.map((photo, i) => (
+            <Image
+              key={i}
+              source={{ uri: buildImageUri(photo) }}
+              style={[styles.photoThumb, { backgroundColor: ui.surface }]}
+              resizeMode="cover"
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -108,6 +128,9 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 4 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
   chipText: { fontFamily: 'Sora_500Medium', fontSize: 12 },
+  photosRow: { width: '100%', marginTop: 12 },
+  photosContent: { gap: 8, paddingHorizontal: 8 },
+  photoThumb: { width: 72, height: 72, borderRadius: 14 },
 });
 
 export default VehicleOptionCard;

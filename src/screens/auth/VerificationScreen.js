@@ -90,11 +90,11 @@ const VerificationScreen = ({ route, navigation }) => {
             { text: 'Intentar después', style: 'cancel' },
           ]);
         } else {
-          showAlert('Ocurrió algo', result.message || 'Código de verificación inválido');
+          navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: result.message || 'Código de verificación inválido' });
         }
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al verificar el código');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'Error al verificar el código' });
     } finally {
       setLoading(false);
     }

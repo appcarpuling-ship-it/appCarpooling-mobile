@@ -5,16 +5,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
 
-// ponytail: los PNG result-success/error eran placeholders de 68 bytes (cuadrado
-// negro). El rediseño es monocromo, así que un ícono vectorial en ui.text alcanza.
-const ICONS = {
-  success: 'checkmark-circle',
-  error: 'alert-circle',
+// Imagen por defecto según el tipo, para cuando el caller no pasa una
+// específica (ej. "Solicitud enviada"). Nunca se usan íconos de relleno.
+const DEFAULT_IMAGES = {
+  success: require('../../../assets/icons/pngwing.com (28).png'),
+  error: require('../../../assets/icons/pngwing.com (32).png'),
 };
 
 // Pantalla de éxito/error tras crear algo (viaje, reserva, perfil, etc.).
 // Reemplaza el ConfirmationModal copiado en cada pantalla de creación:
-// se navega acá con params { type, title, message, primaryLabel, onPrimary }.
+// se navega acá con params { type, title, message, primaryLabel, onPrimary, image }.
+// Layout: título + subtítulo arriba, ilustración grande abajo, sin dots/pasos.
 const ResultScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -29,15 +30,24 @@ const ResultScreen = ({ route, navigation }) => {
   } = route.params || {};
 
   const isError = type === 'error';
+  const resolvedImage = image || DEFAULT_IMAGES[type] || DEFAULT_IMAGES.success;
 
   const handlePrimary = () => {
-    if (onPrimary) onPrimary();
-    else navigation.goBack();
+    try {
+      if (onPrimary) onPrimary();
+      else navigation.goBack();
+    } catch {
+      navigation.goBack();
+    }
   };
 
   const handleClose = () => {
-    if (onClose) onClose();
-    else navigation.goBack();
+    try {
+      if (onClose) onClose();
+      else navigation.goBack();
+    } catch {
+      navigation.goBack();
+    }
   };
 
   return (
@@ -53,16 +63,12 @@ const ResultScreen = ({ route, navigation }) => {
       </TouchableOpacity>
 
       <View style={styles.body}>
-        <View style={[styles.illustrationWrap, { backgroundColor: ui.surface }]}>
-          {image ? (
-            <Image source={image} style={styles.illustration} resizeMode="contain" />
-          ) : (
-            <Ionicons name={ICONS[type] || ICONS.success} size={96} color={ui.text} />
-          )}
-        </View>
-
         <Text style={[styles.title, { color: ui.text }]}>{title || (isError ? 'Ocurrió un error' : '¡Listo!')}</Text>
         {message ? <Text style={[styles.message, { color: ui.textMuted }]}>{message}</Text> : null}
+
+        <View style={[styles.illustrationWrap, { backgroundColor: ui.surface }]}>
+          <Image source={resolvedImage} style={styles.illustration} resizeMode="contain" />
+        </View>
       </View>
 
       <PillButton label={primaryLabel} onPress={handlePrimary} style={styles.cta} />
@@ -73,11 +79,11 @@ const ResultScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
   close: { alignSelf: 'flex-start' },
-  body: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  illustrationWrap: { width: '100%', maxHeight: 280, minHeight: 160, aspectRatio: 1.1, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
-  illustration: { width: '75%', height: '75%' },
-  title: { fontFamily: 'Sora_800ExtraBold', fontSize: 26, lineHeight: 32, textAlign: 'center' },
-  message: { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 12 },
+  body: { flex: 1, justifyContent: 'center' },
+  title: { fontFamily: 'Sora_800ExtraBold', fontSize: 28, lineHeight: 34 },
+  message: { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
+  illustrationWrap: { width: '100%', flex: 1, maxHeight: 320, minHeight: 200, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginTop: 28 },
+  illustration: { width: '80%', height: '80%' },
   cta: { marginTop: 16 },
 });
 

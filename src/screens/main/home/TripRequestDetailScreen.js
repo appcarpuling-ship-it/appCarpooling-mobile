@@ -168,7 +168,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         setCanApply(false);
       }
     } catch (err) {
-      showAlert('Error', err.message);
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
     } finally {
       setApplying(false);
     }
@@ -195,7 +195,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 }
               }
             } catch (err) {
-              showAlert('Error', err.message);
+              navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
             } finally {
               setAccepting(null);
             }
@@ -551,10 +551,20 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           }
           setCheckoutModal({ visible: false, paymentUrl: null });
           load();
+          navigation.navigate('Result', {
+            type: 'success',
+            title: 'Pago confirmado',
+            message: 'Tu pago fue procesado correctamente.',
+          });
         }}
-        onPaymentError={() => {
+        onPaymentError={(error) => {
           setCheckoutModal({ visible: false, paymentUrl: null });
           load();
+          navigation.navigate('Result', {
+            type: 'error',
+            title: 'No se pudo procesar el pago',
+            message: error?.message || 'No se pudo procesar el pago.',
+          });
         }}
         reservationId={requestId}
       />

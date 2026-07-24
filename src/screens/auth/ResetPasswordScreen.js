@@ -83,7 +83,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         onPrimary: () => navigation.navigate('Login'),
       });
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al restablecer la contraseña');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'Error al restablecer la contraseña' });
     } finally {
       setLoading(false);
     }

@@ -71,11 +71,11 @@ const CouponsScreen = () => {
         loadCoupons();
         navigation.navigate('Result', { type: 'success', title: '¡Listo!', message: response.message || 'Cupón canjeado correctamente' });
       } else {
-        showAlert('No se pudo canjear', response.message || 'Código inválido');
+        navigation.navigate('Result', { type: 'error', title: 'No se pudo canjear', message: response.message || 'Código inválido' });
       }
     } catch (error) {
       const message = error?.response?.data?.message || 'No se pudo canjear el código';
-      showAlert('No se pudo canjear', message);
+      navigation.navigate('Result', { type: 'error', title: 'No se pudo canjear', message });
     } finally {
       setRedeeming(false);
     }

@@ -43,12 +43,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const vehicleData = route.params?.vehicle;
 
   const VEHICLE_TYPES = [
-    { key: 'sedan',    label: 'Sedán',    maxCapacity: 4 },
-    { key: 'hatchback',label: 'Compacto', maxCapacity: 4 },
-    { key: 'suv',      label: 'SUV',      maxCapacity: 6 },
-    { key: 'pickup',   label: 'Pick-up',  maxCapacity: 3 },
-    { key: 'van',      label: 'Combi',    maxCapacity: 8 },
-    { key: 'otro',     label: 'Otro',     maxCapacity: 8 },
+    { key: 'sedan',    label: 'Auto',           maxCapacity: 4 },
+    { key: 'hatchback',label: 'Auto',           maxCapacity: 4 },
+    { key: 'suv',      label: 'Auto-camioneta', maxCapacity: 6 },
+    { key: 'pickup',   label: 'Camioneta',      maxCapacity: 3 },
+    { key: 'van',      label: 'Camioneta',      maxCapacity: 8 },
+    { key: 'otro',     label: 'Otro',           maxCapacity: 8 },
   ];
 
   const [selectedType, setSelectedType] = useState(vehicleData?.type || 'sedan');

@@ -49,7 +49,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         onPrimary: () => navigation.navigate('ResetPassword', { email }),
       });
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al enviar el email');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'Error al enviar el email' });
     } finally {
       setLoading(false);
     }

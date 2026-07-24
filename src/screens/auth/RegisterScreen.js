@@ -187,10 +187,10 @@ const RegisterScreen = ({ navigation }) => {
           onPrimary: () => navigation.navigate('Verification', { email: values.email }),
         });
       } else {
-        showAlert('Ocurrió algo', result.message || 'Error al registrar usuario');
+        navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: result.message || 'Error al registrar usuario' });
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al registrar usuario');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'Error al registrar usuario' });
     } finally {
       setLoading(false);
     }

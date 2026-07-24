@@ -14,6 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -56,7 +57,7 @@ const menuItems = [
   },
   {
     id: 4,
-    title: 'Reservas\nRecibidas',
+    title: 'Reservas Recibidas',
     description: 'Revisá quién quiere sumarse a tus viajes',
     icon: 'people-outline',
     screen: 'TripRequests',
@@ -193,7 +194,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -248,7 +249,7 @@ const CarpoolingsScreen = ({ navigation }) => {
                 <Ionicons name={item.icon} size={24} color={textPrimary} />
               </View>
               <View style={styles.menuText}>
-                <Text style={[styles.menuTitle, { color: textPrimary }]}>{item.title}</Text>
+                <Text style={[styles.menuTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.menuDesc, { color: textSecondary }]} numberOfLines={2}>{item.description}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={textSecondary} />
@@ -325,7 +326,7 @@ const CarpoolingsScreen = ({ navigation }) => {
           }}
         />
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: TAB_BAR_SPACE },
 
   header: {
-    paddingTop: 60,
+    paddingTop: 14,
     paddingBottom: 28,
     paddingHorizontal: 24,
   },

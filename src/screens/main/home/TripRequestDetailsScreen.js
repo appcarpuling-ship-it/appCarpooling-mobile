@@ -104,7 +104,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         }),
       });
     } catch (err) {
-      showAlert('Error', err?.response?.data?.message || 'No se pudo publicar la solicitud.');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err?.response?.data?.message || 'No se pudo publicar la solicitud.' });
     } finally {
       setLoading(false);
     }

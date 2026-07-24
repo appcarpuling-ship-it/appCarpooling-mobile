@@ -40,7 +40,7 @@ const completeProfileSchema = {
 const isPlaceholder = (name) =>
   !name || ['Usuario', 'Google', 'Apple'].includes(name);
 
-const CompleteProfileScreen = () => {
+const CompleteProfileScreen = ({ navigation }) => {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { showAlert } = useAlert();
 
@@ -133,7 +133,7 @@ const CompleteProfileScreen = () => {
 
       const profileResult = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (!profileResult.success) {
-        showAlert('Error', profileResult.message || 'No se pudo guardar el perfil.');
+        navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: profileResult.message || 'No se pudo guardar el perfil.' });
         setLoading(false);
         return;
       }
@@ -149,7 +149,7 @@ const CompleteProfileScreen = () => {
       await refreshUser();
       // AppNavigator detecta user.phone y navega a Main automáticamente
     } catch (e) {
-      showAlert('Error', e.message || 'Error inesperado.');
+      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: e.message || 'Error inesperado.' });
     } finally {
       setLoading(false);
     }

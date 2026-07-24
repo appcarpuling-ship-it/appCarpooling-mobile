@@ -55,7 +55,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 }
               }
             } catch (err) {
-              showAlert('Error', err.message);
+              navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
             } finally {
               setAccepting(false);
             }
@@ -168,9 +168,21 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
             console.warn('confirmFromCallback:', e?.message);
           }
           setCheckoutModal({ visible: false, paymentUrl: null });
-          navigation.goBack();
+          navigation.navigate('Result', {
+            type: 'success',
+            title: 'Pago confirmado',
+            message: 'Tu pago fue procesado correctamente.',
+            onPrimary: () => navigation.goBack(),
+          });
         }}
-        onPaymentError={() => { setCheckoutModal({ visible: false, paymentUrl: null }); }}
+        onPaymentError={(error) => {
+          setCheckoutModal({ visible: false, paymentUrl: null });
+          navigation.navigate('Result', {
+            type: 'error',
+            title: 'No se pudo procesar el pago',
+            message: error?.message || 'No se pudo procesar el pago.',
+          });
+        }}
         reservationId={requestId}
       />
 

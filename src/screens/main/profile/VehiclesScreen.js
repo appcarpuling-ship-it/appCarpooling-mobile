@@ -20,11 +20,11 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 // Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
 // tipo se muestra con dos nombres distintos según la pantalla.
 const TYPE_LABELS = {
-  sedan: 'Sedán',
-  suv: 'SUV',
-  hatchback: 'Compacto',
-  van: 'Combi',
-  pickup: 'Pick-up',
+  sedan: 'Auto',
+  suv: 'Auto-camioneta',
+  hatchback: 'Auto',
+  van: 'Camioneta',
+  pickup: 'Camioneta',
   otro: 'Otro',
 };
 
