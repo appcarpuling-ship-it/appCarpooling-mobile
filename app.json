@@ -86,7 +86,13 @@
     "plugins": [
       "expo-updates",
       "expo-apple-authentication",
-      "@sentry/react-native/expo",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "carpuling",
+          "project": "react-native"
+        }
+      ],
       [
         "expo-build-properties",
         {
