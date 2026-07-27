@@ -144,7 +144,7 @@ const LoginScreen = ({ navigation }) => {
                 autoComplete="email"
               />
             </View>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputRow, { borderBottomWidth: 0 }]}>
               <Ionicons name="lock-closed-outline" size={18} color={textMuted} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: textPrimary }]}
