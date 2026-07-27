@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   },
   activeRing: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 12,
+    borderRadius: 24,
     borderWidth: 0.8,
     borderColor: '#8A8A8E',
   },

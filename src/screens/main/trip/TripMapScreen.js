@@ -54,6 +54,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [selectedStop, setSelectedStop] = useState(null);
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
+  const [showMyLocation, setShowMyLocation] = useState(false);
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
@@ -73,14 +74,18 @@ const TripMapScreen = ({ route, navigation }) => {
   }, []);
 
   // Ubicación en vivo del conductor: se comparte por socket (sin costo de API), no por polling ni geocodificación.
+  // Además, con el viaje en curso, cada uno (conductor o pasajero) ve su propio punto azul nativo
+  // vía showsUserLocation — no hace falta watchPositionAsync propio para eso, solo el permiso.
   useEffect(() => {
     if (!trip?._id || !isTripStarted) return;
+    let cancelled = false;
 
-    if (isDriver) {
-      let cancelled = false;
-      (async () => {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted' || cancelled) return;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled || status !== 'granted') return;
+      setShowMyLocation(true);
+
+      if (isDriver) {
         locationWatchRef.current = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
@@ -95,24 +100,27 @@ const TripMapScreen = ({ route, navigation }) => {
             });
           }
         );
-      })();
-      return () => {
-        cancelled = true;
-        locationWatchRef.current?.remove?.();
-        locationWatchRef.current = null;
-      };
+      }
+    })();
+
+    if (!isDriver) {
+      // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
+      socketService.joinTripTracking(trip._id);
+      socketService.onTripLocation((data) => {
+        if (data?.tripId === trip._id) {
+          setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
+        }
+      });
     }
 
-    // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
-    socketService.joinTripTracking(trip._id);
-    socketService.onTripLocation((data) => {
-      if (data?.tripId === trip._id) {
-        setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
-      }
-    });
     return () => {
-      socketService.leaveTripTracking(trip._id);
-      socketService.removeListener('trip:location');
+      cancelled = true;
+      locationWatchRef.current?.remove?.();
+      locationWatchRef.current = null;
+      if (!isDriver) {
+        socketService.leaveTripTracking(trip._id);
+        socketService.removeListener('trip:location');
+      }
     };
   }, [trip?._id, isTripStarted, isDriver]);
 
@@ -191,6 +199,7 @@ const TripMapScreen = ({ route, navigation }) => {
         style={styles.map}
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
+        showsUserLocation={showMyLocation}
       >
         {!isDriver && driverLocation?.latitude && (
           <Marker

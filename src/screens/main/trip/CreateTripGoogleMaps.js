@@ -892,7 +892,16 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
               >
                 {loadingRoute
                   ? <ActivityIndicator size="small" color={ui.invertText} />
-                  : <Text style={[styles.confirmText, { color: ui.invertText }]}>Confirmar ruta</Text>
+                  : (
+                    <>
+                      <Text style={[styles.confirmText, { color: ui.invertText }]}>Confirmar ruta</Text>
+                      <View style={styles.confirmBtnChevrons}>
+                        {[0.35, 0.6, 1].map((opacity, i) => (
+                          <Ionicons key={i} name="chevron-forward" size={15} color={ui.invertText} style={{ opacity, marginLeft: -5 }} />
+                        ))}
+                      </View>
+                    </>
+                  )
                 }
               </TouchableOpacity>
             </View>
@@ -1167,8 +1176,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4, borderTopWidth: StyleSheet.hairlineWidth, gap: 10,
   },
   routeMeta: { fontSize: 13, textAlign: 'center' },
-  confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  confirmText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  confirmBtn: {
+    height: 58, borderRadius: 999, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  confirmText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
+  confirmBtnChevrons: { flexDirection: 'row', alignItems: 'center', marginLeft: 14 },
 
   // Timeline dots (shared)
   tlDotOrigin: { width: 8, height: 8, borderRadius: 4 },

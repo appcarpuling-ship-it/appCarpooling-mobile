@@ -578,8 +578,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const driverId = trip.driver?._id || trip.driver?.id;
   const isOwnTrip = userId && driverId && userId === driverId;
   const driver = trip.driver;
+  // Mismos estados que el footer trata como "Reserva paga" (líneas de abajo): sin esto, el chat
+  // quedaba visible con solo tener una reserva creada, antes de pagarla o de que la aprueben.
+  const isPassengerPaid = Boolean(
+    userBooking &&
+    userBooking.status !== 'cancelled' &&
+    !['cancelled', 'pending_approval', 'pending_payment'].includes(userBooking.seatReservation?.reservationStatus)
+  );
   const showDriverChatCta = Boolean(
-    !isOwnTrip && user && driverId && String(driverId) !== String(userId)
+    !isOwnTrip && user && driverId && String(driverId) !== String(userId) && isPassengerPaid
   );
 
   // En blanco y negro el estado no puede ir por color: los viajes en marcha
@@ -789,7 +796,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         })()}
 
         {/* Features */}
-        {trip.vehicle?.features && (
+        {trip.vehicle?.features && Object.values(trip.vehicle.features).some(Boolean) && (
           <View style={[styles.section, { backgroundColor: cardBg }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
             <View style={styles.featuresRow}>
@@ -1058,7 +1065,22 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               )
             ) : (
-              trip.womenOnly && !canReserveWomenOnlyTrip ? (
+              // Mismo bloqueo que el backend (seatReservationService.createReservationRequest):
+              // un viaje en curso/finalizado/cancelado nunca acepta nuevas reservas, aunque le
+              // queden asientos libres. Antes solo se miraba tripFreeSeats y el botón quedaba
+              // habilitado, para terminar rechazado con un error genérico al tocar "Reservar".
+              ['started', 'completed', 'cancelled'].includes(trip.status) ? (
+                <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
+                  <Ionicons name="information-circle-outline" size={18} color={textMuted} />
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>
+                    {trip.status === 'started'
+                      ? 'Este viaje ya está en curso, no se puede reservar'
+                      : trip.status === 'completed'
+                        ? 'Este viaje ya finalizó'
+                        : 'Este viaje fue cancelado'}
+                  </Text>
+                </View>
+              ) : trip.womenOnly && !canReserveWomenOnlyTrip ? (
                 <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
                   <Ionicons name="woman-outline" size={18} color={textMuted} />
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>
