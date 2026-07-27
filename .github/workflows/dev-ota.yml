@@ -54,3 +54,14 @@ jobs:
         run: |
           eas update --channel development --message "$MSG" --non-interactive
           eas update --channel build --message "$MSG" --non-interactive
+
+      - name: Avisar a los usuarios que la actualización está disponible
+        env:
+          MSG: ${{ steps.msg.outputs.value }}
+          OTA_NOTIFY_SECRET: ${{ secrets.OTA_NOTIFY_SECRET }}
+        # EXPO_PUBLIC_API_BASE_URL ya está en el env del job (literal, apunta al dev server).
+        run: |
+          curl -sS -X POST "$EXPO_PUBLIC_API_BASE_URL/notifications/ota-complete" \
+            -H "Content-Type: application/json" \
+            -H "x-ota-notify-secret: $OTA_NOTIFY_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({message: process.env.MSG}))')"
