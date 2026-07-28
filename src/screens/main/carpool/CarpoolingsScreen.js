@@ -58,7 +58,9 @@ const menuItems = [
   {
     id: 4,
     title: 'Reservas Recibidas',
-    description: 'Revisá quién quiere sumarse a tus viajes',
+    // Texto corto: quedaba en 1 renglón mientras el resto de las cards ocupan 2. El salto
+    // de línea fuerza el mismo alto visual sin depender del ancho de pantalla.
+    description: 'Revisá quién quiere\nsumarse a tus viajes',
     icon: 'people-outline',
     screen: 'TripRequests',
   },

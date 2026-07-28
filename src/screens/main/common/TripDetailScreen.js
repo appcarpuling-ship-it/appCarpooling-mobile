@@ -228,6 +228,13 @@ const TripDetailScreen = ({ route, navigation }) => {
     return raw || location.city || location.name || '';
   };
 
+  // "15:00" -> "15hs", "15:30" -> "15:30hs": formato 24hs siempre, sin ambigüedad AM/PM.
+  const formatDepartureTime = (time) => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    return m && m !== '00' ? `${h}:${m}hs` : `${h}hs`;
+  };
+
   const loadBanners = async () => {
     try {
       const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'trip_detail' });
@@ -707,7 +714,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
             <Ionicons name="time-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textPrimary }]}>{trip.departureTime}</Text>
+            <Text style={[styles.metaText, { color: textPrimary }]}>{formatDepartureTime(trip.departureTime)}</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
