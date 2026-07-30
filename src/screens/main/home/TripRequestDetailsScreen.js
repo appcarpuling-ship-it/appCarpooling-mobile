@@ -16,7 +16,7 @@ const formatDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getF
 const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
-  const { origin, destination, distanceKm, waypoints } = route.params || {};
+  const { origin, destination, waypoints } = route.params || {};
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -86,8 +86,8 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         departureDate: departureDate.toISOString(),
         departureTime: formatTime(time),
         seatsNeeded,
-        distanceKm: distanceKm || 0,
-        estimatedPrice: Math.round((distanceKm || 0) * 1500 / 100) * 100,
+        // El precio y la distancia los calcula el backend con el parámetro costoViaje
+        // (tripRequestController ~L104-112) y descarta lo que mande el cliente.
       });
 
       navigation.navigate('Result', {
