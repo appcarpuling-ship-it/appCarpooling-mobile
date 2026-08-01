@@ -94,14 +94,8 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         type: 'success',
         title: '¡Solicitud publicada!',
         message: 'Los conductores podrán postularse a tu viaje.',
-        primaryLabel: 'Ver',
-        onPrimary: () => navigation.navigate('Main', {
-          screen: 'HomeTab',
-          params: {
-            screen: 'Home',
-            params: { openTab: 'solicitudes' },
-          },
-        }),
+        // Sin onPrimary: cae en el default de Result, que lleva al home. El boton
+        // "Ver" solo cambiaba de tab dentro del home y parecia que no hacia nada.
       });
     } catch (err) {
       navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err?.response?.data?.message || 'No se pudo publicar la solicitud.' });
@@ -112,7 +106,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={['bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* Fecha */}

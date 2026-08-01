@@ -224,7 +224,11 @@ const MyTripsScreen = ({ navigation }) => {
   };
 
   const renderTripItem = ({ item }) => {
-    const { color, text: statusText } = getStatusConfig(item.status);
+    // El fondo del chip sale de `bg`, no del color del texto: "Activo" devuelve
+    // invertText (blanco en claro, negro en oscuro) y pintar el fondo con
+    // `color + '18'` daba texto blanco sobre casi blanco (y negro sobre casi
+    // negro), o sea invisible en los dos temas.
+    const { color, bg: statusBg, text: statusText } = getStatusConfig(item.status);
     const freeNow = tripDisplaySeats(item);
     const textPrimary   = ui.invertBg;
     const textMuted     = ui.textMuted;
@@ -253,7 +257,7 @@ const MyTripsScreen = ({ navigation }) => {
                 <Text style={styles.activeLabel}>Viaje en curso</Text>
               </View>
             ) : (
-              <View style={[styles.statusPill, { backgroundColor: color + '18' }]}>
+              <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
                 <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
               </View>
             )}

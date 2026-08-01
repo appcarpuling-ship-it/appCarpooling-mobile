@@ -10,11 +10,28 @@
  * Tras cambiar sólo .env: npx expo start -c.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 module.exports = ({ config }) => {
   const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 
   if (!API_BASE_URL) {
     console.warn('[app.config] ⚠️  EXPO_PUBLIC_API_BASE_URL no definida — revisá tu .env');
+  }
+
+  // Sin este archivo Android no puede sacar token de FCM y no llega ninguna push
+  // (iOS no lo necesita, va por APNs: por eso ahí sí llegaban). Se saca de la
+  // consola de Firebase. Si no está, se omite la clave en vez de dejar que
+  // prebuild reviente por un path inexistente: el build sale, pero sin push.
+  const googleServicesFile = config?.android?.googleServicesFile;
+  const hasGoogleServices =
+    googleServicesFile && fs.existsSync(path.resolve(__dirname, googleServicesFile));
+
+  if (!hasGoogleServices) {
+    console.warn(
+      '[app.config] ⚠️  Falta google-services.json en la raíz — las notificaciones push de Android NO van a funcionar en este build',
+    );
   }
 
   const fromEnvMaps =
@@ -38,6 +55,7 @@ module.exports = ({ config }) => {
     },
     android: {
       ...(config.android || {}),
+      ...(hasGoogleServices ? {} : { googleServicesFile: undefined }),
       config: {
         ...(config.android?.config || {}),
         googleMaps: {

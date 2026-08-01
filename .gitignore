@@ -13,3 +13,9 @@ web-build/
 
 # capturas para debug, no van al bundle
 assets/Nueva carpeta/
+
+# Carpetas nativas: las regenera `expo prebuild` en cada build a partir de app.json.
+# Tenerlas commiteadas hacia que EAS salteara prebuild y que TODA la config de
+# android en app.json se ignorara (permisos, plugins, splash, google-services).
+/android/
+/ios/

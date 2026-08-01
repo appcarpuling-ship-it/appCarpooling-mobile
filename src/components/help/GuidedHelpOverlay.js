@@ -30,8 +30,10 @@ function runStepNav(nav) {
         const { tab, screen, params } = nav.main;
         navigationRef.navigate('Main', {
           screen: tab,
+          // initial:false para que la raiz del tab quede abajo y volver atras
+          // funcione; sin eso la pantalla de la guia queda clavada como raiz.
           params: screen
-            ? { screen, params: params !== undefined ? params : {} }
+            ? { screen, params: params !== undefined ? params : {}, initial: false }
             : {},
         });
       }

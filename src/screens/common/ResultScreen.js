@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
+import { useAuth } from '../../context/AuthContext';
 import PillButton from '../../components/ui/PillButton';
 import { reportError } from '../../utils/sentry';
 
@@ -19,6 +20,7 @@ const DEFAULT_IMAGES = {
 // Layout: título + subtítulo arriba, ilustración grande abajo, sin dots/pasos.
 const ResultScreen = ({ route, navigation }) => {
   const ui = useUI();
+  const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
   const {
     type = 'success',
@@ -43,21 +45,32 @@ const ResultScreen = ({ route, navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Un resultado es terminal: la accion ya se hizo y la pantalla que la disparo
+  // (completar viaje, publicar solicitud) no tiene sentido volver a verla. Antes
+  // el default era goBack(), que justamente devolvia al formulario recien enviado.
+  // Sin sesion no existe la ruta 'Main' (AppNavigator monta el stack de auth), y
+  // navegar a una ruta inexistente no tira: deja el boton muerto. Ahi vuelve atras,
+  // que es lo correcto en los errores de registro/verificacion.
+  const goHome = () => {
+    if (!isAuthenticated) return navigation.goBack();
+    navigation.navigate('Main', { screen: 'HomeTab', params: { screen: 'Home' } });
+  };
+
   const handlePrimary = () => {
     try {
       if (onPrimary) onPrimary();
-      else navigation.goBack();
+      else goHome();
     } catch {
-      navigation.goBack();
+      goHome();
     }
   };
 
   const handleClose = () => {
     try {
       if (onClose) onClose();
-      else navigation.goBack();
+      else goHome();
     } catch {
-      navigation.goBack();
+      goHome();
     }
   };
 

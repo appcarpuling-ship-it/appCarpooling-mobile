@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Image,
   Animated,
-  StatusBar,
   DeviceEventEmitter,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
@@ -458,15 +457,17 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const keyboardVerticalOffset =
-    Platform.OS === 'android'
-      ? headerHeight + (StatusBar.currentHeight || 0)
-      : headerHeight;
+  // Desde SDK 54 Android va siempre edge-to-edge: la ventana ya no se achica
+  // sola con adjustResize, asi que dejar behavior en undefined (delegarlo al SO)
+  // dejaba el input debajo del teclado. Con 'padding' lo corre el propio KAV.
+  // El offset es solo headerHeight: en edge-to-edge este ya incluye el inset de
+  // arriba, sumarle StatusBar.currentHeight lo contaba dos veces.
+  const keyboardVerticalOffset = headerHeight;
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: ui.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
       <View style={{ flex: 1 }}>

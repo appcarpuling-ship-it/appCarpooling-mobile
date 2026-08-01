@@ -47,9 +47,9 @@ export const NotificationProvider = ({ children }) => {
     setUnreadCountRef.current = setUnreadCount;
   }, []);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await get_withauth(ENDPOINTS.GET_NOTIFICATIONS);
       
       // ✅ VALIDACIÓN CRÍTICA - Aquí estaba el error
@@ -82,9 +82,14 @@ export const NotificationProvider = ({ children }) => {
       setNotifications([]);
       setUnreadCount(0);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
+
+  // setupSocketListeners tiene deps [] a proposito, asi que no puede cerrar sobre
+  // loadNotifications directamente.
+  const loadNotificationsRef = useRef(loadNotifications);
+  loadNotificationsRef.current = loadNotifications;
 
   const setupSocketListeners = useCallback(() => {
     console.log('📡 [NotificationContext] Configurando listeners de socket...');
@@ -94,11 +99,18 @@ export const NotificationProvider = ({ children }) => {
       console.log('🔔 [NotificationContext] Nueva notificación recibida:', notification);
       if (!isInAppNotificationType(notification)) return;
       // ✅ Usar refs para evitar problemas con hooks en callbacks
+      // Dedupe por _id: si el socket reconecta o el mismo evento llega dos veces,
+      // la notificacion se prependeaba repetida y el contador subia de mas.
       setNotificationsRef.current(prev => {
         const prevArray = Array.isArray(prev) ? prev : [];
+        if (notification?._id && prevArray.some(n => n?._id === notification._id)) return prevArray;
         return [notification, ...prevArray];
       });
-      setUnreadCountRef.current(prev => prev + 1);
+      // El prepend es solo para que aparezca al toque. El contador lo resuelve el
+      // backend: sumar +1 a ciegas por evento hacia que el badge se despegara del
+      // valor real (decia 7 y al refrescar bajaba a 5), porque cualquier evento
+      // duplicado o ya contado inflaba el numero y nada lo reconciliaba.
+      loadNotificationsRef.current({ silent: true });
     });
 
     // NOTA: No escuchar mensajes aquí para evitar conflictos con useUnreadMessages

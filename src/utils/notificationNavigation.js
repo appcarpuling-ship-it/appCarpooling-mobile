@@ -4,11 +4,17 @@
  * @param {import('@react-navigation/native').NavigationProp} navigation
  * @param {object} notification - documento de API o forma normalizada desde push `data`
  * @param {{ useMainStack?: boolean }} [options] - true si `navigation` es el ref raíz (Stack con Main)
+ *
+ * Todos los helpers pasan `initial: false`. Sin eso, entrar a una pantalla de un
+ * tab que todavia no se monto la deja como PRIMERA ruta de ese stack en vez de
+ * apilarla sobre la raiz: quedaba "clavada" (canGoBack false, sin flecha, y el
+ * tab abria ahi en vez de en su home). Con initial:false siempre queda la raiz
+ * del tab abajo y volver atras funciona.
  */
 
 function navigateToTripDetail(navigation, tripId, useMainStack) {
   if (!tripId) return;
-  const params = { screen: 'TripDetail', params: { tripId } };
+  const params = { screen: 'TripDetail', params: { tripId }, initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'HomeTab', params });
   } else {
@@ -18,7 +24,7 @@ function navigateToTripDetail(navigation, tripId, useMainStack) {
 
 function navigateToTripRequests(navigation, tripId, useMainStack) {
   if (!tripId) return;
-  const params = { screen: 'TripRequests', params: { tripId } };
+  const params = { screen: 'TripRequests', params: { tripId }, initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'CarpoolingsTab', params });
   } else {
@@ -27,7 +33,7 @@ function navigateToTripRequests(navigation, tripId, useMainStack) {
 }
 
 function navigateToOpenTripRequests(navigation, useMainStack) {
-  const params = { screen: 'OpenTripRequests' };
+  const params = { screen: 'OpenTripRequests', initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'HomeTab', params });
   } else {
@@ -37,7 +43,7 @@ function navigateToOpenTripRequests(navigation, useMainStack) {
 
 function navigateToCreateReview(navigation, tripId, useMainStack) {
   if (!tripId) return;
-  const params = { screen: 'CreateReviewFromTrip', params: { tripId } };
+  const params = { screen: 'CreateReviewFromTrip', params: { tripId }, initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'CarpoolingsTab', params });
   } else {
@@ -49,6 +55,7 @@ function navigateToChat(navigation, conversationId, otherUser, useMainStack) {
   if (!conversationId) return;
   const chatParams = {
     screen: 'ChatDetail',
+    initial: false,
     params: {
       conversation: { _id: conversationId },
       otherUser: otherUser || {},
@@ -62,7 +69,7 @@ function navigateToChat(navigation, conversationId, otherUser, useMainStack) {
 }
 
 function navigateToChats(navigation, useMainStack) {
-  const params = { screen: 'Chats' };
+  const params = { screen: 'Chats', initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'ChatsTab', params });
   } else {
@@ -71,7 +78,7 @@ function navigateToChats(navigation, useMainStack) {
 }
 
 function navigateToMyBookings(navigation, useMainStack) {
-  const params = { screen: 'MyBookings' };
+  const params = { screen: 'MyBookings', initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'CarpoolingsTab', params });
   } else {
@@ -80,7 +87,7 @@ function navigateToMyBookings(navigation, useMainStack) {
 }
 
 function navigateToMySeatReservations(navigation, useMainStack) {
-  const params = { screen: 'MySeatReservations' };
+  const params = { screen: 'MySeatReservations', initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'CarpoolingsTab', params });
   } else {
@@ -94,7 +101,7 @@ function navigateToTripRequestDetail(navigation, requestId, mode = 'passenger') 
 }
 
 function navigateToProfile(navigation, useMainStack) {
-  const params = { screen: 'Profile' };
+  const params = { screen: 'Profile', initial: false };
   if (useMainStack) {
     navigation.navigate('Main', { screen: 'ProfileTab', params });
   } else {

@@ -6,7 +6,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { getMyApplications, cancelTripRequestApplication } from '../../../services/tripRequestService';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
@@ -23,14 +22,11 @@ const APP_STATUS = {
 };
 
 const MyApplicationsScreen = ({ navigation }) => {
-  const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
   const ui = useUI();
-  const dark = isDarkMode;
   const bg        = ui.bg;
   const cardBg    = ui.surface;
-  const border    = ui.border;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
   const divider     = ui.bg;
@@ -118,49 +114,69 @@ const MyApplicationsScreen = ({ navigation }) => {
       ? `${passenger.firstName}${passenger.lastName ? ` ${passenger.lastName}` : ''}`
       : 'Pasajero';
 
+    // El chip apagado va sobre el fondo de pagina, no sobre `surface`: la card ya
+    // es `surface` y pintar el chip del mismo color lo dejaba invisible.
+    const chipBg = appStatus.solid ? ui.invertBg : bg;
+    const chipFg = appStatus.solid ? ui.invertText : textMuted;
+
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}
+        style={[styles.card, { backgroundColor: cardBg }]}
         onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', {
           requestId: item._id,
           mode: 'driver',
           canApply: false,
           alreadyApplied: true,
         })}
-        activeOpacity={0.85}
+        activeOpacity={0.7}
       >
-        {/* Header: passenger + status */}
+        {/* Cabecera: estado arriba, despues la ruta — mismo bloque que Mis Viajes */}
         <View style={styles.cardHeader}>
-          <View style={styles.passengerRow}>
-            <View style={[styles.avatar, { backgroundColor: dark ? '#333' : '#E8E8E8' }]}>
-              <Text style={[styles.avatarText, { color: textPrimary }]}>
-                {`${passenger?.firstName?.[0] || ''}${passenger?.lastName?.[0] || ''}` || '?'}
+          <View style={styles.headerTop}>
+            <View style={[styles.statusPill, { backgroundColor: chipBg }]}>
+              <Text style={[styles.statusPillText, { color: chipFg }]}>{appStatus.label}</Text>
+            </View>
+            <View style={styles.passengerRow}>
+              <View style={[styles.avatar, { backgroundColor: bg }]}>
+                <Text style={[styles.avatarText, { color: textPrimary }]}>
+                  {`${passenger?.firstName?.[0] || ''}${passenger?.lastName?.[0] || ''}` || '?'}
+                </Text>
+              </View>
+              <Text style={[styles.passengerName, { color: textMuted }]} numberOfLines={1}>
+                {passengerName}
               </Text>
             </View>
-            <Text style={[styles.passengerName, { color: textPrimary }]}>{passengerName}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: appStatus.solid ? ui.invertBg : ui.surface }]}>
-            <Text style={[styles.statusText, { color: appStatus.solid ? ui.invertText : textMuted }]}>{appStatus.label}</Text>
-          </View>
-        </View>
 
-        {/* Route */}
-        <View style={[styles.routeRow, { borderTopColor: divider }]}>
-          <Ionicons name="radio-button-on" size={12} color={textPrimary} />
-          <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.origin.city}</Text>
-          <Ionicons name="arrow-forward" size={12} color={textMuted} />
-          <Text style={[styles.city, { color: textPrimary }]} numberOfLines={1}>{item.destination.city}</Text>
-          <Ionicons name="chevron-forward" size={14} color={textMuted} />
+          <View style={styles.routeBlock}>
+            <View style={styles.routeDots}>
+              <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
+              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
+              <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
+            </View>
+            <View style={styles.routeLabels}>
+              <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
+                {item.origin.city}
+              </Text>
+              <Text style={[styles.cityText, { color: textPrimary, marginTop: 10 }]} numberOfLines={1}>
+                {item.destination.city}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Meta */}
-        <View style={[styles.metaRow, { borderTopColor: divider }]}>
+        <View style={[styles.metaRow, { borderTopColor: divider, borderBottomColor: divider }]}>
           <View style={styles.metaItem}>
             <Ionicons name="calendar-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              {formatDate(item.departureDate)} · {item.departureTime}
-            </Text>
+            <Text style={[styles.metaText, { color: textMuted }]}>{formatDate(item.departureDate)}</Text>
           </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={13} color={textMuted} />
+            <Text style={[styles.metaText, { color: textMuted }]}>{item.departureTime}</Text>
+          </View>
+          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
             <Ionicons name="cash-outline" size={13} color={textMuted} />
             <Text style={[styles.metaText, { color: textMuted }]}>
@@ -169,26 +185,25 @@ const MyApplicationsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Accepted highlight */}
         {item.myApplication?.status === 'accepted' && (
-          <View style={[styles.acceptedBanner, { borderTopColor: divider }]}>
-            <Ionicons name="checkmark-circle" size={14} color={textPrimary} />
-            <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>
+          <View style={styles.acceptedBanner}>
+            <Ionicons name="checkmark-circle" size={15} color={textPrimary} />
+            <Text style={[styles.acceptedText, { color: textPrimary }]}>
               El pasajero te eligió como conductor
             </Text>
           </View>
         )}
 
         {item.myApplication?.status === 'pending' && (
-          <View style={[styles.cancelRow, { borderTopColor: divider }]}>
+          <View style={styles.footerRow}>
             <TouchableOpacity
               onPress={(e) => { e.stopPropagation(); handleCancel(item._id); }}
               disabled={cancelling === item._id}
-              style={styles.cancelBtn}
+              style={[styles.footerBtnOutline, { borderColor: divider }]}
             >
               {cancelling === item._id
                 ? <ActivityIndicator size="small" color={textMuted} />
-                : <Text style={styles.cancelBtnText}>Retirar postulación</Text>
+                : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Retirar postulación</Text>
               }
             </TouchableOpacity>
           </View>
@@ -242,23 +257,65 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   centerFlex: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   list: { padding: 16, gap: 12 },
-  card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-  passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 },
-  avatar: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 12, fontFamily: 'Sora_700Bold' },
-  passengerName: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1 },
-  statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  city: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+
+  // Card: mismo lenguaje que MyTripsScreen (radio 24, sin borde, sombra apenas).
+  card: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardHeader: { padding: 16, paddingBottom: 12, gap: 12 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+
+  passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  avatar: { width: 28, height: 28, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 11, fontFamily: 'Sora_700Bold' },
+  passengerName: { fontSize: 12, fontFamily: 'Sora_600SemiBold', flexShrink: 1 },
+
+  statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
+
+  routeBlock: { flexDirection: 'row', gap: 10, alignItems: 'center', flex: 1 },
+  routeDots: { width: 14, alignItems: 'center', paddingVertical: 2 },
+  dotOrigin: { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
+  routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
+  dotDest: { width: 9, height: 9, borderRadius: 2 },
+  routeLabels: { flex: 1 },
+  cityText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 12 },
-  acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  cancelRow: { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, alignItems: 'flex-end' },
-  cancelBtn: { paddingHorizontal: 12, paddingVertical: 6 },
-  cancelBtnText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
+  metaDivider: { width: 1, height: 12 },
+
+  acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 12 },
+  acceptedText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
+
+  footerRow: { flexDirection: 'row', padding: 12, gap: 8 },
+  footerBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 6,
+  },
+  footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default MyApplicationsScreen;

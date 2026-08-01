@@ -13,19 +13,19 @@ export const handleBannerPress = (item, navigation) => {
         nav.navigate('CreateTrip');
         break;
       case 'all_trips':
-        nav.navigate('HomeTab', { screen: 'AllTrips' });
+        nav.navigate('HomeTab', { screen: 'AllTrips', initial: false });
         break;
       case 'search_trips':
-        nav.navigate('HomeTab', { screen: 'SearchTrips' });
+        nav.navigate('HomeTab', { screen: 'SearchTrips', initial: false });
         break;
       case 'my_trips':
-        nav.navigate('CarpoolingsTab', { screen: 'MyTrips' });
+        nav.navigate('CarpoolingsTab', { screen: 'MyTrips', initial: false });
         break;
       case 'my_bookings':
-        nav.navigate('CarpoolingsTab', { screen: 'MyBookings' });
+        nav.navigate('CarpoolingsTab', { screen: 'MyBookings', initial: false });
         break;
       case 'my_seat_reservations':
-        nav.navigate('CarpoolingsTab', { screen: 'MySeatReservations' });
+        nav.navigate('CarpoolingsTab', { screen: 'MySeatReservations', initial: false });
         break;
       case 'profile':
         nav.navigate('ProfileTab', { screen: 'Profile' });

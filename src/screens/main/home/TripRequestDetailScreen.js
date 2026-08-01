@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Image, Modal, RefreshControl
+  ActivityIndicator, Image, RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,6 @@ import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
-import VehicleOptionCard from '../../../components/vehicle/VehicleOptionCard';
 import { reportError } from '../../../utils/sentry';
 
 const STATUS_MAP = {
@@ -48,7 +47,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [refreshing,     setRefreshing]     = useState(false);
   const [accepting,      setAccepting]      = useState(null);
   const [vehicles,       setVehicles]       = useState([]);
-  const [vehicleModal,   setVehicleModal]   = useState(false);
   const [applying,       setApplying]       = useState(false);
   const [canApply,       setCanApply]       = useState(canApplyParam ?? false);
   const [alreadyApplied, setAlreadyApplied] = useState(alreadyAppliedParam ?? false);
@@ -153,14 +151,30 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
       return showAlert(
         'Sin vehículos',
         'Necesitás tener al menos un vehículo registrado para postularte.',
-        [{ text: 'Agregar vehículo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Vehicles' }) }]
+        [{ text: 'Agregar vehículo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Vehicles', initial: false }) }]
       );
     }
-    setVehicleModal(true);
+    // Misma pantalla que usa la creacion de viaje (VehiclePicker, registrada en el
+    // stack raiz) en vez del bottom sheet propio que habia acá.
+    // El picker no sabe de capacidad, asi que la lista llega ya filtrada: mostrar
+    // un auto que no entra y despues rebotarlo con un alert era peor.
+    const seatsNeeded = request?.seatsNeeded || 1;
+    const eligible = vehicles.filter((v) => v.capacity >= seatsNeeded);
+
+    if (eligible.length === 0) {
+      return showAlert(
+        'Capacidad insuficiente',
+        `Este viaje necesita ${seatsNeeded} asiento${seatsNeeded === 1 ? '' : 's'} y ninguno de tus vehículos llega.`,
+      );
+    }
+
+    navigation.navigate('VehiclePicker', {
+      vehicles: eligible,
+      onSelect: confirmApply,
+    });
   };
 
   const confirmApply = async (vehicleId) => {
-    setVehicleModal(false);
     setApplying(true);
     try {
       const res = await applyToTripRequest(requestId, vehicleId);
@@ -571,46 +585,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         reservationId={requestId}
       />
 
-      {/* Vehicle selection modal */}
-      {isDriver && (
-        <Modal visible={vehicleModal} transparent animationType="slide" onRequestClose={() => setVehicleModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
-              <Text style={[styles.modalTitle, { color: textPrimary }]}>¿Con qué vehículo te postulás?</Text>
-              <ScrollView>
-                {vehicles.map(v => {
-                    const insufficient = v.capacity < (request?.seatsNeeded || 1);
-                    return (
-                      <VehicleOptionCard
-                        key={v._id}
-                        vehicle={v}
-                        compact
-                        disabledReason={
-                          insufficient
-                            ? `Capacidad insuficiente (${v.capacity} de ${request.seatsNeeded} requeridos)`
-                            : null
-                        }
-                        onPress={() => {
-                          if (insufficient) {
-                            showAlert('Capacidad insuficiente', `Este vehículo tiene ${v.capacity} asiento${v.capacity === 1 ? '' : 's'} y el viaje necesita ${request.seatsNeeded}.`);
-                          } else {
-                            confirmApply(v._id);
-                          }
-                        }}
-                      />
-                    );
-                  })}
-              </ScrollView>
-              <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: divider }]}
-                onPress={() => setVehicleModal(false)}
-              >
-                <Text style={{ color: textMuted }}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 };
@@ -698,10 +672,6 @@ const styles = StyleSheet.create({
   pendingLabel:     { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Modal
-  modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent:  { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' },
-  modalTitle:    { fontSize: 16, fontFamily: 'Sora_700Bold', marginBottom: 16 },
-  modalCancelBtn:{ marginTop: 8, borderWidth: 1, borderRadius: 10, padding: 12, alignItems: 'center' },
 });
 
 export default TripRequestDetailScreen;

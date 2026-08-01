@@ -353,7 +353,7 @@ const UserProfileScreen = ({ route, navigation }) => {
 
       <Modal visible={reportOpen} animationType="slide" transparent onRequestClose={() => setReportOpen(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
           <View style={[styles.modalBox, { backgroundColor: ui.bg }]}>

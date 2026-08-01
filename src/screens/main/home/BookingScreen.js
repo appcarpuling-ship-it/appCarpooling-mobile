@@ -406,7 +406,7 @@ const BookingScreen = ({ route, navigation }) => {
         primaryLabel: 'Continuar',
         // Con navigate (no replace) el formulario de reserva queda debajo en el
         // stack; sin esto "Continuar" volvería ahí en vez de a Mis Reservas.
-        onPrimary: () => navigation.navigate('CarpoolingsTab', { screen: 'MyBookings' }),
+        onPrimary: () => navigation.navigate('CarpoolingsTab', { screen: 'MyBookings', initial: false }),
       });
     } catch (err) {
       navigation.navigate('Result', {
