@@ -10,3 +10,6 @@ npm-debug.*
 *.orig.*
 web-build/
 .env
+
+# capturas para debug, no van al bundle
+assets/Nueva carpeta/
