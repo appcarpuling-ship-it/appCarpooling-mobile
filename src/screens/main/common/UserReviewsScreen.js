@@ -52,8 +52,11 @@ const UserReviewsScreen = ({ route, navigation }) => {
       const response = await get_public(ENDPOINTS.GET_USER_REVIEWS(userId), params);
 
       if (response.success) {
-        setReviews(response.data.reviews || []);
-        setStats(response.data.stats || {
+        // La respuesta es { success, count, stats, data: [reviews] }: `data` ES el array.
+        // Leerlo como data.reviews/data.stats daba undefined y dejaba la pantalla vacia
+        // con los contadores en cero.
+        setReviews(response.data || []);
+        setStats(response.stats || {
           totalReviews: 0,
           averageRating: 0,
           driverReviews: 0,
