@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780243954013",
+    "project_id": "carpuling-f2265",
+    "storage_bucket": "carpuling-f2265.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780243954013:android:f9a26cd87204ca21b6a0b4",
+        "android_client_info": {
+          "package_name": "com.carpuling.app.ar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5LqOrWyZVNuyXWNKN3RawZeXFsYNzkJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
