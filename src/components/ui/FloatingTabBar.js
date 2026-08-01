@@ -135,10 +135,14 @@ const styles = StyleSheet.create({
   wrap:      { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
   // paddingTop = lo que sobresale el botón (18)
   barWrap:   { paddingTop: 18 },
-  // overflow hidden: es lo que recorta la bajadita contra la barra
-  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8, overflow: 'hidden' },
+  // Sin overflow hidden: en Android el recorte redondeado del padre se come el
+  // redondeo propio de los hijos y el fondo del tab activo salía cuadrado. Ya
+  // no hay nada que recortar (la bajadita y el FAB viven fuera de la barra).
+  bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  iconSlot:  { width: 46, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  // Radio concreto (la mitad del alto) en vez de 999: Android ignora los radios
+  // desproporcionados en vistas que no son cuadradas.
+  iconSlot:  { width: 46, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 
   fabSpacer: { width: 54 },
 
