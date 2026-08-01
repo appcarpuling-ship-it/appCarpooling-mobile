@@ -87,7 +87,10 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
               accessibilityLabel={label}
               style={styles.tab}
             >
-              <View style={[styles.iconSlot, isFocused && { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
+              {/* Sin fondo en el tab activo: Android lo dibujaba cuadrado por más
+                  que el radio estuviera puesto. El estado activo ya se lee en el
+                  ícono (relleno + blanco vs. contorno gris), el fondo sobraba. */}
+              <View style={styles.iconSlot}>
                 <Ionicons
                   name={isFocused ? solid : outline}
                   size={22}
@@ -140,9 +143,8 @@ const styles = StyleSheet.create({
   // no hay nada que recortar (la bajadita y el FAB viven fuera de la barra).
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Radio concreto (la mitad del alto) en vez de 999: Android ignora los radios
-  // desproporcionados en vistas que no son cuadradas.
-  iconSlot:  { width: 46, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  // Solo posiciona el ícono y le da lugar al badge; ya no pinta nada.
+  iconSlot:  { width: 46, height: 40, alignItems: 'center', justifyContent: 'center' },
 
   fabSpacer: { width: 54 },
 
