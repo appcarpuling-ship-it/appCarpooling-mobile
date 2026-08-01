@@ -71,7 +71,16 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
           const v = letters[i];
           return (
             <View key={`${char}-${i}`} style={styles.slot}>
-              {/* Light: se desvanece cuando la palabra se asienta */}
+              {/* ExtraBold: es el que define el ancho de la ranura (es el más
+                  ancho de los dos); si iba absoluto, Android le recortaba los
+                  bordes contra el ancho de la Light. */}
+              <Animated.Text
+                style={[styles.letter, styles.bold, { color: ui.text, opacity: settle }]}
+              >
+                {char}
+              </Animated.Text>
+
+              {/* Light: encima, en el mismo lugar. Se desvanece al asentarse */}
               <Animated.Text
                 style={[
                   styles.letter,
@@ -87,17 +96,6 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
                       { scale: v.interpolate({ inputRange: [0, 1], outputRange: [1.4, 1] }) },
                     ],
                   },
-                ]}
-              >
-                {char}
-              </Animated.Text>
-
-              {/* ExtraBold: aparece encima, en el mismo lugar */}
-              <Animated.Text
-                style={[
-                  styles.letter,
-                  styles.bold,
-                  { color: ui.text, opacity: settle },
                 ]}
               >
                 {char}
@@ -131,12 +129,12 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   light: {
+    ...StyleSheet.absoluteFillObject,
     fontFamily: 'Sora_300Light',
+    textAlign: 'center',
   },
   bold: {
-    ...StyleSheet.absoluteFillObject,
     fontFamily: 'Sora_800ExtraBold',
-    textAlign: 'center',
   },
 });
 

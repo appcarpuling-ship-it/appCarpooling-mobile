@@ -4,6 +4,8 @@
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -17,7 +19,16 @@
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="carpooling"/>
+      </intent-filter>
     </activity>
+    <!-- react-native-maps: sin esta key el MapView de Android tira RuntimeException
+         al montarse (crash al abrir el mapa). Espejo de android.config.googleMaps en app.json. -->
+    <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"/>
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="true"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>

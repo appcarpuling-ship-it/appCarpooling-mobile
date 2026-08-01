@@ -263,7 +263,8 @@ const connectionHintForBaseUrl = (baseUrl) => {
       'Para probar en local, usá el perfil ngrok: `eas build --profile ngrok` o la URL ngrok en .env con Expo.'
     );
   }
-  return `No se pudo conectar con el servidor (${baseUrl}). Verificá tu conexión e intentá de nuevo.`;
+  // Sin nombrar el servidor ni su URL: al usuario no le sirve y expone la infra.
+  return 'Verificá tu conexión e intentá de nuevo.';
 };
 
 // Choke point único: toda llamada get/post/put/patch/delete _withauth y

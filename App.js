@@ -12,6 +12,7 @@ import { navigationRef } from './src/navigation/rootNavigation';
 import PushNotificationRouter from './src/components/PushNotificationRouter';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 import { soraFonts } from './src/theme/typography';
 import { useUI } from './src/theme/ui';
 import { Linking, View, Text, StyleSheet, Platform } from 'react-native';
@@ -60,7 +61,9 @@ const AppWithTheme = () => {
 };
 
 export default function App() {
-  const [fontsLoaded] = useFonts(soraFonts);
+  // Ionicons va acá y no se autocarga: en Android (nueva arquitectura) los
+  // iconos se dibujaban como cuadraditos hasta que la fuente terminaba sola.
+  const [fontsLoaded] = useFonts({ ...soraFonts, ...Ionicons.font });
   const [showSplash, setShowSplash] = useState(true);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
   // useEffect(() => {
