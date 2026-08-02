@@ -30,7 +30,9 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
-const BANNER_HEIGHT = 180;
+// Mismo 2:1 que HomeScreen: una sola imagen sirve para todas las secciones. Ver el
+// comentario de alla; si se cambia la relacion, cambiarla en los dos lados.
+const BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2);
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 
 const menuItems = [

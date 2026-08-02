@@ -38,7 +38,11 @@ import { useUI } from '../../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
-const BANNER_HEIGHT = 160;
+// Alto derivado del ancho (2:1) y NO un valor fijo: el ancho depende del telefono, asi
+// que con un alto fijo la relacion cambiaba por dispositivo y por seccion, y la misma
+// imagen se recortaba distinto en cada una. Asi una sola imagen 2:1 entra exacta en todas.
+// Si se cambia, cambiarlo tambien en CarpoolingsScreen y avisar el tamaño en el dashboard.
+const BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2);
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 
 /** Incluye solo viajes públicos verdaderamente “próximos”: no cancelados ni completados, listado activo y salida aún no pasada */
