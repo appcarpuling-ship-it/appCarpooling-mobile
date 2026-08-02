@@ -84,8 +84,12 @@ const ChatDetailScreen = ({ route, navigation }) => {
    */
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
-    const onShow = Keyboard.addListener('keyboardDidShow', () => {
-      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET);
+    const onShow = Keyboard.addListener('keyboardDidShow', (e) => {
+      // El alto real del teclado, en vez de dejar que el KAV lo deduzca: en edge-to-edge
+      // su cuenta usa el frame de la pantalla y no cerraba nunca — con offset del header
+      // sobraba una franja, y con offset cero faltaba y el input quedaba tapado.
+      // La ventana no se achica sola (edge-to-edge), asi que este padding no se duplica.
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + (e?.endCoordinates?.height || 0));
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     });
     const onHide = Keyboard.addListener('keyboardDidHide', () => {
@@ -467,25 +471,15 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  // Desde SDK 54 Android va siempre edge-to-edge: la ventana ya no se achica
-  // sola con adjustResize, asi que dejar behavior en undefined (delegarlo al SO)
-  // dejaba el input debajo del teclado. Con 'padding' lo corre el propio KAV.
-  //
-  // En Android el offset va en CERO. La pantalla del stack ya arranca debajo del
-  // header, o sea que frame.y + frame.height llega al borde de abajo, y el KAV
-  // calcula su padding como:
-  //     frame.y + frame.height − (screenY del teclado − keyboardVerticalOffset)
-  // Con el teclado oculto screenY es el alto de la pantalla, asi que cualquier
-  // offset queda como padding residual permanente: el compositor volvia flotando
-  // con una franja vacia del alto del header. Con el teclado abierto sumaba de
-  // mas lo mismo. En iOS se deja headerHeight, que es lo que venia andando.
-  const keyboardVerticalOffset = Platform.OS === 'ios' ? headerHeight : 0;
-
+  // En Android el KAV no participa: desde SDK 54 (edge-to-edge) su cuenta de padding
+  // se hace sobre el frame de la pantalla y no cerraba en ninguno de los dos estados.
+  // Lo maneja el listener de keyboardDidShow con el alto real del teclado, mas arriba.
+  // iOS sigue con 'padding' + headerHeight, que es lo que viene andando bien.
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: ui.bg }]}
-      behavior="padding"
-      keyboardVerticalOffset={keyboardVerticalOffset}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
       <View style={{ flex: 1 }}>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
