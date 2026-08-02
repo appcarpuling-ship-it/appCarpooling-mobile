@@ -627,6 +627,12 @@ const TripRequestsScreen = ({ route }) => {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      <View style={styles.screenHeader}>
+        <Text style={[styles.screenTitle, { color: textPrimary }]}>
+          Las reservas{'\n'}
+          <Text style={styles.screenTitleStrong}>que recibiste</Text>
+        </Text>
+      </View>
 
       {/* Content */}
       {!selectedTripId && activeTrips.length > 0 ? (
@@ -755,6 +761,11 @@ const styles = StyleSheet.create({
 
   listPad:      { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontSize: 13, marginBottom: 12 },
+
+  // Mismo titulo grande que Mis Reservas, Viajes que ofreciste y Solicitudes abiertas.
+  screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
+  screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
 
   /** Viaje + solicitudes en una sola tarjeta. Mismo lenguaje que Mis Viajes y
    *  Viajes que ofreci: radio 24, sin borde, sombra apenas marcada. */
