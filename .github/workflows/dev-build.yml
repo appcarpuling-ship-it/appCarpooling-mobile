@@ -5,6 +5,13 @@ on:
     # Cualquier rama: lo que decide el destino es el mensaje del commit, no la rama.
     branches: ['**']
 
+# El mismo commit se pushea a main y a dev, y cada push dispara su propia corrida:
+# salian dos builds identicos por cambio. Agrupando por SHA, el segundo push
+# cancela al primero y queda una sola.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.head_commit.id }}
+  cancel-in-progress: true
+
 jobs:
   build:
     if: startsWith(github.event.head_commit.message, 'dev.build')

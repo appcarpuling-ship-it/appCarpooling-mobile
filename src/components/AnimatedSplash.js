@@ -135,8 +135,17 @@ const styles = StyleSheet.create({
     fontSize: 40,
     letterSpacing: -1,
   },
+  // Aire a los costados en vez de absoluteFillObject: la ranura la mide la
+  // ExtraBold y la Light se dibujaba con ESE ancho exacto. Android recorta los
+  // glifos que se pasan de su caja de layout, y como la Light ademas entra con
+  // scale 1.4, el recorte se veia agrandado: las letras salian con las puntas
+  // comidas. Los -8 le dan lugar sin moverla de lugar (queda centrada igual).
   light: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: -8,
+    right: -8,
     fontFamily: 'Sora_300Light',
     textAlign: 'center',
   },
