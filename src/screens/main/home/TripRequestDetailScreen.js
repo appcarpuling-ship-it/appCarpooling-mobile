@@ -465,12 +465,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               <Text style={[{ fontSize: 13, color: textMuted, marginBottom: 14 }]}>
                 Tu conductor está reservado. Completá el pago para confirmar el viaje.
               </Text>
+              {/* invertBg y no textMuted: el gris de textos secundarios lo hacia
+                  parecer deshabilitado. Es el CTA principal de esta tarjeta. */}
               <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: ui.textMuted }]}
+                style={[styles.footerBtn, { backgroundColor: ui.invertBg }]}
                 onPress={() => setCheckoutModal({ visible: true, paymentUrl: request.paymentData.paymentUrl })}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.footerBtnText, { color: '#FFFFFF' }]}>Ir al pago</Text>
+                <Text style={[styles.footerBtnText, { color: ui.invertText }]}>Ir al pago</Text>
               </TouchableOpacity>
             </View>
           )}
