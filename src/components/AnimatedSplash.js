@@ -1,8 +1,16 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { StyleSheet, Animated, Easing, View, Text } from 'react-native';
-import { useUI } from '../theme/ui';
+import { StyleSheet, Animated, Easing, View } from 'react-native';
 
 const TITLE = 'Carpuling';
+
+// Los mismos colores que el splash nativo (`splash` en app.json: logo blanco
+// sobre #000000). Antes esto usaba ui.bg/ui.text, o sea blanco sobre blanco en
+// tema claro: como esta vista cubre el root de la app pero no las franjas de las
+// barras del sistema, el splash nativo negro asomaba por los bordes y se veia
+// "cortado en las puntas". Fijos y no del tema para que el paso de uno al otro
+// no tenga costura en ningun modo.
+const SPLASH_BG = '#000000';
+const SPLASH_FG = '#FFFFFF';
 
 /** Evita doble animación en React Strict Mode (remount). */
 let splashAnimationConsumed = false;
@@ -15,7 +23,6 @@ let splashAnimationConsumed = false;
  * sin cruzar al hilo de JS.
  */
 const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
-  const ui = useUI();
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -65,7 +72,7 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
   const wordScale = settle.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1] });
 
   return (
-    <Animated.View style={[styles.root, { backgroundColor: ui.bg, opacity: curtain }]}>
+    <Animated.View style={[styles.root, { backgroundColor: SPLASH_BG, opacity: curtain }]}>
       <Animated.View style={[styles.word, { transform: [{ scale: wordScale }] }]}>
         {TITLE.split('').map((char, i) => {
           const v = letters[i];
@@ -75,7 +82,7 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
                   ancho de los dos); si iba absoluto, Android le recortaba los
                   bordes contra el ancho de la Light. */}
               <Animated.Text
-                style={[styles.letter, styles.bold, { color: ui.text, opacity: settle }]}
+                style={[styles.letter, styles.bold, { color: SPLASH_FG, opacity: settle }]}
               >
                 {char}
               </Animated.Text>
@@ -86,7 +93,7 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
                   styles.letter,
                   styles.light,
                   {
-                    color: ui.text,
+                    color: SPLASH_FG,
                     opacity: Animated.multiply(
                       v,
                       settle.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })

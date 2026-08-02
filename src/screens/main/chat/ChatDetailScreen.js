@@ -75,14 +75,24 @@ const ChatDetailScreen = ({ route, navigation }) => {
     isFocusedRef.current = isFocused;
   }, [isFocused]);
 
-  /** Android usa adjustResize: solo necesitamos scroll al abrir teclado. */
+  /**
+   * Android: scroll al abrir el teclado y, sobre todo, el padding del compositor.
+   * Antes esto colgaba del onFocus/onBlur del TextInput, pero cerrar el teclado
+   * (boton atras, gesto) NO desenfoca el input: el onBlur no corria y el padding
+   * quedaba sin insets.bottom, asi que el compositor volvia mas arriba de donde
+   * estaba al entrar. El teclado es el que manda, no el foco.
+   */
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
     const onShow = Keyboard.addListener('keyboardDidShow', () => {
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     });
-    return () => onShow.remove();
-  }, []);
+    const onHide = Keyboard.addListener('keyboardDidHide', () => {
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + insets.bottom);
+    });
+    return () => { onShow.remove(); onHide.remove(); };
+  }, [insets.bottom]);
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -534,8 +544,6 @@ const ChatDetailScreen = ({ route, navigation }) => {
             placeholderTextColor={ui.textMuted}
             value={newMessage}
             onChangeText={handleTyping}
-            onFocus={() => { if (Platform.OS === 'android') inputPadBottom.setValue(COMPOSER_VERTICAL_INSET); }}
-            onBlur={() => { if (Platform.OS === 'android') inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + insets.bottom); }}
             multiline
             maxLength={1000}
           />

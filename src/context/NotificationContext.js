@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import { get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS } from '../config/api';
 import socketService from '../services/socketService';
@@ -132,6 +133,18 @@ export const NotificationProvider = ({ children }) => {
       cleanupSocketListeners();
     };
   }, [isAuthenticated, loadNotifications, setupSocketListeners, cleanupSocketListeners]);
+
+  // Con la app en segundo plano el socket se cae, asi que todo lo que llega
+  // mientras tanto no mueve el badge y la campana queda con un numero viejo
+  // hasta que algo dispare loadNotifications a mano. Al volver al frente se
+  // resincroniza contra el backend.
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadNotifications({ silent: true });
+    });
+    return () => sub.remove();
+  }, [isAuthenticated, loadNotifications]);
 
   // Escuchar push notifications recibidas en primer plano (foreground) como respaldo al socket
   useEffect(() => {

@@ -486,9 +486,10 @@ const TripRequestsScreen = ({ route }) => {
             <Text style={[styles.passengerName, { color: textPrimary }]}>
               {item.passenger?.firstName} {item.passenger?.lastName}
             </Text>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: status.solid ? ui.text : textMuted }]} />
-              <Text style={[styles.statusText, { color: status.solid ? ui.text : textMuted }]}>{status.label}</Text>
+            <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : bg }]}>
+              <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : textMuted }]}>
+                {status.label}
+              </Text>
             </View>
           </View>
           {amount != null && (
@@ -652,7 +653,7 @@ const TripRequestsScreen = ({ route }) => {
           onScroll={handleRequestsScroll}
           scrollEventThrottle={400}
         >
-          <View style={[styles.unifiedCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[styles.unifiedCard, { backgroundColor: cardBg }]}>
             {renderTripContextBlock()}
             {requests.length > 0 && (
               <View style={[styles.inCardFullBleedLine, { backgroundColor: divider }]} />
@@ -755,11 +756,16 @@ const styles = StyleSheet.create({
   listPad:      { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontSize: 13, marginBottom: 12 },
 
-  /** Viaje + solicitudes en una sola tarjeta */
+  /** Viaje + solicitudes en una sola tarjeta. Mismo lenguaje que Mis Viajes y
+   *  Viajes que ofreci: radio 24, sin borde, sombra apenas marcada. */
   unifiedCard: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   tripContextEmbedded: {
     padding: 14,
@@ -876,9 +882,10 @@ const styles = StyleSheet.create({
   },
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   passengerName:  { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-  statusRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusDot:      { width: 7, height: 7, borderRadius: 4 },
-  statusText:     { fontSize: 12, fontFamily: 'Sora_500Medium' },
+  // El chip apagado va sobre el fondo de pagina: la card ya es `surface`, pintarlo
+  // del mismo color lo dejaba invisible.
+  statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   amountText:     { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   metaRow: {
