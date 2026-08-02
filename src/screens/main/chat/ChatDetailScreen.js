@@ -13,6 +13,7 @@ import {
   Image,
   Animated,
   DeviceEventEmitter,
+  Dimensions,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -85,11 +86,19 @@ const ChatDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
     const onShow = Keyboard.addListener('keyboardDidShow', (e) => {
-      // El alto real del teclado, en vez de dejar que el KAV lo deduzca: en edge-to-edge
-      // su cuenta usa el frame de la pantalla y no cerraba nunca — con offset del header
-      // sobraba una franja, y con offset cero faltaba y el input quedaba tapado.
-      // La ventana no se achica sola (edge-to-edge), asi que este padding no se duplica.
-      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + (e?.endCoordinates?.height || 0));
+      // Cuanto hay que levantar el compositor = distancia del borde de arriba del teclado
+      // al borde FISICO de abajo de la pantalla.
+      //
+      // No alcanza con endCoordinates.height: RN lo calcula contra el alto de la ventana,
+      // que no incluye la barra de navegacion, mientras que en edge-to-edge el compositor
+      // si llega hasta el borde de la pantalla. Faltaba justo esa barra y el input quedaba
+      // tapado por poco. screenY viene en las mismas coordenadas, asi que restarlo del alto
+      // de pantalla da la distancia real sin depender de que incluya o no la barra.
+      const kb = e?.endCoordinates;
+      const lift = kb?.screenY != null
+        ? Dimensions.get('screen').height - kb.screenY
+        : (kb?.height || 0);
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + Math.max(lift, kb?.height || 0));
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     });
     const onHide = Keyboard.addListener('keyboardDidHide', () => {
