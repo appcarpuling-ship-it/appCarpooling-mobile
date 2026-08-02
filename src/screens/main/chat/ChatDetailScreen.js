@@ -94,11 +94,15 @@ const ChatDetailScreen = ({ route, navigation }) => {
       // si llega hasta el borde de la pantalla. Faltaba justo esa barra y el input quedaba
       // tapado por poco. screenY viene en las mismas coordenadas, asi que restarlo del alto
       // de pantalla da la distancia real sin depender de que incluya o no la barra.
+      //
+      // El techo es height + insets.bottom, que es lo maximo que puede llegar a faltar:
+      // en pantalla dividida screen.height es el alto del display entero y screenY el de
+      // la ventana, y sin el techo la resta mandaba el compositor mucho mas arriba.
       const kb = e?.endCoordinates;
-      const lift = kb?.screenY != null
-        ? Dimensions.get('screen').height - kb.screenY
-        : (kb?.height || 0);
-      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + Math.max(lift, kb?.height || 0));
+      const kbHeight = kb?.height || 0;
+      const byScreen = kb?.screenY != null ? Dimensions.get('screen').height - kb.screenY : 0;
+      const lift = Math.min(Math.max(byScreen, kbHeight), kbHeight + insets.bottom);
+      inputPadBottom.setValue(COMPOSER_VERTICAL_INSET + lift);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     });
     const onHide = Keyboard.addListener('keyboardDidHide', () => {
