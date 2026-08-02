@@ -200,10 +200,34 @@ export const post_public = async (endpoint, formData = {}) => {
  * @param {FormData} formData - FormData con archivos
  * @returns {Promise} - Promesa con la respuesta
  */
-export const post_withauth_formdata = async (endpoint, formData) => {
+/**
+ * Multipart con `fetch` y no con axios, a proposito.
+ *
+ * Ninguna subida de archivos desde Android llego nunca al backend (verificado
+ * contra el access log: los unicos POST /api/vehicles y PUT /api/auth/profile
+ * que existen son de iOS). Fallaba con "Network Error" a los ~200ms, sin que el
+ * request apareciera en nginx, mientras las llamadas JSON al mismo host andaban
+ * perfecto y con los mismos headers. La unica diferencia era el cuerpo pasando
+ * por el adaptador XHR de axios, que sobre el FormData de React Native hace
+ * transformaciones que el modulo nativo de Android termina rechazando.
+ *
+ * `fetch` le entrega el FormData directo al modulo nativo, sin capa intermedia,
+ * que es ademas el camino que documenta Expo para subir archivos.
+ *
+ * NO poner 'Content-Type' a mano: lo tiene que armar la plataforma para que
+ * incluya el boundary del multipart.
+ */
+const sendMultipart = async (method, endpoint, formData) => {
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const token = await AsyncStorage.getItem('token');
+
+  // fetch no tiene timeout propio; el de subida es el mismo que usaba axios.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(API_CONFIG.TIMEOUT || 15000, 120000));
+
   try {
-    const token = await AsyncStorage.getItem('token');
-    const response = await axios.post(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
+    const response = await fetch(url, {
+      method,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...getNativeClientHeaders(false),
@@ -211,32 +235,38 @@ export const post_withauth_formdata = async (endpoint, formData) => {
         'X-Client-Platform': 'mobile',
         ...tunnelExtraHeaders(),
       },
-      timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
+      body: formData,
+      signal: controller.signal,
     });
-    return response.data;
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      // Forma de error igual a la de axios para que handleError y las pantallas
+      // que leen error.response.data sigan funcionando igual.
+      const error = new Error(body?.message || 'Error en el servidor');
+      error.response = { status: response.status, data: body };
+      throw handleError(error);
+    }
+
+    return body;
   } catch (error) {
-    throw handleError(error);
+    if (error.response) throw error; // ya paso por handleError arriba
+    reportError(error, { helper: 'sendMultipart', method, endpoint });
+    if (error.name === 'AbortError') {
+      throw new Error('El servidor tardó demasiado en responder. Verificá tu conexión e intentá de nuevo.');
+    }
+    throw new Error(`No pudimos subir los archivos. ${error.message || ''}`.trim());
+  } finally {
+    clearTimeout(timer);
   }
 };
 
-export const put_withauth_formdata = async (endpoint, formData) => {
-  try {
-    const token = await AsyncStorage.getItem('token');
-    const response = await axios.put(`${API_CONFIG.BASE_URL}${endpoint}`, formData, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...getNativeClientHeaders(false),
-        'X-Platform': 'mobile',
-        'X-Client-Platform': 'mobile',
-        ...tunnelExtraHeaders(),
-      },
-      timeout: Math.max(API_CONFIG.TIMEOUT || 15000, 120000),
-    });
-    return response.data;
-  } catch (error) {
-    throw handleError(error);
-  }
-};
+export const post_withauth_formdata = (endpoint, formData) =>
+  sendMultipart('POST', endpoint, formData);
+
+export const put_withauth_formdata = (endpoint, formData) =>
+  sendMultipart('PUT', endpoint, formData);
 
 /**
  * Maneja los errores de las peticiones
