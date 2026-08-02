@@ -3,11 +3,9 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Keyboard,
   Platform,
   ScrollView,
   Image,
@@ -303,7 +301,9 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
-      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} accessible={false}>
+      {/* Sin TouchableWithoutFeedback envolviendo todo: con el teclado abierto se
+          comia el primer tap para cerrarlo y el boton de abajo (fuera del
+          ScrollView) nunca recibia su onPress. */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* Top nav */}
@@ -325,7 +325,7 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={[styles.stepCounter, { color: textMuted }]}>{currentStep + 1}/{STEPS.length}</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           {currentStep === 0 ? (
             <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
               <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
@@ -384,7 +384,6 @@ const RegisterScreen = ({ navigation }) => {
           )}
         </View>
       </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
 
       <PermissionModal
         visible={showPermissionModal}

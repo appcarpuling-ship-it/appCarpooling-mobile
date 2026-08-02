@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, TouchableWithoutFeedback,
+  View, Text, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Keyboard, Platform, ScrollView, Image, Animated,
+  Platform, ScrollView, Image, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -113,8 +113,15 @@ const CompleteProfileScreen = ({ navigation }) => {
     requiredFields.forEach(f => setFieldTouched(f, true));
     const { isValid, errors: allErrors } = validateAllFields();
     if (!isValid) {
-      const msg = requiredFields.map(f => allErrors[f]).find(Boolean);
-      if (msg) { showAlert('Error de validación', msg); return; }
+      // El mensaje se busca en TODOS los campos, no solo en los requeridos: si el
+      // unico invalido era la bio (maxLength 500), `msg` quedaba undefined, no se
+      // mostraba nada y ademas no cortaba, asi que mandaba el form invalido igual.
+      const msg =
+        requiredFields.map(f => allErrors[f]).find(Boolean) ||
+        Object.values(allErrors).find(Boolean) ||
+        'Revisá los datos del formulario.';
+      showAlert('Error de validación', msg);
+      return;
     }
 
     setLoading(true);
@@ -211,8 +218,12 @@ const CompleteProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
-      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} accessible={false}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      {/* Sin TouchableWithoutFeedback envolviendo todo: con el teclado abierto se
+          comia el primer tap para cerrarlo, y el boton de abajo (que vive fuera
+          del ScrollView) nunca recibia su onPress. El teclado se cierra igual con
+          keyboardShouldPersistTaps="handled" (tap en el vacio del form) y con
+          keyboardDismissMode="on-drag" (scrolleando). */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
           {/* Top nav */}
           <View style={styles.topNav}>
@@ -234,7 +245,7 @@ const CompleteProfileScreen = ({ navigation }) => {
             <Text style={[styles.counter, { color: textMuted }]}>{currentStep + 1}/{STEPS.length}</Text>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
             {currentStep === 0 ? (
               <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
                 <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
@@ -279,8 +290,7 @@ const CompleteProfileScreen = ({ navigation }) => {
             )}
           </View>
 
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       <PermissionModal visible={showPermissionModal} onClose={() => setShowPermissionModal(false)} title="Permisos de Galería" message="Para elegir fotos necesitamos acceso a tu galería." onOpenSettings={openSettings} onRefreshPermissions={forceRefreshPermissions} />
     </SafeAreaView>
