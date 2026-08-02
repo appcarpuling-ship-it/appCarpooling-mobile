@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { get_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
@@ -33,6 +34,7 @@ const VehiclesScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const ui = useUI();
+  const insets = useSafeAreaInsets();
 
   const bg         = ui.bg;
   const cardBg     = ui.surface;
@@ -282,7 +284,9 @@ const VehiclesScreen = () => {
       )}
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: ui.invertBg }]}
+        // bottom fijo no alcanza: en Android la app dibuja debajo de la barra de
+        // navegacion, asi que con los 3 botones el FAB quedaba medio tapado.
+        style={[styles.fab, { backgroundColor: ui.invertBg, bottom: insets.bottom + 20 }]}
         onPress={() => navigation.navigate('VehicleForm')}
         activeOpacity={0.85}
       >
@@ -295,7 +299,7 @@ const VehiclesScreen = () => {
 const styles = StyleSheet.create({
   container:   { flex: 1 },
   center:      { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { padding: 16, paddingBottom: 100 },
+  listContent: { padding: 16, paddingBottom: 120 },
   listFooter:  { paddingVertical: 20, alignItems: 'center' },
 
   card: {
@@ -412,7 +416,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 28,
     width: 56,
     height: 56,
     borderRadius: 999,
