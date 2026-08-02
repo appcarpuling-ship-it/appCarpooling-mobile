@@ -24,7 +24,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
 
 const TripDetails = ({ navigation, route }) => {
-    const { origin, destination, waypoints, distance, duration, vehicles } = route.params;
+    const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
     const { showAlert } = useAlert();
     const { user } = useAuth();
 
@@ -119,6 +119,8 @@ const TripDetails = ({ navigation, route }) => {
                     coordinates: wp.coordinates,
                     order: wp.order ?? i + 1,
                 })),
+                // Ruta ya calculada en el mapa: se guarda para no volver a pedir Directions al verla.
+                ...(routePolyline && { routePolyline }),
                 departureDate: formData.departureDate,
                 departureTime: formData.departureTime,
                 availableSeats: parseInt(availableSeats),

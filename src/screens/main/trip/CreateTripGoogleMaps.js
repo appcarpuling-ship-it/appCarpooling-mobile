@@ -108,6 +108,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const [waypointMarkers, setWaypointMarkers] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
+  // Se guarda con el viaje para que ver el mapa después no vuelva a pegarle a Directions.
+  // ponytail: overview_polyline (una sola string, algo más simplificada que los steps);
+  // si el trazo se ve anguloso en rutas largas, guardar los steps en un array.
+  const [routePolyline, setRoutePolyline] = useState(null);
   const [distance, setDistance] = useState(null);
   const [distanceKm, setDistanceKm] = useState(0);
   const [duration, setDuration] = useState(null);
@@ -279,6 +283,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const getDirections = async () => {
     if (!originMarker || !destinationMarker || !isMounted.current) return;
     setLoadingRoute(true);
+    setRoutePolyline(null); // que no quede la ruta anterior si esta falla
     try {
       const orig = `${originMarker.latitude},${originMarker.longitude}`;
       const dest = `${destinationMarker.latitude},${destinationMarker.longitude}`;
@@ -296,6 +301,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         if (points.length === 0 && route.overview_polyline?.points) points = decodePolyline(route.overview_polyline.points);
         if (points.length > 0) {
           setRouteCoordinates(points);
+          setRoutePolyline(route.overview_polyline?.points || null);
           let totalDist = 0, totalDur = 0;
           route.legs?.forEach(leg => { totalDist += leg.distance?.value || 0; totalDur += leg.duration?.value || 0; });
           setDistance(totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)} km` : `${totalDist} m`);
@@ -661,7 +667,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       ]);
       return;
     }
-    navigation.navigate('TripDetails', { origin: formData.origin, destination: formData.destination, waypoints: formData.waypoints.filter(wp => wp.coordinates !== null), distance, duration, vehicles });
+    navigation.navigate('TripDetails', { origin: formData.origin, destination: formData.destination, waypoints: formData.waypoints.filter(wp => wp.coordinates !== null), distance, duration, routePolyline, vehicles });
   };
 
   const hasRoute = originMarker && destinationMarker;

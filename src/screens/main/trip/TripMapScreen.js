@@ -144,6 +144,15 @@ const TripMapScreen = ({ route, navigation }) => {
   ].filter(Boolean);
 
   const fetchRoute = async () => {
+    // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
+    // llamada a Directions. Los viajes viejos y las solicitudes no la tienen y siguen pidiéndola.
+    const saved = decodePolyline(trip?.routePolyline);
+    if (saved.length > 0) {
+      setRouteCoordinates(saved);
+      fitTo(saved);
+      setLoading(false);
+      return;
+    }
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
