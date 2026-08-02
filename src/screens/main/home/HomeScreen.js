@@ -17,7 +17,7 @@ import {
   Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { get_public, get_withauth, buildImageUri } from '../../../services/apiService';
@@ -55,7 +55,7 @@ function tripQualifiesForHomeUpcomingStrip(trip) {
   return true;
 }
 
-const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) => {
+const BannerCarousel = ({ banners, onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef(null);
   const autoScrollTimer = useRef(null);
@@ -113,17 +113,6 @@ const BannerCarousel = ({ banners, dotColor, dotInactiveColor, onBannerPress }) 
           index,
         })}
       />
-      {banners.length > 1 && (
-        <View style={styles.dots}>
-          {banners.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, dotInactiveColor && { backgroundColor: dotInactiveColor }, i === activeIndex && [styles.dotActive, dotColor && { backgroundColor: dotColor }]]}
-
-            />
-          ))}
-        </View>
-      )}
     </View>
   );
 };
@@ -799,8 +788,6 @@ const HomeScreen = ({ navigation, route }) => {
               </Text>
               <BannerCarousel
                 banners={section.banners}
-                dotColor={accent}
-                dotInactiveColor={borderColor}
                 onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
               />
             </View>
@@ -813,7 +800,9 @@ const HomeScreen = ({ navigation, route }) => {
       {/* Solicitudes tab */}
       <View style={{ flex: 1, display: activeTab === 'solicitudes' ? 'flex' : 'none' }}>
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 40 }}
+          // Mismo espacio que el tab de Inicio: con 40 fijos la tab bar flotante
+          // tapaba los ultimos banners al llegar al final.
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
@@ -932,8 +921,6 @@ const HomeScreen = ({ navigation, route }) => {
                 <Text style={[styles.bannerSectionTitle, { color: textPrimary }]}>{section.sectionTitle}</Text>
                 <BannerCarousel
                   banners={section.banners}
-                  dotColor={accent}
-                  dotInactiveColor={borderColor}
                   onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
                 />
               </View>
@@ -1013,16 +1000,21 @@ const HomeScreen = ({ navigation, route }) => {
         transparent={false}
         onRequestClose={() => setShowNotificationsModal(false)}
       >
-        <NotificationsScreen
-          navigation={{
-            ...navigation,
-            goBack: () => setShowNotificationsModal(false),
-            navigate: (screen, params) => {
-              setShowNotificationsModal(false);
-              setTimeout(() => navigation.navigate(screen, params), 300);
-            },
-          }}
-        />
+        {/* El Modal de RN abre una ventana nativa aparte: los insets del provider de
+            afuera no valen ahi, y en Android el contenido quedaba mal ubicado. El propio
+            provider del modal los mide para esta ventana. */}
+        <SafeAreaProvider>
+          <NotificationsScreen
+            navigation={{
+              ...navigation,
+              goBack: () => setShowNotificationsModal(false),
+              navigate: (screen, params) => {
+                setShowNotificationsModal(false);
+                setTimeout(() => navigation.navigate(screen, params), 300);
+              },
+            }}
+          />
+        </SafeAreaProvider>
       </Modal>
     </SafeAreaView>
   );
@@ -1404,23 +1396,6 @@ const styles = StyleSheet.create({
   bannerContent: {
     flex: 1,
   },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginHorizontal: 3,
-    backgroundColor: '#D0D0D0',
-  },
-  dotActive: {
-    width: 18,
-    backgroundColor: '#000000',
-  },
-
   // Section
   section: {
     paddingHorizontal: 24,

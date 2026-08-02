@@ -235,7 +235,8 @@ const NotificationsScreen = ({ navigation }) => {
           data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContent}
+          // insets.bottom aparte: en Android la barra de gestos tapaba la ultima fila.
+          contentContainerStyle={[styles.listContent, { paddingBottom: 32 + insets.bottom }]}
           showsVerticalScrollIndicator={true}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}

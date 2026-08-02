@@ -83,7 +83,9 @@ const ProfileStackNavigator = () => {
       <Stack.Screen
         name="Notifications"
         component={NotificationsScreen}
-        options={{ title: 'Notificaciones' }}
+        // La pantalla trae su propio header (cerrar + "Leer todas") y su propio
+        // paddingTop de inset: con el header nativo encima quedaban los dos.
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Terms"
