@@ -1,4 +1,5 @@
-import { Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
+import { reportError } from './sentry';
 
 // React Native acepta fd.append(campo, { uri, name, type }) y su polyfill de
 // FormData lo convierte en archivo. El navegador NO: append() serializa el
@@ -23,8 +24,27 @@ const typeFor = (filename) => {
  * formato que espera cada plataforma. Siempre hay que await-earlo: en web
  * necesita leer el blob.
  */
+/**
+ * Android: si el ContentResolver no puede abrir alguno de los archivos, el
+ * NetworkingModule de React Native aborta el request ENTERO antes de mandarlo.
+ * Axios lo ve como "Network Error" sin respuesta, o sea igual que estar sin
+ * internet, y el servidor no se entera de nada: ninguna subida multipart desde
+ * Android llegó nunca al backend, mientras las de iOS entraban siempre.
+ * Chequear el archivo antes convierte ese fallo mudo en un error con nombre.
+ */
+const isReadable = (uri) =>
+  new Promise((resolve) => Image.getSize(uri, () => resolve(true), () => resolve(false)));
+
 export async function appendFile(fd, field, uri, fallbackName) {
   if (!uri) return;
+
+  if (Platform.OS === 'android' && !(await isReadable(uri))) {
+    const error = new Error(`No pudimos leer la imagen de "${field}". Volvé a elegirla.`);
+    // El scheme del uri es el dato que falta para saber por qué el
+    // ContentResolver lo rechaza (file://, content://, algo del picker).
+    reportError(error, { helper: 'appendFile', field, uri });
+    throw error;
+  }
 
   const fromUri = uri.split('/').pop();
   const base = fallbackName || fromUri || `${field}.jpg`;
