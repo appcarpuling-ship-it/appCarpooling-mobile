@@ -214,6 +214,13 @@ const MyApplicationsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
+      <View style={styles.screenHeader}>
+        <Text style={[styles.screenTitle, { color: textPrimary }]}>
+          Los viajes{'\n'}
+          <Text style={styles.screenTitleStrong}>que ofreciste</Text>
+        </Text>
+      </View>
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={textMuted} />
@@ -257,6 +264,11 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   centerFlex: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   list: { padding: 16, gap: 12 },
+
+  // Mismo titulo grande que Mis Reservas y Solicitudes abiertas.
+  screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
+  screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
 
   // Card: mismo lenguaje que MyTripsScreen (radio 24, sin borde, sombra apenas).
   card: {
