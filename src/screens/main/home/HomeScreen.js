@@ -1025,7 +1025,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: TAB_BAR_SPACE,
+    // TAB_BAR_SPACE cubre justo el alto de la barra: el ultimo banner quedaba pegado.
+    paddingBottom: TAB_BAR_SPACE + 24,
   },
 
   // Active trip banner

@@ -334,7 +334,8 @@ const CarpoolingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { paddingBottom: TAB_BAR_SPACE },
+  // TAB_BAR_SPACE cubre justo el alto de la barra: el ultimo banner quedaba pegado.
+  scrollContent: { paddingBottom: TAB_BAR_SPACE + 24 },
 
   header: {
     paddingTop: 14,
