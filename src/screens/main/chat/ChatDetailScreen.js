@@ -470,9 +470,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
   // Desde SDK 54 Android va siempre edge-to-edge: la ventana ya no se achica
   // sola con adjustResize, asi que dejar behavior en undefined (delegarlo al SO)
   // dejaba el input debajo del teclado. Con 'padding' lo corre el propio KAV.
-  // El offset es solo headerHeight: en edge-to-edge este ya incluye el inset de
-  // arriba, sumarle StatusBar.currentHeight lo contaba dos veces.
-  const keyboardVerticalOffset = headerHeight;
+  //
+  // En Android el offset va en CERO. La pantalla del stack ya arranca debajo del
+  // header, o sea que frame.y + frame.height llega al borde de abajo, y el KAV
+  // calcula su padding como:
+  //     frame.y + frame.height − (screenY del teclado − keyboardVerticalOffset)
+  // Con el teclado oculto screenY es el alto de la pantalla, asi que cualquier
+  // offset queda como padding residual permanente: el compositor volvia flotando
+  // con una franja vacia del alto del header. Con el teclado abierto sumaba de
+  // mas lo mismo. En iOS se deja headerHeight, que es lo que venia andando.
+  const keyboardVerticalOffset = Platform.OS === 'ios' ? headerHeight : 0;
 
   return (
     <KeyboardAvoidingView
