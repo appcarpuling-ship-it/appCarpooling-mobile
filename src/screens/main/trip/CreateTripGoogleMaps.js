@@ -301,7 +301,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         if (points.length === 0 && route.overview_polyline?.points) points = decodePolyline(route.overview_polyline.points);
         if (points.length > 0) {
           setRouteCoordinates(points);
-          setRoutePolyline(route.overview_polyline?.points || null);
+          setRoutePolyline(encodePolyline(points));
           let totalDist = 0, totalDur = 0;
           route.legs?.forEach(leg => { totalDist += leg.distance?.value || 0; totalDur += leg.duration?.value || 0; });
           setDistance(totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)} km` : `${totalDist} m`);
@@ -338,6 +338,27 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       pts.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
     }
     return pts;
+  };
+
+  // Codifica los puntos ya decodificados (alta resolución, uno por step) para guardarlos.
+  // routePolyline debe reflejar el mismo trazado que ve el conductor, no el overview_polyline
+  // de Google (una versión simplificada que corta camino entre paradas y desalinea el mapa).
+  const encodePolyline = (points) => {
+    let result = '', prevLat = 0, prevLng = 0;
+    const encodeValue = (value) => {
+      let v = value < 0 ? ~(value << 1) : (value << 1);
+      let out = '';
+      while (v >= 0x20) { out += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; }
+      out += String.fromCharCode(v + 63);
+      return out;
+    };
+    points.forEach(({ latitude, longitude }) => {
+      const lat = Math.round(latitude * 1e5);
+      const lng = Math.round(longitude * 1e5);
+      result += encodeValue(lat - prevLat) + encodeValue(lng - prevLng);
+      prevLat = lat; prevLng = lng;
+    });
+    return result;
   };
 
   // ─── Geocoding ────────────────────────────────────────────────────────────

@@ -544,7 +544,8 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
-    navigation.navigate('CompleteTrip', { onSubmit: submitCompleteTrip });
+    const totalSeats = passengers.reduce((sum, b) => sum + (b.seatsBooked || b.seatsRequested || 1), 0);
+    navigation.navigate('CompleteTrip', { onSubmit: submitCompleteTrip, totalSeats });
   };
 
   const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {

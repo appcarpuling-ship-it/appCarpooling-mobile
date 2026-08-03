@@ -147,9 +147,10 @@ const MyTripsScreen = ({ navigation }) => {
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
-  const handleCompleteTrip = (tripId) => {
+  const handleCompleteTrip = (tripId, totalSeats) => {
     navigation.navigate('CompleteTrip', {
       onSubmit: (data) => submitCompleteTrip(tripId, data),
+      totalSeats,
     });
   };
 
@@ -341,7 +342,7 @@ const MyTripsScreen = ({ navigation }) => {
             <View style={styles.footerRow}>
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: '#FFFFFF', flex: 1 }]}
-                onPress={() => handleCompleteTrip(item._id)}
+                onPress={() => handleCompleteTrip(item._id, item.passengers?.length)}
               >
                 <Ionicons name="checkmark-circle-outline" size={15} color="#000000" />
                 <Text style={[styles.footerBtnText, { color: '#000000' }]}>Completar viaje</Text>

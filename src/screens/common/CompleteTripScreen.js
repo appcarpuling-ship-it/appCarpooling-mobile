@@ -19,7 +19,10 @@ const formatInput = (v) => {
 const CompleteTripScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-  const { onSubmit } = route.params || {};
+  const { onSubmit, totalSeats } = route.params || {};
+  // El backend reparte el total entre los asientos confirmados (ver seatReservationService.
+  // completeTripWithActualCost); esto es sólo la vista previa por asiento, misma cuenta.
+  const seats = totalSeats > 0 ? totalSeats : 1;
 
   const [fuel, setFuel] = useState('');
   const [food, setFood] = useState('');
@@ -29,6 +32,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const total = num(fuel) + num(food) + num(other) + num(driverPay);
+  const perPassenger = total / seats;
 
   const fields = [
     { key: 'fuel', label: 'Combustible', value: fuel, set: setFuel, placeholder: 'Ej: 2.000' },
@@ -81,10 +85,18 @@ const CompleteTripScreen = ({ route, navigation }) => {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {total > 0 && (
-            <View style={[styles.totalRow, { borderTopColor: ui.border }]}>
-              <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
-            </View>
+            <>
+              <View style={[styles.totalRow, { borderTopColor: ui.border }]}>
+                <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total</Text>
+                <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
+              </View>
+              <View style={styles.perPassengerRow}>
+                <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
+                  Cada pasajero (por asiento{seats > 1 ? `, ${seats} en total` : ''}) debe pagar
+                </Text>
+                <Text style={[styles.perPassengerValue, { color: ui.text }]}>${formatMoney(perPassenger)}</Text>
+              </View>
+            </>
           )}
         </ScrollView>
 
@@ -110,6 +122,9 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14, marginTop: 8 },
   totalLabel: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   totalValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
+  perPassengerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  perPassengerLabel: { fontSize: 13, fontFamily: 'Sora_400Regular', flex: 1, marginRight: 8 },
+  perPassengerValue: { fontSize: 15, fontFamily: 'Sora_700Bold' },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });
 
