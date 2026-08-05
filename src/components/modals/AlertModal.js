@@ -70,6 +70,7 @@ const AlertModal = ({
                     key={index}
                     style={[
                       styles.button,
+                      buttons.length > 2 && styles.buttonStacked,
                       button.style === 'destructive' && { backgroundColor: '#DC2626', borderColor: '#DC2626' },
                       button.style !== 'destructive' && { borderColor: isDarkMode ? '#2E2E2E' : '#E5E7EB' },
                       index === buttons.length - 1 && button.style !== 'cancel' && button.style !== 'destructive' && {
@@ -160,6 +161,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
+  },
+  // Apilados, el flex:1 de arriba deja flexBasis en 0 y el botón colapsa a la altura
+  // del padding (texto invisible). flex:0 devuelve el alto al contenido.
+  buttonStacked: {
+    flex: 0,
+    alignSelf: 'stretch',
   },
   buttonText: {
     fontSize: 15,

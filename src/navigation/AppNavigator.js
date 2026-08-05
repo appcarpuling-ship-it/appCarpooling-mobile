@@ -119,12 +119,6 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Result"
-            component={ResultScreen}
-            // ponytail: 'card' (default) = push de pantalla real, no modal desde abajo.
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
             name="LocationPicker"
             component={LocationPickerScreen}
             options={{ headerShown: false }}
@@ -168,6 +162,16 @@ const AppNavigator = () => {
           />
         </>
       )}
+      {/* Fuera del condicional a propósito: las pantallas de auth (registro, verificación,
+          forgot/reset password) también navegan acá. Mientras estuvo solo en la rama
+          autenticada, navigate('Result') no encontraba la ruta y react-navigation la
+          ignoraba en silencio: el botón no hacía nada y nadie veía el error. */}
+      <Stack.Screen
+        name="Result"
+        component={ResultScreen}
+        // ponytail: 'card' (default) = push de pantalla real, no modal desde abajo.
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 };

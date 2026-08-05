@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
+import { Modal } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Updates from 'expo-updates';
-import { useTheme } from '../context/ThemeContext';
+import UpdateRequiredScreen from '../screens/common/UpdateRequiredScreen';
 
 export default function OtaUpdateListener() {
-  const { isDarkMode } = useTheme();
   const [visible, setVisible] = useState(false);
-  const [reloading, setReloading] = useState(false);
 
   useEffect(() => {
-    if (__DEV__) return;
+    // No filtramos por __DEV__: al canal dev también le mandamos OTAs. La guarda real
+    // es isEnabled, que expo-updates pone en false donde no hay updates (Expo Go, Metro),
+    // que es justo donde checkForUpdateAsync tiraría.
+    if (!Updates.isEnabled) return;
 
     let cancelled = false;
 
@@ -27,70 +29,15 @@ export default function OtaUpdateListener() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleReload = async () => {
-    setReloading(true);
-    await Updates.reloadAsync();
-  };
-
-  const bg = isDarkMode ? '#1E1E1E' : '#FFFFFF';
-  const text = isDarkMode ? '#FFFFFF' : '#111827';
-  const subtext = isDarkMode ? '#9CA3AF' : '#6B7280';
-
+  // Modal opaco (sin transparent) = pantalla completa. Sin onRequestClose, el back
+  // de Android tampoco la saca: la única salida es reiniciar la app, que es el punto.
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: bg }]}>
-          <Text style={[styles.title, { color: text }]}>Nueva actualización</Text>
-          <Text style={[styles.message, { color: subtext }]}>
-            Hay una versión nueva disponible, cierra y abre nuevamente la aplicación para aplicar los cambios.
-          </Text>
-        </View>
-      </View>
+    <Modal visible={visible} animationType="fade" statusBarTranslucent>
+      {/* El Modal abre una ventana nativa aparte: necesita su propio provider
+          para medir los insets de esta ventana (mismo caso que en HomeScreen). */}
+      <SafeAreaProvider>
+        <UpdateRequiredScreen />
+      </SafeAreaProvider>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 340,
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  icon: { fontSize: 30 },
-  title: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 8, textAlign: 'center' },
-  message: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  btn: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#000000',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  btnText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Sora_700Bold' },
-  later: { fontSize: 14, fontFamily: 'Sora_500Medium' },
-});

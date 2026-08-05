@@ -45,8 +45,7 @@ export function vehicleShortLabel(vehicle) {
  * Genera una línea de texto descriptiva de disponibilidad.
  *
  * Ejemplos:
- *   Carpooling → "3 de 4 plazas libres en el vehículo · Toyota Corolla"
- *   Courier    → "2 cupos disponibles · Volkswagen Caddy"
+ *   Disponible → "3 de 4 plazas libres en el vehículo · Toyota Corolla"
  *   Completo   → "Completo (4 plazas) · Toyota Corolla"
  */
 export function formatTripAvailabilityLine(trip) {
@@ -56,12 +55,6 @@ export function formatTripAvailabilityLine(trip) {
   const cap = tripSeatCapacity(trip);
   const veh = vehicleShortLabel(trip.vehicle);
   const vehSuffix = veh ? ` · ${veh}` : '';
-
-  if (trip.serviceType === 'courier') {
-    if (rem === 0) return `Sin cupos libres${vehSuffix}`;
-    if (rem === 1) return `1 cupo disponible${vehSuffix}`;
-    return `${rem} cupos disponibles${vehSuffix}`;
-  }
 
   if (rem === 0) {
     return cap > 0
