@@ -50,6 +50,11 @@
     "production-apk": {
       "distribution": "internal",
       "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://appcarpuling.cloud/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://appcarpuling.cloud/api",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://c95e3ddc1f3cedda5dfd938443b504c5@o4511792921837568.ingest.us.sentry.io/4511792924393472"
+      },
       "android": {
         "buildType": "apk"
       },
@@ -60,6 +65,11 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://appcarpuling.cloud/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://appcarpuling.cloud/api",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://c95e3ddc1f3cedda5dfd938443b504c5@o4511792921837568.ingest.us.sentry.io/4511792924393472"
+      },
       "android": {
         "buildType": "app-bundle"
       }
