@@ -143,11 +143,33 @@ const TripMapScreen = ({ route, navigation }) => {
     destCoords?.latitude && { latitude: destCoords.latitude, longitude: destCoords.longitude },
   ].filter(Boolean);
 
+  /** Metros entre dos puntos (haversine). Alcanza para saber si el trazado roza la parada. */
+  const metersBetween = (a, b) => {
+    const R = 6371000;
+    const rad = (x) => (x * Math.PI) / 180;
+    const dLat = rad(b.latitude - a.latitude);
+    const dLon = rad(b.longitude - a.longitude);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+
+  /** ¿El trazado pasa por todas las paradas? 150 m tolera el ancho de calle y la resolución. */
+  const stopsCoveredBy = (points) =>
+    stops.length === 0 ||
+    stops.every((s) => points.some((p) => metersBetween(p, s.coordinates) < 150));
+
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
     // llamada a Directions. Los viajes viejos y las solicitudes no la tienen y siguen pidiéndola.
+    //
+    // Pero si el viaje tiene paradas, hay que confirmar que la guardada las contemple:
+    // se guardaron rutas calculadas sin los waypoints (y EditTripScreen nunca la recalcula
+    // al agregar una parada), y el mapa dibujaba un trazado que no pasa por la parada.
+    // Cuando no las cubre se descarta y se pide a Directions, que sí manda los waypoints.
     const saved = decodePolyline(trip?.routePolyline);
-    if (saved.length > 0) {
+    if (saved.length > 0 && stopsCoveredBy(saved)) {
       setRouteCoordinates(saved);
       fitTo(saved);
       setLoading(false);
