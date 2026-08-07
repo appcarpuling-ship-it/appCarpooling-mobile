@@ -14,6 +14,7 @@ import {
   Dimensions,
   Platform,
   RefreshControl,
+  Linking,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -231,6 +232,43 @@ const TripDetailScreen = ({ route, navigation }) => {
   // "Concordia, Entre Ríos", sin la coma colgando cuando falta alguno de los dos.
   // Las paradas intermedias suelen guardarse sin city/province y quedaba un ", " suelto.
   const formatCity = (location) => [location?.city, location?.province].filter(Boolean).join(', ');
+
+  const coord = (location) =>
+    location?.coordinates?.latitude != null && location?.coordinates?.longitude != null
+      ? `${location.coordinates.latitude},${location.coordinates.longitude}`
+      : null;
+
+  /**
+   * Abre el trayecto en Google Maps con las paradas como waypoints.
+   *
+   * Se usa la URL universal de Maps (`/maps/dir/?api=1`) y no un esquema propio de
+   * cada plataforma: abre la app si está instalada y el navegador si no, con el
+   * mismo link en Android y en iOS.
+   */
+  const abrirEnGoogleMaps = () => {
+    const origin = coord(trip?.origin);
+    const destination = coord(trip?.destination);
+    if (!origin || !destination) return;
+
+    const waypoints = (trip?.intermediateStops || [])
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map(coord)
+      .filter(Boolean)
+      .join('|');
+
+    const params = [
+      'api=1',
+      `origin=${encodeURIComponent(origin)}`,
+      `destination=${encodeURIComponent(destination)}`,
+      waypoints ? `waypoints=${encodeURIComponent(waypoints)}` : null,
+      'travelmode=driving',
+    ].filter(Boolean);
+
+    Linking.openURL(`https://www.google.com/maps/dir/?${params.join('&')}`).catch(() => {
+      showAlert('No se pudo abrir', 'No encontramos una app de mapas en tu teléfono.');
+    });
+  };
 
   // "15:00" -> "15hs", "15:30" -> "15:30hs": formato 24hs siempre, sin ambigüedad AM/PM.
   const formatDepartureTime = (time) => {
@@ -709,6 +747,19 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Ionicons name="map-outline" size={18} color={textPrimary} />
             <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
             <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </TouchableOpacity>
+        )}
+
+        {/* Abrir en Google Maps: pide las dos puntas, sin una no hay ruta que trazar */}
+        {trip.origin?.coordinates?.latitude && trip.destination?.coordinates?.latitude && (
+          <TouchableOpacity
+            style={[styles.mapBtn, { borderColor: dark ? '#2E2E2E' : '#E5E7EB' }]}
+            onPress={abrirEnGoogleMaps}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="navigate-outline" size={18} color={textPrimary} />
+            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Abrir en Google Maps</Text>
+            <Ionicons name="open-outline" size={16} color={textMuted} />
           </TouchableOpacity>
         )}
 
