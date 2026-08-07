@@ -32,7 +32,7 @@ const COMPOSER_VERTICAL_INSET = 12;
 const ChatDetailScreen = ({ route, navigation }) => {
   const params = route.params ?? {};
   const rawConversation = params.conversation;
-  const otherUser = useMemo(() => {
+  const otherUserFromParams = useMemo(() => {
     const o = params.otherUser;
     return o && typeof o === 'object' ? o : {};
   }, [params.otherUser]);
@@ -44,11 +44,43 @@ const ChatDetailScreen = ({ route, navigation }) => {
     return null;
   }, [rawConversation]);
 
+  const { user } = useAuth();
+
+  // Al entrar desde una notificación push solo llega el conversationId: el payload
+  // no trae al otro participante (notificationNavigation.js manda `otherUser: {}`),
+  // y la cabecera quedaba en "Usuario" / "?". Se resuelve acá y no en el emisor del
+  // push para que valga igual para deep links y para notificaciones ya enviadas.
+  const [fetchedOtherUser, setFetchedOtherUser] = useState(null);
+  const otherUser = otherUserFromParams?.firstName
+    ? otherUserFromParams
+    : fetchedOtherUser ?? otherUserFromParams;
+
+  useEffect(() => {
+    if (otherUserFromParams?.firstName || !conversationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // ponytail: se reusa /chat/conversations (ya popula participants con
+        // firstName/lastName/avatar) en vez de agregar un endpoint por id.
+        const response = await apiService.get('/chat/conversations');
+        const body = response.data;
+        if (!body?.success || !Array.isArray(body.data)) return;
+        const conv = body.data.find((c) => String(c._id) === String(conversationId));
+        const myId = String(user?._id ?? user?.id ?? '');
+        const other = conv?.participants?.find((p) => String(p._id) !== myId);
+        if (!cancelled && other) setFetchedOtherUser(other);
+      } catch (error) {
+        reportError(error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId, otherUserFromParams?.firstName, user?._id, user?.id]);
+
   const displayName = [otherUser?.firstName, otherUser?.lastName].filter(Boolean).join(' ') || 'Usuario';
   const displayInitials =
     `${otherUser?.firstName?.[0] ?? '?'}` + `${otherUser?.lastName?.[0] ?? ''}`;
-
-  const { user } = useAuth();
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
