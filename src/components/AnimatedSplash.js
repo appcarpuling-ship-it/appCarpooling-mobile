@@ -149,8 +149,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_300Light',
     textAlign: 'center',
   },
+  // La ExtraBold es la que está en el flujo y mide la ranura, así que no puede
+  // usar el truco de left/right negativos de la Light. El padding agranda la caja
+  // donde Android dibuja el glifo y el margen negativo lo descuenta del layout:
+  // queda en el mismo lugar y con el mismo interletrado, pero con aire a los
+  // costados. Sin esto salía con las puntas comidas justo al asentarse, porque el
+  // trazo grueso se pasa de una caja medida con letterSpacing negativo.
   bold: {
     fontFamily: 'Sora_800ExtraBold',
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
   },
 });
 
