@@ -228,6 +228,10 @@ const TripDetailScreen = ({ route, navigation }) => {
     return raw || location.city || location.name || '';
   };
 
+  // "Concordia, Entre Ríos", sin la coma colgando cuando falta alguno de los dos.
+  // Las paradas intermedias suelen guardarse sin city/province y quedaba un ", " suelto.
+  const formatCity = (location) => [location?.city, location?.province].filter(Boolean).join(', ');
+
   // "15:00" -> "15hs", "15:30" -> "15:30hs": formato 24hs siempre, sin ambigüedad AM/PM.
   const formatDepartureTime = (time) => {
     if (!time) return '';
@@ -667,8 +671,8 @@ const TripDetailScreen = ({ route, navigation }) => {
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Origen</Text>
                 <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.origin)}</Text>
-                {trip.origin?.city && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.origin.city}, {trip.origin.province}</Text>
+                {!!formatCity(trip.origin) && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.origin)}</Text>
                 )}
               </View>
 
@@ -678,15 +682,17 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <View key={i} style={styles.routeStop}>
                     <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Parada {stop.order}</Text>
                     <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
-                    <Text style={[styles.routeStopCity, { color: textMuted }]}>{stop.city}, {stop.province}</Text>
+                    {!!formatCity(stop) && (
+                      <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(stop)}</Text>
+                    )}
                   </View>
                 ))}
 
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Destino</Text>
                 <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.destination)}</Text>
-                {trip.destination?.city && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{trip.destination.city}, {trip.destination.province}</Text>
+                {!!formatCity(trip.destination) && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.destination)}</Text>
                 )}
               </View>
             </View>
