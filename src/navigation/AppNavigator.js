@@ -12,6 +12,7 @@ import VerificationScreen from '../screens/auth/VerificationScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
+import AccountBlockedScreen from '../screens/auth/AccountBlockedScreen';
 
 // Main navigation
 import MainTabNavigator from './MainTabNavigator';
@@ -30,7 +31,7 @@ import PickupMapScreen from '../screens/common/PickupMapScreen';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading, user, accountBlocked } = useAuth();
   const colors = useColors();
   const { isDarkMode } = useTheme();
 
@@ -49,10 +50,14 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator
       id="AppStack"
-      key={isAuthenticated ? 'authenticated' : 'unauthenticated'}
+      key={accountBlocked ? 'blocked' : isAuthenticated ? 'authenticated' : 'unauthenticated'}
       screenOptions={{ headerShown: false }}
     >
-      {!isAuthenticated ? (
+      {accountBlocked ? (
+        // Cuenta bloqueada por un admin: pantalla sola, sin login ni tabs. Se
+        // evalúa antes que isAuthenticated porque el bloqueo ya deslogueó.
+        <Stack.Screen name="AccountBlocked" component={AccountBlockedScreen} />
+      ) : !isAuthenticated ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
