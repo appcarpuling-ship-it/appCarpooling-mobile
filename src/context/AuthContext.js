@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { post_public, get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS, API_CONFIG } from '../config/api';
 import socketService from '../services/socketService';
-import { registerSessionInvalidHandler } from '../services/authSession';
+import { registerSessionInvalidHandler, registerAccountDisabledHandler } from '../services/authSession';
 import {
   registerForPushNotificationsAsync,
   savePushTokenToServer,
@@ -30,6 +30,8 @@ export const useAuth = () => {
       logout: () => {},
       updateProfile: () => Promise.resolve({ success: false }),
       refreshUser: async () => {},
+      accountBlocked: null,
+      clearAccountBlocked: () => {},
     };
   }
   return context;
@@ -39,6 +41,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  /** null cuando no hay bloqueo; { supportEmail } cuando un admin bloqueó la cuenta. */
+  const [accountBlocked, setAccountBlocked] = useState(null);
 
   // Cargar usuario al iniciar la app
   useEffect(() => {
@@ -120,6 +124,12 @@ export const AuthProvider = ({ children }) => {
           requiresVerification: true,
           email: res.data.data?.email,
         };
+      }
+      // El login usa post_public, que va por axios directo y NO pasa por el
+      // interceptor de la instancia `api`: el bloqueo hay que atajarlo acá.
+      if (res?.status === 401 && res?.data?.code === 'ACCOUNT_DISABLED') {
+        setAccountBlocked({ supportEmail: res.data.supportEmail || null });
+        return { success: false, accountDisabled: true, message: res.data.message };
       }
       return { success: false, message: error.message };
     }
@@ -279,6 +289,19 @@ export const AuthProvider = ({ children }) => {
     return () => registerSessionInvalidHandler(null);
   }, [logout]);
 
+  // Cuenta bloqueada por un admin: además del logout, se guarda el correo de
+  // soporte para que AppNavigator muestre la pantalla explicando qué pasó. Si
+  // solo hiciéramos logout, el usuario volvería al login sin entender por qué.
+  useEffect(() => {
+    registerAccountDisabledHandler(async (supportEmail) => {
+      await logout();
+      setAccountBlocked({ supportEmail: supportEmail || null });
+    });
+    return () => registerAccountDisabledHandler(null);
+  }, [logout]);
+
+  const clearAccountBlocked = useCallback(() => setAccountBlocked(null), []);
+
   const updateProfile = async (profileData) => {
     try {
       const response = await put_withauth(ENDPOINTS.UPDATE_PROFILE, profileData);
@@ -385,6 +408,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     refreshUser,
+    accountBlocked,
+    clearAccountBlocked,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

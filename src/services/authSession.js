@@ -6,21 +6,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  */
 let onSessionInvalid = null;
 let handling = false;
+let onAccountDisabled = null;
 
 export function registerSessionInvalidHandler(handler) {
   onSessionInvalid = typeof handler === 'function' ? handler : null;
+}
+
+/**
+ * Cuenta bloqueada por un admin. Va aparte de la sesión inválida porque el
+ * usuario no tiene nada que reintentar: volver a entrar da el mismo 401. El
+ * backend lo distingue con `code: 'ACCOUNT_DISABLED'` y manda el correo de
+ * soporte en la misma respuesta, porque sin sesión no puede pedirlo aparte.
+ */
+export function registerAccountDisabledHandler(handler) {
+  onAccountDisabled = typeof handler === 'function' ? handler : null;
+}
+
+export async function notifyAccountDisabled(supportEmail) {
+  if (handling) return;
+  handling = true;
+  try {
+    if (onAccountDisabled) await onAccountDisabled(supportEmail);
+    else await notifySessionInvalidInternal();
+  } finally {
+    handling = false;
+  }
+}
+
+async function notifySessionInvalidInternal() {
+  if (onSessionInvalid) await onSessionInvalid();
+  else {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+  }
 }
 
 export async function notifySessionInvalid() {
   if (handling) return;
   handling = true;
   try {
-    if (onSessionInvalid) {
-      await onSessionInvalid();
-    } else {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-    }
+    await notifySessionInvalidInternal();
   } finally {
     handling = false;
   }

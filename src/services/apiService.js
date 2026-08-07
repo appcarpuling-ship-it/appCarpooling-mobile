@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, tunnelExtraHeaders } from '../config/api';
 import { sanitizeImageUrl } from '../utils/imageUtils';
-import { notifySessionInvalid } from './authSession';
+import { notifySessionInvalid, notifyAccountDisabled } from './authSession';
 import { reportError } from '../utils/sentry';
 
 const NATIVE_APP_VERSION =
@@ -59,6 +59,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      // Cuenta bloqueada por un admin: no es sesión vencida, no hay nada que
+      // reintentar. Se maneja aparte para poder mostrarle al usuario por qué no
+      // puede entrar, incluso en los endpoints públicos de auth.
+      if (error.response?.data?.code === 'ACCOUNT_DISABLED') {
+        await notifyAccountDisabled(error.response.data.supportEmail);
+        return Promise.reject(error);
+      }
+
       const url = error.config?.url || '';
       const isPublicAuth =
         url.includes('/auth/login') ||
