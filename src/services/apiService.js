@@ -63,7 +63,7 @@ api.interceptors.response.use(
       // reintentar. Se maneja aparte para poder mostrarle al usuario por qué no
       // puede entrar, incluso en los endpoints públicos de auth.
       if (error.response?.data?.code === 'ACCOUNT_DISABLED') {
-        await notifyAccountDisabled(error.response.data.supportEmail);
+        await notifyAccountDisabled(error.response.data);
         return Promise.reject(error);
       }
 

@@ -22,11 +22,11 @@ export function registerAccountDisabledHandler(handler) {
   onAccountDisabled = typeof handler === 'function' ? handler : null;
 }
 
-export async function notifyAccountDisabled(supportEmail) {
+export async function notifyAccountDisabled(info) {
   if (handling) return;
   handling = true;
   try {
-    if (onAccountDisabled) await onAccountDisabled(supportEmail);
+    if (onAccountDisabled) await onAccountDisabled(info);
     else await notifySessionInvalidInternal();
   } finally {
     handling = false;

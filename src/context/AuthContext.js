@@ -128,7 +128,10 @@ export const AuthProvider = ({ children }) => {
       // El login usa post_public, que va por axios directo y NO pasa por el
       // interceptor de la instancia `api`: el bloqueo hay que atajarlo acá.
       if (res?.status === 401 && res?.data?.code === 'ACCOUNT_DISABLED') {
-        setAccountBlocked({ supportEmail: res.data.supportEmail || null });
+        setAccountBlocked({
+          supportEmail: res.data.supportEmail || null,
+          supportWhatsapp: res.data.supportWhatsapp || null,
+        });
         return { success: false, accountDisabled: true, message: res.data.message };
       }
       return { success: false, message: error.message };
@@ -293,9 +296,12 @@ export const AuthProvider = ({ children }) => {
   // soporte para que AppNavigator muestre la pantalla explicando qué pasó. Si
   // solo hiciéramos logout, el usuario volvería al login sin entender por qué.
   useEffect(() => {
-    registerAccountDisabledHandler(async (supportEmail) => {
+    registerAccountDisabledHandler(async (info) => {
       await logout();
-      setAccountBlocked({ supportEmail: supportEmail || null });
+      setAccountBlocked({
+        supportEmail: info?.supportEmail || null,
+        supportWhatsapp: info?.supportWhatsapp || null,
+      });
     });
     return () => registerAccountDisabledHandler(null);
   }, [logout]);
