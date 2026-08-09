@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../hooks/useColors';
+import { useHeaderStatusBarHeight } from '../useHeaderStatusBarHeight';
 import { useTheme } from '../../context/ThemeContext';
 import HomeScreen from '../../screens/main/home/HomeScreen';
 import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
@@ -23,12 +24,14 @@ const Stack = createStackNavigator();
 
 const HomeStackNavigator = () => {
   const colors = useColors();
+  const headerStatusBarHeight = useHeaderStatusBarHeight();
   const { isDarkMode } = useTheme();
   
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
         cardStyle: { backgroundColor: isDarkMode ? '#161616' : '#F9FAFB' },
+        headerStatusBarHeight,
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,

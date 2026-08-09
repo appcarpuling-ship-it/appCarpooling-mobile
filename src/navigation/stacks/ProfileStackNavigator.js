@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../hooks/useColors';
+import { useHeaderStatusBarHeight } from '../useHeaderStatusBarHeight';
 
 import ProfileScreen from '../../screens/main/profile/ProfileScreen';
 import EditProfileScreen from '../../screens/main/profile/EditProfileScreen';
@@ -23,10 +24,12 @@ const Stack = createStackNavigator();
 
 const ProfileStackNavigator = () => {
   const { colors } = useColors();
+  const headerStatusBarHeight = useHeaderStatusBarHeight();
   
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        headerStatusBarHeight,
         headerStyle: {
           backgroundColor: colors.background,
           elevation: 0,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Dimensions,
   Image,
   FlatList,
-  Modal,
+  BackHandler,
   TextInput,
   Platform,
   Keyboard,
@@ -419,6 +419,22 @@ const BookingScreen = ({ route, navigation }) => {
     }
   };
 
+  // El overlay del selector vive dentro de la pantalla, asi que por si solo no taparia el
+  // header del navegador. Y sin <Modal> ya nadie escucha el boton fisico de atras.
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: !pickupMapVisible });
+  }, [navigation, pickupMapVisible]);
+
+  useEffect(() => {
+    if (!pickupMapVisible) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (pickupSearchVisible) closePickupSearch();
+      else setPickupMapVisible(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [pickupMapVisible, pickupSearchVisible]);
+
   const displayPrice = priceData?.pricing?.finalPrice || priceData?.pricing?.totalPrice;
 
   return (
@@ -719,13 +735,61 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Pickup Map Modal */}
-          <Modal
-            visible={pickupMapVisible}
-            animationType="slide"
-            onRequestClose={() => { setPickupMapVisible(false); setPickupSearchVisible(false); setPickupMapSelectionMode(false); pickupMapSelectionModeRef.current = false; if (pickupIdleTimer.current) clearTimeout(pickupIdleTimer.current); }}
+
+          {/* Footer */}
+          <TouchableOpacity
+            style={[
+              styles.confirmBtn,
+              {
+                backgroundColor:
+                  tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
+                opacity:
+                  loading ||
+                  calculatingPrice ||
+                  tripFreeNow <= 0 ||
+                  (!priceData && tripFreeNow > 0)
+                    ? 0.5
+                    : 1,
+              },
+            ]}
+            onPress={handleCreateReservation}
+            disabled={
+              loading ||
+              calculatingPrice ||
+              tripFreeNow <= 0 ||
+              (!priceData && tripFreeNow > 0)
+            }
+            activeOpacity={0.8}
           >
-            <View style={{ flex: 1 }}>
+            {loading ? (
+              <ActivityIndicator color={accentInverse} size="small" />
+            ) : (
+              <>
+                <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
+                  {tripFreeNow <= 0 ? 'No hay cupos disponibles' : 'Solicitar Reserva'}
+                </Text>
+                {priceData && tripFreeNow > 0 && (
+                  <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
+                    ${formatNumber(displayPrice)} ARS
+                  </Text>
+                )}
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      </Animated.View>
+
+      {/* Selector del punto de recogida.
+          NO envolver esto en <Modal>: en Android un Modal es una ventana aparte y la
+          superficie de react-native-maps no se compone ahi, asi que el mapa sale todo
+          celeste (el color de fondo, sin tiles). Los otros tres mapas de la app son
+          pantallas completas y por eso andan. Como overlay dentro de la pantalla el mapa
+          dibuja normal; el header del navegador se oculta mientras esta abierto para que
+          el overlay tape todo, y el boton fisico de atras de Android lo cierra. */}
+      {pickupMapVisible && (
+        <View style={pickupStyles.fullscreen}>
               {/* Map — solo monta cuando tenemos región */}
               {pickupRegion ? (
                 <MapView
@@ -923,53 +987,8 @@ const BookingScreen = ({ route, navigation }) => {
                   </KeyboardAvoidingView>
                 </Animated.View>
               )}
-            </View>
-          </Modal>
-
-          {/* Footer */}
-          <TouchableOpacity
-            style={[
-              styles.confirmBtn,
-              {
-                backgroundColor:
-                  tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
-                opacity:
-                  loading ||
-                  calculatingPrice ||
-                  tripFreeNow <= 0 ||
-                  (!priceData && tripFreeNow > 0)
-                    ? 0.5
-                    : 1,
-              },
-            ]}
-            onPress={handleCreateReservation}
-            disabled={
-              loading ||
-              calculatingPrice ||
-              tripFreeNow <= 0 ||
-              (!priceData && tripFreeNow > 0)
-            }
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={accentInverse} size="small" />
-            ) : (
-              <>
-                <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
-                  {tripFreeNow <= 0 ? 'No hay cupos disponibles' : 'Solicitar Reserva'}
-                </Text>
-                {priceData && tripFreeNow > 0 && (
-                  <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
-                    ${formatNumber(displayPrice)} ARS
-                  </Text>
-                )}
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={{ height: 32 }} />
-        </ScrollView>
-      </Animated.View>
+        </View>
+      )}
 
       <BannerDetailModal
         visible={bannerModal.visible}
@@ -1376,6 +1395,8 @@ const styles = StyleSheet.create({
 });
 
 const pickupStyles = StyleSheet.create({
+  // Reemplaza al <Modal>: mismo efecto de pantalla completa sin crear una ventana aparte.
+  fullscreen: { ...StyleSheet.absoluteFillObject, zIndex: 30 },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   circleBtn: {
     marginLeft: 16, marginTop: 8,

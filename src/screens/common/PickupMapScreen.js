@@ -24,7 +24,12 @@ const PickupMapScreen = ({ route, navigation }) => {
         {coordinates?.latitude && (
           Platform.OS === 'android'
             ? <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-origin.png')} />
-            : <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 1 }} />
+            // Sin hijos, react-native-maps dibuja el pin rojo por defecto de Google, que
+            // no se parece a nada del resto de la app. Este es el mismo marcador que usa
+            // "Ver trayecto en el mapa" para el origen (TripMapScreen).
+            : <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.pinHalo}><View style={styles.pinCore} /></View>
+              </Marker>
         )}
       </MapView>
 
@@ -44,6 +49,8 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  pinHalo: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  pinCore: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',

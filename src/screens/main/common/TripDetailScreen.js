@@ -220,6 +220,30 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  /**
+   * La ruta como una sola secuencia numerada: origen es el 1 y el destino el número más
+   * alto. Antes las paradas intermedias se numeraban por su cuenta (1, 2…) y las puntas
+   * no llevaban número, así que "1" era la primera parada y no el arranque del viaje.
+   * Armar la lista acá y recorrerla una vez evita que la columna de los puntos y la de
+   * las direcciones se desincronicen, que era el riesgo de tenerlas escritas por separado.
+   */
+  const routePoints = useMemo(() => {
+    const stops = [...(trip?.intermediateStops || [])].sort((a, b) => a.order - b.order);
+    return [
+      { location: trip?.origin, label: 'Origen', isEnd: true },
+      ...stops.map((stop) => ({ location: stop, label: '', isEnd: false })),
+      { location: trip?.destination, label: 'Destino', isEnd: true },
+    ];
+  }, [trip]);
+
+  const fmtCurrency = (n) =>
+    n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  const myBookingSeats = userBooking?.seatsBooked ?? userBooking?.seats ?? 1;
+  // reservationAmount es el campo que muestra el conductor; totalPrice queda de respaldo
+  // para reservas viejas creadas antes de que existiera la reserva de asiento.
+  const myBookingAmount = userBooking?.seatReservation?.reservationAmount ?? userBooking?.totalPrice ?? null;
+
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
@@ -530,14 +554,30 @@ const TripDetailScreen = ({ route, navigation }) => {
           try {
             const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
             if (response.success) {
-              showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
+              // Se recarga antes de navegar: al volver de la pantalla de resultado el
+              // detalle ya tiene que mostrar el viaje en curso.
               await loadTripDetail();
+              navigation.navigate('Result', {
+                type: 'success',
+                title: 'Viaje iniciado',
+                message: 'Avisamos a los pasajeros que ya saliste.',
+                primaryLabel: 'Continuar',
+              });
             } else {
-              showAlert('Ocurrió algo', response.message || 'No se pudo iniciar el viaje');
+              navigation.navigate('Result', {
+                type: 'error',
+                title: 'No se pudo iniciar',
+                message: response.message || 'Probá de nuevo en un momento.',
+              });
             }
           } catch (error) {
             reportError(error, { screen: 'TripDetailScreen', action: 'startTrip' });
-            showAlert('Ocurrió algo', error.message || 'Error al iniciar el viaje');
+            navigation.navigate('Result', {
+              type: 'error',
+              title: 'No se pudo iniciar',
+              message: error.message || 'Probá de nuevo en un momento.',
+              error,
+            });
           } finally {
             setStartingTrip(false);
           }
@@ -680,6 +720,32 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
+            los asientos que reservó ESTE usuario y lo que le sale no aparecían por ningún
+            lado: había que ir hasta el listado de reservas para verlos. El monto es el mismo
+            campo que ve el conductor en Solicitudes de Reserva, para que no haya dos cifras. */}
+        {userBooking && (
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Tu reserva</Text>
+            <View style={styles.myBookingRow}>
+              <View style={styles.myBookingItem}>
+                <Ionicons name="person-outline" size={16} color={textMuted} />
+                <Text style={[styles.myBookingValue, { color: textPrimary }]}>
+                  {myBookingSeats} asiento{myBookingSeats !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              {myBookingAmount != null && (
+                <View style={styles.myBookingItem}>
+                  <Ionicons name="pricetag-outline" size={16} color={textMuted} />
+                  <Text style={[styles.myBookingValue, { color: textPrimary }]}>
+                    {fmtCurrency(myBookingAmount)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {trip.status === 'completed' && (
           <View style={[styles.section, { backgroundColor: cardBg }]}>
             <TripCostBreakdown trip={trip} />
@@ -688,53 +754,37 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Route */}
         <View style={[styles.section, { backgroundColor: cardBg }]}>
-          <View style={styles.routeRow}>
-            <View style={styles.routeDotsCol}>
-              <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
-              <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
-              {trip.intermediateStops?.length > 0 && trip.intermediateStops
-                .sort((a, b) => a.order - b.order)
-                .map((stop, i) => (
-                  <React.Fragment key={i}>
-                    <View style={[styles.routeDotStop, { backgroundColor: textMuted }]}>
-                      <Text style={styles.routeDotStopNum}>{stop.order}</Text>
-                    </View>
-                    <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
-                  </React.Fragment>
-                ))}
-              <View style={[styles.routeDotDest, { backgroundColor: accent }]} />
-            </View>
-
-            <View style={styles.routeLabelsCol}>
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Origen</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.origin)}</Text>
-                {!!formatCity(trip.origin) && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.origin)}</Text>
+          {/* Cada punto es UNA fila con su círculo al lado de su texto. Antes eran dos
+              columnas separadas —una de círculos con la línea de alto fijo, otra de
+              direcciones de alto variable— y con dos paradas ya se desincronizaban: el
+              número quedaba al lado de la dirección equivocada. Así no puede pasar,
+              porque el círculo y el texto son hermanos de la misma fila. */}
+          {routePoints.map((point, i) => (
+            <View key={`point-${i}`} style={styles.routePoint}>
+              <View style={styles.routeRail}>
+                <View style={[styles.routeDot, { backgroundColor: point.isEnd ? accent : textMuted }]}>
+                  <Text style={[styles.routeDotNum, { color: point.isEnd ? accentInverse : '#FFFFFF' }]}>
+                    {i + 1}
+                  </Text>
+                </View>
+                {i < routePoints.length - 1 && (
+                  <View style={[styles.routeRailLine, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
                 )}
               </View>
 
-              {trip.intermediateStops?.length > 0 && trip.intermediateStops
-                .sort((a, b) => a.order - b.order)
-                .map((stop, i) => (
-                  <View key={i} style={styles.routeStop}>
-                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Parada {stop.order}</Text>
-                    <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
-                    {!!formatCity(stop) && (
-                      <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(stop)}</Text>
-                    )}
-                  </View>
-                ))}
-
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Destino</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.destination)}</Text>
-                {!!formatCity(trip.destination) && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.destination)}</Text>
+              <View style={[styles.routeBody, i < routePoints.length - 1 && styles.routeBodyGap]}>
+                {!!point.label && (
+                  <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
+                )}
+                <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary }]}>
+                  {formatAddress(point.location)}
+                </Text>
+                {!!formatCity(point.location) && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(point.location)}</Text>
                 )}
               </View>
             </View>
-          </View>
+          ))}
         </View>
 
         {/* Ver trayecto en mapa */}
@@ -1313,6 +1363,9 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 24,
   },
+  myBookingRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 12 },
+  myBookingItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  myBookingValue: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   sectionLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
@@ -1322,34 +1375,22 @@ const styles = StyleSheet.create({
   },
 
   // Route
-  routeRow: { flexDirection: 'row', gap: 16 },
-  routeDotsCol: {
-    width: 18,
-    alignItems: 'center',
-    paddingTop: 4,
-  },
-  routeDotOrigin: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-  },
-  routeLineV: {
-    width: 1.5,
-    height: 44,
-    marginVertical: 2,
-  },
-  routeDotStop: {
+  routePoint: { flexDirection: 'row', gap: 16 },
+  // El riel mide lo que mide la fila, y la linea toma el alto que sobra debajo del
+  // circulo. Por eso el trazo se estira solo cuando la direccion ocupa tres renglones,
+  // sin ningun alto fijo que adivinar.
+  routeRail: { width: 18, alignItems: 'center', paddingTop: 2 },
+  routeRailLine: { flex: 1, width: 1.5, marginVertical: 4 },
+  routeDot: {
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  routeDotStopNum: { fontSize: 9, fontFamily: 'Sora_700Bold', color: '#FFF' },
-  routeDotDest: { width: 10, height: 10, borderRadius: 5 },
-  routeLabelsCol: { flex: 1, gap: 0 },
-  routeStop: { paddingBottom: 16 },
+  routeDotNum: { fontSize: 9, fontFamily: 'Sora_700Bold' },
+  routeBody: { flex: 1 },
+  routeBodyGap: { paddingBottom: 18 },
   routeStopLabel: {
     fontSize: 11,
     fontFamily: 'Sora_500Medium',

@@ -522,25 +522,26 @@ const TripRequestsScreen = ({ route }) => {
           const pickup = item.seatReservation.pickupLocation;
           const hasCoords = pickup.coordinates?.latitude != null;
           return (
-            <View style={[styles.pickupRow, { borderTopColor: divider }]}>
-              <Ionicons name="location-outline" size={13} color={textMuted} style={{ marginTop: 1 }} />
-              <View style={{ flex: 1, gap: 8 }}>
-                <Text style={[styles.pickupText, { color: textMuted }]} numberOfLines={2}>
-                  <Text style={{ fontWeight: '600' }}>Punto de recogida: </Text>
+            /* La fila entera es el botón, en vez de una píldora suelta adentro: así ocupa
+               el ancho de la tarjeta como el resto de las filas y arranca en el mismo
+               margen. El chevron es lo único que hace falta para decir que se toca. */
+            <TouchableOpacity
+              style={[styles.pickupRow, { borderTopColor: divider }]}
+              onPress={hasCoords
+                ? () => navigation.navigate('PickupMap', { coordinates: pickup.coordinates, address: pickup.address })
+                : undefined}
+              disabled={!hasCoords}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={hasCoords ? 'map-outline' : 'location-outline'} size={16} color={textMuted} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
+                <Text style={[styles.pickupText, { color: textPrimary }]} numberOfLines={2}>
                   {pickup.address}
                 </Text>
-                {hasCoords && (
-                  <TouchableOpacity
-                    style={styles.pickupMapBtn}
-                    onPress={() => navigation.navigate('PickupMap', { coordinates: pickup.coordinates, address: pickup.address })}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="map-outline" size={14} color={accent} />
-                    <Text style={[styles.pickupMapBtnText, { color: accent }]}>Ver punto de recogida en el mapa</Text>
-                  </TouchableOpacity>
-                )}
               </View>
-            </View>
+              {hasCoords && <Ionicons name="chevron-forward" size={16} color={textMuted} />}
+            </TouchableOpacity>
           );
         })()}
 
@@ -912,19 +913,18 @@ const styles = StyleSheet.create({
 
   pickupRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
+    alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 13,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  pickupLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.4, marginBottom: 2 },
   pickupText: {
-    fontSize: 13,
-    lineHeight: 18,
-    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
+    fontFamily: 'Sora_500Medium',
   },
-  pickupMapBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
-  pickupMapBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   messageText: {
     fontSize: 13,

@@ -5,9 +5,14 @@ import { useColors } from '../../hooks/useColors';
 
 const formatMoney = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-const ROW_LABELS = { fuel: 'Combustible', food: 'Comida', other: 'Otros' };
+const ROW_LABELS = {
+  fuel: 'Combustible',
+  food: 'Comida',
+  other: 'Otros',
+  driverPay: 'Extra conductor',
+};
 
-/** Total del viaje completado, tocable para desplegar el desglose (combustible/comida/otros) */
+/** Total del viaje completado, tocable para desplegar el desglose */
 const TripCostBreakdown = ({ trip }) => {
   const { colors } = useColors();
   const [open, setOpen] = useState(false);
@@ -15,14 +20,17 @@ const TripCostBreakdown = ({ trip }) => {
   if (!trip?.actualCost) return null;
 
   const breakdown = trip.costBreakdown;
-  const hasBreakdown = !!(breakdown && (breakdown.fuel || breakdown.food || breakdown.other));
-  const rows = hasBreakdown
-    ? [
-        { key: 'fuel', amount: breakdown.fuel || 0 },
-        { key: 'food', amount: breakdown.food || 0 },
-        { key: 'other', amount: breakdown.other || 0 },
-      ].filter(r => r.amount > 0)
-    : [];
+  // driverPay no vive dentro de costBreakdown sino suelto en el viaje, pero Trip.computeCost
+  // lo suma al actualCost igual que los otros tres. Al no listarlo, el total no cerraba con
+  // la suma de las filas y parecía un error de cálculo.
+  const driverPay = Number(trip.driverPay) || 0;
+  const rows = [
+    { key: 'fuel', amount: Number(breakdown?.fuel) || 0 },
+    { key: 'food', amount: Number(breakdown?.food) || 0 },
+    { key: 'other', amount: Number(breakdown?.other) || 0 },
+    { key: 'driverPay', amount: driverPay },
+  ].filter(r => r.amount > 0);
+  const hasBreakdown = rows.length > 0;
 
   return (
     <View>

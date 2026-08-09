@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../hooks/useColors';
+import { useHeaderStatusBarHeight } from '../useHeaderStatusBarHeight';
 import { useTheme } from '../../context/ThemeContext';
 import CarpoolingsScreen from '../../screens/main/carpool/CarpoolingsScreen';
 import TripDetails from '../../screens/main/common/TripDetails';
@@ -22,11 +23,13 @@ const Stack = createStackNavigator();
 
 const CarpoolingsStackNavigator = () => {
   const colors = useColors();
+  const headerStatusBarHeight = useHeaderStatusBarHeight();
   const { isDarkMode } = useTheme();
   
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        headerStatusBarHeight,
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,

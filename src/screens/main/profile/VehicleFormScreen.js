@@ -312,7 +312,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
     { key: 'model',        label: 'Modelo',   placeholder: 'Corolla, Focus, Cruze…',   half: false },
     { key: 'year',         label: 'Año',      placeholder: '2020', half: true, keyboard: 'numeric', max: 4 },
     { key: 'color',        label: 'Color',    placeholder: 'Blanco',                    half: true },
-    { key: 'licensePlate', label: 'Patente', placeholder: 'Como figura en la chapa', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
+    // Los dos formatos que conviven en Argentina: Mercosur (AB 123 CD) y el anterior
+    // (ABC 123). Como ejemplo enseña el formato, que es lo que el texto viejo ("Como figura
+    // en la chapa") intentaba decir — y además queda igual que el resto de los campos,
+    // que muestran ejemplos del valor y no una instrucción.
+    { key: 'licensePlate', label: 'Patente', placeholder: 'AB 123 CD o ABC 123', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
     { key: 'capacity',     label: `Pasajeros (máx. ${maxCapacityForType})`, placeholder: `1–${maxCapacityForType}`, half: false, keyboard: 'numeric', max: 1 },
   ];
 

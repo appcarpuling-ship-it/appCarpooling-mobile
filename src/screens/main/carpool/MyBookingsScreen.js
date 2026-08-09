@@ -200,6 +200,20 @@ const MyBookingsScreen = ({ navigation }) => {
     return raw || location.city || location.name || '';
   };
 
+  /**
+   * Ciudad y provincia, para la segunda línea de cada punto de la ruta. La dirección
+   * guardada suele ser solo la calle ("1 de Mayo 447"), así que en el listado dos viajes
+   * a ciudades distintas se leían idénticos. Se omite lo que ya venga escrito dentro de
+   * la dirección, porque en algunos viajes sí viene incluida y quedaba repetido.
+   */
+  const formatArea = (location) => {
+    if (!location) return '';
+    const base = String(location.address || location.street || '').toLowerCase();
+    return [location.city, location.province]
+      .filter((part) => part && !base.includes(String(part).toLowerCase()))
+      .join(', ');
+  };
+
   const getStatusPriority = (item) => {
     const rs = item.seatReservation?.reservationStatus;
     if (rs === 'pending_payment')  return 0;
@@ -270,16 +284,30 @@ const MyBookingsScreen = ({ navigation }) => {
         <View style={styles.route}>
           <View style={styles.routeRow}>
             <View style={[styles.routeDotOutline, { borderColor: activeTxt }]} />
-            <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
-              {formatAddress(item.trip?.origin)}
-            </Text>
+            <View style={styles.routeTextCol}>
+              <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
+                {formatAddress(item.trip?.origin)}
+              </Text>
+              {!!formatArea(item.trip?.origin) && (
+                <Text style={[styles.routeArea, { color: activeMuted }]} numberOfLines={1}>
+                  {formatArea(item.trip?.origin)}
+                </Text>
+              )}
+            </View>
           </View>
           <View style={[styles.routeConnector, { backgroundColor: activeDivider }]} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDotFilled, { backgroundColor: activeTxt }]} />
-            <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
-              {formatAddress(item.trip?.destination)}
-            </Text>
+            <View style={styles.routeTextCol}>
+              <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
+                {formatAddress(item.trip?.destination)}
+              </Text>
+              {!!formatArea(item.trip?.destination) && (
+                <Text style={[styles.routeArea, { color: activeMuted }]} numberOfLines={1}>
+                  {formatArea(item.trip?.destination)}
+                </Text>
+              )}
+            </View>
           </View>
         </View>
 
@@ -482,7 +510,9 @@ const styles = StyleSheet.create({
   },
   routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
   routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
-  routeText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+  routeTextCol: { flex: 1, gap: 2 },
+  routeText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
+  routeArea: { fontSize: 12, fontFamily: 'Sora_400Regular' },
 
   meta: {
     flexDirection: 'row',
