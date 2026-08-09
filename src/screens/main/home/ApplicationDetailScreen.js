@@ -66,7 +66,9 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
+    // 'top' además de 'bottom': el header de esta pantalla lo dibuja ella misma, no el
+    // navegador, así que sin el inset de arriba quedaba metido dentro de la barra de estado.
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -91,21 +93,11 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.driverName, { color: textPrimary }]}>
                 {driver.firstName} {driver.lastName}
               </Text>
-              <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color={textPrimary} />
-                <Text style={[styles.ratingText, { color: textMuted }]}>
-                  {driver.rating?.toFixed(1) || '—'}
-                </Text>
-                {driver.totalTrips != null && (
+              {driver.totalTrips != null && (
+                <View style={styles.ratingRow}>
                   <Text style={[styles.ratingText, { color: textMuted }]}>
-                    · {driver.totalTrips} viaje{driver.totalTrips !== 1 ? 's' : ''}
+                    {driver.totalTrips} viaje{driver.totalTrips !== 1 ? 's' : ''}
                   </Text>
-                )}
-              </View>
-              {driver.verified && (
-                <View style={styles.verifiedRow}>
-                  <Ionicons name="shield-checkmark" size={13} color={textPrimary} />
-                  <Text style={{ color: ui.text, fontSize: 12, fontWeight: '600' }}>Verificado</Text>
                 </View>
               )}
             </View>
@@ -230,7 +222,6 @@ const styles = StyleSheet.create({
   driverName: { fontSize: 18, fontFamily: 'Sora_700Bold', marginBottom: 4 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { fontSize: 13 },
-  verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
   vehiclePhoto: { width: '100%', height: 160, borderRadius: 10, marginBottom: 12 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
