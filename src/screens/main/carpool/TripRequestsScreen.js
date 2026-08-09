@@ -531,12 +531,13 @@ const TripRequestsScreen = ({ route }) => {
                 </Text>
                 {hasCoords && (
                   <TouchableOpacity
-                    style={styles.pickupMapBtn}
+                    style={[styles.pickupMapBtn, { borderColor: divider }]}
                     onPress={() => navigation.navigate('PickupMap', { coordinates: pickup.coordinates, address: pickup.address })}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="map-outline" size={14} color={accent} />
-                    <Text style={[styles.pickupMapBtnText, { color: accent }]}>Ver punto de recogida en el mapa</Text>
+                    <Ionicons name="map-outline" size={16} color={textPrimary} />
+                    <Text style={[styles.pickupMapBtnText, { color: textPrimary }]}>Ver en el mapa</Text>
+                    <Ionicons name="chevron-forward" size={14} color={textMuted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -923,8 +924,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     flex: 1,
   },
-  pickupMapBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
-  pickupMapBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  // Mismo lenguaje que el "Ver trayecto en mapa" del detalle del viaje: fila con
+  // ícono, texto y chevron. Antes era texto suelto en color de acento y quedaba
+  // como un link olvidado dentro de una tarjeta que no usa links en ningún otro lado.
+  pickupMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  pickupMapBtnText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   messageText: {
     fontSize: 13,

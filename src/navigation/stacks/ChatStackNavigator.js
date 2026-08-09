@@ -1,6 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useColors } from '../../hooks/useColors';
+import { useHeaderStatusBarHeight } from '../useHeaderStatusBarHeight';
 import { useTheme } from '../../context/ThemeContext';
 import ChatsScreen from '../../screens/main/chat/ChatsScreen';
 import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
@@ -10,11 +11,13 @@ const Stack = createStackNavigator();
 
 const ChatStackNavigator = () => {
   const colors = useColors();
+  const headerStatusBarHeight = useHeaderStatusBarHeight();
   const { isDarkMode } = useTheme();
   
   return (
     <Stack.Navigator
       screenOptions={{
+        headerStatusBarHeight,
         headerStyle: {
           backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
           elevation: 0,
