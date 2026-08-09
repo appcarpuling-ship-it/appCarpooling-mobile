@@ -40,6 +40,21 @@
         "resourceClass": "m-medium"
       }
     },
+    "testflight-dev": {
+      "autoIncrement": true,
+      "channel": "build",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.appcarpuling.online/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://api.appcarpuling.online/api",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://c95e3ddc1f3cedda5dfd938443b504c5@o4511792921837568.ingest.us.sentry.io/4511792924393472"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
     "ngrok-aab": {
       "developmentClient": false,
       "channel": "ngrok",
