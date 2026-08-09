@@ -1,7 +1,8 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { StyleSheet, Animated, Easing, View } from 'react-native';
+import { StyleSheet, Animated, Easing } from 'react-native';
 
 const TITLE = 'Carpuling';
+const LOGO = require('../../assets/logo/192x192-white.png');
 
 // Los mismos colores que el splash nativo (`splash` en app.json: logo blanco
 // sobre #000000). Antes esto usaba ui.bg/ui.text, o sea blanco sobre blanco en
@@ -16,19 +17,27 @@ const SPLASH_FG = '#FFFFFF';
 let splashAnimationConsumed = false;
 
 /**
- * Solo tipografía. Cada letra entra por su cuenta —sube, se desenfoca de
- * escala y se endereza— y al final la palabra entera se asienta: el
- * interletrado se cierra y el peso pasa de Light a ExtraBold.
- * Todo con opacity y transform, que es lo que el driver nativo puede animar
- * sin cruzar al hilo de JS.
+ * El logo aterriza, la palabra sube letra por letra, y al final todo se abre
+ * hacia afuera mientras el negro se disuelve sobre la app.
+ *
+ * La versión anterior cruzaba dos pesos de la misma letra (Light -> ExtraBold)
+ * superpuestos en una ranura. Eso se veía recortado en Android y no había forma
+ * limpia de arreglarlo: Android corta el glifo contra su caja de layout, la caja
+ * la medía la ExtraBold con `letterSpacing` negativo, y la Light entraba encima
+ * con `scale: 1.4`. Dos rondas de parches (padding + márgenes negativos, left/right
+ * negativos) lo escondieron a medias. Acá directamente no existe el problema: un
+ * solo peso, sin escala sobre el texto y sin interletrado negativo.
+ *
+ * Todo con opacity y transform, que es lo que el driver nativo puede animar sin
+ * cruzar al hilo de JS.
  */
 const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Un valor por letra + uno para el asentado final de la palabra.
+  const logoIn = useRef(new Animated.Value(0)).current;
   const letters = useMemo(() => TITLE.split('').map(() => new Animated.Value(0)), []);
-  const settle = useRef(new Animated.Value(0)).current;
+  const exit = useRef(new Animated.Value(0)).current;
   const curtain = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -38,78 +47,92 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
     const out = Easing.bezier(0.16, 1, 0.3, 1);
 
     const sequence = Animated.sequence([
-      Animated.stagger(
-        52,
-        letters.map((v) =>
-          Animated.timing(v, {
-            toValue: 1,
-            duration: 620,
-            easing: out,
-            useNativeDriver: true,
-          })
-        )
-      ),
-      Animated.timing(settle, {
-        toValue: 1,
-        duration: 620,
-        easing: Easing.bezier(0.65, 0, 0.35, 1),
-        useNativeDriver: true,
-      }),
-      Animated.delay(360),
-      Animated.timing(curtain, {
-        toValue: 0,
-        duration: 420,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-        useNativeDriver: true,
-      }),
+      // El logo y la palabra se pisan a propósito: arrancar la palabra recién
+      // al terminar el logo hacía toda la intro demasiado larga para un splash.
+      Animated.parallel([
+        Animated.timing(logoIn, {
+          toValue: 1,
+          duration: 700,
+          easing: out,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(280),
+          Animated.stagger(
+            42,
+            letters.map((v) =>
+              Animated.timing(v, {
+                toValue: 1,
+                duration: 460,
+                easing: out,
+                useNativeDriver: true,
+              })
+            )
+          ),
+        ]),
+      ]),
+      Animated.delay(420),
+      // La salida: el conjunto crece y el negro se va. Da la sensación de que el
+      // logo se abre y deja ver la app, en vez de un simple fundido.
+      Animated.parallel([
+        Animated.timing(exit, {
+          toValue: 1,
+          duration: 520,
+          easing: Easing.bezier(0.4, 0, 1, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(curtain, {
+          toValue: 0,
+          duration: 460,
+          delay: 60,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+          useNativeDriver: true,
+        }),
+      ]),
     ]);
 
     sequence.start(({ finished }) => finished && onCompleteRef.current?.());
     return () => sequence.stop();
   }, [fontsLoaded]);
 
-  // La palabra se comprime al asentarse: arranca separada y cierra el espacio.
-  const wordScale = settle.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1] });
+  // 1.45 y no más: el asset mide 141x150 y se dibuja a 112, así que hasta ahí
+  // sigue por debajo de su tamaño nativo y no se pixela al agrandarse.
+  const exitScale = exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] });
+  const logoScale = logoIn.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] });
 
   return (
     <Animated.View style={[styles.root, { backgroundColor: SPLASH_BG, opacity: curtain }]}>
-      <Animated.View style={[styles.word, { transform: [{ scale: wordScale }] }]}>
-        {TITLE.split('').map((char, i) => {
-          const v = letters[i];
-          return (
-            <View key={`${char}-${i}`} style={styles.slot}>
-              {/* ExtraBold: es el que define el ancho de la ranura (es el más
-                  ancho de los dos); si iba absoluto, Android le recortaba los
-                  bordes contra el ancho de la Light. */}
-              <Animated.Text
-                style={[styles.letter, styles.bold, { color: SPLASH_FG, opacity: settle }]}
-              >
-                {char}
-              </Animated.Text>
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale: exitScale }] }}>
+        <Animated.Image
+          source={LOGO}
+          resizeMode="contain"
+          style={[styles.logo, { opacity: logoIn, transform: [{ scale: logoScale }] }]}
+        />
 
-              {/* Light: encima, en el mismo lugar. Se desvanece al asentarse */}
-              <Animated.Text
-                style={[
-                  styles.letter,
-                  styles.light,
-                  {
-                    color: SPLASH_FG,
-                    opacity: Animated.multiply(
-                      v,
-                      settle.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
-                    ),
-                    transform: [
-                      { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) },
-                      { scale: v.interpolate({ inputRange: [0, 1], outputRange: [1.4, 1] }) },
-                    ],
-                  },
-                ]}
-              >
-                {char}
-              </Animated.Text>
-            </View>
-          );
-        })}
+        <Animated.View style={styles.word}>
+          {TITLE.split('').map((char, i) => (
+            <Animated.Text
+              key={`${char}-${i}`}
+              style={[
+                styles.letter,
+                {
+                  color: SPLASH_FG,
+                  opacity: letters[i],
+                  transform: [
+                    {
+                      translateY: letters[i].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [16, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {char}
+            </Animated.Text>
+          ))}
+        </Animated.View>
       </Animated.View>
     </Animated.View>
   );
@@ -122,43 +145,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  logo: {
+    width: 112,
+    height: 112,
+  },
   word: {
     flexDirection: 'row',
-  },
-  // Cada letra ocupa su ranura y las dos versiones se superponen ahí,
-  // así el cambio de peso no mueve nada de lugar.
-  slot: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 22,
   },
   letter: {
-    fontSize: 40,
-    letterSpacing: -1,
-  },
-  // Aire a los costados en vez de absoluteFillObject: la ranura la mide la
-  // ExtraBold y la Light se dibujaba con ESE ancho exacto. Android recorta los
-  // glifos que se pasan de su caja de layout, y como la Light ademas entra con
-  // scale 1.4, el recorte se veia agrandado: las letras salian con las puntas
-  // comidas. Los -8 le dan lugar sin moverla de lugar (queda centrada igual).
-  light: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: -8,
-    right: -8,
-    fontFamily: 'Sora_300Light',
-    textAlign: 'center',
-  },
-  // La ExtraBold es la que está en el flujo y mide la ranura, así que no puede
-  // usar el truco de left/right negativos de la Light. El padding agranda la caja
-  // donde Android dibuja el glifo y el margen negativo lo descuenta del layout:
-  // queda en el mismo lugar y con el mismo interletrado, pero con aire a los
-  // costados. Sin esto salía con las puntas comidas justo al asentarse, porque el
-  // trazo grueso se pasa de una caja medida con letterSpacing negativo.
-  bold: {
     fontFamily: 'Sora_800ExtraBold',
-    paddingHorizontal: 6,
-    marginHorizontal: -6,
+    fontSize: 26,
+    // Sin interletrado negativo: con un peso grueso, eso mete el trazo fuera de
+    // la caja de layout y Android lo recorta. Es lo que comía las puntas antes.
+    letterSpacing: 0.5,
   },
 });
 
