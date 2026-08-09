@@ -53,6 +53,12 @@ const TripMapScreen = ({ route, navigation }) => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStop, setSelectedStop] = useState(null);
+  // Los marcadores de las paradas son una vista propia con el número adentro, y en
+  // Android eso se dibuja capturando la vista en un bitmap. Si la captura sale antes
+  // de que el hijo esté medido, el pin queda sin número. Origen y destino ya esquivan
+  // esto usando imágenes (ver más abajo); las paradas no pueden, porque el número es
+  // dinámico. Remontarlos cuando el mapa avisa que está listo fuerza una captura nueva.
+  const [mapReady, setMapReady] = useState(false);
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
 
@@ -231,6 +237,7 @@ const TripMapScreen = ({ route, navigation }) => {
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
         showsUserLocation={showMyLocation}
+        onMapReady={() => setMapReady(true)}
       >
         {!isDriver && driverLocation?.latitude && (
           <Marker
@@ -255,7 +262,7 @@ const TripMapScreen = ({ route, navigation }) => {
 
         {stops.map((stop, i) => (
           <Marker
-            key={`stop-${i}`}
+            key={`stop-${i}-${mapReady}`}
             coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
             onPress={() => setSelectedStop(selectedStop?.index === i ? null : { index: i, address: stop.address || stop.city || `Parada ${i + 1}` })}
@@ -303,7 +310,7 @@ const TripMapScreen = ({ route, navigation }) => {
           onPress={() => setSelectedStop(null)}
           activeOpacity={0.9}
         >
-          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>Parada {selectedStop.index + 1}</Text>
+          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.index + 1}</Text>
           <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
         </TouchableOpacity>
       )}

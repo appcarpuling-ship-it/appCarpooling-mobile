@@ -718,7 +718,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 .sort((a, b) => a.order - b.order)
                 .map((stop, i) => (
                   <View key={i} style={styles.routeStop}>
-                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Parada {stop.order}</Text>
+                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{stop.order}</Text>
                     <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
                     {!!formatCity(stop) && (
                       <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(stop)}</Text>
