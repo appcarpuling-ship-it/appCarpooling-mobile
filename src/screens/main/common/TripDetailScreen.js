@@ -220,6 +220,14 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  const fmtCurrency = (n) =>
+    n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  const myBookingSeats = userBooking?.seatsBooked ?? userBooking?.seats ?? 1;
+  // reservationAmount es el campo que muestra el conductor; totalPrice queda de respaldo
+  // para reservas viejas creadas antes de que existiera la reserva de asiento.
+  const myBookingAmount = userBooking?.seatReservation?.reservationAmount ?? userBooking?.totalPrice ?? null;
+
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
@@ -676,6 +684,32 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
               <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? accentInverse : textMuted }]} />
               <Text style={[styles.statusText, { color: statusCfg.solid ? accentInverse : textMuted }]}>{statusCfg.label}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
+            los asientos que reservó ESTE usuario y lo que le sale no aparecían por ningún
+            lado: había que ir hasta el listado de reservas para verlos. El monto es el mismo
+            campo que ve el conductor en Solicitudes de Reserva, para que no haya dos cifras. */}
+        {userBooking && (
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Tu reserva</Text>
+            <View style={styles.myBookingRow}>
+              <View style={styles.myBookingItem}>
+                <Ionicons name="person-outline" size={16} color={textMuted} />
+                <Text style={[styles.myBookingValue, { color: textPrimary }]}>
+                  {myBookingSeats} asiento{myBookingSeats !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              {myBookingAmount != null && (
+                <View style={styles.myBookingItem}>
+                  <Ionicons name="pricetag-outline" size={16} color={textMuted} />
+                  <Text style={[styles.myBookingValue, { color: textPrimary }]}>
+                    {fmtCurrency(myBookingAmount)}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -1313,6 +1347,9 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 24,
   },
+  myBookingRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 12 },
+  myBookingItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  myBookingValue: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   sectionLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
