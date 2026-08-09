@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -51,6 +51,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const textMuted = colors.textMuted;
   const chipBg = dark ? '#1C1C1C' : '#F3F4F6';
 
+  const [activeTab, setActiveTab] = useState('upcoming');
   const [reservations, setReservations] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -195,26 +196,33 @@ const MySeatReservationsScreen = ({ navigation }) => {
     }
   };
 
-  const sortedData = [...reservations].sort((a, b) => {
-    const phase = (item) => {
-      const s = item.trip?.status;
-      if (s === 'started') return 0;
-      if (s === 'completed') return 2;
-      if (s === 'cancelled') return 3;
-      return 1;
-    };
-    const phA = phase(a);
-    const phB = phase(b);
-    if (phA !== phB) return phA - phB;
-    const ORDER = { pending_payment: 0, pending_approval: 1, reserved: 2, rejected: 3, cancelled: 4 };
-    const pa = ORDER[a.seatReservation?.reservationStatus] ?? 5;
-    const pb = ORDER[b.seatReservation?.reservationStatus] ?? 5;
-    if (pa !== pb) return pa - pb;
-    const da = new Date(a.trip?.date || a.trip?.departureDate || 0).getTime();
-    const db = new Date(b.trip?.date || b.trip?.departureDate || 0).getTime();
-    if (phA === 2) return db - da;
-    return da - db;
-  });
+  /**
+   * Una reserva sigue "viva" si todavía puede pasar algo con ella. Se mira el estado de la
+   * reserva y no solo el del viaje: una reserva cancelada sobre un viaje en curso ya no
+   * tiene nada pendiente, y mezclarla con las próximas era justo lo que confundía (la
+   * tarjeta decía "En curso" arriba y "Reserva cancelada" abajo).
+   */
+  const isLive = (item) => {
+    const ts = item.trip?.status;
+    if (ts === 'completed' || ts === 'cancelled') return false;
+    return ['pending_payment', 'payment_failed', 'pending_approval', 'reserved']
+      .includes(item.seatReservation?.reservationStatus);
+  };
+
+  // Lo que exige plata primero: es lo único de esta pantalla con un vencimiento corriendo.
+  const UPCOMING_ORDER = { pending_payment: 0, payment_failed: 1, pending_approval: 2, reserved: 3 };
+
+  const visibleData = useMemo(() => {
+    const when = (r) => new Date(r.trip?.date || r.trip?.departureDate || 0).getTime();
+    const list = reservations.filter((r) => (activeTab === 'upcoming' ? isLive(r) : !isLive(r)));
+    if (activeTab === 'past') return list.sort((a, b) => when(b) - when(a));
+    return list.sort((a, b) => {
+      const pa = UPCOMING_ORDER[a.seatReservation?.reservationStatus] ?? 9;
+      const pb = UPCOMING_ORDER[b.seatReservation?.reservationStatus] ?? 9;
+      if (pa !== pb) return pa - pb;
+      return when(a) - when(b);
+    });
+  }, [reservations, activeTab]);
 
   const renderItem = ({ item }) => {
     const pill = getPill(item);
@@ -369,9 +377,32 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: chipBg }]}>
-      {reservations.length > 0 ? (
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: textPrimary }]}>Tus reservas</Text>
+        <Text style={[styles.title, styles.titleStrong, { color: textPrimary }]}>de asiento</Text>
+      </View>
+
+      {/* Mismo pill que Mis Viajes, para que las dos listas se lean igual. */}
+      <View style={styles.tabsContainer}>
+        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+          {['upcoming', 'past'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {visibleData.length > 0 ? (
         <FlatList
-          data={sortedData}
+          data={visibleData}
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id || item._id)}
           contentContainerStyle={styles.list}
@@ -393,8 +424,10 @@ const MySeatReservationsScreen = ({ navigation }) => {
         <View style={styles.centered}>
           <EmptyState
             image={require('../../../../assets/icons/pngwing.com (20).png')}
-            title="Sin reservas"
-            subtitle="Buscá un viaje y reservá tu asiento"
+            title={activeTab === 'upcoming' ? 'Sin reservas próximas' : 'Sin reservas pasadas'}
+            subtitle={activeTab === 'upcoming'
+              ? 'Buscá un viaje y reservá tu asiento'
+              : 'Acá van a quedar las reservas que ya terminaron'}
           />
         </View>
       )}
@@ -414,6 +447,16 @@ const styles = StyleSheet.create({
   container:      { flex: 1 },
   centered:       { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, padding: 28 },
   list:           { padding: 16, paddingBottom: 32, gap: 12 },
+
+  // Encabezado y tabs calcados de Mis Viajes: son la misma clase de pantalla y el usuario
+  // salta de una a la otra, así que compartir el patrón vale más que ser original acá.
+  header:         { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24 },
+  title:          { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
+  titleStrong:    { fontFamily: 'Sora_800ExtraBold' },
+  tabsContainer:  { paddingHorizontal: 24, paddingBottom: 8 },
+  tabPill:        { flexDirection: 'row', borderRadius: 999, padding: 5 },
+  tab:            { flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
+  tabText:        { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   card: {
     borderRadius: 16,
