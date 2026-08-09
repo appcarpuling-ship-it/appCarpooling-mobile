@@ -63,13 +63,22 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
-    const departureDate = new Date(date);
-    departureDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    // Momento real elegido, en hora local: solo para validar que sea futuro.
+    const departureLocal = new Date(date);
+    departureLocal.setHours(time.getHours(), time.getMinutes(), 0, 0);
 
-    if (departureDate <= new Date()) {
+    if (departureLocal <= new Date()) {
       showAlert('Fecha inválida', 'La fecha y hora deben ser futuras.');
       return;
     }
+
+    // Lo que viaja al backend es el DÍA de calendario a medianoche UTC, que es el contrato
+    // que asumen el backend (tripRequestController: filtros de próximas/pasadas) y las
+    // pantallas que lo formatean con timeZone UTC. Mandar el momento local convertido a UTC
+    // rompía las dos cosas: en UTC-3, una solicitud para hoy 22:00 se guardaba como las
+    // 01:00 UTC de mañana y se mostraba —y se filtraba— como del día siguiente.
+    // La hora no se pierde: viaja aparte en departureTime.
+    const departureDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 
     setLoading(true);
     try {
@@ -83,7 +92,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
           coordinates: wp.coordinates,
           order: i + 1,
         })),
-        departureDate: departureDate.toISOString(),
+        departureDate: departureDay.toISOString(),
         departureTime: formatTime(time),
         seatsNeeded,
         // El precio y la distancia los calcula el backend con el parámetro costoViaje

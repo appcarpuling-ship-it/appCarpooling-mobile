@@ -439,17 +439,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {app.driverSnapshot?.firstName} {app.driverSnapshot?.lastName}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                      <Ionicons name="star" size={11} color={textPrimary} />
-                      <Text style={[styles.passengerSeats, { color: textMuted }]}>
-                        {app.driverSnapshot?.rating?.toFixed(1) || '—'}
-                      </Text>
-                      {app.vehicleSnapshot && (
+                    {app.vehicleSnapshot && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                         <Text style={[styles.passengerSeats, { color: textMuted }]}>
-                          · {app.vehicleSnapshot.brand} {app.vehicleSnapshot.model} {app.vehicleSnapshot.licensePlate ? `· ${app.vehicleSnapshot.licensePlate}` : ''}
+                          {app.vehicleSnapshot.brand} {app.vehicleSnapshot.model}{app.vehicleSnapshot.licensePlate ? ` · ${app.vehicleSnapshot.licensePlate}` : ''}
                         </Text>
-                      )}
-                    </View>
+                      </View>
+                    )}
                   </View>
                   {app.status === 'rejected' ? (
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: cardBg }}>
