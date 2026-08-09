@@ -53,11 +53,11 @@ const TripMapScreen = ({ route, navigation }) => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStop, setSelectedStop] = useState(null);
-  // Los marcadores de las paradas son una vista propia con el número adentro, y en
-  // Android eso se dibuja capturando la vista en un bitmap. Si la captura sale antes
-  // de que el hijo esté medido, el pin queda sin número. Origen y destino ya esquivan
-  // esto usando imágenes (ver más abajo); las paradas no pueden, porque el número es
-  // dinámico. Remontarlos cuando el mapa avisa que está listo fuerza una captura nueva.
+  // Los marcadores son una vista propia con el número adentro, y en Android eso se dibuja
+  // capturando la vista en un bitmap. Si la captura sale antes de que el hijo esté medido,
+  // el pin queda sin número. Remontarlos cuando el mapa avisa que está listo fuerza una
+  // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
+  // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
@@ -67,6 +67,25 @@ const TripMapScreen = ({ route, navigation }) => {
   const stops = (trip?.intermediateStops || [])
     .filter(s => s?.coordinates?.latitude && s?.coordinates?.longitude)
     .sort((a, b) => a.order - b.order);
+
+  /** La ruta como una sola secuencia numerada, igual que en el detalle del viaje. */
+  const routePoints = [
+    originCoords?.latitude && {
+      coordinate: { latitude: originCoords.latitude, longitude: originCoords.longitude },
+      address: trip?.origin?.address || trip?.origin?.city || 'Origen',
+      isEnd: true,
+    },
+    ...stops.map((s) => ({
+      coordinate: { latitude: s.coordinates.latitude, longitude: s.coordinates.longitude },
+      address: s.address || s.city || 'Parada',
+      isEnd: false,
+    })),
+    destCoords?.latitude && {
+      coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
+      address: trip?.destination?.address || trip?.destination?.city || 'Destino',
+      isEnd: true,
+    },
+  ].filter(Boolean);
 
   const userId = user?._id || user?.id;
   const driverId = trip?.driver?._id || trip?.driver?.id;
@@ -252,37 +271,29 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         )}
 
-        {originCoords?.latitude && (
-          Platform.OS === 'android'
-            ? <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
-            : <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.originMarker}><View style={styles.markerInner} /></View>
-              </Marker>
-        )}
-
-        {stops.map((stop, i) => (
+        {/* Un solo recorrido para los tres tipos de punto: la numeración es la misma
+            secuencia que muestra el detalle del viaje (origen 1, destino el más alto), y
+            tenerla en un solo lugar evita que las dos pantallas se contradigan.
+            Origen y destino usaban PNG fijos en Android; ya no pueden, porque el número
+            cambia según cuántas paradas tenga el viaje. */}
+        {routePoints.map((point, i) => (
           <Marker
-            key={`stop-${i}-${mapReady}`}
-            coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }}
+            key={`pt-${i}-${mapReady}`}
+            coordinate={point.coordinate}
             anchor={{ x: 0.5, y: 0.5 }}
-            onPress={() => setSelectedStop(selectedStop?.index === i ? null : { index: i, address: stop.address || stop.city || `Parada ${i + 2}` })}
+            onPress={() =>
+              setSelectedStop(
+                selectedStop?.number === i + 1
+                  ? null
+                  : { number: i + 1, address: point.address }
+              )
+            }
           >
-            {/* +2 y no +1: en el detalle del viaje la ruta se numera entera y el origen es
-                el 1, así que la primera parada intermedia es el 2. Si acá arrancara en 1,
-                la misma parada tendría dos números distintos según la pantalla. */}
-            <View style={styles.waypointMarker}>
-              <Text style={styles.waypointNumber}>{i + 2}</Text>
+            <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
+              <Text style={styles.routeMarkerNum}>{i + 1}</Text>
             </View>
           </Marker>
         ))}
-
-        {destCoords?.latitude && (
-          Platform.OS === 'android'
-            ? <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-dest.png')} />
-            : <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.destMarker}><View style={styles.markerInner} /></View>
-              </Marker>
-        )}
 
         {routeCoordinates.length > 0 && (
           <Polyline
@@ -313,7 +324,7 @@ const TripMapScreen = ({ route, navigation }) => {
           onPress={() => setSelectedStop(null)}
           activeOpacity={0.9}
         >
-          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.index + 2}</Text>
+          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.number}</Text>
           <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
         </TouchableOpacity>
       )}
@@ -357,12 +368,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
-  originMarker: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-  destMarker: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-  markerInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
-  waypointMarker: { width: 26, height: 26, borderRadius: 18, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  // Puntas en negro pleno, paradas intermedias en gris: el número dice el orden y el
+  // color dice si es una punta del viaje o una parada del camino.
+  routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  routeMarkerEnd: { backgroundColor: '#010101' },
   driverMarker: { width: 30, height: 30, borderRadius: 18, backgroundColor: '#010101', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  waypointNumber: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
+  routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   stopTooltip: {
     position: 'absolute',
     bottom: 40,
