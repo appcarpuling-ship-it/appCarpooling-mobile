@@ -226,6 +226,20 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const formatDate = (date) =>
     new Date(date).toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
+  /**
+   * "Concordia" sola no ubica a nadie: hay ciudades homónimas en varias provincias. Se
+   * omite la provincia si ya está escrita adentro de la ciudad (o al revés), porque en
+   * CABA vienen prácticamente iguales y quedaba repetido.
+   */
+  const cityWithProvince = (loc) => {
+    const city = String(loc?.city || '').trim();
+    const province = String(loc?.province || '').trim();
+    if (!province || !city) return city || province;
+    if (city.toLowerCase().includes(province.toLowerCase())) return city;
+    if (province.toLowerCase().includes(city.toLowerCase())) return province;
+    return `${city}, ${province}`;
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: bg }]}>
@@ -273,7 +287,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={styles.routeLabelsCol}>
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textMuted }]}>Origen</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.origin.city}</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(request.origin)}</Text>
                 {request.origin.address && request.origin.address !== request.origin.city && (
                   <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{request.origin.address}</Text>
                 )}
@@ -281,7 +295,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               {(request.intermediateStops || []).map((stop, i) => (
                 <View key={i} style={styles.routeStop}>
                   <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {i + 1}</Text>
-                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{stop.city || stop.address}</Text>
+                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(stop) || stop.address}</Text>
                   {stop.address && stop.address !== stop.city && (
                     <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{stop.address}</Text>
                   )}
@@ -289,7 +303,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               ))}
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.destination.city}</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(request.destination)}</Text>
                 {request.destination.address && request.destination.address !== request.destination.city && (
                   <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{request.destination.address}</Text>
                 )}
