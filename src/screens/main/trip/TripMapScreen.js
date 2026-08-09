@@ -265,10 +265,13 @@ const TripMapScreen = ({ route, navigation }) => {
             key={`stop-${i}-${mapReady}`}
             coordinate={{ latitude: stop.coordinates.latitude, longitude: stop.coordinates.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
-            onPress={() => setSelectedStop(selectedStop?.index === i ? null : { index: i, address: stop.address || stop.city || `Parada ${i + 1}` })}
+            onPress={() => setSelectedStop(selectedStop?.index === i ? null : { index: i, address: stop.address || stop.city || `Parada ${i + 2}` })}
           >
+            {/* +2 y no +1: en el detalle del viaje la ruta se numera entera y el origen es
+                el 1, así que la primera parada intermedia es el 2. Si acá arrancara en 1,
+                la misma parada tendría dos números distintos según la pantalla. */}
             <View style={styles.waypointMarker}>
-              <Text style={styles.waypointNumber}>{i + 1}</Text>
+              <Text style={styles.waypointNumber}>{i + 2}</Text>
             </View>
           </Marker>
         ))}
@@ -310,7 +313,7 @@ const TripMapScreen = ({ route, navigation }) => {
           onPress={() => setSelectedStop(null)}
           activeOpacity={0.9}
         >
-          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.index + 1}</Text>
+          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.index + 2}</Text>
           <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
         </TouchableOpacity>
       )}

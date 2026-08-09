@@ -220,6 +220,22 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  /**
+   * La ruta como una sola secuencia numerada: origen es el 1 y el destino el número más
+   * alto. Antes las paradas intermedias se numeraban por su cuenta (1, 2…) y las puntas
+   * no llevaban número, así que "1" era la primera parada y no el arranque del viaje.
+   * Armar la lista acá y recorrerla una vez evita que la columna de los puntos y la de
+   * las direcciones se desincronicen, que era el riesgo de tenerlas escritas por separado.
+   */
+  const routePoints = useMemo(() => {
+    const stops = [...(trip?.intermediateStops || [])].sort((a, b) => a.order - b.order);
+    return [
+      { location: trip?.origin, label: 'Origen', isEnd: true },
+      ...stops.map((stop) => ({ location: stop, label: '', isEnd: false })),
+      { location: trip?.destination, label: 'Destino', isEnd: true },
+    ];
+  }, [trip]);
+
   const fmtCurrency = (n) =>
     n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
@@ -724,49 +740,37 @@ const TripDetailScreen = ({ route, navigation }) => {
         <View style={[styles.section, { backgroundColor: cardBg }]}>
           <View style={styles.routeRow}>
             <View style={styles.routeDotsCol}>
-              <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
-              <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
-              {trip.intermediateStops?.length > 0 && trip.intermediateStops
-                .sort((a, b) => a.order - b.order)
-                .map((stop, i) => (
-                  <React.Fragment key={i}>
-                    <View style={[styles.routeDotStop, { backgroundColor: textMuted }]}>
-                      <Text style={styles.routeDotStopNum}>{stop.order}</Text>
-                    </View>
-                    <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
-                  </React.Fragment>
-                ))}
-              <View style={[styles.routeDotDest, { backgroundColor: accent }]} />
+              {routePoints.map((point, i) => (
+                <React.Fragment key={`dot-${i}`}>
+                  {i > 0 && <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />}
+                  <View
+                    style={[
+                      styles.routeDot,
+                      { backgroundColor: point.isEnd ? accent : textMuted },
+                    ]}
+                  >
+                    <Text style={[styles.routeDotNum, { color: point.isEnd ? accentInverse : '#FFFFFF' }]}>
+                      {i + 1}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              ))}
             </View>
 
             <View style={styles.routeLabelsCol}>
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Origen</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.origin)}</Text>
-                {!!formatCity(trip.origin) && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.origin)}</Text>
-                )}
-              </View>
-
-              {trip.intermediateStops?.length > 0 && trip.intermediateStops
-                .sort((a, b) => a.order - b.order)
-                .map((stop, i) => (
-                  <View key={i} style={styles.routeStop}>
-                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{stop.order}</Text>
-                    <Text style={[styles.routeStopAddress, { color: textSecondary }]}>{formatAddress(stop)}</Text>
-                    {!!formatCity(stop) && (
-                      <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(stop)}</Text>
-                    )}
-                  </View>
-                ))}
-
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textPrimary }]}>Destino</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{formatAddress(trip.destination)}</Text>
-                {!!formatCity(trip.destination) && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(trip.destination)}</Text>
-                )}
-              </View>
+              {routePoints.map((point, i) => (
+                <View key={`label-${i}`} style={styles.routeStop}>
+                  {!!point.label && (
+                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
+                  )}
+                  <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary }]}>
+                    {formatAddress(point.location)}
+                  </Text>
+                  {!!formatCity(point.location) && (
+                    <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(point.location)}</Text>
+                  )}
+                </View>
+              ))}
             </View>
           </View>
         </View>
@@ -1365,26 +1369,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 4,
   },
-  routeDotOrigin: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-  },
   routeLineV: {
     width: 1.5,
     height: 44,
     marginVertical: 2,
   },
-  routeDotStop: {
+  routeDot: {
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  routeDotStopNum: { fontSize: 9, fontFamily: 'Sora_700Bold', color: '#FFF' },
-  routeDotDest: { width: 10, height: 10, borderRadius: 5 },
+  routeDotNum: { fontSize: 9, fontFamily: 'Sora_700Bold' },
   routeLabelsCol: { flex: 1, gap: 0 },
   routeStop: { paddingBottom: 16 },
   routeStopLabel: {
