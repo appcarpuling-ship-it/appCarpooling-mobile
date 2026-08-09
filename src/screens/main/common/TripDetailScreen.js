@@ -738,41 +738,37 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Route */}
         <View style={[styles.section, { backgroundColor: cardBg }]}>
-          <View style={styles.routeRow}>
-            <View style={styles.routeDotsCol}>
-              {routePoints.map((point, i) => (
-                <React.Fragment key={`dot-${i}`}>
-                  {i > 0 && <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />}
-                  <View
-                    style={[
-                      styles.routeDot,
-                      { backgroundColor: point.isEnd ? accent : textMuted },
-                    ]}
-                  >
-                    <Text style={[styles.routeDotNum, { color: point.isEnd ? accentInverse : '#FFFFFF' }]}>
-                      {i + 1}
-                    </Text>
-                  </View>
-                </React.Fragment>
-              ))}
-            </View>
-
-            <View style={styles.routeLabelsCol}>
-              {routePoints.map((point, i) => (
-                <View key={`label-${i}`} style={styles.routeStop}>
-                  {!!point.label && (
-                    <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
-                  )}
-                  <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary }]}>
-                    {formatAddress(point.location)}
+          {/* Cada punto es UNA fila con su círculo al lado de su texto. Antes eran dos
+              columnas separadas —una de círculos con la línea de alto fijo, otra de
+              direcciones de alto variable— y con dos paradas ya se desincronizaban: el
+              número quedaba al lado de la dirección equivocada. Así no puede pasar,
+              porque el círculo y el texto son hermanos de la misma fila. */}
+          {routePoints.map((point, i) => (
+            <View key={`point-${i}`} style={styles.routePoint}>
+              <View style={styles.routeRail}>
+                <View style={[styles.routeDot, { backgroundColor: point.isEnd ? accent : textMuted }]}>
+                  <Text style={[styles.routeDotNum, { color: point.isEnd ? accentInverse : '#FFFFFF' }]}>
+                    {i + 1}
                   </Text>
-                  {!!formatCity(point.location) && (
-                    <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(point.location)}</Text>
-                  )}
                 </View>
-              ))}
+                {i < routePoints.length - 1 && (
+                  <View style={[styles.routeRailLine, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+                )}
+              </View>
+
+              <View style={[styles.routeBody, i < routePoints.length - 1 && styles.routeBodyGap]}>
+                {!!point.label && (
+                  <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
+                )}
+                <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary }]}>
+                  {formatAddress(point.location)}
+                </Text>
+                {!!formatCity(point.location) && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(point.location)}</Text>
+                )}
+              </View>
             </View>
-          </View>
+          ))}
         </View>
 
         {/* Ver trayecto en mapa */}
@@ -1363,17 +1359,12 @@ const styles = StyleSheet.create({
   },
 
   // Route
-  routeRow: { flexDirection: 'row', gap: 16 },
-  routeDotsCol: {
-    width: 18,
-    alignItems: 'center',
-    paddingTop: 4,
-  },
-  routeLineV: {
-    width: 1.5,
-    height: 44,
-    marginVertical: 2,
-  },
+  routePoint: { flexDirection: 'row', gap: 16 },
+  // El riel mide lo que mide la fila, y la linea toma el alto que sobra debajo del
+  // circulo. Por eso el trazo se estira solo cuando la direccion ocupa tres renglones,
+  // sin ningun alto fijo que adivinar.
+  routeRail: { width: 18, alignItems: 'center', paddingTop: 2 },
+  routeRailLine: { flex: 1, width: 1.5, marginVertical: 4 },
   routeDot: {
     width: 18,
     height: 18,
@@ -1382,8 +1373,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   routeDotNum: { fontSize: 9, fontFamily: 'Sora_700Bold' },
-  routeLabelsCol: { flex: 1, gap: 0 },
-  routeStop: { paddingBottom: 16 },
+  routeBody: { flex: 1 },
+  routeBodyGap: { paddingBottom: 18 },
   routeStopLabel: {
     fontSize: 11,
     fontFamily: 'Sora_500Medium',
