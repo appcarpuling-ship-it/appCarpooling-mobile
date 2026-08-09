@@ -125,13 +125,29 @@ const MyTripsScreen = ({ navigation }) => {
             try {
               const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
               if (response.success) {
-                showAlert('Viaje Iniciado', 'El viaje ha comenzado.');
+                // El listado se recarga acá y no al volver: cuando el usuario cierra la
+                // pantalla de resultado, el viaje ya tiene que figurar como en curso.
                 loadMyTrips(1, true);
+                navigation.navigate('Result', {
+                  type: 'success',
+                  title: 'Viaje iniciado',
+                  message: 'Avisamos a los pasajeros que ya saliste.',
+                  primaryLabel: 'Continuar',
+                });
               } else {
-                showAlert('Ocurrió algo', response.message || 'No se pudo iniciar el viaje');
+                navigation.navigate('Result', {
+                  type: 'error',
+                  title: 'No se pudo iniciar',
+                  message: response.message || 'Probá de nuevo en un momento.',
+                });
               }
             } catch (error) {
-              showAlert('Ocurrió algo', error.message || 'Error al iniciar el viaje');
+              navigation.navigate('Result', {
+                type: 'error',
+                title: 'No se pudo iniciar',
+                message: error.message || 'Probá de nuevo en un momento.',
+                error,
+              });
             } finally {
               setStartingTripId(null);
             }
