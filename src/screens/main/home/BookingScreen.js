@@ -491,7 +491,9 @@ const BookingScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (!pickupMapVisible) { setOverlayMontado(false); return undefined; }
-    const t = setTimeout(() => setOverlayMontado(true), 0);
+    // Un frame real, no un tick: con 0ms el callback corre antes de que el overlay llegue a
+    // pintarse y el mapa vuelve a nacer junto con su contenedor.
+    const t = setTimeout(() => setOverlayMontado(true), 120);
     return () => clearTimeout(t);
   }, [pickupMapVisible]);
 
@@ -621,7 +623,11 @@ const BookingScreen = ({ route, navigation }) => {
                   // dónde está parado ahora, que puede ser del otro lado del país.
                   const enDestino = row.mode === 'dropoff' ? regionDesde(trip?.destination?.coordinates, 0.05) : null;
                   if (enDestino) {
-                    setPickupPinCoords({ latitude: enDestino.latitude, longitude: enDestino.longitude });
+                    // Sólo la región, SIN pin: un <Marker> montado en el mismo commit que el
+                    // <MapView> deja el mapa sin tiles en iOS (queda celeste). En recogida no
+                    // pasaba porque ahí el pin todavía no existe cuando el mapa aparece.
+                    // Además, abrir con un pin ya puesto en el destino da a entender que el
+                    // punto está elegido, y no lo está.
                     setPickupRegion(enDestino);
                   } else {
                     gotoUserLocation();
@@ -653,19 +659,15 @@ const BookingScreen = ({ route, navigation }) => {
 
           {paso === 2 && (
               <>
-          {/* Seat Selector */}
-          {calculatingPrice ? (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider, alignItems: 'center', paddingVertical: 28 }]}>
-              <ActivityIndicator size="small" color={textMuted} />
-              <Text style={[styles.loadingText, { color: textMuted }]}>Calculando precio...</Text>
-            </View>
-          ) : error ? (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.errorInline, { color: ui.textMuted || ui.textMuted }]}>{error}</Text>
-            </View>
-          ) : priceData ? (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+          {/* Selector de asientos: SIEMPRE visible. Antes se reemplazaba por un cartel de
+              "Calculando precio…" de otra altura, y como el precio se recalcula en cada
+              cambio de asientos, el selector desaparecía y volvía saltando en cada toque.
+              Los asientos no dependen del precio: el tope sale del viaje. */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+            <View style={styles.asientosHeader}>
               <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asientos</Text>
+              {calculatingPrice && <ActivityIndicator size="small" color={textMuted} />}
+            </View>
 
               <View style={styles.seatSelector}>
                 <TouchableOpacity
@@ -694,8 +696,13 @@ const BookingScreen = ({ route, navigation }) => {
                   <Ionicons name="add" size={20} color={seats >= maxSelectableSeats ? textMuted : accentInverse} />
                 </TouchableOpacity>
               </View>
+          </View>
+
+          {!!error && (
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+              <Text style={[styles.errorInline, { color: ui.textMuted }]}>{error}</Text>
             </View>
-          ) : null}
+          )}
 
               </>
           )}
@@ -1247,10 +1254,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  loadingText: {
-    fontSize: 13,
-    marginTop: 10,
-  },
   errorInline: {
     fontSize: 14,
     fontFamily: 'Sora_500Medium',
@@ -1470,6 +1473,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  asientosHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pasoBarra: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 8 },
   pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },
