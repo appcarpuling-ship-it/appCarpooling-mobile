@@ -51,7 +51,6 @@ const CompleteTripScreen = ({ route, navigation }) => {
   }, []);
 
   const total = num(fuel) + num(food) + num(other) + num(driverPay);
-  const perPassenger = total / seats;
 
   // Los tres primeros son gastos que se reparten; el extra es lo único que se queda el
   // conductor y por eso tiene tope. Mismo Math.floor que el server: si mostrara un máximo
@@ -59,6 +58,16 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const gastos = num(fuel) + num(food) + num(other);
   const topeExtra = Math.floor((gastos * maxExtraPct) / 100);
   const extraExcedido = num(driverPay) > topeExtra;
+
+  // El conductor también viaja, así que también pone: los gastos se dividen entre TODOS los
+  // que fueron en el auto (asientos + 1). El extra del conductor es aparte —no es un gasto
+  // del viaje, es lo que se lleva él— y lo pagan sólo los pasajeros.
+  // Antes se dividía el total entre los asientos y el conductor viajaba gratis.
+  const personas = seats + 1;
+  const porPersona = gastos / personas;
+  const extraPorAsiento = seats > 0 ? num(driverPay) / seats : 0;
+  const porAsiento = porPersona + extraPorAsiento;
+  const parteDelConductor = Math.max(0, porPersona - num(driverPay));
 
   const fields = [
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
@@ -113,7 +122,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={[styles.subtitle, { color: ui.textMuted }]}>
-            Cargá lo que se gastó en este viaje. Se reparte entre los asientos.
+            Cargá lo que se gastó en este viaje. Se reparte entre todos los que viajaron, vos incluido.
           </Text>
 
           {fields.map((f) => (
@@ -141,14 +150,37 @@ const CompleteTripScreen = ({ route, navigation }) => {
           {total > 0 && (
             <>
               <View style={[styles.totalRow, { borderTopColor: ui.border }]}>
-                <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total</Text>
+                <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total del viaje</Text>
                 <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
               </View>
+
+              {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
+                  llevar gente, así que tiene que quedar claro que el conductor también pone. */}
               <View style={styles.perPassengerRow}>
                 <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
-                  Cada pasajero (por asiento{seats > 1 ? `, ${seats} en total` : ''}) debe pagar
+                  Gastos entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
                 </Text>
-                <Text style={[styles.perPassengerValue, { color: ui.text }]}>${formatMoney(perPassenger)}</Text>
+                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
+              </View>
+
+              {num(driverPay) > 0 && (
+                <View style={styles.perPassengerRow}>
+                  <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
+                    Tu extra, repartido entre los pasajeros
+                  </Text>
+                  <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
+                </View>
+              )}
+
+              <View style={[styles.destacado, { borderTopColor: ui.border }]}>
+                <Text style={[styles.perPassengerLabel, { color: ui.text }]}>
+                  Cada pasajero te paga
+                </Text>
+                <Text style={[styles.destacadoValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
+              </View>
+              <View style={styles.perPassengerRow}>
+                <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
+                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
               </View>
             </>
           )}
@@ -180,6 +212,11 @@ const styles = StyleSheet.create({
   perPassengerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   perPassengerLabel: { fontSize: 13, fontFamily: 'Sora_400Regular', flex: 1, marginRight: 8 },
   perPassengerValue: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  destacado: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, marginTop: 12,
+  },
+  destacadoValor: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });
 

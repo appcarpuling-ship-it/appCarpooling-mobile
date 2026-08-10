@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     Modal,
     Keyboard,
     TouchableWithoutFeedback,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,16 @@ import { useColors } from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
+
+// El alta del viaje en pasos. El primero —elegir las direcciones en el mapa— es la pantalla
+// anterior (CreateTripGoogleMaps); acá empieza el segundo. Una sola pantalla con `step` en vez
+// de tres pantallas porque el formulario es uno solo: partirlo obligaría a arrastrar formData
+// entre rutas y a validar lo mismo en tres lugares.
+const PASOS = [
+    { titulo: 'Vehículo y asientos' },
+    { titulo: 'Fecha y hora' },
+    { titulo: 'Preferencias' },
+];
 
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
@@ -36,6 +47,8 @@ const TripDetails = ({ navigation, route }) => {
     const textMuted   = ui.textMuted;
     const divider     = ui.bg;
 
+    const [step, setStep] = useState(1);
+    const scrollRef = useRef(null);
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -93,6 +106,72 @@ const TripDetails = ({ navigation, route }) => {
         const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
         return `${display}:${m} ${ampm}`;
     };
+
+    const esUltimoPaso = step === PASOS.length;
+
+    /**
+     * Qué le falta al paso actual, en texto. Devuelve null si está completo.
+     * Se valida por paso y no sólo al publicar: llegar al final para que recién ahí te digan
+     * que faltaba el vehículo es peor que no tener pasos.
+     */
+    const faltante = (() => {
+        if (step === 1) {
+            if (!formData.vehicle) return 'Elegí con qué vehículo vas a viajar';
+            const asientos = parseInt(formData.availableSeats, 10);
+            if (!asientos || asientos < 1) return 'Indicá cuántos asientos ofrecés';
+            if (selectedVehicle?.capacity && asientos > selectedVehicle.capacity) {
+                return `El vehículo tiene lugar para ${selectedVehicle.capacity} pasajeros`;
+            }
+            return null;
+        }
+        if (step === 2) {
+            if (!formData.departureDate) return 'Elegí la fecha de salida';
+            if (!formData.departureTime) return 'Elegí la hora de salida';
+            return null;
+        }
+        return null; // las preferencias son todas opcionales
+    })();
+
+    const irAlSiguientePaso = () => {
+        if (faltante) return;
+        Keyboard.dismiss();
+        setStep((s) => Math.min(s + 1, PASOS.length));
+        // Sin esto el paso nuevo arranca a mitad de scroll, donde quedó el anterior.
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+    };
+
+    const volver = () => {
+        if (step > 1) {
+            setStep((s) => s - 1);
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
+            return true;
+        }
+        return false; // en el primer paso, atrás es volver al mapa
+    };
+
+    // La flecha del header y el botón físico de Android tienen que retroceder de paso, no
+    // salir del formulario: salir tira todo lo cargado hasta acá.
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: PASOS[step - 1].titulo,
+            headerLeft: () => (
+                <TouchableOpacity
+                    onPress={() => { if (!volver()) navigation.goBack(); }}
+                    style={{ paddingVertical: 10, paddingRight: 10, paddingLeft: 4, marginLeft: Platform.OS === 'android' ? 6 : 4 }}
+                    hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                >
+                    <Ionicons name="chevron-back" size={26} color={textPrimary} />
+                </TouchableOpacity>
+            ),
+        });
+    }, [navigation, step, textPrimary]);
+
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', volver);
+        return () => sub.remove();
+    }, [step]);
 
     const handleCreateTrip = async () => {
         const { vehicle, departureDate, departureTime, availableSeats } = formData;
@@ -171,6 +250,7 @@ const TripDetails = ({ navigation, route }) => {
                 <KeyboardAvoidingView behavior="padding" style={styles.flex}>
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
+                        ref={scrollRef}
                         style={styles.flex}
                         contentContainerStyle={styles.scroll}
                         showsVerticalScrollIndicator={false}
@@ -201,6 +281,25 @@ const TripDetails = ({ navigation, route }) => {
                             )}
                         </View>
 
+                        {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
+                            siente más largo que el de una sola pantalla, porque no se ve el final. */}
+                        <View style={styles.progreso}>
+                            {PASOS.map((_, i) => (
+                                <View
+                                    key={i}
+                                    style={[
+                                        styles.progresoTramo,
+                                        { backgroundColor: i < step ? textPrimary : divider },
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                        <Text style={[styles.progresoTexto, { color: textMuted }]}>
+                            Paso {step} de {PASOS.length} · {PASOS[step - 1].titulo}
+                        </Text>
+
+                        {step === 1 && (
+                            <>
                         {/* Vehículo */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>VEHÍCULO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -257,35 +356,8 @@ const TripDetails = ({ navigation, route }) => {
                             )}
                         </View>
 
-                        {/* Fecha y hora */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            <TouchableOpacity
-                                style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
-                                onPress={() => setShowDatePicker(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="calendar-outline" size={19} color={textPrimary} />
-                                <Text style={[styles.selectText, { color: formData.departureDate ? textPrimary : textMuted }]}>
-                                    {formData.departureDate ? formatDateDisplay(formData.departureDate) : 'Seleccionar fecha'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.selectRow}
-                                onPress={() => setShowTimePicker(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="time-outline" size={19} color={textPrimary} />
-                                <Text style={[styles.selectText, { color: formData.departureTime ? textPrimary : textMuted }]}>
-                                    {formData.departureTime ? formatTimeDisplay(formData.departureTime) : 'Seleccionar hora'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
-                            </TouchableOpacity>
-                        </View>
-
                         {/* Detalles */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>DETALLES</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASIENTOS</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
@@ -324,6 +396,43 @@ const TripDetails = ({ navigation, route }) => {
                             </View> */}
                         </View>
 
+                            </>
+                        )}
+
+                        {step === 2 && (
+                            <>
+                        {/* Fecha y hora */}
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
+                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+                            <TouchableOpacity
+                                style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
+                                onPress={() => setShowDatePicker(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="calendar-outline" size={19} color={textPrimary} />
+                                <Text style={[styles.selectText, { color: formData.departureDate ? textPrimary : textMuted }]}>
+                                    {formData.departureDate ? formatDateDisplay(formData.departureDate) : 'Seleccionar fecha'}
+                                </Text>
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.selectRow}
+                                onPress={() => setShowTimePicker(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="time-outline" size={19} color={textPrimary} />
+                                <Text style={[styles.selectText, { color: formData.departureTime ? textPrimary : textMuted }]}>
+                                    {formData.departureTime ? formatTimeDisplay(formData.departureTime) : 'Seleccionar hora'}
+                                </Text>
+                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
+                            </TouchableOpacity>
+                        </View>
+
+                            </>
+                        )}
+
+                        {step === 3 && (
+                            <>
                         {/* Preferencias */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>PREFERENCIAS</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -355,21 +464,27 @@ const TripDetails = ({ navigation, route }) => {
                             ))}
                         </View>
 
-                        {/* Publicar */}
+                            </>
+                        )}
+
+                        {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último. */}
+                        {!!faltante && (
+                            <Text style={[styles.faltante, { color: textMuted }]}>{faltante}</Text>
+                        )}
                         <TouchableOpacity
                             style={[
                                 styles.submitBtn,
                                 { backgroundColor: ui.invertBg },
-                                loading && { opacity: 0.6 },
+                                (loading || !!faltante) && { opacity: 0.4 },
                             ]}
-                            onPress={handleCreateTrip}
-                            disabled={loading}
+                            onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
+                            disabled={loading || !!faltante}
                             activeOpacity={0.85}
                         >
                             {loading
                                 ? <ActivityIndicator color={ui.invertText} size="small" />
                                 : <Text style={[styles.submitText, { color: ui.invertText }]}>
-                                    Publicar viaje
+                                    {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
                                   </Text>
                             }
                         </TouchableOpacity>
@@ -609,6 +724,10 @@ const styles = StyleSheet.create({
     },
 
     // Submit
+    progreso: { flexDirection: 'row', gap: 6, marginTop: 18 },
+    progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
+    progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
+    faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginTop: 18, marginBottom: -8 },
     submitBtn: {
         borderRadius: 999,
         paddingVertical: 16,
