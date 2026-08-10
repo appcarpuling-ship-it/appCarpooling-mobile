@@ -127,9 +127,6 @@ const BookingScreen = ({ route, navigation }) => {
   const pickupOverlayY = useRef(new Animated.Value(16)).current;
   const pickupIdleTimer = useRef(null);
   const pickupGeocodeId = useRef(0);
-  // onMapReady no estaba conectado y esta ref se escribía sin leerse nunca. Ahora es estado:
-  // si el mapa nunca avisa que está listo, el problema es que no inicializa, no la región.
-  const [pickupMapReady, setPickupMapReady] = useState(false);
   // Se incrementa para forzar el remontaje del mapa. El buscador se abre a pantalla completa
   // TAPANDO el mapa, y al cerrarse el GMSMapView de iOS queda con el renderizado suspendido:
   // sigue vivo (onMapReady ya disparó) y con la región correcta, pero no vuelve a dibujar
@@ -619,7 +616,6 @@ const BookingScreen = ({ route, navigation }) => {
                 setPickupPinAddress(row.value?.address || '');
                 setPickupMapSelectionMode(false);
                 pickupMapSelectionModeRef.current = false;
-                setPickupMapReady(false);
                 setPickupMapVisible(true);
                 const yaElegido = regionDesde(row.value?.coordinates, 0.01);
                 if (yaElegido) {
@@ -927,7 +923,6 @@ const BookingScreen = ({ route, navigation }) => {
                   }}
                   showsUserLocation={false}
                   showsMyLocationButton={false}
-                  onMapReady={() => setPickupMapReady(true)}
                 >
                   {/* Marker fijo en la ubicación confirmada (fuera de modo selección) */}
                   {pickupPinCoords && !pickupMapSelectionMode && (
@@ -942,21 +937,6 @@ const BookingScreen = ({ route, navigation }) => {
                 </View>
               )}
 
-              {/* DIAGNOSTICO TEMPORAL del mapa en celeste. Sacar cuando se resuelva. */}
-              <View style={pickupStyles.debugBox} pointerEvents="none">
-                <Text style={pickupStyles.debugText}>
-                  modo={pickerMode} montado={String(overlayMontado)} listo={String(pickupMapReady)}
-                </Text>
-                <Text style={pickupStyles.debugText}>
-                  region={pickupRegion ? `${pickupRegion.latitude.toFixed(4)},${pickupRegion.longitude.toFixed(4)} d=${pickupRegion.latitudeDelta}` : 'null'}
-                </Text>
-                <Text style={pickupStyles.debugText}>
-                  pin={pickupPinCoords ? `${pickupPinCoords.latitude.toFixed(4)},${pickupPinCoords.longitude.toFixed(4)}` : 'null'} sel={String(pickupMapSelectionMode)}
-                </Text>
-                <Text style={pickupStyles.debugText}>
-                  destino={trip?.destination?.coordinates ? `${trip.destination.coordinates.latitude},${trip.destination.coordinates.longitude}` : 'SIN COORDS'}
-                </Text>
-              </View>
 
               {/* Center pin — solo en modo selección manual */}
               {!pickupSearchVisible && pickupMapSelectionMode && (
@@ -1586,11 +1566,6 @@ const pickupStyles = StyleSheet.create({
     width: 14, height: 14, borderRadius: 7,
     backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF',
   },
-  debugBox: {
-    position: 'absolute', top: 110, left: 12, right: 12, zIndex: 99,
-    backgroundColor: 'rgba(0,0,0,0.82)', borderRadius: 10, padding: 8,
-  },
-  debugText: { color: '#0F0', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   selectionBanner: {
     position: 'absolute', left: 16, right: 16,
     backgroundColor: '#1F2937', borderRadius: 12,
