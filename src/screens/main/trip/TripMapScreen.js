@@ -242,16 +242,11 @@ const TripMapScreen = ({ route, navigation }) => {
     // Sin trazado todavía, se respeta el orden con el que vinieron: es lo único que hay.
     paradas.sort((a, b) => posicionEnRuta(a.coordinate) - posicionEnRuta(b.coordinate));
 
-    return [
-      ...paradas,
-      destCoords?.latitude && {
-        id: 'destino',
-        coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
-        address: trip?.destination?.address || trip?.destination?.city || 'Destino',
-        quien: '',
-      },
-    ].filter(Boolean);
-  }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
+    // Sólo las paradas de los pasajeros. El destino del viaje no va: no es una parada donde
+    // haya que hacer algo, es donde se termina, y listado abajo del último punto de bajada
+    // sólo repetía información que ya está en el mapa.
+    return paradas;
+  }, [trip?.intermediateStops, routeCoordinates]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;

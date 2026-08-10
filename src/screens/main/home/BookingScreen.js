@@ -106,6 +106,11 @@ const BookingScreen = ({ route, navigation }) => {
   // estado, el buscador y el geocodificador inverso para la dejada era garantía de que se
   // arreglara un bug en una copia y no en la otra. pickerMode dice dónde cae lo confirmado.
   const [pickerMode, setPickerMode] = useState('pickup');
+  // El MapView no puede montarse en el mismo frame en que aparece el overlay: en iOS sale
+  // en blanco (celeste, sin tiles). Con la recogida no se notaba porque la región llega
+  // recién cuando responde el GPS, o sea un frame después; con la bajada se arma de una
+  // desde el destino del viaje y el mapa nacía en el mismo commit. Un tick de espera.
+  const [overlayMontado, setOverlayMontado] = useState(false);
   const [paso, setPaso] = useState(1);
   const scrollRef = useRef(null);
   const [pickupMapVisible, setPickupMapVisible] = useState(false);
@@ -483,6 +488,12 @@ const BookingScreen = ({ route, navigation }) => {
     const sub = BackHandler.addEventListener('hardwareBackPress', volverDePaso);
     return () => sub.remove();
   }, [pickupMapVisible, paso]);
+
+  useEffect(() => {
+    if (!pickupMapVisible) { setOverlayMontado(false); return undefined; }
+    const t = setTimeout(() => setOverlayMontado(true), 0);
+    return () => clearTimeout(t);
+  }, [pickupMapVisible]);
 
   useEffect(() => {
     if (!pickupMapVisible) return undefined;
@@ -874,8 +885,8 @@ const BookingScreen = ({ route, navigation }) => {
           el overlay tape todo, y el boton fisico de atras de Android lo cierra. */}
       {pickupMapVisible && (
         <View style={pickupStyles.fullscreen}>
-              {/* Map — solo monta cuando tenemos región */}
-              {pickupRegion ? (
+              {/* Map — sólo monta con región válida y con el overlay ya en pantalla */}
+              {pickupRegion && overlayMontado ? (
                 <MapView
                   ref={pickupMapRef}
                   provider={PROVIDER_GOOGLE}
@@ -1463,13 +1474,12 @@ const styles = StyleSheet.create({
   pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },
   confirmBtn: {
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   confirmBtnText: {
     fontSize: 16,
