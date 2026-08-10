@@ -127,12 +127,6 @@ const BookingScreen = ({ route, navigation }) => {
   const pickupOverlayY = useRef(new Animated.Value(16)).current;
   const pickupIdleTimer = useRef(null);
   const pickupGeocodeId = useRef(0);
-  // Se incrementa para forzar el remontaje del mapa. El buscador se abre a pantalla completa
-  // TAPANDO el mapa, y al cerrarse el GMSMapView de iOS queda con el renderizado suspendido:
-  // sigue vivo (onMapReady ya disparó) y con la región correcta, pero no vuelve a dibujar
-  // tiles. Por eso quedaba celeste sólo cuando se pasaba por el buscador — que es siempre en
-  // la bajada, porque ahí no hay dirección precargada como en la recogida.
-  const [mapKey, setMapKey] = useState(0);
   const [pickupMapSelectionMode, setPickupMapSelectionMode] = useState(false);
   const pickupMapSelectionModeRef = useRef(false);
   const [priceData, setPriceData] = useState(null);
@@ -339,7 +333,6 @@ const BookingScreen = ({ route, navigation }) => {
       setPickupSearchVisible(false);
       setPickupSearch('');
       setPickupSearchResults([]);
-      setMapKey((k) => k + 1);
     });
   };
 
@@ -895,9 +888,8 @@ const BookingScreen = ({ route, navigation }) => {
       {pickupMapVisible && (
         <View style={pickupStyles.fullscreen}>
               {/* Map — sólo monta con región válida y con el overlay ya en pantalla */}
-              {pickupRegion && overlayMontado ? (
+              {pickupRegion && overlayMontado && !pickupSearchVisible ? (
                 <MapView
-                  key={`picker-map-${mapKey}`}
                   ref={pickupMapRef}
                   provider={PROVIDER_GOOGLE}
                   style={StyleSheet.absoluteFill}

@@ -361,6 +361,7 @@ const TripMapScreen = ({ route, navigation }) => {
             key={`pt-${i}-${mapReady}`}
             coordinate={point.coordinate}
             anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={2}
             onPress={() =>
               setSelectedStop(
                 selectedStop?.number === i + 1
@@ -383,6 +384,10 @@ const TripMapScreen = ({ route, navigation }) => {
             strokeColors={['#010101']}
             lineCap="round"
             lineJoin="round"
+            // El trazado es lo más bajo del mapa: los marcadores y el punto azul del GPS
+            // tienen que quedar por encima, si no el conductor se pierde a sí mismo debajo
+            // de la línea negra justo cuando va sobre la ruta.
+            zIndex={0}
           />
         )}
       </MapView>
