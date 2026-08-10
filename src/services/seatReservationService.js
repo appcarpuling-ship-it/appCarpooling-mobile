@@ -10,15 +10,32 @@ import { post_withauth, get_withauth, delete_withauth, put_withauth } from './ap
  */
 
 /**
- * Calcular precio dinámico de una reserva antes de crearla
+ * Calcular precio dinámico de una reserva antes de crearla.
+ *
+ * Los dos puntos van en la consulta porque el server les cobra el desvío: la recogida desde
+ * el origen y la dejada hasta el destino. Si no se mandan, la pantalla muestra un precio y el
+ * server guarda otro más caro al crear la solicitud.
+ *
  * @param {string} tripId - ID del viaje
  * @param {number} seatsBooked - Número de asientos a reservar
+ * @param {Object} [puntos] - { pickupLocation, dropoffLocation }
  * @returns {Promise<Object>} - Objeto con cálculo de precio y desglose
  */
-export const calculateReservationPrice = async (tripId, seatsBooked = 1) => {
+export const calculateReservationPrice = async (tripId, seatsBooked = 1, puntos = {}) => {
   try {
+    const params = new URLSearchParams({ seatsBooked: String(seatsBooked) });
+    const agregar = (prefijo, punto) => {
+      if (punto?.coordinates?.latitude == null || punto?.coordinates?.longitude == null) return;
+      params.set(`${prefijo}Lat`, String(punto.coordinates.latitude));
+      params.set(`${prefijo}Lng`, String(punto.coordinates.longitude));
+      if (punto.address) params.set(`${prefijo}Address`, punto.address);
+      if (punto.city) params.set(`${prefijo}City`, punto.city);
+    };
+    agregar('pickup', puntos.pickupLocation);
+    agregar('dropoff', puntos.dropoffLocation);
+
     const response = await get_withauth(
-      `${ENDPOINTS.SEAT_RESERVATIONS}/calculate-price/${tripId}?seatsBooked=${seatsBooked}`
+      `${ENDPOINTS.SEAT_RESERVATIONS}/calculate-price/${tripId}?${params.toString()}`
     );
     return response;
   } catch (error) {
@@ -45,6 +62,9 @@ export const createSeatReservation = async (data) => {
     };
     if (data.pickupLocation?.address) {
       body.pickupLocation = data.pickupLocation;
+    }
+    if (data.dropoffLocation?.address) {
+      body.dropoffLocation = data.dropoffLocation;
     }
     const response = await post_withauth(ENDPOINTS.SEAT_RESERVATIONS, body);
     return response;

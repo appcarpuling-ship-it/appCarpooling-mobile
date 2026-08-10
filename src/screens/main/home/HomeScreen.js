@@ -150,6 +150,7 @@ const HomeScreen = ({ navigation, route }) => {
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [activeTrip, setActiveTrip] = useState(null);
   const [activeTripRole, setActiveTripRole] = useState(null);
+  const autoOpenedMapRef = useRef(false);
   const [openRequests, setOpenRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
@@ -221,6 +222,19 @@ const HomeScreen = ({ navigation, route }) => {
     }
   };
 
+  /**
+   * El banner de "viaje en curso". Al conductor lo manda al mapa —es lo que necesita mientras
+   * maneja— y al pasajero al detalle, que es donde tiene el chat, su reserva y lo que pagó.
+   */
+  const openActiveTrip = () => {
+    if (!activeTrip) return;
+    if (activeTripRole === 'driver') {
+      navigation.navigate('TripMap', { trip: activeTrip });
+    } else {
+      navigation.navigate('TripDetail', { tripId: activeTrip._id });
+    }
+  };
+
   const loadActiveTrip = async () => {
     try {
       const [driverRes, passengerRes] = await Promise.allSettled([
@@ -241,6 +255,16 @@ const HomeScreen = ({ navigation, route }) => {
       }
       setActiveTrip(found || null);
       setActiveTripRole(found ? role : null);
+
+      // El conductor está manejando: si cierra la app y la vuelve a abrir, no puede tener que
+      // hacer Home → viaje → detalle → mapa. Con un viaje EN CURSO (nunca con uno publicado
+      // para más adelante, que lo dejaría encerrado) va derecho al mapa.
+      // Una sola vez por arranque: loadActiveTrip corre en cada focus del Home, así que sin el
+      // ref lo rebotaría al mapa cada vez que vuelve y no podría usar el resto de la app.
+      if (found && role === 'driver' && !autoOpenedMapRef.current) {
+        autoOpenedMapRef.current = true;
+        navigation.navigate('TripMap', { trip: found });
+      }
     } catch {
       // no-op: banner is optional
     }
@@ -607,7 +631,7 @@ const HomeScreen = ({ navigation, route }) => {
             <TouchableOpacity
               // En oscuro, el #111 del banner se perdía contra el fondo #161616.
               style={[styles.activeTripBanner, dark && { backgroundColor: '#2A2A2A' }]}
-              onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+              onPress={() => openActiveTrip()}
               activeOpacity={0.88}
             >
               <View style={styles.activeTripLeft}>
@@ -819,7 +843,7 @@ const HomeScreen = ({ navigation, route }) => {
             <View style={styles.activeTripWrapper}>
               <TouchableOpacity
                 style={styles.activeTripBanner}
-                onPress={() => navigation.navigate('TripDetail', { tripId: activeTrip._id })}
+                onPress={() => openActiveTrip()}
                 activeOpacity={0.88}
               >
                 <View style={styles.activeTripLeft}>

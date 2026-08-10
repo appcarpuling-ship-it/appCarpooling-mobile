@@ -98,6 +98,11 @@ const BookingScreen = ({ route, navigation }) => {
   const successColor = ui.text || ui.text;
   
   const [pickupLocation, setPickupLocation] = useState(null);
+  const [dropoffLocation, setDropoffLocation] = useState(null);
+  // El selector de mapa es UNO solo y sirve para los dos puntos: duplicar las ~17 piezas de
+  // estado, el buscador y el geocodificador inverso para la dejada era garantía de que se
+  // arreglara un bug en una copia y no en la otra. pickerMode dice dónde cae lo confirmado.
+  const [pickerMode, setPickerMode] = useState('pickup');
   const [pickupMapVisible, setPickupMapVisible] = useState(false);
   const [pickupSearch, setPickupSearch] = useState('');
   const [pickupSearchResults, setPickupSearchResults] = useState([]);
@@ -151,7 +156,7 @@ const BookingScreen = ({ route, navigation }) => {
       setCalculatingPrice(true);
       setError('');
       const tripId = trip._id || trip.id;
-      const response = await calculateReservationPrice(tripId, seats);
+      const response = await calculateReservationPrice(tripId, seats, { pickupLocation, dropoffLocation });
       if (response.success) {
         const basePrice = response.data.pricing.totalPrice;
         const userDiscount = user?.discountPercentage || 0;
@@ -245,11 +250,13 @@ const BookingScreen = ({ route, navigation }) => {
     ]).start();
   }, []);
 
+  // También al cambiar los puntos: los dos suman su desvío al precio, así que si no se
+  // recalcula, la pantalla muestra el precio de antes de elegirlos.
   useEffect(() => {
     if (!trip || seats <= 0 || existingReservation) return;
     if (tripRemainingSeats(trip) <= 0) return;
     calculatePrice();
-  }, [seats]);
+  }, [seats, pickupLocation, dropoffLocation]);
 
   if (!trip || !trip.origin || !trip.destination) {
     return (
@@ -365,7 +372,8 @@ const BookingScreen = ({ route, navigation }) => {
       address = await reverseGeocodePickup(pickupPinCoords);
       setPickupResolving(false);
     }
-    setPickupLocation({ address, coordinates: pickupPinCoords });
+    const punto = { address, coordinates: pickupPinCoords };
+    if (pickerMode === 'dropoff') setDropoffLocation(punto); else setPickupLocation(punto);
     setPickupMapVisible(false);
     setPickupSearchVisible(false);
     setPickupMapSelectionMode(false);
@@ -386,7 +394,8 @@ const BookingScreen = ({ route, navigation }) => {
         tripId,
         seatsBooked: seats,
         message: '',
-        ...(pickupLocation?.address && { pickupLocation })
+        ...(pickupLocation?.address && { pickupLocation }),
+        ...(dropoffLocation?.address && { dropoffLocation })
       });
       if (!reservationResponse?.success) {
         throw new Error(reservationResponse?.message || 'Error creando la reserva');
@@ -535,43 +544,60 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Pickup Location */}
-          <TouchableOpacity
-            style={[styles.card, styles.pickupRow, { backgroundColor: cardBg, borderColor: divider }]}
-            onPress={() => {
-              setPickupSearch('');
-              setPickupPinAddress(pickupLocation?.address || '');
-              setPickupMapSelectionMode(false);
-              pickupMapSelectionModeRef.current = false;
-              pickupMapReady.current = false;
-              setPickupMapVisible(true);
-              if (pickupLocation?.coordinates) {
-                setPickupPinCoords(pickupLocation.coordinates);
-                setPickupRegion({ ...pickupLocation.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-              } else {
-                setPickupRegion(null);
-                setPickupPinCoords(null);
-                gotoUserLocation();
+          {/* Dónde sube y dónde baja. Las dos filas son la misma: sólo cambia en qué estado
+              cae el punto y contra qué punta del viaje se mide el desvío. */}
+          {[
+            { mode: 'pickup', label: 'Punto de recogida', vacio: 'Agregar punto de recogida',
+              icon: 'location-outline', value: pickupLocation, clear: () => setPickupLocation(null) },
+            { mode: 'dropoff', label: 'Punto de bajada', vacio: 'Bajar en el destino del viaje',
+              icon: 'flag-outline', value: dropoffLocation, clear: () => setDropoffLocation(null) },
+          ].map((row) => (
+            <TouchableOpacity
+              key={row.mode}
+              style={[styles.card, styles.pickupRow, { backgroundColor: cardBg, borderColor: divider }]}
+              onPress={() => {
+                setPickerMode(row.mode);
+                setPickupSearch('');
+                setPickupPinAddress(row.value?.address || '');
+                setPickupMapSelectionMode(false);
+                pickupMapSelectionModeRef.current = false;
+                pickupMapReady.current = false;
+                setPickupMapVisible(true);
+                if (row.value?.coordinates) {
+                  setPickupPinCoords(row.value.coordinates);
+                  setPickupRegion({ ...row.value.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+                } else {
+                  setPickupRegion(null);
+                  setPickupPinCoords(null);
+                  // Para la bajada, arrancar en el destino del viaje es mucho más útil que en
+                  // dónde está parado ahora, que es del otro lado del país.
+                  if (row.mode === 'dropoff' && trip?.destination?.coordinates?.latitude != null) {
+                    setPickupPinCoords(trip.destination.coordinates);
+                    setPickupRegion({ ...trip.destination.coordinates, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+                  } else {
+                    gotoUserLocation();
+                  }
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
+                <Ionicons name={row.icon} size={18} color={textMuted} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickupLabel, { color: textMuted }]}>{row.label}</Text>
+                <Text style={[styles.pickupValue, { color: row.value ? textPrimary : textMuted }]} numberOfLines={1}>
+                  {row.value ? row.value.address : row.vacio}
+                </Text>
+              </View>
+              {row.value
+                ? <TouchableOpacity onPress={(e) => { e.stopPropagation(); row.clear(); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={18} color={textMuted} />
+                  </TouchableOpacity>
+                : <Ionicons name="chevron-forward" size={16} color={textMuted} />
               }
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.pickupIconWrap, { backgroundColor: ui.bg }]}>
-              <Ionicons name="location-outline" size={18} color={textMuted} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
-              <Text style={[styles.pickupValue, { color: pickupLocation ? textPrimary : textMuted }]} numberOfLines={1}>
-                {pickupLocation ? pickupLocation.address : 'Agregar punto de recogida'}
-              </Text>
-            </View>
-            {pickupLocation
-              ? <TouchableOpacity onPress={(e) => { e.stopPropagation(); setPickupLocation(null); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={18} color={textMuted} />
-                </TouchableOpacity>
-              : <Ionicons name="chevron-forward" size={16} color={textMuted} />
-            }
-          </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
 
           {/* Seat Selector */}
           {calculatingPrice ? (
@@ -887,7 +913,9 @@ const BookingScreen = ({ route, navigation }) => {
                     >
                       {pickupResolving
                         ? <ActivityIndicator color={ui.invertText} />
-                        : <Text style={[pickupStyles.confirmBtnText, { color: ui.invertText }]}>Confirmar punto de recogida</Text>
+                        : <Text style={[pickupStyles.confirmBtnText, { color: ui.invertText }]}>
+                            {pickerMode === 'dropoff' ? 'Confirmar punto de bajada' : 'Confirmar punto de recogida'}
+                          </Text>
                       }
                     </TouchableOpacity>
                   </View>

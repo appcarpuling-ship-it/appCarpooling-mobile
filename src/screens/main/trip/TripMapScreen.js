@@ -61,6 +61,12 @@ const TripMapScreen = ({ route, navigation }) => {
   const [mapReady, setMapReady] = useState(false);
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
+  // Posición propia del conductor: hasta ahora sólo se emitía por socket para que la vieran
+  // los pasajeros, no se guardaba, así que no había con qué saber cuál parada le queda cerca.
+  const [myCoords, setMyCoords] = useState(null);
+  // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
+  // estado del viaje — si se reinicia la app se recalcula sola por cercanía.
+  const [paradasHechas, setParadasHechas] = useState([]);
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
@@ -75,9 +81,17 @@ const TripMapScreen = ({ route, navigation }) => {
       address: trip?.origin?.address || trip?.origin?.city || 'Origen',
       isEnd: true,
     },
+    // kind viene de la reserva del pasajero: una parada donde sube alguien no es lo mismo
+    // que una donde baja, y con sólo la dirección el conductor no podía distinguirlas.
     ...stops.map((s) => ({
       coordinate: { latitude: s.coordinates.latitude, longitude: s.coordinates.longitude },
       address: s.address || s.city || 'Parada',
+      kindLabel: s.kind === 'pickup' ? 'Recogida' : s.kind === 'dropoff' ? 'Bajada' : '',
+      // "A recoger a Martín" / "A dejar a Ana". Sin pasajero (paradas que cargó el conductor
+      // al publicar) queda vacío y la tarjeta muestra sólo la dirección.
+      quien: s.passenger?.firstName
+        ? `${s.kind === 'dropoff' ? 'A dejar a' : 'A recoger a'} ${s.passenger.firstName}`
+        : '',
       isEnd: false,
     })),
     destCoords?.latitude && {
@@ -98,6 +112,17 @@ const TripMapScreen = ({ route, navigation }) => {
     return () => { isMounted.current = false; };
   }, []);
 
+  // El punto azul, siempre y para cualquiera que mire el mapa. Antes sólo aparecía con el
+  // viaje en curso, así que al abrir un punto de recogida no había con qué saber si te
+  // queda cerca o cruzando la ciudad.
+  useEffect(() => {
+    let cancelled = false;
+    Location.requestForegroundPermissionsAsync()
+      .then(({ status }) => { if (!cancelled && status === 'granted') setShowMyLocation(true); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // Ubicación en vivo del conductor: se comparte por socket (sin costo de API), no por polling ni geocodificación.
   // Además, con el viaje en curso, cada uno (conductor o pasajero) ve su propio punto azul nativo
   // vía showsUserLocation — no hace falta watchPositionAsync propio para eso, solo el permiso.
@@ -108,7 +133,6 @@ const TripMapScreen = ({ route, navigation }) => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (cancelled || status !== 'granted') return;
-      setShowMyLocation(true);
 
       if (isDriver) {
         locationWatchRef.current = await Location.watchPositionAsync(
@@ -118,9 +142,10 @@ const TripMapScreen = ({ route, navigation }) => {
             distanceInterval: DRIVER_LOCATION_DISTANCE_M,
           },
           (loc) => {
+            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            setMyCoords(coords);
             socketService.sendTripLocationUpdate(trip._id, {
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
+              ...coords,
               heading: loc.coords.heading,
             });
           }
@@ -184,6 +209,46 @@ const TripMapScreen = ({ route, navigation }) => {
   const stopsCoveredBy = (points) =>
     stops.length === 0 ||
     stops.every((s) => points.some((p) => metersBetween(p, s.coordinates) < 150));
+
+  /**
+   * A dónde va ahora el conductor. Los destinos son las paradas de los pasajeros más el
+   * destino final; se elige la pendiente más cercana en vez de la primera por `order`,
+   * porque `order` es el orden en que se pagaron las reservas y no el del camino.
+   */
+  const navTargets = [
+    ...stops.map((st, i) => ({
+      id: `stop-${i}`,
+      coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
+      address: st.address || st.city || 'Parada',
+      quien: st.passenger?.firstName
+        ? `${st.kind === 'dropoff' ? 'A dejar a' : 'A recoger a'} ${st.passenger.firstName}`
+        : '',
+    })),
+    destCoords?.latitude && {
+      id: 'destino',
+      coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
+      address: trip?.destination?.address || trip?.destination?.city || 'Destino',
+      quien: 'Fin del viaje',
+    },
+  ].filter(Boolean);
+
+  const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
+  const proximaParada = !pendientes.length
+    ? null
+    : myCoords
+      ? pendientes.reduce((mejor, t) =>
+          metersBetween(myCoords, t.coordinate) < metersBetween(myCoords, mejor.coordinate) ? t : mejor)
+      : pendientes[0];
+
+  // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
+  // pedirle que maneje y opere el teléfono al mismo tiempo. El botón queda igual, por si el
+  // GPS no la detecta o se saltea una parada.
+  useEffect(() => {
+    if (!isDriver || !isTripStarted || !myCoords || !proximaParada) return;
+    if (metersBetween(myCoords, proximaParada.coordinate) < 200) {
+      setParadasHechas((prev) => (prev.includes(proximaParada.id) ? prev : [...prev, proximaParada.id]));
+    }
+  }, [myCoords, proximaParada?.id, isDriver, isTripStarted]);
 
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
@@ -285,7 +350,7 @@ const TripMapScreen = ({ route, navigation }) => {
               setSelectedStop(
                 selectedStop?.number === i + 1
                   ? null
-                  : { number: i + 1, address: point.address }
+                  : { number: i + 1, address: point.address, kindLabel: point.kindLabel }
               )
             }
           >
@@ -318,13 +383,43 @@ const TripMapScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* A dónde va ahora. Sólo para el conductor y sólo con el viaje en curso: al pasajero
+          no le sirve y le taparía el mapa. Va arriba y ocupa lo mínimo para que el mapa se
+          siga viendo entero, que es lo que el conductor necesita mientras maneja. */}
+      {isDriver && isTripStarted && proximaParada && (
+        <View style={[styles.navCard, { backgroundColor: cardBg, top: insets.top + 56 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.navLabel, { color: ui.textMuted }]}>Yendo a</Text>
+            <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
+              {proximaParada.address}
+            </Text>
+            {!!proximaParada.quien && (
+              <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
+                {proximaParada.quien}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[styles.navDone, { borderColor: ui.border }]}
+            onPress={() => setParadasHechas((prev) => [...prev, proximaParada.id])}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Marcar esta parada como hecha"
+          >
+            <Ionicons name="checkmark" size={18} color={textPrimary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {selectedStop && (
         <TouchableOpacity
           style={[styles.stopTooltip, { backgroundColor: cardBg }]}
           onPress={() => setSelectedStop(null)}
           activeOpacity={0.9}
         >
-          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>{selectedStop.number}</Text>
+          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>
+            {selectedStop.kindLabel ? `${selectedStop.number} · ${selectedStop.kindLabel}` : selectedStop.number}
+          </Text>
           <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
         </TouchableOpacity>
       )}
@@ -387,6 +482,26 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
+  navCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  navLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
+  navAddress: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, lineHeight: 26, marginTop: 2 },
+  navQuien: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
+  navDone: { width: 38, height: 38, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
   stopTooltipLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', opacity: 0.5, marginBottom: 4 },
   stopTooltipAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });

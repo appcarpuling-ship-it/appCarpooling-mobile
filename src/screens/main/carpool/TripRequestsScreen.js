@@ -518,32 +518,37 @@ const TripRequestsScreen = ({ route }) => {
           </Text>
         )}
 
-        {item.seatReservation?.pickupLocation?.address && (() => {
-          const pickup = item.seatReservation.pickupLocation;
-          const hasCoords = pickup.coordinates?.latitude != null;
+        {/* Dónde sube y dónde baja. Son la misma fila: el conductor tiene que ver los dos
+            ANTES de aprobar, porque aprobar o rechazar es su único control sobre el desvío. */}
+        {[
+          { label: 'Punto de recogida', punto: item.seatReservation?.pickupLocation },
+          { label: 'Punto de bajada', punto: item.seatReservation?.dropoffLocation },
+        ].filter(({ punto }) => punto?.address).map(({ label, punto }) => {
+          const hasCoords = punto.coordinates?.latitude != null;
           return (
             /* La fila entera es el botón, en vez de una píldora suelta adentro: así ocupa
                el ancho de la tarjeta como el resto de las filas y arranca en el mismo
                margen. El chevron es lo único que hace falta para decir que se toca. */
             <TouchableOpacity
+              key={label}
               style={[styles.pickupRow, { borderTopColor: divider }]}
               onPress={hasCoords
-                ? () => navigation.navigate('PickupMap', { coordinates: pickup.coordinates, address: pickup.address })
+                ? () => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label })
                 : undefined}
               disabled={!hasCoords}
               activeOpacity={0.7}
             >
               <Ionicons name={hasCoords ? 'map-outline' : 'location-outline'} size={16} color={textMuted} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.pickupLabel, { color: textMuted }]}>Punto de recogida</Text>
+                <Text style={[styles.pickupLabel, { color: textMuted }]}>{label}</Text>
                 <Text style={[styles.pickupText, { color: textPrimary }]} numberOfLines={2}>
-                  {pickup.address}
+                  {punto.address}
                 </Text>
               </View>
               {hasCoords && <Ionicons name="chevron-forward" size={16} color={textMuted} />}
             </TouchableOpacity>
           );
-        })()}
+        })}
 
         {item.status === 'rejected' && item.rejectionReason && (
           <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
