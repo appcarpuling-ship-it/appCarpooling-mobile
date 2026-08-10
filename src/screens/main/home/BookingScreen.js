@@ -26,7 +26,6 @@ import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
-import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import * as Location from 'expo-location';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../../services/mapsService';
@@ -131,8 +130,6 @@ const BookingScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [calculatingPrice, setCalculatingPrice] = useState(true);
   const [error, setError] = useState('');
-  const [banners, setBanners] = useState([]);
-  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   
   const routeParams = route.params || {};
   const trip = routeParams.trip;
@@ -208,17 +205,6 @@ const BookingScreen = ({ route, navigation }) => {
     }
   };
 
-  const loadBanners = async () => {
-    try {
-      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'booking' });
-      if (response.success && Array.isArray(response.data)) {
-        setBanners(response.data.flatMap(s => s.banners || []));
-      }
-    } catch {
-      // silent
-    }
-  };
-
   useEffect(() => {
     setSeats((s) => {
       if (!maxSelectableSeats || maxSelectableSeats <= 0) return 0;
@@ -264,7 +250,6 @@ const BookingScreen = ({ route, navigation }) => {
       setSeats(existingReservation.seatsBooked);
       setCalculatingPrice(false);
     }
-    loadBanners();
     
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -523,36 +508,18 @@ const BookingScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
         >
-          {/* Banners promocionales */}
-          {banners.length > 0 && (
-            <View style={{ marginBottom: 12 }}>
-              <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 10 }]}>Destacados</Text>
-              <FlatList
-                data={banners}
-                keyExtractor={(item) => item._id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 8 }}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.bannerThumb, { borderColor: divider }]}
-                    activeOpacity={0.92}
-                    onPress={() => setBannerModal({ visible: true, banner: item })}
-                  >
-                    {item.imageUrl ? (
-                      <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerThumbImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.bannerThumbFallback, { backgroundColor: cardBg }]}>
-                        <Text style={[styles.bannerTitle, { color: textPrimary }]} numberOfLines={2}>
-                          {item.title || 'Banner'}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          )}
+
+          {/* Progreso. Reservar es tres decisiones —dónde te suben, cuántos asientos y confirmar—
+              y en una sola pantalla larga se perdían entre el precio, los detalles y las
+              preferencias del viaje. */}
+          <View style={styles.pasoBarra}>
+              {PASOS_RESERVA.map((_, i) => (
+                  <View key={i} style={[styles.pasoTramo, { backgroundColor: i < paso ? textPrimary : divider }]} />
+              ))}
+          </View>
+          <Text style={[styles.pasoTexto, { color: textMuted }]}>
+              Paso {paso} de {PASOS_RESERVA.length} · {PASOS_RESERVA[paso - 1]}
+          </Text>
 
           {/* Trip Summary */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -610,17 +577,6 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Progreso. Reservar es tres decisiones —dónde te suben, cuántos asientos y confirmar—
-              y en una sola pantalla larga se perdían entre el precio, los detalles y las
-              preferencias del viaje. */}
-          <View style={styles.pasoBarra}>
-              {PASOS_RESERVA.map((_, i) => (
-                  <View key={i} style={[styles.pasoTramo, { backgroundColor: i < paso ? textPrimary : divider }]} />
-              ))}
-          </View>
-          <Text style={[styles.pasoTexto, { color: textMuted }]}>
-              Paso {paso} de {PASOS_RESERVA.length} · {PASOS_RESERVA[paso - 1]}
-          </Text>
 
           {paso === 1 && (
               <>
@@ -857,51 +813,56 @@ const BookingScreen = ({ route, navigation }) => {
               </>
           )}
 
-          {/* Footer */}
-          <TouchableOpacity
-            style={[
-              styles.confirmBtn,
-              {
-                backgroundColor:
-                  tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
-                opacity:
-                  loading ||
-                  calculatingPrice ||
-                  tripFreeNow <= 0 ||
-                  (!priceData && tripFreeNow > 0)
-                    ? 0.5
-                    : 1,
-              },
-            ]}
-            onPress={esUltimoPaso ? handleCreateReservation : irAlSiguientePaso}
-            disabled={
-              loading ||
-              calculatingPrice ||
-              tripFreeNow <= 0 ||
-              (!priceData && tripFreeNow > 0)
-            }
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={accentInverse} size="small" />
-            ) : (
-              <>
-                <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
-                  {tripFreeNow <= 0
-                    ? 'No hay cupos disponibles'
-                    : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
-                </Text>
-                {priceData && tripFreeNow > 0 && (
-                  <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
-                    ${formatNumber(displayPrice)} ARS
-                  </Text>
-                )}
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={{ height: 32 }} />
         </ScrollView>
+
+        {/* Fijo abajo: el botón principal tiene que estar siempre en el mismo lugar. Dentro
+            del scroll subía o bajaba según cuánto contenido tuviera el paso, y en los pasos
+            cortos quedaba en el medio de la pantalla con todo vacío debajo. */}
+        <View style={[styles.footerFijo, { backgroundColor: bg, borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        {/* Footer */}
+        <TouchableOpacity
+          style={[
+            styles.confirmBtn,
+            {
+              backgroundColor:
+                tripFreeNow <= 0 ? (ui.textMuted || ui.textMuted) : accent,
+              opacity:
+                loading ||
+                calculatingPrice ||
+                tripFreeNow <= 0 ||
+                (!priceData && tripFreeNow > 0)
+                  ? 0.5
+                  : 1,
+            },
+          ]}
+          onPress={esUltimoPaso ? handleCreateReservation : irAlSiguientePaso}
+          disabled={
+            loading ||
+            calculatingPrice ||
+            tripFreeNow <= 0 ||
+            (!priceData && tripFreeNow > 0)
+          }
+          activeOpacity={0.8}
+        >
+          {loading ? (
+            <ActivityIndicator color={accentInverse} size="small" />
+          ) : (
+            <>
+              <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
+                {tripFreeNow <= 0
+                  ? 'No hay cupos disponibles'
+                  : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
+              </Text>
+              {priceData && tripFreeNow > 0 && (
+                <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
+                  ${formatNumber(displayPrice)} ARS
+                </Text>
+              )}
+            </>
+          )}
+        </TouchableOpacity>
+
+        </View>
       </Animated.View>
 
       {/* Selector del punto de recogida.
@@ -1115,13 +1076,6 @@ const BookingScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      <BannerDetailModal
-        visible={bannerModal.visible}
-        banner={bannerModal.banner}
-        onClose={() => setBannerModal({ visible: false, banner: null })}
-        navigation={navigation}
-        colors={colors}
-      />
 
     </View>
   );
@@ -1500,6 +1454,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_500Medium',
   },
 
+  footerFijo: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   pasoBarra: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 8 },
   pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },

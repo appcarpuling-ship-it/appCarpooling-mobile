@@ -257,6 +257,23 @@ const TripDetails = ({ navigation, route }) => {
                         keyboardShouldPersistTaps="handled"
                     >
 
+                        {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
+                            siente más largo que el de una sola pantalla, porque no se ve el final. */}
+                        <View style={styles.progreso}>
+                            {PASOS.map((_, i) => (
+                                <View
+                                    key={i}
+                                    style={[
+                                        styles.progresoTramo,
+                                        { backgroundColor: i < step ? textPrimary : divider },
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                        <Text style={[styles.progresoTexto, { color: textMuted }]}>
+                            Paso {step} de {PASOS.length} · {PASOS[step - 1].titulo}
+                        </Text>
+
                         {/* Ruta */}
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={styles.routeRow}>
@@ -281,22 +298,6 @@ const TripDetails = ({ navigation, route }) => {
                             )}
                         </View>
 
-                        {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
-                            siente más largo que el de una sola pantalla, porque no se ve el final. */}
-                        <View style={styles.progreso}>
-                            {PASOS.map((_, i) => (
-                                <View
-                                    key={i}
-                                    style={[
-                                        styles.progresoTramo,
-                                        { backgroundColor: i < step ? textPrimary : divider },
-                                    ]}
-                                />
-                            ))}
-                        </View>
-                        <Text style={[styles.progresoTexto, { color: textMuted }]}>
-                            Paso {step} de {PASOS.length} · {PASOS[step - 1].titulo}
-                        </Text>
 
                         {step === 1 && (
                             <>
@@ -467,30 +468,35 @@ const TripDetails = ({ navigation, route }) => {
                             </>
                         )}
 
-                        {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último. */}
-                        {!!faltante && (
-                            <Text style={[styles.faltante, { color: textMuted }]}>{faltante}</Text>
-                        )}
-                        <TouchableOpacity
-                            style={[
-                                styles.submitBtn,
-                                { backgroundColor: ui.invertBg },
-                                (loading || !!faltante) && { opacity: 0.4 },
-                            ]}
-                            onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
-                            disabled={loading || !!faltante}
-                            activeOpacity={0.85}
-                        >
-                            {loading
-                                ? <ActivityIndicator color={ui.invertText} size="small" />
-                                : <Text style={[styles.submitText, { color: ui.invertText }]}>
-                                    {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
-                                  </Text>
-                            }
-                        </TouchableOpacity>
 
                     </ScrollView>
                     </TouchableWithoutFeedback>
+
+                    {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
+                        y bajaba según cuánto contenido tuviera cada paso. */}
+                    <View style={[styles.footerFijo, { borderTopColor: divider }]}>
+                    {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último. */}
+                    {!!faltante && (
+                        <Text style={[styles.faltante, { color: textMuted }]}>{faltante}</Text>
+                    )}
+                    <TouchableOpacity
+                        style={[
+                            styles.submitBtn,
+                            { backgroundColor: ui.invertBg },
+                            (loading || !!faltante) && { opacity: 0.4 },
+                        ]}
+                        onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
+                        disabled={loading || !!faltante}
+                        activeOpacity={0.85}
+                    >
+                        {loading
+                            ? <ActivityIndicator color={ui.invertText} size="small" />
+                            : <Text style={[styles.submitText, { color: ui.invertText }]}>
+                                {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
+                              </Text>
+                        }
+                    </TouchableOpacity>
+                    </View>
                 </KeyboardAvoidingView>
 
             </SafeAreaView>
@@ -728,6 +734,12 @@ const styles = StyleSheet.create({
     progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
     progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
     faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginTop: 18, marginBottom: -8 },
+    footerFijo: {
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        paddingBottom: 8,
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
     submitBtn: {
         borderRadius: 999,
         paddingVertical: 16,
