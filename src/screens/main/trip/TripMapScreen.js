@@ -124,11 +124,12 @@ const TripMapScreen = ({ route, navigation }) => {
             distanceInterval: DRIVER_LOCATION_DISTANCE_M,
           },
           (loc) => {
-            socketService.sendTripLocationUpdate(trip._id, {
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-              heading: loc.coords.heading,
-            });
+            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            // También en estado: es el punto por donde se corta el trazado en recorrido y
+            // pendiente. El conductor no se ve a sí mismo con driverLocation (eso es lo que
+            // reciben los pasajeros por socket), así que sin esto no habría por dónde cortar.
+            setDriverLocation({ ...coords, heading: loc.coords.heading });
+            socketService.sendTripLocationUpdate(trip._id, { ...coords, heading: loc.coords.heading });
           }
         );
       }
@@ -321,6 +322,34 @@ const TripMapScreen = ({ route, navigation }) => {
     }
   };
 
+  /**
+   * El trazado partido en dos: lo ya recorrido y lo que falta. Se corta en el punto del
+   * trazado más cercano a dónde está el auto, así se ve de un vistazo cuánto queda sin
+   * gastar una sola llamada a Directions.
+   *
+   * Sin viaje en curso o sin posición se devuelve todo como pendiente: pintar medio recorrido
+   * de gris cuando todavía no salió sería mentir.
+   */
+  const tramos = useMemo(() => {
+    if (!routeCoordinates.length) return { recorrido: [], pendiente: [] };
+    if (!isTripStarted || !driverLocation?.latitude) {
+      return { recorrido: [], pendiente: routeCoordinates };
+    }
+    let mejorDist = Infinity;
+    let corte = 0;
+    for (let i = 0; i < routeCoordinates.length; i++) {
+      const d = metersBetween(routeCoordinates[i], driverLocation);
+      if (d < mejorDist) { mejorDist = d; corte = i; }
+    }
+    // Muy lejos del trazado (desvío, GPS malo): no se corta nada en vez de inventar avance.
+    if (mejorDist > 3000) return { recorrido: [], pendiente: routeCoordinates };
+    return {
+      // Se solapan en el punto de corte para que no quede un hueco entre las dos líneas.
+      recorrido: routeCoordinates.slice(0, corte + 1),
+      pendiente: routeCoordinates.slice(corte),
+    };
+  }, [routeCoordinates, driverLocation?.latitude, driverLocation?.longitude, isTripStarted]);
+
   const initialRegion = originCoords?.latitude
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
     : { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 2, longitudeDelta: 2 };
@@ -376,18 +405,28 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         ))}
 
-        {routeCoordinates.length > 0 && (
+        {/* Lo ya recorrido, apagado. El trazado va en lo más bajo del mapa: los marcadores y
+            el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
+            a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
+        {tramos.recorrido.length > 1 && (
           <Polyline
-            coordinates={routeCoordinates}
+            coordinates={tramos.recorrido}
+            strokeWidth={5}
+            strokeColor="rgba(1,1,1,0.22)"
+            lineCap="round"
+            lineJoin="round"
+            zIndex={0}
+          />
+        )}
+        {tramos.pendiente.length > 1 && (
+          <Polyline
+            coordinates={tramos.pendiente}
             strokeWidth={5}
             strokeColor="#010101"
             strokeColors={['#010101']}
             lineCap="round"
             lineJoin="round"
-            // El trazado es lo más bajo del mapa: los marcadores y el punto azul del GPS
-            // tienen que quedar por encima, si no el conductor se pierde a sí mismo debajo
-            // de la línea negra justo cuando va sobre la ruta.
-            zIndex={0}
+            zIndex={1}
           />
         )}
       </MapView>
