@@ -157,6 +157,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
+  const [markingPaid, setMarkingPaid] = useState(null);
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
@@ -240,6 +241,17 @@ const TripDetailScreen = ({ route, navigation }) => {
     n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
   const myBookingSeats = userBooking?.seatsBooked ?? userBooking?.seats ?? 1;
+  // Lo que queda por pagarle al conductor en mano: el backend lo reparte entre los asientos
+  // al completar el viaje (seatReservationService.completeTripWithActualCost) y lo guarda por
+  // reserva. No se recalcula acá para que las dos puntas muestren el mismo número.
+  const amountOwed = (booking) => Number(booking?.seatReservation?.remainingPayment?.amountToPay) || 0;
+  const isSettled = (booking) => Boolean(booking?.seatReservation?.remainingPayment?.paidToDriver);
+  // El total baja a medida que el conductor va tildando lo que cobró: es lo que le falta
+  // juntar, no lo que le tenían que pagar.
+  const totalOwed = useMemo(
+    () => passengers.reduce((sum, b) => sum + (isSettled(b) ? 0 : amountOwed(b)), 0),
+    [passengers],
+  );
   // reservationAmount es el campo que muestra el conductor; totalPrice queda de respaldo
   // para reservas viejas creadas antes de que existiera la reserva de asiento.
   const myBookingAmount = userBooking?.seatReservation?.reservationAmount ?? userBooking?.totalPrice ?? null;
@@ -624,6 +636,34 @@ const TripDetailScreen = ({ route, navigation }) => {
     ]);
   };
 
+  /**
+   * Tildar que un pasajero ya pagó el resto en mano. Es optimista a propósito: el conductor
+   * está cobrando parado al lado del auto y no puede esperar al server; si el PUT falla se
+   * revierte y se avisa.
+   */
+  const togglePaidToDriver = async (booking) => {
+    const id = booking.seatReservation?._id;
+    if (!id || markingPaid) return;
+    const next = !isSettled(booking);
+    const apply = (value) => setPassengers((prev) => prev.map((b) => (
+      b.seatReservation?._id === id
+        ? { ...b, seatReservation: { ...b.seatReservation, remainingPayment: { ...b.seatReservation.remainingPayment, paidToDriver: value } } }
+        : b
+    )));
+
+    setMarkingPaid(id);
+    apply(next);
+    try {
+      const response = await put_withauth(ENDPOINTS.MARK_RESERVATION_PAID(id), { paid: next });
+      if (!response.success) throw new Error(response.message);
+    } catch (error) {
+      apply(!next);
+      showAlert('Ocurrió algo', 'No se pudo registrar el cobro');
+    } finally {
+      setMarkingPaid(null);
+    }
+  };
+
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
     const totalSeats = passengers.reduce((sum, b) => sum + (b.seatsBooked || b.seatsRequested || 1), 0);
@@ -743,6 +783,31 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               )}
             </View>
+            {/* Dónde sube y dónde baja: el pasajero los elige al reservar y después no los
+                veía en ningún lado, así que no tenía cómo confirmar qué había pedido. */}
+            {[
+              { label: 'Te recogen en', punto: userBooking.seatReservation?.pickupLocation, icon: 'location-outline' },
+              { label: 'Te dejan en', punto: userBooking.seatReservation?.dropoffLocation, icon: 'flag-outline' },
+            ].filter(({ punto }) => punto?.address).map(({ label, punto, icon }) => (
+              <View key={label} style={styles.myBookingPoint}>
+                <Ionicons name={icon} size={15} color={textMuted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.myBookingPointLabel, { color: textMuted }]}>{label}</Text>
+                  <Text style={[styles.myBookingPointValue, { color: textPrimary }]} numberOfLines={2}>
+                    {punto.address}
+                  </Text>
+                </View>
+              </View>
+            ))}
+
+            {trip.status === 'completed' && amountOwed(userBooking) > 0 && (
+              <View style={[styles.owedRow, { borderTopColor: divider }]}>
+                <Text style={[styles.owedLabel, { color: textMuted }]}>
+                  {isSettled(userBooking) ? 'Le pagaste al conductor' : 'Le pagás al conductor'}
+                </Text>
+                <Text style={[styles.owedValue, { color: textPrimary }]}>{fmtCurrency(amountOwed(userBooking))}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -994,12 +1059,23 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Pasajeros confirmados ({passengers.length})
             </Text>
+            {/* Cuánto le queda por cobrar en mano una vez cerrado el viaje. La reserva ya la
+                cobró la plataforma, así que este total es sólo el resto que cada uno le paga. */}
+            {trip.status === 'completed' && totalOwed > 0 && (
+              <View style={[styles.owedRow, { borderTopColor: divider, borderTopWidth: 0, paddingTop: 0, marginTop: -6, marginBottom: 10 }]}>
+                <Text style={[styles.owedLabel, { color: textMuted }]}>Total a cobrar en mano</Text>
+                <Text style={[styles.owedValue, { color: textPrimary }]}>{fmtCurrency(totalOwed)}</Text>
+              </View>
+            )}
             {passengers.length === 0 ? (
               <Text style={{ fontSize: 13, color: textMuted }}>Sin pasajeros confirmados aún</Text>
             ) : passengers.map((booking) => {
               const p = booking.passenger;
               const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
-              const paid = booking.seatReservation?.reservationStatus === 'reserved';
+              const rs = booking.seatReservation?.reservationStatus;
+              const paid = rs === 'reserved' || rs === 'trip_completed';
+              const owed = amountOwed(booking);
+              const settled = isSettled(booking);
               return (
                 <TouchableOpacity
                   key={booking._id}
@@ -1033,6 +1109,29 @@ const TripDetailScreen = ({ route, navigation }) => {
                         </Text>
                       </View>
                     </View>
+                    {trip.status === 'completed' && (
+                      owed > 0 ? (
+                        <TouchableOpacity
+                          style={styles.owedTap}
+                          onPress={(e) => { e.stopPropagation(); togglePaidToDriver(booking); }}
+                          disabled={markingPaid === booking.seatReservation?._id}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={settled ? 'Marcar como no cobrado' : 'Marcar como cobrado'}
+                        >
+                          <Ionicons
+                            name={settled ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={16}
+                            color={settled ? textPrimary : textMuted}
+                          />
+                          <Text style={[styles.passengerOwed, { color: settled ? textMuted : textPrimary, textDecorationLine: settled ? 'line-through' : 'none' }]}>
+                            {settled ? `Cobrado ${fmtCurrency(owed)}` : `Te debe ${fmtCurrency(owed)}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={[styles.passengerOwed, { color: textMuted, marginTop: 5 }]}>Sin saldo pendiente</Text>
+                      )
+                    )}
                   </View>
                   <TouchableOpacity
                     style={[styles.chatBtn, { backgroundColor: cardBg }]}
@@ -1366,6 +1465,12 @@ const styles = StyleSheet.create({
   myBookingRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 12 },
   myBookingItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   myBookingValue: { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  myBookingPoint: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
+  myBookingPointLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.2, textTransform: 'uppercase' },
+  myBookingPointValue: { fontSize: 14, fontFamily: 'Sora_400Regular', marginTop: 2 },
+  owedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  owedLabel: { fontSize: 13, fontFamily: 'Sora_400Regular' },
+  owedValue: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   sectionLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
@@ -1500,6 +1605,8 @@ const styles = StyleSheet.create({
   passengerInfo: { flex: 1 },
   passengerName: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   passengerSeats: { fontSize: 12, marginTop: 2 },
+  passengerOwed: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  owedTap: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5, alignSelf: 'flex-start' },
   chatBtn: {
     width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',

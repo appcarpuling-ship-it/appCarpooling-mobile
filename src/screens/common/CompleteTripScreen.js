@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
+import { get_withauth } from '../../services/apiService';
+import { ENDPOINTS } from '../../config/api';
+
+// Si el server no contesta, el tope se muestra con este valor: es el mismo default que tiene
+// parametrosService. La app sólo lo muestra — quien decide y rechaza es siempre el server.
+const DEFAULT_MAX_EXTRA_PCT = 15;
 
 const formatMoney = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 // El input muestra el número con separador de miles; num() lo lee sacando los puntos.
@@ -31,18 +37,58 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [maxExtraPct, setMaxExtraPct] = useState(DEFAULT_MAX_EXTRA_PCT);
+
+  useEffect(() => {
+    let cancelled = false;
+    get_withauth(ENDPOINTS.LIMITE_EXTRA_CONDUCTOR)
+      .then((res) => {
+        const pct = res?.data?.maxExtraConductorPct;
+        if (!cancelled && typeof pct === 'number') setMaxExtraPct(pct);
+      })
+      .catch(() => {}); // el default alcanza para mostrarlo; el server valida igual
+    return () => { cancelled = true; };
+  }, []);
+
   const total = num(fuel) + num(food) + num(other) + num(driverPay);
   const perPassenger = total / seats;
 
+  // Los tres primeros son gastos que se reparten; el extra es lo único que se queda el
+  // conductor y por eso tiene tope. Mismo Math.floor que el server: si mostrara un máximo
+  // con decimales, escribir el número que dice la pantalla sería rechazado.
+  const gastos = num(fuel) + num(food) + num(other);
+  const topeExtra = Math.floor((gastos * maxExtraPct) / 100);
+  const extraExcedido = num(driverPay) > topeExtra;
+
   const fields = [
-    { key: 'fuel', label: 'Combustible', value: fuel, set: setFuel, placeholder: 'Ej: 2.000' },
+    // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
+    // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje.
+    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, placeholder: 'Ej: 2.000',
+      hint: 'Lo que se consumió en este viaje, no lo que cargaste en la estación' },
     { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: 'Ej: 1.000' },
-    { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: 'Ej: 500' },
-    { key: 'driverPay', label: 'Extra conductor', value: driverPay, set: setDriverPay, placeholder: 'Ej: 1.500' },
+    { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: 'Ej: 500',
+      hint: 'Peajes, estacionamiento y demás gastos del viaje' },
+    {
+      key: 'driverPay',
+      label: 'Extra conductor',
+      value: driverPay,
+      set: setDriverPay,
+      placeholder: 'Ej: 1.500',
+      hint: gastos > 0
+        ? `Máximo $${formatMoney(topeExtra)} (${maxExtraPct}% de los gastos)`
+        : 'Cargá primero los gastos: el extra se calcula sobre ellos',
+      invalid: extraExcedido,
+    },
   ];
 
   const handleSubmit = async () => {
     if (total <= 0) { setError('Ingresá al menos un costo válido'); return; }
+    if (extraExcedido) {
+      setError(gastos > 0
+        ? `El extra del conductor no puede superar $${formatMoney(topeExtra)}`
+        : 'Cargá primero los gastos del viaje: el extra se calcula sobre ellos');
+      return;
+    }
     setError('');
     setSubmitting(true);
     const res = await onSubmit?.({ costBreakdown: { fuel: num(fuel), food: num(food), other: num(other) }, driverPay: num(driverPay) });
@@ -66,19 +112,27 @@ const CompleteTripScreen = ({ route, navigation }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <Text style={[styles.subtitle, { color: ui.textMuted }]}>Desglosá el costo final del viaje</Text>
+          <Text style={[styles.subtitle, { color: ui.textMuted }]}>
+            Cargá lo que se gastó en este viaje. Se reparte entre los asientos.
+          </Text>
 
           {fields.map((f) => (
             <View key={f.key} style={styles.field}>
               <Text style={[styles.label, { color: ui.textMuted }]}>{f.label}</Text>
               <TextInput
-                style={[styles.input, { borderColor: ui.border, color: ui.text, backgroundColor: ui.surface }]}
+                style={[
+                  styles.input,
+                  { borderColor: f.invalid ? '#EF4444' : ui.border, color: ui.text, backgroundColor: ui.surface },
+                ]}
                 placeholder={f.placeholder}
                 placeholderTextColor={ui.textMuted}
                 keyboardType="number-pad"
                 value={f.value}
                 onChangeText={(v) => { f.set(formatInput(v)); if (error) setError(''); }}
               />
+              {!!f.hint && (
+                <Text style={[styles.hint, { color: f.invalid ? '#EF4444' : ui.textMuted }]}>{f.hint}</Text>
+              )}
             </View>
           ))}
 
@@ -101,7 +155,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
         </ScrollView>
 
         <View style={styles.footer}>
-          <PillButton label="Completar viaje" onPress={handleSubmit} loading={submitting} />
+          <PillButton label="Completar viaje" onPress={handleSubmit} loading={submitting} disabled={extraExcedido} />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -119,6 +173,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: 'Sora_400Regular' },
   error: { color: '#EF4444', fontSize: 13, marginTop: 2, marginBottom: 6 },
+  hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 5 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14, marginTop: 8 },
   totalLabel: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   totalValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },

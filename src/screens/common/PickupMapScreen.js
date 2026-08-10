@@ -1,16 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 
-// Mapa del punto de recogida de un pasajero (un solo marcador). Se abre desde
-// Reservas Recibidas con { coordinates:{latitude,longitude}, address }.
+// Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
+// Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
 const PickupMapScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-  const { coordinates, address } = route.params || {};
+  const { coordinates, address, label } = route.params || {};
+
+  // El punto solo no le dice al conductor si le queda cerca o cruzando la ciudad. Con su
+  // propia posición en el mapa lo ve de una, igual que en "Ver trayecto en el mapa".
+  const [showMyLocation, setShowMyLocation] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    Location.requestForegroundPermissionsAsync()
+      .then(({ status }) => { if (!cancelled && status === 'granted') setShowMyLocation(true); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const region = coordinates?.latitude
     ? { latitude: coordinates.latitude, longitude: coordinates.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
@@ -20,7 +32,14 @@ const PickupMapScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle={ui.isDarkMode ? 'light-content' : 'dark-content'} />
 
-      <MapView provider={PROVIDER_GOOGLE} style={StyleSheet.absoluteFillObject} initialRegion={region} paddingAdjustmentBehavior="never">
+      <MapView
+        provider={PROVIDER_GOOGLE}
+        style={StyleSheet.absoluteFillObject}
+        initialRegion={region}
+        paddingAdjustmentBehavior="never"
+        showsUserLocation={showMyLocation}
+        showsMyLocationButton={false}
+      >
         {coordinates?.latitude && (
           Platform.OS === 'android'
             ? <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-origin.png')} />
@@ -40,7 +59,7 @@ const PickupMapScreen = ({ route, navigation }) => {
       </View>
 
       <View style={[styles.addressCard, { backgroundColor: ui.card, paddingBottom: insets.bottom + 16 }]}>
-        <Text style={[styles.addressLabel, { color: ui.textMuted }]}>PUNTO DE RECOGIDA</Text>
+        <Text style={[styles.addressLabel, { color: ui.textMuted }]}>{(label || 'Punto de recogida').toUpperCase()}</Text>
         <Text style={[styles.addressText, { color: ui.text }]}>{address || 'Sin dirección'}</Text>
       </View>
     </View>

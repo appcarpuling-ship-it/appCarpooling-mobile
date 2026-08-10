@@ -145,6 +145,8 @@ export const ENDPOINTS = {
   // Seat Reservations
   SEAT_RESERVATIONS: '/seat-reservations',
   MY_SEAT_RESERVATIONS: '/seat-reservations/my-reservations',
+  MARK_RESERVATION_PAID: (id) => `/seat-reservations/${id}/mark-paid`,
+  LIMITE_EXTRA_CONDUCTOR: '/parametros/limite-extra-conductor',
 
   // Banners
   GET_BANNER_SECTIONS: '/banners/sections',
