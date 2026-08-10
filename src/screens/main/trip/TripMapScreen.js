@@ -17,6 +17,8 @@ import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel } from '../../../utils/routePoints';
+import { put_withauth } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
@@ -242,15 +244,58 @@ const TripMapScreen = ({ route, navigation }) => {
     // Sin trazado todavía, se respeta el orden con el que vinieron: es lo único que hay.
     paradas.sort((a, b) => posicionEnRuta(a.coordinate) - posicionEnRuta(b.coordinate));
 
-    // Sólo las paradas de los pasajeros. El destino del viaje no va: no es una parada donde
-    // haya que hacer algo, es donde se termina, y listado abajo del último punto de bajada
-    // sólo repetía información que ya está en el mapa.
-    return paradas;
-  }, [trip?.intermediateStops, routeCoordinates]);
+    // El destino va último y solo. No es una parada de nadie —por eso no lleva "a recoger a"
+    // ni "a dejar a"— pero sí es a dónde va el conductor una vez que bajó el último pasajero,
+    // y ahí es donde cierra el viaje.
+    return [
+      ...paradas,
+      destCoords?.latitude != null && {
+        id: 'destino',
+        coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
+        address: trip?.destination?.address || trip?.destination?.city || 'Destino',
+        quien: 'A finalizar el viaje',
+      },
+    ].filter(Boolean);
+  }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;
-  const siguientes = pendientes.slice(1);
+  const enElDestino = proximaParada?.id === 'destino';
+
+  /**
+   * Cerrar el viaje desde el mapa. El conductor llega al destino y el botón deja de decir
+   * "Continuar" para decir "Completar": no tiene por qué volver atrás a buscar dónde estaba
+   * esa acción. Es el mismo endpoint que usa el detalle del viaje.
+   *
+   * trip.passengers tiene una entrada POR ASIENTO, no por pasajero, así que su largo es
+   * justo lo que necesita la pantalla de costos para repartir.
+   */
+  const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
+    try {
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), { costBreakdown, driverPay });
+      if (response.success) {
+        const actualizado = response.data?.trip || response.data;
+        // El mapa queda debajo en el stack: sin esto, volver atrás desde el resultado te
+        // devolvía al mapa de un viaje ya terminado, con su tarjeta y su botón.
+        navigation.popToTop();
+        return { ok: true, message: `Costo final: $${Math.round(actualizado?.actualCost || 0).toLocaleString('es-AR')}` };
+      }
+      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
+    } catch (error) {
+      return { ok: false, message: error.message || 'Error al completar el viaje' };
+    }
+  };
+
+  const avanzar = () => {
+    if (enElDestino) {
+      navigation.navigate('CompleteTrip', {
+        onSubmit: submitCompleteTrip,
+        totalSeats: trip?.passengers?.length || 1,
+      });
+      return;
+    }
+    setParadasHechas((prev) => [...prev, proximaParada.id]);
+  };
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
   // pedirle que maneje y opere el teléfono al mismo tiempo. El botón queda igual, por si el
@@ -406,28 +451,6 @@ const TripMapScreen = ({ route, navigation }) => {
               {proximaParada.quien}
             </Text>
           )}
-
-          {/* El resto del recorrido: quién sube y quién baja, en el orden del camino. Sin
-              esto el conductor sólo ve el próximo punto y no sabe qué le espera después. */}
-          {siguientes.length > 0 && (
-            <View style={[styles.navSiguientes, { borderTopColor: ui.border }]}>
-              {siguientes.map((t) => (
-                <View key={t.id} style={styles.navSiguienteFila}>
-                  <View style={[styles.navBullet, { backgroundColor: ui.textMuted }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.navSiguienteDir, { color: textPrimary }]} numberOfLines={1}>
-                      {t.address}
-                    </Text>
-                    {!!t.quien && (
-                      <Text style={[styles.navSiguienteQuien, { color: ui.textMuted }]} numberOfLines={1}>
-                        {t.quien}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
         </View>
       )}
 
@@ -436,13 +459,13 @@ const TripMapScreen = ({ route, navigation }) => {
       {isDriver && isTripStarted && proximaParada && (
         <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <TouchableOpacity
-            style={[styles.navContinuar, { backgroundColor: ui.invertBg }]}
-            onPress={() => setParadasHechas((prev) => [...prev, proximaParada.id])}
+            style={styles.navContinuar}
+            onPress={avanzar}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Ir a la parada siguiente"
+            accessibilityLabel={enElDestino ? 'Completar el viaje' : 'Ir a la parada siguiente'}
           >
-            <Text style={[styles.navContinuarText, { color: ui.invertText }]}>Continuar</Text>
+            <Text style={styles.navContinuarText}>{enElDestino ? 'Completar' : 'Continuar'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -534,28 +557,21 @@ const styles = StyleSheet.create({
   navLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
   navAddress: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, lineHeight: 26, marginTop: 2 },
   navQuien: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
-  navSiguientes: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginTop: 12,
-    paddingTop: 10,
-    gap: 10,
-  },
-  navSiguienteFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  navBullet: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
-  navSiguienteDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  navSiguienteQuien: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
   navFooter: { position: 'absolute', left: 16, right: 16, bottom: 0 },
+  // Negro fijo, no invertido por tema: el mapa siempre se ve claro, así que en modo oscuro
+  // el botón salía blanco sobre fondo claro.
   navContinuar: {
     borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',
+    backgroundColor: '#010101',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
   },
-  navContinuarText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  navContinuarText: { fontSize: 16, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
   stopTooltipLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', opacity: 0.5, marginBottom: 4 },
   stopTooltipAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });

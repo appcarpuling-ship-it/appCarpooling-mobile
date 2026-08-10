@@ -27,6 +27,7 @@ const MyBookingsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
 
   const [bookings, setBookings]       = useState([]);
+  const [activeTab, setActiveTab]     = useState('upcoming');
   const [page, setPage]               = useState(1);
   const [hasMore, setHasMore]         = useState(true);
   const [loading, setLoading]         = useState(true);
@@ -173,6 +174,18 @@ const MyBookingsScreen = ({ navigation }) => {
         },
       },
     ]);
+  };
+
+  /**
+   * Próximos = lo que sigue en juego (pendiente, por pagar, pagada, en curso).
+   * Pasados = lo terminado: completadas, canceladas y rechazadas. Mismo criterio que
+   * Mis Viajes, que es la pantalla espejo del lado del conductor.
+   */
+  const esPasada = (item) => {
+    const rs = item.seatReservation?.reservationStatus;
+    if (['cancelled', 'rejected', 'expired', 'trip_completed'].includes(rs)) return true;
+    if (['cancelled', 'completed'].includes(item.status)) return true;
+    return item.trip?.status === 'completed' || item.trip?.status === 'cancelled';
   };
 
   const getStatusConfig = (item) => {
@@ -360,15 +373,14 @@ const MyBookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.btnSecondary}
+              style={[styles.btnSecondary, { borderColor: ui.border }]}
               onPress={() => handleCancelBooking(item._id)}
-              activeOpacity={0.6}
+              activeOpacity={0.7}
               disabled={cancellingId === item._id}
-              hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
             >
               {cancellingId === item._id
                 ? <ActivityIndicator size="small" color={activeMuted} />
-                : <Text style={[styles.btnSecondaryText, { color: activeMuted }]}>Cancelar reserva</Text>
+                : <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
               }
             </TouchableOpacity>
           </View>
@@ -389,6 +401,8 @@ const MyBookingsScreen = ({ navigation }) => {
     );
   }
 
+  const visibles = bookings.filter((b) => (activeTab === 'past' ? esPasada(b) : !esPasada(b)));
+
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <View style={styles.screenHeader}>
@@ -398,7 +412,25 @@ const MyBookingsScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      {bookings.length > 0 ? (
+      {/* Tabs en pill, iguales a las de Mis Viajes: es la misma pantalla del otro lado. */}
+      <View style={styles.tabsContainer}>
+        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+          {['upcoming', 'past'].map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {visibles.length > 0 ? (
         <FlatList
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
@@ -410,7 +442,7 @@ const MyBookingsScreen = ({ navigation }) => {
               </View>
             ) : null
           }
-          data={[...bookings].sort((a, b) => {
+          data={[...visibles].sort((a, b) => {
             const pa = getStatusPriority(a);
             const pb = getStatusPriority(b);
             if (pa !== pb) return pa - pb;
@@ -431,8 +463,10 @@ const MyBookingsScreen = ({ navigation }) => {
         <View style={styles.empty}>
           <EmptyState
             image={require('../../../../assets/icons/pngwing.com (20).png')}
-            title="Sin reservas"
-            subtitle="Cuando reserves un viaje aparecerá aquí"
+            title={activeTab === 'past' ? 'Sin reservas pasadas' : 'Sin reservas próximas'}
+            subtitle={activeTab === 'past'
+              ? 'Acá van a aparecer las que se completen o canceles'
+              : 'Cuando reserves un viaje aparecerá aquí'}
           />
         </View>
       )}
@@ -442,6 +476,10 @@ const MyBookingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabsContainer: { paddingHorizontal: 24, paddingBottom: 8 },
+  tabPill: { flexDirection: 'row', borderRadius: 999, padding: 5 },
+  tab: { flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
+  tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
   screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
   screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
@@ -559,11 +597,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnPrimaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  // Pill con borde fino: el texto subrayado suelto en medio de la tarjeta no se leía como
+  // un botón, y el bloque con borde grueso y radio 10 de antes chocaba con la tarjeta.
   btnSecondary: {
-    paddingVertical: 10,
+    paddingVertical: 13,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
   },
-  btnSecondaryText: { fontSize: 13, fontFamily: 'Sora_500Medium', textDecorationLine: 'underline' },
+  btnSecondaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyIconBox: {
