@@ -32,6 +32,10 @@ import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 
+// Reservar en pasos: el mapa de recogida/bajada ya era una pantalla aparte, pero todo lo
+// demás caía junto y el asiento quedaba enterrado entre el precio y las preferencias.
+const PASOS_RESERVA = ['Dónde subís y bajás', 'Asientos', 'Confirmar'];
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 160;
@@ -103,6 +107,8 @@ const BookingScreen = ({ route, navigation }) => {
   // estado, el buscador y el geocodificador inverso para la dejada era garantía de que se
   // arreglara un bug en una copia y no en la otra. pickerMode dice dónde cae lo confirmado.
   const [pickerMode, setPickerMode] = useState('pickup');
+  const [paso, setPaso] = useState(1);
+  const scrollRef = useRef(null);
   const [pickupMapVisible, setPickupMapVisible] = useState(false);
   const [pickupSearch, setPickupSearch] = useState('');
   const [pickupSearchResults, setPickupSearchResults] = useState([]);
@@ -402,6 +408,22 @@ const BookingScreen = ({ route, navigation }) => {
     if (pickupIdleTimer.current) { clearTimeout(pickupIdleTimer.current); pickupIdleTimer.current = null; }
   };
 
+  const esUltimoPaso = paso === PASOS_RESERVA.length;
+
+  const irAlSiguientePaso = () => {
+    setPaso((p) => Math.min(p + 1, PASOS_RESERVA.length));
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  const volverDePaso = () => {
+    if (paso > 1) {
+      setPaso((p) => p - 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      return true;
+    }
+    return false;
+  };
+
   const handleCreateReservation = async () => {
     if (tripRemainingSeats(trip) <= 0 || !priceData) return;
     setLoading(true);
@@ -452,8 +474,30 @@ const BookingScreen = ({ route, navigation }) => {
   // El overlay del selector vive dentro de la pantalla, asi que por si solo no taparia el
   // header del navegador. Y sin <Modal> ya nadie escucha el boton fisico de atras.
   useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: !pickupMapVisible });
-  }, [navigation, pickupMapVisible]);
+    navigation.setOptions({
+      headerShown: !pickupMapVisible,
+      title: PASOS_RESERVA[paso - 1],
+      // La flecha retrocede de paso, no sale de la reserva: salir tira los puntos elegidos.
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => { if (!volverDePaso()) navigation.goBack(); }}
+          style={{ paddingVertical: 10, paddingRight: 10, paddingLeft: 4, marginLeft: Platform.OS === 'android' ? 6 : 4 }}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
+          <Ionicons name="chevron-back" size={26} color={textPrimary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, pickupMapVisible, paso, textPrimary]);
+
+  // El botón físico de Android, con el mapa cerrado, también retrocede de paso.
+  useEffect(() => {
+    if (pickupMapVisible) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', volverDePaso);
+    return () => sub.remove();
+  }, [pickupMapVisible, paso]);
 
   useEffect(() => {
     if (!pickupMapVisible) return undefined;
@@ -473,6 +517,7 @@ const BookingScreen = ({ route, navigation }) => {
         style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], backgroundColor: bg }]}
       >
         <ScrollView
+          ref={scrollRef}
           style={[styles.scroll, { backgroundColor: bg }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -565,6 +610,20 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           </View>
 
+          {/* Progreso. Reservar es tres decisiones —dónde te suben, cuántos asientos y confirmar—
+              y en una sola pantalla larga se perdían entre el precio, los detalles y las
+              preferencias del viaje. */}
+          <View style={styles.pasoBarra}>
+              {PASOS_RESERVA.map((_, i) => (
+                  <View key={i} style={[styles.pasoTramo, { backgroundColor: i < paso ? textPrimary : divider }]} />
+              ))}
+          </View>
+          <Text style={[styles.pasoTexto, { color: textMuted }]}>
+              Paso {paso} de {PASOS_RESERVA.length} · {PASOS_RESERVA[paso - 1]}
+          </Text>
+
+          {paso === 1 && (
+              <>
           {/* Dónde sube y dónde baja. Las dos filas son la misma: sólo cambia en qué estado
               cae el punto y contra qué punta del viaje se mide el desvío. */}
           {[
@@ -622,6 +681,11 @@ const BookingScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           ))}
 
+              </>
+          )}
+
+          {paso === 2 && (
+              <>
           {/* Seat Selector */}
           {calculatingPrice ? (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider, alignItems: 'center', paddingVertical: 28 }]}>
@@ -666,6 +730,11 @@ const BookingScreen = ({ route, navigation }) => {
             </View>
           ) : null}
 
+              </>
+          )}
+
+          {paso === 3 && (
+              <>
           {/* Price Breakdown */}
           {priceData && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -785,6 +854,9 @@ const BookingScreen = ({ route, navigation }) => {
           )}
 
 
+              </>
+          )}
+
           {/* Footer */}
           <TouchableOpacity
             style={[
@@ -801,7 +873,7 @@ const BookingScreen = ({ route, navigation }) => {
                     : 1,
               },
             ]}
-            onPress={handleCreateReservation}
+            onPress={esUltimoPaso ? handleCreateReservation : irAlSiguientePaso}
             disabled={
               loading ||
               calculatingPrice ||
@@ -815,7 +887,9 @@ const BookingScreen = ({ route, navigation }) => {
             ) : (
               <>
                 <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
-                  {tripFreeNow <= 0 ? 'No hay cupos disponibles' : 'Solicitar Reserva'}
+                  {tripFreeNow <= 0
+                    ? 'No hay cupos disponibles'
+                    : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
                 </Text>
                 {priceData && tripFreeNow > 0 && (
                   <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
@@ -1426,6 +1500,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_500Medium',
   },
 
+  pasoBarra: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 8 },
+  pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
+  pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },
   confirmBtn: {
     borderRadius: 12,
     paddingVertical: 16,

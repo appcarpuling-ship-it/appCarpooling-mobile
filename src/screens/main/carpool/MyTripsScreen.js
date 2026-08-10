@@ -193,12 +193,14 @@ const MyTripsScreen = ({ navigation }) => {
         return { color: ui.invertText, bg: ui.invertBg, text: 'Activo' };
       case 'started':
         return { color: ui.invertText, bg: ui.invertBg, text: 'Viaje iniciado' };
+      // Los cerrados van con contorno y no rellenos: el relleno era ui.surface, el MISMO
+      // color de la tarjeta, así que la píldora desaparecía y quedaba un texto gris flotando.
       case 'completed':
-        return { color: ui.textMuted, bg: ui.surface, text: 'Completado' };
+        return { color: ui.textMuted, bg: 'transparent', borde: ui.border, text: 'Completado' };
       case 'cancelled':
-        return { color: ui.textMuted, bg: ui.surface, text: 'Cancelado' };
+        return { color: ui.textMuted, bg: 'transparent', borde: ui.border, text: 'Cancelado' };
       default:
-        return { color: ui.textMuted, bg: ui.surface, text: status };
+        return { color: ui.textMuted, bg: 'transparent', borde: ui.border, text: status };
     }
   };
 
@@ -245,7 +247,7 @@ const MyTripsScreen = ({ navigation }) => {
     // invertText (blanco en claro, negro en oscuro) y pintar el fondo con
     // `color + '18'` daba texto blanco sobre casi blanco (y negro sobre casi
     // negro), o sea invisible en los dos temas.
-    const { color, bg: statusBg, text: statusText } = getStatusConfig(item.status);
+    const { color, bg: statusBg, borde: statusBorde, text: statusText } = getStatusConfig(item.status);
     const freeNow = tripDisplaySeats(item);
     const textPrimary   = ui.invertBg;
     const textMuted     = ui.textMuted;
@@ -274,7 +276,11 @@ const MyTripsScreen = ({ navigation }) => {
                 <Text style={styles.activeLabel}>Viaje en curso</Text>
               </View>
             ) : (
-              <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
+              <View style={[
+                styles.statusPill,
+                { backgroundColor: statusBg },
+                statusBorde && { borderWidth: StyleSheet.hairlineWidth, borderColor: statusBorde },
+              ]}>
                 <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
               </View>
             )}

@@ -12,11 +12,17 @@ import { createTripRequest } from '../../../services/tripRequestService';
 import { useUI } from '../../../theme/ui';
 
 const pad = (n) => String(n).padStart(2, '0');
-const formatDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+// "mar 11 de agosto" se lee de un vistazo; 11/08/2026 hay que descifrarlo.
+const fechaLarga = (d) =>
+  d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' }).replace('.', '');
+
+const lugar = (p) => [p?.address, p?.city, p?.province].filter(Boolean).join(', ') || 'Sin especificar';
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { origin, destination, waypoints } = route.params || {};
+  const paradas = (waypoints || []).length;
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -118,45 +124,99 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* Fecha */}
-          <Text style={[styles.label, { color: textMuted }]}>Fecha de salida</Text>
-          <TouchableOpacity
-            style={[styles.row, { backgroundColor: cardBg, borderColor: border }]}
-            onPress={() => { setTempDate(date); setShowDatePicker(true); }}
-          >
-            <Ionicons name="calendar-outline" size={18} color={textMuted} style={styles.icon} />
-            <Text style={[styles.rowText, { color: textPrimary }]}>{formatDate(date)}</Text>
-          </TouchableOpacity>
+          {/* La ruta que venís de elegir en el mapa. No estaba, así que publicabas a ciegas:
+              la pantalla anterior es un mapa y acá no quedaba ni rastro de qué viaje pedías. */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={styles.routeRow}>
+              <View style={styles.routeRail}>
+                <View style={[styles.dot, { borderColor: textPrimary }]} />
+                <View style={[styles.railLine, { backgroundColor: textPrimary }]} />
+                <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+                  {lugar(origin)}
+                </Text>
+                <Text style={[styles.routeText, { color: textPrimary, marginTop: 22 }]} numberOfLines={2}>
+                  {lugar(destination)}
+                </Text>
+              </View>
+            </View>
+            {paradas > 0 && (
+              <Text style={[styles.routeMeta, { color: textMuted, borderTopColor: border }]}>
+                {paradas} parada{paradas !== 1 ? 's' : ''} en el camino
+              </Text>
+            )}
+          </View>
 
-          {/* Hora */}
-          <Text style={[styles.label, { color: textMuted }]}>Hora de salida</Text>
-          <TouchableOpacity
-            style={[styles.row, { backgroundColor: cardBg, borderColor: border }]}
-            onPress={() => { setTempTime(time); setShowTimePicker(true); }}
-          >
-            <Ionicons name="time-outline" size={18} color={textMuted} style={styles.icon} />
-            <Text style={[styles.rowText, { color: textPrimary }]}>{formatTime(time)}</Text>
-          </TouchableOpacity>
+          {/* Fecha y hora juntas: son una sola decisión y separadas en dos tarjetas sueltas
+              dejaban la pantalla con más aire que contenido. */}
+          <Text style={[styles.label, { color: textMuted }]}>¿Cuándo salís?</Text>
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <TouchableOpacity
+              style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
+              onPress={() => { setTempDate(date); setShowDatePicker(true); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="calendar-outline" size={19} color={textMuted} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
+                <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pickRow}
+              onPress={() => { setTempTime(time); setShowTimePicker(true); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="time-outline" size={19} color={textMuted} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
+                <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={textMuted} />
+            </TouchableOpacity>
+          </View>
 
-          {/* Asientos */}
-          <Text style={[styles.label, { color: textMuted }]}>Asientos necesarios</Text>
-          <View style={[styles.row, { backgroundColor: cardBg, borderColor: border }]}>
+          {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/- solo
+              en el medio de una tarjeta vacía. */}
+          <Text style={[styles.label, { color: textMuted }]}>¿Cuántos viajan?</Text>
+          <View style={[styles.card, styles.seatsCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pickValue, { color: textPrimary }]}>
+                {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''}
+              </Text>
+              <Text style={[styles.pickLabel, { color: textMuted, marginTop: 2 }]}>
+                Los que necesitás para vos y quien te acompañe
+              </Text>
+            </View>
             <View style={styles.seatsRow}>
               <TouchableOpacity
-                style={[styles.seatsBtn, { borderColor: border }]}
+                style={[styles.seatsBtn, { borderColor: border }, seatsNeeded <= 1 && { opacity: 0.35 }]}
                 onPress={() => setSeatsNeeded(s => Math.max(1, s - 1))}
+                disabled={seatsNeeded <= 1}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
                 <Ionicons name="remove" size={20} color={textPrimary} />
               </TouchableOpacity>
               <Text style={[styles.seatsNum, { color: textPrimary }]}>{seatsNeeded}</Text>
               <TouchableOpacity
-                style={[styles.seatsBtn, { borderColor: border }]}
+                style={[styles.seatsBtn, { borderColor: border }, seatsNeeded >= 10 && { opacity: 0.35 }]}
                 onPress={() => setSeatsNeeded(s => Math.min(10, s + 1))}
+                disabled={seatsNeeded >= 10}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
                 <Ionicons name="add" size={20} color={textPrimary} />
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Cierra la pantalla con lo que estás por publicar, en una frase. */}
+          <Text style={[styles.resumen, { color: textMuted }]}>
+            Vas a pedir {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''} para el {fechaLarga(date)} a las {formatTime(time)}.
+            Los conductores que hagan ese viaje van a poder ofrecerte lugar.
+          </Text>
 
           <View style={{ height: 24 }} />
         </ScrollView>
@@ -246,25 +306,35 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 20,
-    marginBottom: 6,
-    marginLeft: 2,
+    marginTop: 26,
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  row: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+  card: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
-  icon:    { marginRight: 10 },
-  rowText: { fontSize: 15 },
-  seatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24 },
-  seatsBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  seatsNum: { fontSize: 22, fontFamily: 'Sora_700Bold', width: 32, textAlign: 'center' },
-  footer: { padding: 16, paddingBottom: 24, borderTopWidth: 1 },
-  btn:     { borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  routeRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
+  routeRail: { alignItems: 'center', paddingTop: 5 },
+  dot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
+  dotFilled: { width: 9, height: 9, borderRadius: 5 },
+  railLine: { width: 1.5, flex: 1, minHeight: 18, marginVertical: 4 },
+  routeText: { fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
+  routeMeta: {
+    fontSize: 12, textAlign: 'center', paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  pickLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', letterSpacing: 0.3, textTransform: 'uppercase' },
+  pickValue: { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
+  seatsCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  seatsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  seatsBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
+  resumen: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 24, paddingHorizontal: 4 },
+  footer: { padding: 16, paddingBottom: 24, borderTopWidth: StyleSheet.hairlineWidth },
+  btn:     { borderRadius: 999, paddingVertical: 17, alignItems: 'center' },
   btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   // Pickers
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },

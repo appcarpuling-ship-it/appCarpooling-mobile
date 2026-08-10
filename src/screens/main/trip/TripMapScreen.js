@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -210,44 +210,65 @@ const TripMapScreen = ({ route, navigation }) => {
     stops.every((s) => points.some((p) => metersBetween(p, s.coordinates) < 150));
 
   /**
-   * A dónde va ahora el conductor. Los destinos son las paradas de los pasajeros más el
-   * destino final; se elige la pendiente más cercana en vez de la primera por `order`,
-   * porque `order` es el orden en que se pagaron las reservas y no el del camino.
+   * Las paradas del recorrido en el orden en que se van a pisar: los puntos de los pasajeros
+   * más el destino final. El origen no entra, porque de ahí ya salió.
+   *
+   * Se ordenan por su posición SOBRE EL TRAZADO, no por `order` —que es el orden en que se
+   * pagaron las reservas— ni por distancia en línea recta. Con el orden de pago, a alguien
+   * que reservó último le tocaba figurar primero aunque su parada estuviera 200km más
+   * adelante, y el conductor veía una lista que no era el camino.
    */
-  const navTargets = [
-    ...stops.map((st, i) => ({
+  const navTargets = useMemo(() => {
+    const posicionEnRuta = (coord) => {
+      if (!routeCoordinates.length) return Number.MAX_SAFE_INTEGER;
+      let mejorDist = Infinity;
+      let mejorIdx = Number.MAX_SAFE_INTEGER;
+      for (let i = 0; i < routeCoordinates.length; i++) {
+        const d = metersBetween(routeCoordinates[i], coord);
+        if (d < mejorDist) { mejorDist = d; mejorIdx = i; }
+      }
+      return mejorIdx;
+    };
+
+    const paradas = stops.map((st, i) => ({
       id: `stop-${i}`,
       coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
       address: st.address || st.city || 'Parada',
-      quien: st.passenger?.firstName
-        ? `${st.kind === 'dropoff' ? 'A dejar a' : 'A recoger a'} ${st.passenger.firstName}`
-        : '',
-    })),
-    destCoords?.latitude && {
-      id: 'destino',
-      coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
-      address: trip?.destination?.address || trip?.destination?.city || 'Destino',
-      quien: 'Fin del viaje',
-    },
-  ].filter(Boolean);
+      quien: quienLabel(st.kind, st.passenger),
+    }));
+
+    // Sin trazado todavía, se respeta el orden con el que vinieron: es lo único que hay.
+    paradas.sort((a, b) => posicionEnRuta(a.coordinate) - posicionEnRuta(b.coordinate));
+
+    return [
+      ...paradas,
+      destCoords?.latitude && {
+        id: 'destino',
+        coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
+        address: trip?.destination?.address || trip?.destination?.city || 'Destino',
+        quien: 'Fin del viaje',
+      },
+    ].filter(Boolean);
+  }, [stops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
-  const proximaParada = !pendientes.length
-    ? null
-    : myCoords
-      ? pendientes.reduce((mejor, t) =>
-          metersBetween(myCoords, t.coordinate) < metersBetween(myCoords, mejor.coordinate) ? t : mejor)
-      : pendientes[0];
+  const proximaParada = pendientes[0] || null;
+  const siguientes = pendientes.slice(1);
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
   // pedirle que maneje y opere el teléfono al mismo tiempo. El botón queda igual, por si el
   // GPS no la detecta o se saltea una parada.
   useEffect(() => {
-    if (!isDriver || !isTripStarted || !myCoords || !proximaParada) return;
-    if (metersBetween(myCoords, proximaParada.coordinate) < 200) {
-      setParadasHechas((prev) => (prev.includes(proximaParada.id) ? prev : [...prev, proximaParada.id]));
+    if (!isDriver || !isTripStarted || !myCoords) return;
+    // Cualquier pendiente por la que pase, no sólo la primera: si se saltea una, quedaría
+    // trabado ahí para siempre y la lista dejaría de coincidir con dónde está.
+    const alcanzadas = pendientes
+      .filter((t) => metersBetween(myCoords, t.coordinate) < 200)
+      .map((t) => t.id);
+    if (alcanzadas.length) {
+      setParadasHechas((prev) => [...new Set([...prev, ...alcanzadas])]);
     }
-  }, [myCoords, proximaParada?.id, isDriver, isTripStarted]);
+  }, [myCoords, isDriver, isTripStarted, pendientes.length]);
 
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
@@ -387,25 +408,52 @@ const TripMapScreen = ({ route, navigation }) => {
           siga viendo entero, que es lo que el conductor necesita mientras maneja. */}
       {isDriver && isTripStarted && proximaParada && (
         <View style={[styles.navCard, { backgroundColor: cardBg, top: insets.top + 56 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.navLabel, { color: ui.textMuted }]}>Yendo a</Text>
-            <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
-              {proximaParada.address}
+          <Text style={[styles.navLabel, { color: ui.textMuted }]}>Yendo a</Text>
+          <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
+            {proximaParada.address}
+          </Text>
+          {!!proximaParada.quien && (
+            <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
+              {proximaParada.quien}
             </Text>
-            {!!proximaParada.quien && (
-              <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
-                {proximaParada.quien}
-              </Text>
-            )}
-          </View>
+          )}
+
+          {/* El resto del recorrido: quién sube y quién baja, en el orden del camino. Sin
+              esto el conductor sólo ve el próximo punto y no sabe qué le espera después. */}
+          {siguientes.length > 0 && (
+            <View style={[styles.navSiguientes, { borderTopColor: ui.border }]}>
+              {siguientes.map((t) => (
+                <View key={t.id} style={styles.navSiguienteFila}>
+                  <View style={[styles.navBullet, { backgroundColor: ui.textMuted }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.navSiguienteDir, { color: textPrimary }]} numberOfLines={1}>
+                      {t.address}
+                    </Text>
+                    {!!t.quien && (
+                      <Text style={[styles.navSiguienteQuien, { color: ui.textMuted }]} numberOfLines={1}>
+                        {t.quien}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Continuar: pasa a la parada siguiente. Abajo y ancho, para tocarlo sin mirar; el
+          check chiquito arriba a la derecha no se entendía ni se acertaba manejando. */}
+      {isDriver && isTripStarted && proximaParada && (
+        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <TouchableOpacity
-            style={[styles.navDone, { borderColor: ui.border }]}
+            style={[styles.navContinuar, { backgroundColor: ui.invertBg }]}
             onPress={() => setParadasHechas((prev) => [...prev, proximaParada.id])}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Marcar esta parada como hecha"
+            accessibilityLabel="Ir a la parada siguiente"
           >
-            <Ionicons name="checkmark" size={18} color={textPrimary} />
+            <Text style={[styles.navContinuarText, { color: ui.invertText }]}>Continuar</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -485,9 +533,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -500,7 +545,28 @@ const styles = StyleSheet.create({
   navLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
   navAddress: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, lineHeight: 26, marginTop: 2 },
   navQuien: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
-  navDone: { width: 38, height: 38, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  navSiguientes: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 12,
+    paddingTop: 10,
+    gap: 10,
+  },
+  navSiguienteFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+  navBullet: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
+  navSiguienteDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  navSiguienteQuien: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
+  navFooter: { position: 'absolute', left: 16, right: 16, bottom: 0 },
+  navContinuar: {
+    borderRadius: 999,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  navContinuarText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   stopTooltipLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', opacity: 0.5, marginBottom: 4 },
   stopTooltipAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });

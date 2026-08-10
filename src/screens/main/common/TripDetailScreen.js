@@ -158,7 +158,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
-  const [markingPaid, setMarkingPaid] = useState(null);
   const [banners, setBanners] = useState([]);
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
@@ -234,11 +233,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   // al completar el viaje (seatReservationService.completeTripWithActualCost) y lo guarda por
   // reserva. No se recalcula acá para que las dos puntas muestren el mismo número.
   const amountOwed = (booking) => Number(booking?.seatReservation?.remainingPayment?.amountToPay) || 0;
-  const isSettled = (booking) => Boolean(booking?.seatReservation?.remainingPayment?.paidToDriver);
-  // El total baja a medida que el conductor va tildando lo que cobró: es lo que le falta
-  // juntar, no lo que le tenían que pagar.
   const totalOwed = useMemo(
-    () => passengers.reduce((sum, b) => sum + (isSettled(b) ? 0 : amountOwed(b)), 0),
+    () => passengers.reduce((sum, b) => sum + amountOwed(b), 0),
     [passengers],
   );
   // reservationAmount es el campo que muestra el conductor; totalPrice queda de respaldo
@@ -625,34 +621,6 @@ const TripDetailScreen = ({ route, navigation }) => {
     ]);
   };
 
-  /**
-   * Tildar que un pasajero ya pagó el resto en mano. Es optimista a propósito: el conductor
-   * está cobrando parado al lado del auto y no puede esperar al server; si el PUT falla se
-   * revierte y se avisa.
-   */
-  const togglePaidToDriver = async (booking) => {
-    const id = booking.seatReservation?._id;
-    if (!id || markingPaid) return;
-    const next = !isSettled(booking);
-    const apply = (value) => setPassengers((prev) => prev.map((b) => (
-      b.seatReservation?._id === id
-        ? { ...b, seatReservation: { ...b.seatReservation, remainingPayment: { ...b.seatReservation.remainingPayment, paidToDriver: value } } }
-        : b
-    )));
-
-    setMarkingPaid(id);
-    apply(next);
-    try {
-      const response = await put_withauth(ENDPOINTS.MARK_RESERVATION_PAID(id), { paid: next });
-      if (!response.success) throw new Error(response.message);
-    } catch (error) {
-      apply(!next);
-      showAlert('Ocurrió algo', 'No se pudo registrar el cobro');
-    } finally {
-      setMarkingPaid(null);
-    }
-  };
-
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
     const totalSeats = passengers.reduce((sum, b) => sum + (b.seatsBooked || b.seatsRequested || 1), 0);
@@ -792,7 +760,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             {trip.status === 'completed' && amountOwed(userBooking) > 0 && (
               <View style={[styles.owedRow, { borderTopColor: divider }]}>
                 <Text style={[styles.owedLabel, { color: textMuted }]}>
-                  {isSettled(userBooking) ? 'Le pagaste al conductor' : 'Le pagás al conductor'}
+                  Le pagás al conductor
                 </Text>
                 <Text style={[styles.owedValue, { color: textPrimary }]}>{fmtCurrency(amountOwed(userBooking))}</Text>
               </View>
@@ -1064,7 +1032,6 @@ const TripDetailScreen = ({ route, navigation }) => {
               const rs = booking.seatReservation?.reservationStatus;
               const paid = rs === 'reserved' || rs === 'trip_completed';
               const owed = amountOwed(booking);
-              const settled = isSettled(booking);
               return (
                 <TouchableOpacity
                   key={booking._id}
@@ -1099,27 +1066,9 @@ const TripDetailScreen = ({ route, navigation }) => {
                       </View>
                     </View>
                     {trip.status === 'completed' && (
-                      owed > 0 ? (
-                        <TouchableOpacity
-                          style={styles.owedTap}
-                          onPress={(e) => { e.stopPropagation(); togglePaidToDriver(booking); }}
-                          disabled={markingPaid === booking.seatReservation?._id}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          accessibilityRole="button"
-                          accessibilityLabel={settled ? 'Marcar como no cobrado' : 'Marcar como cobrado'}
-                        >
-                          <Ionicons
-                            name={settled ? 'checkmark-circle' : 'ellipse-outline'}
-                            size={16}
-                            color={settled ? textPrimary : textMuted}
-                          />
-                          <Text style={[styles.passengerOwed, { color: settled ? textMuted : textPrimary, textDecorationLine: settled ? 'line-through' : 'none' }]}>
-                            {settled ? `Cobrado ${fmtCurrency(owed)}` : `Te debe ${fmtCurrency(owed)}`}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <Text style={[styles.passengerOwed, { color: textMuted, marginTop: 5 }]}>Sin saldo pendiente</Text>
-                      )
+                      <Text style={[styles.passengerOwed, { color: owed > 0 ? textPrimary : textMuted, marginTop: 5 }]}>
+                        {owed > 0 ? `Te debe ${fmtCurrency(owed)}` : 'Sin saldo pendiente'}
+                      </Text>
                     )}
                   </View>
                   <TouchableOpacity
@@ -1263,7 +1212,6 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               ) : (
                 <View style={[styles.statusFooter, { backgroundColor: accent }]}>
-                  <Ionicons name="checkmark-circle" size={18} color={accentInverse} />
                   <Text style={[styles.statusFooterText, { color: accentInverse }]}>Reserva paga</Text>
                 </View>
               )
@@ -1595,7 +1543,6 @@ const styles = StyleSheet.create({
   passengerName: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   passengerSeats: { fontSize: 12, marginTop: 2 },
   passengerOwed: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
-  owedTap: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5, alignSelf: 'flex-start' },
   chatBtn: {
     width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',
