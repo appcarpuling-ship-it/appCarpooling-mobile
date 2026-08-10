@@ -130,6 +130,12 @@ const BookingScreen = ({ route, navigation }) => {
   // onMapReady no estaba conectado y esta ref se escribía sin leerse nunca. Ahora es estado:
   // si el mapa nunca avisa que está listo, el problema es que no inicializa, no la región.
   const [pickupMapReady, setPickupMapReady] = useState(false);
+  // Se incrementa para forzar el remontaje del mapa. El buscador se abre a pantalla completa
+  // TAPANDO el mapa, y al cerrarse el GMSMapView de iOS queda con el renderizado suspendido:
+  // sigue vivo (onMapReady ya disparó) y con la región correcta, pero no vuelve a dibujar
+  // tiles. Por eso quedaba celeste sólo cuando se pasaba por el buscador — que es siempre en
+  // la bajada, porque ahí no hay dirección precargada como en la recogida.
+  const [mapKey, setMapKey] = useState(0);
   const [pickupMapSelectionMode, setPickupMapSelectionMode] = useState(false);
   const pickupMapSelectionModeRef = useRef(false);
   const [priceData, setPriceData] = useState(null);
@@ -336,6 +342,7 @@ const BookingScreen = ({ route, navigation }) => {
       setPickupSearchVisible(false);
       setPickupSearch('');
       setPickupSearchResults([]);
+      setMapKey((k) => k + 1);
     });
   };
 
@@ -897,6 +904,7 @@ const BookingScreen = ({ route, navigation }) => {
               {/* Map — sólo monta con región válida y con el overlay ya en pantalla */}
               {pickupRegion && overlayMontado ? (
                 <MapView
+                  key={`picker-map-${mapKey}`}
                   ref={pickupMapRef}
                   provider={PROVIDER_GOOGLE}
                   style={StyleSheet.absoluteFill}
@@ -906,6 +914,9 @@ const BookingScreen = ({ route, navigation }) => {
                     if (details.isGesture === false) return;
                     const coords = { latitude: r.latitude, longitude: r.longitude };
                     setPickupPinCoords(coords);
+                    // Guardar la región completa: si el mapa se remonta, arranca donde el
+                    // usuario lo dejó y no de vuelta en el destino del viaje.
+                    setPickupRegion(r);
                     if (pickupIdleTimer.current) clearTimeout(pickupIdleTimer.current);
                     setPickupPinAddress('');
                     const reqId = ++pickupGeocodeId.current;
