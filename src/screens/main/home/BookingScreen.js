@@ -669,10 +669,7 @@ const BookingScreen = ({ route, navigation }) => {
               cambio de asientos, el selector desaparecía y volvía saltando en cada toque.
               Los asientos no dependen del precio: el tope sale del viaje. */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <View style={styles.asientosHeader}>
-              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asientos</Text>
-              {calculatingPrice && <ActivityIndicator size="small" color={textMuted} />}
-            </View>
+            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asientos</Text>
 
               <View style={styles.seatSelector}>
                 <TouchableOpacity
@@ -1483,7 +1480,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  asientosHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pasoBarra: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 8 },
   pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },

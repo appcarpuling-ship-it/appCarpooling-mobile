@@ -373,14 +373,23 @@ const MyBookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor: ui.border }]}
+              style={[
+                styles.btnSecondary,
+                canPay(item)
+                  ? { borderWidth: StyleSheet.hairlineWidth, borderColor: ui.border }
+                  : { backgroundColor: ui.invertBg },
+              ]}
               onPress={() => handleCancelBooking(item._id)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
               disabled={cancellingId === item._id}
             >
               {cancellingId === item._id
-                ? <ActivityIndicator size="small" color={activeMuted} />
-                : <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
+                ? <ActivityIndicator size="small" color={canPay(item) ? activeMuted : ui.invertText} />
+                : (
+                  <Text style={[styles.btnSecondaryText, { color: canPay(item) ? activeTxt : ui.invertText }]}>
+                    Cancelar reserva
+                  </Text>
+                )
               }
             </TouchableOpacity>
           </View>
@@ -597,12 +606,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnPrimaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  // Pill con borde fino: el texto subrayado suelto en medio de la tarjeta no se leía como
-  // un botón, y el bloque con borde grueso y radio 10 de antes chocaba con la tarjeta.
+  // Sólido con el color invertido del tema —blanco en oscuro, negro en claro—, como el resto
+  // de los botones de la app. Sólo pasa a contorno cuando en la misma tarjeta está "Ir a
+  // pagar", que ya es sólido: dos botones idénticos ahí no dejarían ver cuál es cuál.
   btnSecondary: {
-    paddingVertical: 13,
+    paddingVertical: 14,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
   },
   btnSecondaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
