@@ -14,7 +14,7 @@ import {
     TouchableWithoutFeedback,
     BackHandler,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
@@ -36,6 +36,7 @@ const PASOS = [
 
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
+    const insets = useSafeAreaInsets();
     const { showAlert } = useAlert();
     const { user } = useAuth();
 
@@ -246,7 +247,10 @@ const TripDetails = ({ navigation, route }) => {
 
     return (
         <>
-            <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom', 'left', 'right']}>
+            {/* Sin el borde 'bottom': ese inset se suma al padding que mete el
+                KeyboardAvoidingView y con el teclado abierto dejaba una franja vacía DEBAJO
+                del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
+            <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
                 <KeyboardAvoidingView behavior="padding" style={styles.flex}>
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
@@ -474,7 +478,7 @@ const TripDetails = ({ navigation, route }) => {
 
                     {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
                         y bajaba según cuánto contenido tuviera cada paso. */}
-                    <View style={[styles.footerFijo, { borderTopColor: divider }]}>
+                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) }]}>
                     {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último. */}
                     {!!faltante && (
                         <Text style={[styles.faltante, { color: textMuted }]}>{faltante}</Text>
@@ -733,18 +737,16 @@ const styles = StyleSheet.create({
     progreso: { flexDirection: 'row', gap: 6, marginTop: 18 },
     progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
     progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
-    faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginTop: 18, marginBottom: -8 },
+    faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginBottom: 10 },
     footerFijo: {
         paddingHorizontal: 20,
-        paddingTop: 12,
-        paddingBottom: 8,
+        paddingTop: 14,
         borderTopWidth: StyleSheet.hairlineWidth,
     },
     submitBtn: {
         borderRadius: 999,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: 8,
     },
     submitText: {
         fontSize: 16,
