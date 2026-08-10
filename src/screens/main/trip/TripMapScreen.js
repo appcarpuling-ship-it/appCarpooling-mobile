@@ -16,6 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
+import { buildRoutePoints, kindLabel, quienLabel } from '../../../utils/routePoints';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
@@ -70,39 +71,37 @@ const TripMapScreen = ({ route, navigation }) => {
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
-  const stops = (trip?.intermediateStops || [])
-    .filter(s => s?.coordinates?.latitude && s?.coordinates?.longitude)
-    .sort((a, b) => a.order - b.order);
+  // Misma lista que el detalle del viaje: la numeración y el descarte de las paradas que
+  // caen encima del origen o del destino viven en utils/routePoints. Esas paradas encimadas
+  // son las que tapaban el marcador del origen y hacían desaparecer el número 1.
+  // Sólo las que tienen coordenadas: se usan para los waypoints de Directions, para
+  // encuadrar el mapa y para calcular la próxima parada, y las tres las desreferencian.
+  const stops = buildRoutePoints(trip)
+    .filter((p) => p.kind !== 'origin' && p.kind !== 'destination')
+    .map((p) => p.location)
+    .filter((s) => s?.coordinates?.latitude != null && s?.coordinates?.longitude != null);
 
-  /** La ruta como una sola secuencia numerada, igual que en el detalle del viaje. */
-  const routePoints = [
-    originCoords?.latitude && {
-      coordinate: { latitude: originCoords.latitude, longitude: originCoords.longitude },
-      address: trip?.origin?.address || trip?.origin?.city || 'Origen',
-      isEnd: true,
-    },
-    // kind viene de la reserva del pasajero: una parada donde sube alguien no es lo mismo
-    // que una donde baja, y con sólo la dirección el conductor no podía distinguirlas.
-    ...stops.map((s) => ({
-      coordinate: { latitude: s.coordinates.latitude, longitude: s.coordinates.longitude },
-      address: s.address || s.city || 'Parada',
-      kindLabel: s.kind === 'pickup' ? 'Recogida' : s.kind === 'dropoff' ? 'Bajada' : '',
-      // "A recoger a Martín" / "A dejar a Ana". Sin pasajero (paradas que cargó el conductor
-      // al publicar) queda vacío y la tarjeta muestra sólo la dirección.
-      quien: s.passenger?.firstName
-        ? `${s.kind === 'dropoff' ? 'A dejar a' : 'A recoger a'} ${s.passenger.firstName}`
-        : '',
-      isEnd: false,
-    })),
-    destCoords?.latitude && {
-      coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
-      address: trip?.destination?.address || trip?.destination?.city || 'Destino',
-      isEnd: true,
-    },
-  ].filter(Boolean);
+  const routePoints = buildRoutePoints(trip)
+    .filter((p) => p.location?.coordinates?.latitude != null)
+    .map((p) => ({
+      coordinate: {
+        latitude: p.location.coordinates.latitude,
+        longitude: p.location.coordinates.longitude,
+      },
+      address: p.location.address || p.location.city
+        || (p.kind === 'origin' ? 'Origen' : p.kind === 'destination' ? 'Destino' : 'Parada'),
+      kindLabel: kindLabel(p.kind),
+      quien: quienLabel(p.kind, p.passenger),
+      isEnd: p.isEnd,
+    }));
 
   const userId = user?._id || user?.id;
-  const driverId = trip?.driver?._id || trip?.driver?.id;
+  // El viaje llega de dos lados y con el conductor en dos formas: el detalle lo popula
+  // (objeto) y "mis viajes como conductor" no (ObjectId pelado). Sin el último caso, al
+  // abrir el mapa solo desde Home la app creía que NO eras el conductor: no salía la
+  // tarjeta de "Yendo a", te dibujaba a vos como si fueras otro auto, y encima no emitía
+  // tu posición, así que los pasajeros no te veían moverte.
+  const driverId = trip?.driver?._id || trip?.driver?.id || trip?.driver;
   const isDriver = Boolean(userId && driverId && String(userId) === String(driverId));
   const isTripStarted = trip?.status === 'started';
 

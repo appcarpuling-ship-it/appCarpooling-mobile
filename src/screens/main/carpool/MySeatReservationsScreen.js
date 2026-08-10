@@ -249,7 +249,7 @@ const MySeatReservationsScreen = ({ navigation }) => {
           <View style={styles.routeRow}>
             <View style={styles.routeLine}>
               <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
-              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
+              <View style={[styles.routeConnector, { backgroundColor: textPrimary }]} />
               <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
             </View>
             <View style={styles.routeLabels}>

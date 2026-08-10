@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { buildRoutePoints } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
@@ -221,21 +222,9 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
-  /**
-   * La ruta como una sola secuencia numerada: origen es el 1 y el destino el número más
-   * alto. Antes las paradas intermedias se numeraban por su cuenta (1, 2…) y las puntas
-   * no llevaban número, así que "1" era la primera parada y no el arranque del viaje.
-   * Armar la lista acá y recorrerla una vez evita que la columna de los puntos y la de
-   * las direcciones se desincronicen, que era el riesgo de tenerlas escritas por separado.
-   */
-  const routePoints = useMemo(() => {
-    const stops = [...(trip?.intermediateStops || [])].sort((a, b) => a.order - b.order);
-    return [
-      { location: trip?.origin, label: 'Origen', isEnd: true },
-      ...stops.map((stop) => ({ location: stop, label: '', isEnd: false })),
-      { location: trip?.destination, label: 'Destino', isEnd: true },
-    ];
-  }, [trip]);
+  // Numeración y descarte de paradas encimadas en utils/routePoints, compartido con el mapa:
+  // si cada pantalla arma su lista, el "3" de una deja de ser el "3" de la otra.
+  const routePoints = useMemo(() => buildRoutePoints(trip), [trip]);
 
   const fmtCurrency = (n) =>
     n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
