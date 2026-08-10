@@ -16,29 +16,13 @@ import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, decodePolyline, metersBetween } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
-
-const decodePolyline = (encoded) => {
-  if (!encoded) return [];
-  const pts = [];
-  let i = 0, lat = 0, lng = 0;
-  while (i < encoded.length) {
-    let b, shift = 0, result = 0;
-    do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    shift = 0; result = 0;
-    do { b = encoded.charAt(i++).charCodeAt(0) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    pts.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
-  }
-  return pts;
-};
 
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
@@ -190,18 +174,6 @@ const TripMapScreen = ({ route, navigation }) => {
     destCoords?.latitude && { latitude: destCoords.latitude, longitude: destCoords.longitude },
   ].filter(Boolean);
 
-  /** Metros entre dos puntos (haversine). Alcanza para saber si el trazado roza la parada. */
-  const metersBetween = (a, b) => {
-    const R = 6371000;
-    const rad = (x) => (x * Math.PI) / 180;
-    const dLat = rad(b.latitude - a.latitude);
-    const dLon = rad(b.longitude - a.longitude);
-    const h =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(h));
-  };
-
   /** ¿El trazado pasa por todas las paradas? 150 m tolera el ancho de calle y la resolución. */
   const stopsCoveredBy = (points) =>
     stops.length === 0 ||
@@ -217,22 +189,14 @@ const TripMapScreen = ({ route, navigation }) => {
    * adelante, y el conductor veía una lista que no era el camino.
    */
   const navTargets = useMemo(() => {
-    const posicionEnRuta = (coord) => {
-      if (!routeCoordinates.length) return Number.MAX_SAFE_INTEGER;
-      let mejorDist = Infinity;
-      let mejorIdx = Number.MAX_SAFE_INTEGER;
-      for (let i = 0; i < routeCoordinates.length; i++) {
-        const d = metersBetween(routeCoordinates[i], coord);
-        if (d < mejorDist) { mejorDist = d; mejorIdx = i; }
-      }
-      return mejorIdx;
-    };
-
     // Acá van TODAS las paradas de pasajeros, incluidas las que caen encima del origen o del
     // destino. Esas se descartan para los marcadores —dos pines en el mismo lugar se tapan—
     // pero para el conductor no son un duplicado: que Benjamín suba en la dirección de salida
     // es justo lo que necesita saber al arrancar, y si se filtra no aparece por ningún lado.
-    const paradas = (trip?.intermediateStops || [])
+    //
+    // El ORDEN sale de ordenarStops, el mismo que usa el detalle del viaje: si cada pantalla
+    // ordenara por su cuenta, el conductor y el pasajero verían recorridos distintos.
+    const paradas = ordenarStops(trip)
       .filter((st) => st?.coordinates?.latitude != null && st?.coordinates?.longitude != null)
       .map((st, i) => ({
         id: `stop-${i}`,
@@ -240,9 +204,6 @@ const TripMapScreen = ({ route, navigation }) => {
         address: st.address || st.city || 'Parada',
         quien: quienLabel(st.kind, st.passenger),
       }));
-
-    // Sin trazado todavía, se respeta el orden con el que vinieron: es lo único que hay.
-    paradas.sort((a, b) => posicionEnRuta(a.coordinate) - posicionEnRuta(b.coordinate));
 
     // El destino va último y solo. No es una parada de nadie —por eso no lleva "a recoger a"
     // ni "a dejar a"— pero sí es a dónde va el conductor una vez que bajó el último pasajero,
@@ -256,7 +217,7 @@ const TripMapScreen = ({ route, navigation }) => {
         quien: 'A finalizar el viaje',
       },
     ].filter(Boolean);
-  }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
+  }, [trip?.intermediateStops, trip?.routePolyline, destCoords?.latitude, destCoords?.longitude]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;

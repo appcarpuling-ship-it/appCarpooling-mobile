@@ -71,4 +71,46 @@ assert.strictEqual(quienLabel('dropoff', { firstName: 'Ana' }), 'A dejar a Ana')
 assert.strictEqual(quienLabel('pickup', { firstName: 'Ana' }), 'A recoger a Ana');
 assert.strictEqual(quienLabel('pickup', null), '');
 
+// El caso que reportó el usuario: dos reservas del mismo viaje Concordia -> Buenos Aires.
+// Por orden de pago quedaba Concordia, CABA, Concordia, CABA — el conductor volvía 900km
+// para atrás a buscar al segundo pasajero. Sin trazado guardado, ordena por el eje.
+const concordia = { latitude: -31.3930, longitude: -58.0209 };
+const caba = { latitude: -34.6037, longitude: -58.3821 };
+
+const dosReservas = buildRoutePoints({
+  origin: { address: 'Esteban Echeverría 1180', coordinates: concordia },
+  destination: { address: 'Av. Santa Fe', coordinates: caba },
+  intermediateStops: [
+    { address: 'Hipólito Yrigoyen 512', order: 1, kind: 'pickup', coordinates: { latitude: -31.3900, longitude: -58.0180 } },
+    { address: 'Ramón Freire', order: 2, kind: 'dropoff', coordinates: { latitude: -34.5600, longitude: -58.4600 } },
+    { address: 'Liniers 268', order: 3, kind: 'pickup', coordinates: { latitude: -31.3880, longitude: -58.0150 } },
+    { address: 'Acuña de Figueroa', order: 4, kind: 'dropoff', coordinates: { latitude: -34.6000, longitude: -58.4200 } },
+  ],
+});
+
+// Lo que importa: las dos recogidas de Concordia van JUNTAS y antes que las dos bajadas de
+// Buenos Aires. Nunca se vuelve 900km para atrás. El orden entre las dos recogidas entre sí
+// no se fija: están a 400m una de otra y a esa escala es indistinto.
+const kinds = dosReservas.map((p) => p.kind);
+assert.deepStrictEqual(kinds, ['origin', 'pickup', 'pickup', 'dropoff', 'dropoff', 'destination'],
+  `quedó: ${dosReservas.map((p) => p.location.address).join(' | ')}`);
+
+const direcciones = dosReservas.map((p) => p.location.address);
+assert.strictEqual(direcciones[0], 'Esteban Echeverría 1180');
+assert.strictEqual(direcciones[5], 'Av. Santa Fe');
+assert.deepStrictEqual(direcciones.slice(1, 3).sort(), ['Hipólito Yrigoyen 512', 'Liniers 268']);
+assert.deepStrictEqual(direcciones.slice(3, 5).sort(), ['Acuña de Figueroa', 'Ramón Freire']);
+
+// Una parada sin coordenadas no puede colarse en el medio ni romper el orden: va al final,
+// antes del destino, porque no hay con qué ubicarla.
+const conHuerfana = buildRoutePoints({
+  origin: { address: 'A', coordinates: concordia },
+  destination: { address: 'Z', coordinates: caba },
+  intermediateStops: [
+    { address: 'sin coords', order: 1 },
+    { address: 'media', order: 2, coordinates: { latitude: -33.0, longitude: -58.5 } },
+  ],
+});
+assert.deepStrictEqual(conHuerfana.map((p) => p.location.address), ['A', 'media', 'sin coords', 'Z']);
+
 console.log('✅ routePoints: todos los checks pasaron');
