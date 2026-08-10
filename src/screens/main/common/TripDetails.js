@@ -15,6 +15,7 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
@@ -37,6 +38,7 @@ const PASOS = [
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
     const insets = useSafeAreaInsets();
+    const headerHeight = useHeaderHeight();
     const { showAlert } = useAlert();
     const { user } = useAuth();
 
@@ -251,7 +253,11 @@ const TripDetails = ({ navigation, route }) => {
                 KeyboardAvoidingView y con el teclado abierto dejaba una franja vacía DEBAJO
                 del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
-                <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={headerHeight}
+                    style={styles.flex}
+                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
                         ref={scrollRef}
