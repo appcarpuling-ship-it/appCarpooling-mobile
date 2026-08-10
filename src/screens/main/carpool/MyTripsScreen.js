@@ -281,7 +281,7 @@ const MyTripsScreen = ({ navigation }) => {
             <View style={styles.routeBlock}>
               <View style={styles.routeDots}>
                 <View style={[styles.dotOrigin, { borderColor: activeTxt }]} />
-                <View style={[styles.routeConnector, { backgroundColor: activeDivider }]} />
+                <View style={[styles.routeConnector, { backgroundColor: activeTxt }]} />
                 <View style={[styles.dotDest, { backgroundColor: activeTxt }]} />
               </View>
               <View style={styles.routeLabels}>

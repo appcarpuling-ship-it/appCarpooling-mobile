@@ -223,16 +223,15 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   /**
-   * El banner de "viaje en curso". Al conductor lo manda al mapa —es lo que necesita mientras
-   * maneja— y al pasajero al detalle, que es donde tiene el chat, su reserva y lo que pagó.
+   * El banner de "viaje en curso" abre el detalle, para conductor y pasajero por igual: ahí
+   * está el chat, la lista de pasajeros, completar el viaje y el botón para ver el mapa.
+   * Al mapa se entra solo por dos vías: ese botón, o la apertura automática al abrir la app
+   * con un viaje en curso. Tocar el banner NO tiene que llevar al mapa: es el atajo a todo
+   * lo demás, y desde el mapa hay que volver atrás para hacer cualquier otra cosa.
    */
   const openActiveTrip = () => {
     if (!activeTrip) return;
-    if (activeTripRole === 'driver') {
-      navigation.navigate('TripMap', { trip: activeTrip });
-    } else {
-      navigation.navigate('TripDetail', { tripId: activeTrip._id });
-    }
+    navigation.navigate('TripDetail', { tripId: activeTrip._id });
   };
 
   const loadActiveTrip = async () => {

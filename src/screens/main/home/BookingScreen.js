@@ -150,6 +150,22 @@ const BookingScreen = ({ route, navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
+  /**
+   * Región del mapa a partir de unas coordenadas, o null si no sirven.
+   *
+   * El 0 es el caso que importa: `coords.latitude != null` lo da por bueno, y un viaje con el
+   * destino sin geocodificar queda en 0,0 — que es mar abierto frente a África. El mapa se
+   * abría en el océano y se veía una pantalla celeste vacía.
+   */
+  const regionDesde = (coords, delta) => {
+    const lat = Number(coords?.latitude);
+    const lng = Number(coords?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001) return null;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta };
+  };
+
   const calculatePrice = async () => {
     if (!trip) return;
     try {
@@ -294,10 +310,12 @@ const BookingScreen = ({ route, navigation }) => {
       const addr = await reverseGeocodePickup(coords);
       if (pickupGeocodeId.current === thisId) setPickupPinAddress(addr || '');
     } catch {
-      const origin = trip?.origin?.coordinates;
-      const fallback = origin || { latitude: -34.6037, longitude: -58.3816 };
-      setPickupPinCoords(fallback);
-      setPickupRegion({ ...fallback, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+      // Sin permiso de ubicación: el origen del viaje, y si ese tampoco sirve (0,0 o sin
+      // geocodificar), Buenos Aires. Cualquier cosa antes que abrir el mapa en el océano.
+      const fallback = regionDesde(trip?.origin?.coordinates, 0.02)
+        || { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+      setPickupPinCoords({ latitude: fallback.latitude, longitude: fallback.longitude });
+      setPickupRegion(fallback);
     }
   };
 
@@ -413,10 +431,13 @@ const BookingScreen = ({ route, navigation }) => {
         title: 'Solicitud Enviada',
         message: `Tu solicitud de reserva ha sido enviada al conductor. Te notificaremos cuando la apruebe.${discountNote}`,
         primaryLabel: 'Continuar',
-        // Con navigate (no replace) el formulario de reserva queda debajo en el
-        // stack; sin esto "Continuar" volvería ahí en vez de a Mis Reservas.
         onPrimary: () => navigation.navigate('CarpoolingsTab', { screen: 'MyBookings', initial: false }),
       });
+      // Result vive en el stack raíz, encima de las tabs, así que la tab de Inicio se queda
+      // parada en este formulario. Al volver a Inicio reaparecía la reserva ya enviada, y
+      // reservar de nuevo fallaba por capacidad porque el asiento ya estaba tomado.
+      // Se vacía el stack de Inicio pase lo que pase después, no sólo si toca "Continuar".
+      navigation.popToTop();
     } catch (err) {
       navigation.navigate('Result', {
         type: 'error',
@@ -563,17 +584,19 @@ const BookingScreen = ({ route, navigation }) => {
                 pickupMapSelectionModeRef.current = false;
                 pickupMapReady.current = false;
                 setPickupMapVisible(true);
-                if (row.value?.coordinates) {
-                  setPickupPinCoords(row.value.coordinates);
-                  setPickupRegion({ ...row.value.coordinates, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+                const yaElegido = regionDesde(row.value?.coordinates, 0.01);
+                if (yaElegido) {
+                  setPickupPinCoords({ latitude: yaElegido.latitude, longitude: yaElegido.longitude });
+                  setPickupRegion(yaElegido);
                 } else {
                   setPickupRegion(null);
                   setPickupPinCoords(null);
                   // Para la bajada, arrancar en el destino del viaje es mucho más útil que en
-                  // dónde está parado ahora, que es del otro lado del país.
-                  if (row.mode === 'dropoff' && trip?.destination?.coordinates?.latitude != null) {
-                    setPickupPinCoords(trip.destination.coordinates);
-                    setPickupRegion({ ...trip.destination.coordinates, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+                  // dónde está parado ahora, que puede ser del otro lado del país.
+                  const enDestino = row.mode === 'dropoff' ? regionDesde(trip?.destination?.coordinates, 0.05) : null;
+                  if (enDestino) {
+                    setPickupPinCoords({ latitude: enDestino.latitude, longitude: enDestino.longitude });
+                    setPickupRegion(enDestino);
                   } else {
                     gotoUserLocation();
                   }

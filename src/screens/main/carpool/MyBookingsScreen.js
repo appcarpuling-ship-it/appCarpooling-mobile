@@ -295,7 +295,7 @@ const MyBookingsScreen = ({ navigation }) => {
               )}
             </View>
           </View>
-          <View style={[styles.routeConnector, { backgroundColor: activeDivider }]} />
+          <View style={[styles.routeConnector, { backgroundColor: activeTxt }]} />
           <View style={styles.routeRow}>
             <View style={[styles.routeDotFilled, { backgroundColor: activeTxt }]} />
             <View style={styles.routeTextCol}>
@@ -360,14 +360,15 @@ const MyBookingsScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor: isActive ? (isDarkMode ? '#555' : ui.textMuted) : (ui.textMuted) }]}
+              style={styles.btnSecondary}
               onPress={() => handleCancelBooking(item._id)}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
               disabled={cancellingId === item._id}
+              hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
             >
               {cancellingId === item._id
-                ? <ActivityIndicator size="small" color={activeTxt} />
-                : <Text style={[styles.btnSecondaryText, { color: activeTxt }]}>Cancelar reserva</Text>
+                ? <ActivityIndicator size="small" color={activeMuted} />
+                : <Text style={[styles.btnSecondaryText, { color: activeMuted }]}>Cancelar reserva</Text>
               }
             </TouchableOpacity>
           </View>
@@ -509,6 +510,8 @@ const styles = StyleSheet.create({
     width: 10, height: 10, borderRadius: 5, borderWidth: 2,
   },
   routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
+  // Une los dos puntos del recorrido, así que va del color de los puntos y no del de los
+  // separadores: con el color de divisor quedaba una línea blanca sobre la tarjeta gris.
   routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
   routeTextCol: { flex: 1, gap: 2 },
   routeText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
@@ -547,19 +550,20 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     gap: 10,
   },
+  // Pill como el resto del rediseño. El radio 10 anterior chocaba con las esquinas
+  // redondeadas de la tarjeta y el bloque con borde a todo el ancho pesaba más que el
+  // contenido: cancelar es la salida, no la acción principal, y ahora se ve como tal.
   btnPrimary: {
-    paddingVertical: 13,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 999,
     alignItems: 'center',
   },
   btnPrimaryText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   btnSecondary: {
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 10,
     alignItems: 'center',
   },
-  btnSecondaryText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
+  btnSecondaryText: { fontSize: 13, fontFamily: 'Sora_500Medium', textDecorationLine: 'underline' },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyIconBox: {
