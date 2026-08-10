@@ -62,9 +62,6 @@ const TripMapScreen = ({ route, navigation }) => {
   const [mapReady, setMapReady] = useState(false);
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
-  // Posición propia del conductor: hasta ahora sólo se emitía por socket para que la vieran
-  // los pasajeros, no se guardaba, así que no había con qué saber cuál parada le queda cerca.
-  const [myCoords, setMyCoords] = useState(null);
   // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
   // estado del viaje — si se reinicia la app se recalcula sola por cercanía.
   const [paradasHechas, setParadasHechas] = useState([]);
@@ -141,10 +138,9 @@ const TripMapScreen = ({ route, navigation }) => {
             distanceInterval: DRIVER_LOCATION_DISTANCE_M,
           },
           (loc) => {
-            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-            setMyCoords(coords);
             socketService.sendTripLocationUpdate(trip._id, {
-              ...coords,
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
               heading: loc.coords.heading,
             });
           }
@@ -230,12 +226,18 @@ const TripMapScreen = ({ route, navigation }) => {
       return mejorIdx;
     };
 
-    const paradas = stops.map((st, i) => ({
-      id: `stop-${i}`,
-      coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
-      address: st.address || st.city || 'Parada',
-      quien: quienLabel(st.kind, st.passenger),
-    }));
+    // Acá van TODAS las paradas de pasajeros, incluidas las que caen encima del origen o del
+    // destino. Esas se descartan para los marcadores —dos pines en el mismo lugar se tapan—
+    // pero para el conductor no son un duplicado: que Benjamín suba en la dirección de salida
+    // es justo lo que necesita saber al arrancar, y si se filtra no aparece por ningún lado.
+    const paradas = (trip?.intermediateStops || [])
+      .filter((st) => st?.coordinates?.latitude != null && st?.coordinates?.longitude != null)
+      .map((st, i) => ({
+        id: `stop-${i}`,
+        coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
+        address: st.address || st.city || 'Parada',
+        quien: quienLabel(st.kind, st.passenger),
+      }));
 
     // Sin trazado todavía, se respeta el orden con el que vinieron: es lo único que hay.
     paradas.sort((a, b) => posicionEnRuta(a.coordinate) - posicionEnRuta(b.coordinate));
@@ -246,10 +248,10 @@ const TripMapScreen = ({ route, navigation }) => {
         id: 'destino',
         coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
         address: trip?.destination?.address || trip?.destination?.city || 'Destino',
-        quien: 'Fin del viaje',
+        quien: '',
       },
     ].filter(Boolean);
-  }, [stops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
+  }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude, routeCoordinates]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;
@@ -258,17 +260,9 @@ const TripMapScreen = ({ route, navigation }) => {
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
   // pedirle que maneje y opere el teléfono al mismo tiempo. El botón queda igual, por si el
   // GPS no la detecta o se saltea una parada.
-  useEffect(() => {
-    if (!isDriver || !isTripStarted || !myCoords) return;
-    // Cualquier pendiente por la que pase, no sólo la primera: si se saltea una, quedaría
-    // trabado ahí para siempre y la lista dejaría de coincidir con dónde está.
-    const alcanzadas = pendientes
-      .filter((t) => metersBetween(myCoords, t.coordinate) < 200)
-      .map((t) => t.id);
-    if (alcanzadas.length) {
-      setParadasHechas((prev) => [...new Set([...prev, ...alcanzadas])]);
-    }
-  }, [myCoords, isDriver, isTripStarted, pendientes.length]);
+  // Nada de marcar paradas solo por cercanía: el conductor arranca PARADO en el origen, que
+  // suele ser también el punto de recogida de alguien, y esa parada se daba por hecha antes
+  // de que llegara a verla. Avanza él con el botón, que es lo único predecible.
 
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
