@@ -232,9 +232,6 @@ const PointPickerScreen = ({ route, navigation }) => {
               if (details.isGesture === false) return;
               const coords = { latitude: r.latitude, longitude: r.longitude };
               setPinCoords(coords);
-              // Guardar la región completa: si el mapa se remonta, arranca donde el
-              // usuario lo dejó y no de vuelta en el destino del viaje.
-              setRegion(r);
               if (idleTimer.current) clearTimeout(idleTimer.current);
               setPinAddress('');
               const reqId = ++geocodeId.current;
@@ -401,7 +398,7 @@ const styles = StyleSheet.create({
   // pedirlo. Y el zIndex en iOS reordena capas de composición, que es de las pocas cosas que
   // pueden dejar la superficie GL del mapa sin componer — el resto ya se descartó midiendo.
   fullscreen: { ...StyleSheet.absoluteFillObject },
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0 },
   circleBtn: {
     marginLeft: 16, marginTop: 8,
     width: 42, height: 42, borderRadius: 21,
@@ -436,8 +433,12 @@ const styles = StyleSheet.create({
   sheetActions: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
   confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   confirmBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  // Sin zIndex, igual que en CreateTripGoogleMaps: React Native reordena las subvistas
+  // NATIVAS cuando hay hermanos con zIndex, y mover el GMSMapView de índice le rompe la
+  // superficie GL — el mapa queda vivo pero sin dibujar. Estos dos se declaran después del
+  // mapa en el árbol, así que quedan arriba igual sin pedirlo.
   searchOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
   },
   searchHeader: {
     flexDirection: 'row', alignItems: 'center',
