@@ -1217,9 +1217,13 @@ const styles = StyleSheet.create({
   tlLine:      { flex: 1, width: 2, marginVertical: 3, minHeight: 16 },
 
   // Search overlay
+  // Sin zIndex a propósito. Con zIndex, React Native reordena las subvistas NATIVAS al
+  // montar y desmontar este overlay, y mover un GMSMapView de índice entre sus hermanos le
+  // rompe la superficie GL: el mapa queda vivo pero sin dibujar tiles (todo celeste). El
+  // overlay se declara casi al final del árbol, así que tapa igual sin pedirlo — sólo el
+  // overlay de carga, que sí lleva zIndex, queda por encima, que es lo que corresponde.
   searchOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 200,
   },
   searchHeader: {
     flexDirection: 'row', alignItems: 'center',
