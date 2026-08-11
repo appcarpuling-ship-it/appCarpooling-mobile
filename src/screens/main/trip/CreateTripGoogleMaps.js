@@ -33,6 +33,7 @@ import { useColors } from '../../../hooks/useColors';
 import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
+import MapCenterPin, { usePinAlzado } from '../../../components/ui/MapCenterPin';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -117,6 +118,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const [duration, setDuration] = useState(null);
   const [mapSelectionMode, setMapSelectionMode] = useState(null);
   const [searchVisible, setSearchVisible] = useState(false);
+  const { alzado, levantarPin } = usePinAlzado();
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayTranslateY = useRef(new Animated.Value(16)).current;
 
@@ -746,11 +748,13 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         region={region}
         onRegionChange={(r) => {
           lastRegionRef.current = r;
+          if (mapSelectionModeRef.current) levantarPin(true);
           if (!mapSelectionModeRef.current || !hasMapGestureForSelectionRef.current) return;
           scheduleMapSelectionIdleCommit();
         }}
         onRegionChangeComplete={(r, d = {}) => {
           lastRegionRef.current = r;
+          levantarPin(false);
           if (d.isGesture) {
             setRegion(r);
             if (mapSelectionModeRef.current) {
@@ -827,9 +831,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
               <Text style={styles.selectionCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.centerPin} pointerEvents="none">
-            <Ionicons name="location" size={20} color="#1F2937" />
-          </View>
+          <MapCenterPin alzado={alzado} />
         </>
       )}
 
@@ -1161,7 +1163,6 @@ const styles = StyleSheet.create({
   },
   selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
   selectionCancelText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
-  centerPin: { position: 'absolute', top: height / 2 - 31, left: width / 2 - 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
 
   // Mini sheet
   miniSheet: {

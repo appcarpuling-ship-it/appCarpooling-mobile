@@ -367,10 +367,17 @@ const TripRequestsScreen = ({ route }) => {
       );
     }
 
+    // Sin repetir lo que la dirección ya dice: cuando el viaje se creó eligiendo una ciudad,
+    // `address` ES la ciudad, y al pegarle ciudad + provincia quedaba
+    // "Concordia, Entre Ríos, Concordia, Entre Ríos".
     const fmtFull = (loc) => {
-      const addr = fmtAddress(loc?.address, loc?.city);
-      const cityProv = [loc?.city, loc?.province].filter(Boolean).join(', ');
-      return [addr, cityProv].filter(Boolean).join(', ');
+      const partes = [fmtAddress(loc?.address, loc?.city)].filter(Boolean);
+      for (const extra of [loc?.city, loc?.province]) {
+        if (!extra) continue;
+        if (partes.join(', ').toLowerCase().includes(extra.toLowerCase())) continue;
+        partes.push(extra);
+      }
+      return partes.join(', ');
     };
     const o = fmtFull(selectedTrip.origin);
     const d = fmtFull(selectedTrip.destination);
@@ -525,8 +532,8 @@ const TripRequestsScreen = ({ route }) => {
         {(item.seatReservation?.pickupLocation?.address || item.seatReservation?.dropoffLocation?.address) && (
           <View style={[styles.reqRuta, { borderTopColor: divider }]}>
             {[
-              { punto: item.seatReservation?.pickupLocation, rotulo: 'Lo levantás en', fin: false },
-              { punto: item.seatReservation?.dropoffLocation, rotulo: 'Lo dejás en', fin: true },
+              { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
+              { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
             ].filter(({ punto }) => punto?.address).map(({ punto, rotulo, fin }, i, arr) => {
               const hasCoords = punto.coordinates?.latitude != null;
               return (
@@ -543,13 +550,13 @@ const TripRequestsScreen = ({ route }) => {
                     <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
                     {i < arr.length - 1 && <View style={[styles.reqRutaLinea, { backgroundColor: textPrimary }]} />}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pickupLabel, { color: textMuted }]}>{rotulo}</Text>
-                    <Text style={[styles.pickupText, { color: textPrimary }]} numberOfLines={2}>
-                      {punto.address}
-                    </Text>
-                  </View>
-                  {hasCoords && <Ionicons name="map-outline" size={16} color={textMuted} />}
+                  {/* Rótulo y dirección en la MISMA línea: en dos renglones cada punto
+                      ocupaba el doble y la tarjeta se hacía larguísima con dos solicitudes. */}
+                  <Text style={styles.reqPuntoTexto} numberOfLines={2}>
+                    <Text style={{ color: textMuted }}>{rotulo} </Text>
+                    <Text style={{ color: textPrimary }}>{punto.address}</Text>
+                  </Text>
+                  {hasCoords && <Ionicons name="map-outline" size={15} color={textMuted} style={{ marginTop: 1 }} />}
                 </TouchableOpacity>
               );
             })}
@@ -899,18 +906,13 @@ const styles = StyleSheet.create({
 
   // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
   reqRuta: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
-  reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  reqRutaRail: { alignItems: 'center', paddingTop: 5, alignSelf: 'stretch' },
+  reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 3 },
+  reqPuntoTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
+  reqRutaRail: { alignItems: 'center', paddingTop: 6, alignSelf: 'stretch' },
   reqDotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
   reqDotFin: { width: 9, height: 9, borderRadius: 5 },
   reqRutaLinea: { width: 1.5, flex: 1, minHeight: 16, marginVertical: 3 },
 
-  pickupLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.4, marginBottom: 2 },
-  pickupText: {
-    fontSize: 14,
-    lineHeight: 19,
-    fontFamily: 'Sora_500Medium',
-  },
 
   messageText: {
     fontSize: 13,
