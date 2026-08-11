@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useUI } from '../../theme/ui';
 import { useFrequentAddresses } from '../../hooks/useFrequentAddresses';
@@ -79,14 +79,18 @@ const PointPickerScreen = ({ route, navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchVisible, setSearchVisible] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
+  // Arranca en modo selección: esta pantalla existe para elegir un punto, así que el pin del
+  // centro está desde el principio y se arrastra el mapa y listo. Antes había que abrir el
+  // buscador y tocar "Marcar en el mapa" para poder mover el mapa, que además es el camino
+  // por el que el mapa quedaba celeste.
+  const [selectionMode] = useState(true);
   const [resolving, setResolving] = useState(false);
 
   const mapRef = useRef(null);
   const searchDebounce = useRef(null);
   const idleTimer = useRef(null);
   const geocodeId = useRef(0);
-  const selectionModeRef = useRef(false);
+  const selectionModeRef = useRef(true);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayY = useRef(new Animated.Value(16)).current;
 
@@ -242,12 +246,6 @@ const PointPickerScreen = ({ route, navigation }) => {
             showsUserLocation={false}
             showsMyLocationButton={false}
           >
-            {/* Marker fijo en la ubicación confirmada (fuera de modo selección) */}
-            {pinCoords && !selectionMode && (
-              <Marker coordinate={pinCoords} anchor={{ x: 0.5, y: 1 }}>
-                <View style={styles.markerDot} />
-              </Marker>
-            )}
           </MapView>
         ) : (
           <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: cardBg }]}>
@@ -256,25 +254,13 @@ const PointPickerScreen = ({ route, navigation }) => {
         )}
 
 
-        {/* Center pin — solo en modo selección manual */}
-        {!searchVisible && selectionMode && (
+        {/* Pin del centro: lo que se confirma es siempre el punto del medio del mapa. */}
+        {!searchVisible && (
           <View style={styles.centerPin} pointerEvents="none">
             <Ionicons name="location" size={20} color="#1F2937" />
           </View>
         )}
 
-        {/* Banner de modo selección */}
-        {!searchVisible && selectionMode && (
-          <View style={[styles.selectionBanner, { top: insets.top + 60 }]}>
-            <Text style={styles.selectionText}>Mové el mapa para seleccionar</Text>
-            <TouchableOpacity onPress={() => {
-              setSelectionMode(false);
-              selectionModeRef.current = false;
-            }} style={{ marginLeft: 12 }}>
-              <Text style={styles.selectionCancel}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Floating back button */}
         {!searchVisible && (
@@ -356,20 +342,6 @@ const PointPickerScreen = ({ route, navigation }) => {
                 keyboardDismissMode="on-drag"
                 showsVerticalScrollIndicator={false}
               >
-                <TouchableOpacity
-                  style={[styles.resultRow, { borderBottomColor: ui.bg }]}
-                  onPress={() => {
-                    cerrarBuscador();
-                    setSelectionMode(true);
-                    selectionModeRef.current = true;
-                  }}
-                  activeOpacity={0.6}
-                >
-                  <View style={[styles.resultIcon, { backgroundColor: ui.bg }]}>
-                    <Ionicons name="map-outline" size={16} color={textPrimary} />
-                  </View>
-                  <Text style={[styles.resultMain, { color: textPrimary }]}>Marcar en el mapa</Text>
-                </TouchableOpacity>
 
                 {searchText.length === 0 && searchResults.length === 0 && frequentAddresses.length > 0 && (
                   <>
@@ -483,20 +455,6 @@ const styles = StyleSheet.create({
   resultIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   resultMain: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   resultSub: { fontSize: 12, marginTop: 2 },
-  markerDot: {
-    width: 14, height: 14, borderRadius: 7,
-    backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF',
-  },
-  selectionBanner: {
-    position: 'absolute', left: 16, right: 16,
-    backgroundColor: '#1F2937', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    zIndex: 50,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
-  },
-  selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
-  selectionCancel: { color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default PointPickerScreen;
