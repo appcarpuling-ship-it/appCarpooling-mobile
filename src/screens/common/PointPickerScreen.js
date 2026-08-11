@@ -254,7 +254,11 @@ const PointPickerScreen = ({ route, navigation }) => {
         {/* Pin del centro: lo que se confirma es siempre el punto del medio del mapa. */}
         {!searchVisible && (
           <View style={styles.centerPin} pointerEvents="none">
-            <Ionicons name="location" size={20} color="#1F2937" />
+            <View style={styles.pinCabeza}>
+              <View style={styles.pinNucleo} />
+            </View>
+            <View style={styles.pinTallo} />
+            <View style={styles.pinBase} />
           </View>
         )}
 
@@ -405,16 +409,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
   },
+  /**
+   * El pin del centro. Antes era un ícono de Ionicons suelto, centrado en la mitad de su
+   * caja: o sea que el punto que confirmabas no era la punta del pin sino su MEDIO, unos
+   * 15px más arriba de lo que veías. Ahora se dibuja con vistas y el ancla queda en la punta
+   * exacta: la caja mide 46px de alto y se sube 46, así que su borde inferior cae justo en el
+   * centro del mapa.
+   */
   centerPin: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -31,
-    marginLeft: -22,
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
+    marginLeft: -17,
+    marginTop: -46,
+    width: 34,
+    height: 46,
     alignItems: 'center',
+  },
+  pinCabeza: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#010101',
+    borderWidth: 3, borderColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3, shadowRadius: 3, elevation: 5,
+  },
+  pinNucleo: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF' },
+  pinTallo: { width: 3, height: 11, backgroundColor: '#010101', marginTop: -1 },
+  // La sombrita en el suelo: sin ella el pin parece flotar y no se sabe qué punto marca.
+  pinBase: {
+    width: 10, height: 4, borderRadius: 5,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    marginTop: 1,
   },
   miniSheet: {
     position: 'absolute',
