@@ -467,6 +467,8 @@ const TripRequestsScreen = ({ route }) => {
 
     return (
       <View>
+        {/* Cabecera: quién, cuántos asientos y cuánto. El precio va con el rótulo y en la
+            misma fila que el nombre; suelto arriba a la derecha no se sabía de qué era. */}
         <TouchableOpacity
           style={styles.passengerRow}
           activeOpacity={0.7}
@@ -482,35 +484,34 @@ const TripRequestsScreen = ({ route }) => {
               </Text>
             </View>
           )}
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={[styles.passengerName, { color: textPrimary }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.passengerName, { color: textPrimary }]} numberOfLines={1}>
               {item.passenger?.firstName} {item.passenger?.lastName}
             </Text>
+            <Text style={[styles.reqSub, { color: textMuted }]} numberOfLines={1}>
+              {seats} asiento{seats === 1 ? '' : 's'} · pidió el {fmtDate(item.createdAt)}
+            </Text>
+          </View>
+          {amount != null && (
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={[styles.reqMontoLabel, { color: textMuted }]}>Reserva</Text>
+              <Text style={[styles.amountText, { color: textPrimary }]}>{fmtCurrency(amount)}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* El estado sólo cuando NO es "esperando": en una pantalla que se llama Solicitudes
+            de Reserva y que muestra Aceptar y Rechazar, ese cartel no informaba nada y era lo
+            más pesado de la tarjeta. */}
+        {!isPending && (
+          <View style={styles.reqEstadoWrap}>
             <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : bg }]}>
               <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : textMuted }]}>
                 {status.label}
               </Text>
             </View>
           </View>
-          {amount != null && (
-            <Text style={[styles.amountText, { color: textPrimary }]}>{fmtCurrency(amount)}</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={[styles.metaRow, { borderTopColor: divider }]}>
-          <View style={styles.metaItem}>
-            <Ionicons name="people-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              {seats} asiento{seats === 1 ? '' : 's'}
-            </Text>
-          </View>
-          <View style={[styles.metaItem, styles.metaHint]}>
-            <Ionicons name="time-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              Solicitud: {fmtDate(item.createdAt)}
-            </Text>
-          </View>
-        </View>
+        )}
 
         {item.message && (
           <Text style={[styles.messageText, { color: textMuted, borderTopColor: divider }]} numberOfLines={3}>
@@ -518,37 +519,42 @@ const TripRequestsScreen = ({ route }) => {
           </Text>
         )}
 
-        {/* Dónde sube y dónde baja. Son la misma fila: el conductor tiene que ver los dos
-            ANTES de aprobar, porque aprobar o rechazar es su único control sobre el desvío. */}
-        {[
-          { label: 'Punto de recogida', punto: item.seatReservation?.pickupLocation },
-          { label: 'Punto de bajada', punto: item.seatReservation?.dropoffLocation },
-        ].filter(({ punto }) => punto?.address).map(({ label, punto }) => {
-          const hasCoords = punto.coordinates?.latitude != null;
-          return (
-            /* La fila entera es el botón, en vez de una píldora suelta adentro: así ocupa
-               el ancho de la tarjeta como el resto de las filas y arranca en el mismo
-               margen. El chevron es lo único que hace falta para decir que se toca. */
-            <TouchableOpacity
-              key={label}
-              style={[styles.pickupRow, { borderTopColor: divider }]}
-              onPress={hasCoords
-                ? () => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label })
-                : undefined}
-              disabled={!hasCoords}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={hasCoords ? 'map-outline' : 'location-outline'} size={16} color={textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickupLabel, { color: textMuted }]}>{label}</Text>
-                <Text style={[styles.pickupText, { color: textPrimary }]} numberOfLines={2}>
-                  {punto.address}
-                </Text>
-              </View>
-              {hasCoords && <Ionicons name="chevron-forward" size={16} color={textMuted} />}
-            </TouchableOpacity>
-          );
-        })}
+        {/* Dónde sube y dónde baja, como recorrido y no como dos filas sueltas: es la
+            decisión que el conductor está tomando, así que se lee de un vistazo. Cada punto
+            abre el mapa. */}
+        {(item.seatReservation?.pickupLocation?.address || item.seatReservation?.dropoffLocation?.address) && (
+          <View style={[styles.reqRuta, { borderTopColor: divider }]}>
+            {[
+              { punto: item.seatReservation?.pickupLocation, rotulo: 'Lo levantás en', fin: false },
+              { punto: item.seatReservation?.dropoffLocation, rotulo: 'Lo dejás en', fin: true },
+            ].filter(({ punto }) => punto?.address).map(({ punto, rotulo, fin }, i, arr) => {
+              const hasCoords = punto.coordinates?.latitude != null;
+              return (
+                <TouchableOpacity
+                  key={rotulo}
+                  style={styles.reqRutaFila}
+                  onPress={hasCoords
+                    ? () => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo })
+                    : undefined}
+                  disabled={!hasCoords}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.reqRutaRail}>
+                    <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
+                    {i < arr.length - 1 && <View style={[styles.reqRutaLinea, { backgroundColor: textPrimary }]} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickupLabel, { color: textMuted }]}>{rotulo}</Text>
+                    <Text style={[styles.pickupText, { color: textPrimary }]} numberOfLines={2}>
+                      {punto.address}
+                    </Text>
+                  </View>
+                  {hasCoords && <Ionicons name="map-outline" size={16} color={textMuted} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         {item.status === 'rejected' && item.rejectionReason && (
           <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
@@ -559,14 +565,14 @@ const TripRequestsScreen = ({ route }) => {
         {isPending && (
           <View style={[styles.actionsRow, { borderTopColor: divider }]}>
             <TouchableOpacity
-              style={[styles.btnReject, { backgroundColor: ui.surface }]}
+              style={[styles.btnReject, { borderColor: ui.border }]}
               onPress={() => {
                 setSelectedRequest(item._id);
                 setRejectModalVisible(true);
               }}
               activeOpacity={0.7}
             >
-              <Text style={[styles.btnRejectText, { color: isDarkMode ? ui.textMuted : ui.textMuted }]}>Rechazar</Text>
+              <Text style={[styles.btnRejectText, { color: textPrimary }]}>Rechazar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btnAccept, { backgroundColor: accent }]}
@@ -749,22 +755,6 @@ const TripRequestsScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 24 },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backBtn:     { marginRight: 12 },
-  headerTitle: { fontSize: 20, fontFamily: 'Sora_700Bold' },
-  headerSub:   { fontSize: 13, marginTop: 2 },
-
   listPad:      { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontSize: 13, marginBottom: 12 },
 
@@ -772,9 +762,12 @@ const styles = StyleSheet.create({
   screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
   screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
   screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
-
-  /** Viaje + solicitudes en una sola tarjeta. Mismo lenguaje que Mis Viajes y
-   *  Viajes que ofreci: radio 24, sin borde, sombra apenas marcada. */
+  tripCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
   unifiedCard: {
     borderRadius: 24,
     overflow: 'hidden',
@@ -784,17 +777,23 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  container: { flex: 1 },
+  centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 24 },
+
+  // Header
   tripContextEmbedded: {
     padding: 14,
   },
   inCardFullBleedLine: {
     height: StyleSheet.hairlineWidth,
     width: '100%',
-  },
-  emptyInsideCard: {
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 28,
   },
 
   tripContextLabel: {
@@ -818,16 +817,6 @@ const styles = StyleSheet.create({
   tripContextSwitchBtn: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 },
   tripContextSwitchText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
-  emptyBlock: { alignItems: 'center', gap: 12, paddingVertical: 32 },
-  emptyBlockGrow: { flex: 1, justifyContent: 'center', paddingVertical: 48 },
-
-  // Trip card
-  tripCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
   routeBlock: {
     flexDirection: 'row',
     padding: 16,
@@ -903,27 +892,19 @@ const styles = StyleSheet.create({
   // del mismo color lo dejaba invisible.
   statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
-  amountText:     { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  amountText:     { fontSize: 17, fontFamily: 'Sora_800ExtraBold' },
+  reqSub:         { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
+  reqMontoLabel:  { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.4, textTransform: 'uppercase' },
+  reqEstadoWrap:  { paddingHorizontal: 16, paddingBottom: 14, marginTop: -4, alignItems: 'flex-start' },
 
-  metaRow: {
-    flexDirection: 'row',
-    gap: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaHint: { flexShrink: 1 },
-  metaText:  { fontSize: 13 },
+  // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
+  reqRuta: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
+  reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  reqRutaRail: { alignItems: 'center', paddingTop: 5, alignSelf: 'stretch' },
+  reqDotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
+  reqDotFin: { width: 9, height: 9, borderRadius: 5 },
+  reqRutaLinea: { width: 1.5, flex: 1, minHeight: 16, marginVertical: 3 },
 
-  pickupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   pickupLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.4, marginBottom: 2 },
   pickupText: {
     fontSize: 14,
@@ -950,13 +931,16 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
   btnReject: {
     flex: 1,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -965,9 +949,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_600SemiBold',
   },
   btnAccept: {
-    flex: 1,
+    flex: 1.4,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -995,17 +979,6 @@ const styles = StyleSheet.create({
   modalRejectText: { fontSize: 14, fontFamily: 'Sora_600SemiBold', color: '#FFFFFF' },
 
   // Empty
-  emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
-  emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
   modalBox: {
     borderRadius: 14,
     width: '100%',

@@ -94,6 +94,22 @@ const PointPickerScreen = ({ route, navigation }) => {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayY = useRef(new Animated.Value(16)).current;
 
+  // El pin se despega del suelo mientras el mapa se mueve y vuelve a apoyarse al frenar.
+  // No es adorno: mientras está levantado, lo que dice la dirección de abajo ya no
+  // corresponde al punto, y el gesto lo comunica sin texto.
+  const alzado = useRef(new Animated.Value(0)).current;
+  const estaAlzado = useRef(false);
+  const levantarPin = (arriba) => {
+    if (estaAlzado.current === arriba) return; // onRegionChange dispara decenas de veces
+    estaAlzado.current = arriba;
+    Animated.spring(alzado, {
+      toValue: arriba ? 1 : 0,
+      useNativeDriver: true,
+      friction: 6,
+      tension: 120,
+    }).start();
+  };
+
   const geocodeInverso = async (coords) => {
     try {
       const data = await reverseGeocode(coords.latitude, coords.longitude);
@@ -227,7 +243,12 @@ const PointPickerScreen = ({ route, navigation }) => {
             provider={PROVIDER_GOOGLE}
             style={StyleSheet.absoluteFill}
             initialRegion={region}
+            onRegionChange={(_r, details = {}) => {
+              if (details.isGesture === false) return;
+              levantarPin(true);
+            }}
             onRegionChangeComplete={(r, details = {}) => {
+              levantarPin(false);
               if (!selectionModeRef.current) return;
               if (details.isGesture === false) return;
               const coords = { latitude: r.latitude, longitude: r.longitude };
@@ -254,11 +275,28 @@ const PointPickerScreen = ({ route, navigation }) => {
         {/* Pin del centro: lo que se confirma es siempre el punto del medio del mapa. */}
         {!searchVisible && (
           <View style={styles.centerPin} pointerEvents="none">
-            <View style={styles.pinCabeza}>
-              <View style={styles.pinNucleo} />
-            </View>
-            <View style={styles.pinTallo} />
-            <View style={styles.pinBase} />
+            <Animated.View
+              style={{
+                alignItems: 'center',
+                transform: [{ translateY: alzado.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) }],
+              }}
+            >
+              <View style={styles.pinCabeza}>
+                <View style={styles.pinNucleo} />
+              </View>
+              <View style={styles.pinTallo} />
+            </Animated.View>
+            {/* La sombra se queda en el punto y se achica: es lo que da la sensación de que
+                el pin se despegó y sigue marcando el mismo lugar. */}
+            <Animated.View
+              style={[
+                styles.pinBase,
+                {
+                  opacity: alzado.interpolate({ inputRange: [0, 1], outputRange: [0.28, 0.16] }),
+                  transform: [{ scale: alzado.interpolate({ inputRange: [0, 1], outputRange: [1, 0.65] }) }],
+                },
+              ]}
+            />
           </View>
         )}
 
@@ -439,7 +477,7 @@ const styles = StyleSheet.create({
   // La sombrita en el suelo: sin ella el pin parece flotar y no se sabe qué punto marca.
   pinBase: {
     width: 10, height: 4, borderRadius: 5,
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    backgroundColor: '#000000',
     marginTop: 1,
   },
   miniSheet: {
