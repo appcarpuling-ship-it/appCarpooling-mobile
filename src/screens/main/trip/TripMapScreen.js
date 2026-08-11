@@ -320,9 +320,23 @@ const TripMapScreen = ({ route, navigation }) => {
         } else {
           fitTo(markerCoords());
         }
+      } else if (waypointsParam) {
+        // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
+        // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
+        // ruta completa pero muchísimo mejor que un mapa sin ninguna línea, que es lo que
+        // pasaba. Los marcadores siguen mostrando dónde está cada parada.
+        console.warn('[TripMap] Directions no devolvió ruta con paradas; se reintenta sin ellas');
+        const simple = await getDirections(orig, dest);
+        if (!isMounted.current) return;
+        const rs = simple.routes?.[0];
+        const pts = rs?.overview_polyline?.points ? decodePolyline(rs.overview_polyline.points) : [];
+        if (pts.length > 0) {
+          setRouteCoordinates(pts);
+          fitTo(pts);
+        } else {
+          fitTo(markerCoords());
+        }
       } else {
-        // Respuesta sin rutas (ZERO_RESULTS, REQUEST_DENIED…): no lanza excepción, así que
-        // antes se caía por acá en silencio y no dibujaba NI centraba.
         fitTo(markerCoords());
       }
     } catch (e) {
@@ -422,7 +436,9 @@ const TripMapScreen = ({ route, navigation }) => {
           <Polyline
             coordinates={tramos.recorrido}
             strokeWidth={5}
-            strokeColor="rgba(1,1,1,0.22)"
+            // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
+            // filtraba a través de la línea y el tramo recorrido se veía azul.
+            strokeColor="#9AA0A6"
             lineCap="round"
             lineJoin="round"
             zIndex={0}
@@ -431,8 +447,8 @@ const TripMapScreen = ({ route, navigation }) => {
         {tramos.pendiente.length > 1 && (
           <Polyline
             coordinates={tramos.pendiente}
-            strokeWidth={5}
-            strokeColor="#010101"
+            strokeWidth={6}
+            strokeColor="#000000"
             lineCap="round"
             lineJoin="round"
             zIndex={1}
