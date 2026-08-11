@@ -550,12 +550,12 @@ const TripRequestsScreen = ({ route }) => {
                     <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
                     {i < arr.length - 1 && <View style={[styles.reqRutaLinea, { backgroundColor: textPrimary }]} />}
                   </View>
-                  {/* Rótulo y dirección en la MISMA línea: en dos renglones cada punto
-                      ocupaba el doble y la tarjeta se hacía larguísima con dos solicitudes. */}
-                  <Text style={styles.reqPuntoTexto} numberOfLines={2}>
-                    <Text style={{ color: textMuted }}>{rotulo} </Text>
-                    <Text style={{ color: textPrimary }}>{punto.address}</Text>
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.reqPuntoRotulo, { color: textMuted }]}>{rotulo}</Text>
+                    <Text style={[styles.reqPuntoDir, { color: textPrimary }]} numberOfLines={2}>
+                      {punto.address}
+                    </Text>
+                  </View>
                   {hasCoords && <Ionicons name="map-outline" size={15} color={textMuted} style={{ marginTop: 1 }} />}
                 </TouchableOpacity>
               );
@@ -907,8 +907,9 @@ const styles = StyleSheet.create({
   // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
   reqRuta: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
   reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 3 },
-  reqPuntoTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
-  reqRutaRail: { alignItems: 'center', paddingTop: 6, alignSelf: 'stretch' },
+  reqPuntoRotulo: { fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 15 },
+  reqPuntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
+  reqRutaRail: { alignItems: 'center', paddingTop: 4, alignSelf: 'stretch' },
   reqDotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
   reqDotFin: { width: 9, height: 9, borderRadius: 5 },
   reqRutaLinea: { width: 1.5, flex: 1, minHeight: 16, marginVertical: 3 },

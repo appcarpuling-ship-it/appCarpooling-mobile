@@ -55,6 +55,9 @@ const regionDesde = (coords, delta) => {
   return { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta };
 };
 
+/** Tras soltar el mapa, si el pin queda quieto este tiempo, se resuelve la dirección. */
+const IDLE_GEOCODE_MS = 1000;
+
 const PointPickerScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -96,6 +99,17 @@ const PointPickerScreen = ({ route, navigation }) => {
   const overlayY = useRef(new Animated.Value(16)).current;
 
   const { alzado, levantarPin } = usePinAlzado();
+  // El punto azul del GPS: sin él no hay referencia de dónde está uno respecto del punto
+  // que está eligiendo. El permiso puede haberse pedido ya en el arranque; pedirlo de nuevo
+  // no molesta al usuario, el sistema contesta directo si ya lo concedió.
+  const [mostrarMiUbicacion, setMostrarMiUbicacion] = useState(false);
+  useEffect(() => {
+    let cancelado = false;
+    Location.requestForegroundPermissionsAsync()
+      .then(({ status }) => { if (!cancelado && status === 'granted') setMostrarMiUbicacion(true); })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, []);
 
   const geocodeInverso = async (coords) => {
     try {
@@ -246,9 +260,9 @@ const PointPickerScreen = ({ route, navigation }) => {
               idleTimer.current = setTimeout(async () => {
                 const addr = await geocodeInverso(coords);
                 if (geocodeId.current === reqId) setPinAddress(addr || '');
-              }, 800);
+              }, IDLE_GEOCODE_MS);
             }}
-            showsUserLocation={false}
+            showsUserLocation={mostrarMiUbicacion}
             showsMyLocationButton={false}
           >
           </MapView>
