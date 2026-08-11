@@ -266,6 +266,21 @@ const TripMapScreen = ({ route, navigation }) => {
   // suele ser también el punto de recogida de alguien, y esa parada se daba por hecha antes
   // de que llegara a verla. Avanza él con el botón, que es lo único predecible.
 
+  /**
+   * Baja la cantidad de puntos del trazado. Una ruta de 400km llega con varios miles —el
+   * trazado se arma sumando el polyline de CADA paso de cada tramo— y dibujarlos todos es lo
+   * que hacía tardar tanto en aparecer. A la escala en que se ve el mapa, uno de cada N es
+   * indistinguible; las puntas se conservan siempre para no recortar el recorrido.
+   */
+  const aligerar = (puntos, maximo = 600) => {
+    if (puntos.length <= maximo) return puntos;
+    const paso = Math.ceil(puntos.length / maximo);
+    const salida = puntos.filter((_, i) => i % paso === 0);
+    const ultimo = puntos[puntos.length - 1];
+    if (salida[salida.length - 1] !== ultimo) salida.push(ultimo);
+    return salida;
+  };
+
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
     // llamada a Directions. Los viajes viejos y las solicitudes no la tienen y siguen pidiéndola.
@@ -276,7 +291,7 @@ const TripMapScreen = ({ route, navigation }) => {
     // Cuando no las cubre se descarta y se pide a Directions, que sí manda los waypoints.
     const saved = decodePolyline(trip?.routePolyline);
     if (saved.length > 0 && stopsCoveredBy(saved)) {
-      setRouteCoordinates(saved);
+      setRouteCoordinates(aligerar(saved));
       fitTo(saved);
       setLoading(false);
       return;
@@ -305,7 +320,7 @@ const TripMapScreen = ({ route, navigation }) => {
         }));
         if (points.length === 0 && r.overview_polyline?.points) points = decodePolyline(r.overview_polyline.points);
         if (points.length > 0) {
-          setRouteCoordinates(points);
+          setRouteCoordinates(aligerar(points));
           fitTo(points);
         } else {
           fitTo(markerCoords());
@@ -423,7 +438,6 @@ const TripMapScreen = ({ route, navigation }) => {
             coordinates={tramos.pendiente}
             strokeWidth={5}
             strokeColor="#010101"
-            strokeColors={['#010101']}
             lineCap="round"
             lineJoin="round"
             zIndex={1}
