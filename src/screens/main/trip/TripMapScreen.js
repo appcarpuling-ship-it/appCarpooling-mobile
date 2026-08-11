@@ -266,20 +266,6 @@ const TripMapScreen = ({ route, navigation }) => {
   // suele ser también el punto de recogida de alguien, y esa parada se daba por hecha antes
   // de que llegara a verla. Avanza él con el botón, que es lo único predecible.
 
-  /**
-   * Baja la cantidad de puntos del trazado. Una ruta de 400km llega con varios miles —el
-   * trazado se arma sumando el polyline de CADA paso de cada tramo— y dibujarlos todos es lo
-   * que hacía tardar tanto en aparecer. A la escala en que se ve el mapa, uno de cada N es
-   * indistinguible; las puntas se conservan siempre para no recortar el recorrido.
-   */
-  const aligerar = (puntos, maximo = 600) => {
-    if (puntos.length <= maximo) return puntos;
-    const paso = Math.ceil(puntos.length / maximo);
-    const salida = puntos.filter((_, i) => i % paso === 0);
-    const ultimo = puntos[puntos.length - 1];
-    if (salida[salida.length - 1] !== ultimo) salida.push(ultimo);
-    return salida;
-  };
 
   const fetchRoute = async () => {
     // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
@@ -290,11 +276,15 @@ const TripMapScreen = ({ route, navigation }) => {
     // al agregar una parada), y el mapa dibujaba un trazado que no pasa por la parada.
     // Cuando no las cubre se descarta y se pide a Directions, que sí manda los waypoints.
     const saved = decodePolyline(trip?.routePolyline);
-    if (saved.length > 0 && stopsCoveredBy(saved)) {
-      setRouteCoordinates(aligerar(saved));
+    if (saved.length > 0) {
+      // Se dibuja YA la ruta guardada, aunque después haya que pedir una nueva: pedirla a
+      // Google es un viaje de red y hasta que contestaba el mapa quedaba pelado, que es lo
+      // que se sentía como "tarda muchísimo". Si además cubre las paradas, no hace falta
+      // pedir nada y encima nos ahorramos la llamada.
+      setRouteCoordinates(saved);
       fitTo(saved);
       setLoading(false);
-      return;
+      if (stopsCoveredBy(saved)) return;
     }
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
@@ -314,13 +304,18 @@ const TripMapScreen = ({ route, navigation }) => {
       if (!isMounted.current) return;
       if (data.routes?.length > 0) {
         const r = data.routes[0];
-        let points = [];
-        r.legs?.forEach(leg => leg.steps?.forEach(step => {
-          if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points));
-        }));
-        if (points.length === 0 && r.overview_polyline?.points) points = decodePolyline(r.overview_polyline.points);
+        // overview_polyline primero: es la geometría que Google simplifica PARA MOSTRAR, con
+        // un algoritmo que respeta la forma del camino. Sumar el polyline de cada paso da
+        // miles de puntos —lo que hacía tardar— y recortarlos de a uno cada N, como se hacía
+        // hasta ahora, cortaba las curvas y sacaba la línea de las calles.
+        let points = r.overview_polyline?.points ? decodePolyline(r.overview_polyline.points) : [];
+        if (points.length === 0) {
+          r.legs?.forEach(leg => leg.steps?.forEach(step => {
+            if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points));
+          }));
+        }
         if (points.length > 0) {
-          setRouteCoordinates(aligerar(points));
+          setRouteCoordinates(points);
           fitTo(points);
         } else {
           fitTo(markerCoords());
