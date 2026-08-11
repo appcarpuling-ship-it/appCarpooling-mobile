@@ -40,7 +40,7 @@ const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 /** Tras arrastrar el mapa, si el pin central queda quieto este tiempo, se confirma el punto */
-const MAP_SELECTION_IDLE_MS = 1500;
+const MAP_SELECTION_IDLE_MS = 1000;
 const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 /** locality a veces no viene (ej. Santa Cruz); usar provincia o nivel 2. */
@@ -119,6 +119,16 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const [mapSelectionMode, setMapSelectionMode] = useState(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const { alzado, levantarPin } = usePinAlzado();
+  // El punto azul del GPS: sin él, al marcar en el mapa no hay ninguna referencia de dónde
+  // está uno respecto del punto que está eligiendo.
+  const [mostrarMiUbicacion, setMostrarMiUbicacion] = useState(false);
+  useEffect(() => {
+    let cancelado = false;
+    Location.requestForegroundPermissionsAsync()
+      .then(({ status }) => { if (!cancelado && status === 'granted') setMostrarMiUbicacion(true); })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, []);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayTranslateY = useRef(new Animated.Value(16)).current;
 
@@ -764,7 +774,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           }
         }}
         paddingAdjustmentBehavior="never"
-        showsUserLocation={false}
+        showsUserLocation={mostrarMiUbicacion}
         showsMyLocationButton={false}
         onPress={handleMapPress}
       >
@@ -1133,7 +1143,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject, width, height },
 
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0 },
   earlyExitHeader: {
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -1153,12 +1163,14 @@ const styles = StyleSheet.create({
   },
 
   // Map selection
+  // Sin zIndex, como el resto: este banner MONTA justo al entrar en modo selección, y ese
+  // montaje es el que hacía que React Native reordenara las subvistas nativas y le rompiera
+  // la superficie GL al mapa. Se declara después del mapa, así que queda encima igual.
   selectionBanner: {
     position: 'absolute', left: 16, right: 16,
     backgroundColor: '#1F2937', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    zIndex: 50,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
   selectionText: { flex: 1, color: '#FFFFFF', fontSize: 13, fontFamily: 'Sora_500Medium' },
@@ -1222,7 +1234,7 @@ const styles = StyleSheet.create({
   // montar y desmontar este overlay, y mover un GMSMapView de índice entre sus hermanos le
   // rompe la superficie GL: el mapa queda vivo pero sin dibujar tiles (todo celeste). El
   // overlay se declara casi al final del árbol, así que tapa igual sin pedirlo — sólo el
-  // overlay de carga, que sí lleva zIndex, queda por encima, que es lo que corresponde.
+  // overlay de carga se declara al final del árbol, así que queda por encima igual.
   searchOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
   },
@@ -1258,7 +1270,7 @@ const styles = StyleSheet.create({
   waypointMarkerText: { fontSize: 11, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
 
   // Loading
-  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 300 },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
   loadingBox: { borderRadius: 16, padding: 24, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
   loadingText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
