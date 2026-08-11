@@ -27,6 +27,7 @@ import LocationPickerScreen from '../screens/common/LocationPickerScreen';
 import VehiclePickerScreen from '../screens/common/VehiclePickerScreen';
 import CompleteTripScreen from '../screens/common/CompleteTripScreen';
 import PickupMapScreen from '../screens/common/PickupMapScreen';
+import PointPickerScreen from '../screens/common/PointPickerScreen';
 
 const Stack = createStackNavigator();
 
@@ -141,6 +142,11 @@ const AppNavigator = () => {
           <Stack.Screen
             name="PickupMap"
             component={PickupMapScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PointPicker"
+            component={PointPickerScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen
