@@ -77,17 +77,21 @@ const CompleteTripScreen = ({ route, navigation }) => {
     { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: 'Ej: 1.000' },
     { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: 'Ej: 500',
       hint: 'Peajes, estacionamiento y demás gastos del viaje' },
-    {
-      key: 'driverPay',
-      label: 'Extra conductor',
-      value: driverPay,
-      set: setDriverPay,
-      placeholder: 'Ej: 1.500',
-      hint: gastos > 0
-        ? `Máximo $${formatMoney(topeExtra)} (${maxExtraPct}% de los gastos)`
-        : 'Cargá primero los gastos: el extra se calcula sobre ellos',
-      invalid: extraExcedido,
-    },
+    // Campo "Extra conductor" desactivado a pedido del usuario. Sin él, driverPay queda en 0
+    // y el viaje se reparte sólo por gastos reales entre todos los que viajaron, que es el
+    // encuadre de gastos compartidos en su forma más pura. La validación del tope sigue en
+    // el server: con 0 pasa siempre. Para reactivarlo, descomentar.
+    // {
+    //   key: 'driverPay',
+    //   label: 'Extra conductor',
+    //   value: driverPay,
+    //   set: setDriverPay,
+    //   placeholder: 'Ej: 1.500',
+    //   hint: gastos > 0
+    //     ? `Máximo $${formatMoney(topeExtra)} (${maxExtraPct}% de los gastos)`
+    //     : 'Cargá primero los gastos: el extra se calcula sobre ellos',
+    //   invalid: extraExcedido,
+    // },
   ];
 
   const handleSubmit = async () => {

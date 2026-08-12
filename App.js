@@ -19,6 +19,7 @@ import { Linking, View, Text, StyleSheet, Platform } from 'react-native';
 import NativeCheckout from './src/components/payment/NativeCheckout';
 import AnimatedSplash from './src/components/AnimatedSplash';
 import OtaUpdateListener from './src/components/OtaUpdateListener';
+import PendingReviewGate from './src/components/PendingReviewGate';
 import { initSentry } from './src/utils/sentry';
 
 initSentry();
@@ -112,6 +113,7 @@ export default function App() {
               <NotificationProvider>
                 {fontsLoaded && <AppWithTheme />}
                 <OtaUpdateListener />
+                <PendingReviewGate />
                 {showSplash && (
                   <AnimatedSplash
                     fontsLoaded={fontsLoaded}
