@@ -1,36 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Updates from 'expo-updates';
 import { useUI } from '../../theme/ui';
-import PillButton from '../../components/ui/PillButton';
 
 /**
  * Se muestra cuando ya se descargó un OTA nuevo.
  *
- * La aplica el usuario con el botón, no un temporizador. Reiniciar solo se veía como si la app
- * se cerrara de golpe: si estabas en medio de algo, te lo interrumpía sin haber pedido permiso.
- * El update ya está bajado, así que esperar unos segundos más no cuesta nada.
+ * No hace nada: avisa. La app NO se reinicia sola —antes lo hacía a los 1400 ms y, visto desde
+ * afuera, eso es la app cerrándose de golpe en medio de lo que estabas haciendo—. Tampoco hay
+ * botón: cerrar y volver a abrir es decisión de la persona, no nuestra.
  *
- * Sin forma de salir a propósito: la pantalla no tiene botón de cerrar ni gesto. Lo único que
- * se puede hacer es aplicar el update, que es lo que uno quiere que pase.
+ * Y tampoco hay forma de salir de acá: sin botón, sin X y sin gesto de atrás. Es a propósito.
+ * La versión nueva ya está descargada y el arranque siguiente la usa; seguir usando la vieja
+ * sería quedarse con una app que ya sabemos que está desactualizada.
  */
 const UpdateRequiredScreen = () => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-  const [aplicando, setAplicando] = useState(false);
-  const [fallo, setFallo] = useState(false);
-
-  const aplicar = async () => {
-    setAplicando(true);
-    try {
-      await Updates.reloadAsync();
-    } catch {
-      // Si el reinicio no sale, queda el plan B de siempre: cerrar y abrir a mano.
-      setAplicando(false);
-      setFallo(true);
-    }
-  };
 
   return (
     <View
@@ -56,20 +42,10 @@ const UpdateRequiredScreen = () => {
 
         <Text style={[styles.title, { color: ui.text }]}>Nueva actualización</Text>
         <Text style={[styles.message, { color: ui.textMuted }]}>
-          {fallo
-            ? 'No pudimos aplicarla desde acá. Cerrá la aplicación y volvé a abrirla para empezar a usarla.'
-            : 'Ya descargamos la última versión de Carpuling. Cuando quieras, aplicala: la app se reinicia y sigue donde estabas.'}
+          Ya descargamos la última versión de Carpuling. Cerrá la aplicación y volvé a abrirla
+          para empezar a usarla.
         </Text>
       </View>
-
-      {!fallo && (
-        <PillButton
-          label="Aplicar y reiniciar"
-          onPress={aplicar}
-          loading={aplicando}
-          style={styles.cta}
-        />
-      )}
     </View>
   );
 };
@@ -84,7 +60,6 @@ const styles = StyleSheet.create({
   haloOuter: { width: '85%', height: '85%', opacity: 0.5 },
   haloInner: { width: '62%', height: '62%', opacity: 0.9 },
   illustration: { width: '68%', height: '68%' },
-  cta: { marginTop: 16 },
 });
 
 export default UpdateRequiredScreen;
