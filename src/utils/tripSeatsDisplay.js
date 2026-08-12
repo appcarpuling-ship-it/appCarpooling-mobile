@@ -34,6 +34,30 @@ export function tripSeatCapacity(trip) {
 }
 
 /**
+ * El texto de asientos que va en pantalla.
+ *
+ * Un viaje nacido de una solicitud no tiene disponibilidad que mostrar: nace cerrado entre el
+ * pasajero que lo pidió y el conductor que se postuló, no aparece en los listados públicos y
+ * nadie más puede reservarlo. Decir "0/2 libres" o "Completo" sugiere que en algún momento
+ * hubo lugar y que ahora se llenó, y ninguna de las dos cosas pasó. Se dice cuántos asientos
+ * son y listo.
+ *
+ * Para un viaje publicado por un conductor sí importa la disponibilidad, y ahí va el x/y.
+ */
+export function tripSeatsLabel(trip) {
+  if (!trip) return '';
+
+  if (trip.fromTripRequest) {
+    const n = Number(trip.availableSeats ?? trip.passengers?.length ?? 0);
+    return `${n} asiento${n !== 1 ? 's' : ''}`;
+  }
+
+  const libres = tripDisplaySeats(trip);
+  const cap = tripSeatCapacity(trip);
+  return `${libres}/${cap} libres`;
+}
+
+/**
  * Devuelve una etiqueta corta del vehículo: "Toyota Corolla" o "".
  */
 export function vehicleShortLabel(vehicle) {

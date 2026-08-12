@@ -18,7 +18,7 @@ import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
-import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
+import { tripDisplaySeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { reportError } from '../../../utils/sentry';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
@@ -316,7 +316,9 @@ const MyTripsScreen = ({ navigation }) => {
             <View style={styles.metaItem}>
               <Ionicons name="people-outline" size={13} color={activeMuted} />
               <Text style={[styles.metaText, { color: activeMuted }]}>
-                {freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
+                {item.fromTripRequest
+                  ? tripSeatsLabel(item)
+                  : freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
               </Text>
             </View>
             {activeTab === 'upcoming' && item.bookingsCount > 0 && (
