@@ -446,24 +446,22 @@ const TripMapScreen = ({ route, navigation }) => {
         {/* Lo ya recorrido, apagado. El trazado va en lo más bajo del mapa: los marcadores y
             el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
             a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
-        {tramos.recorrido.length > 1 && (
-          <RutaPolyline
-            coordinates={tramos.recorrido}
-            width={5}
-            // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
-            // filtraba a través de la línea y el tramo recorrido se veía azul.
-            color="#9AA0A6"
-            zIndex={0}
-          />
-        )}
-        {tramos.pendiente.length > 1 && (
-          <RutaPolyline
-            coordinates={tramos.pendiente}
-            width={6}
-            color="#000000"
-            zIndex={1}
-          />
-        )}
+        {/* Sin condición: el trazado se monta con el mapa aunque todavía no haya ruta. Si se
+            agrega DESPUÉS, iOS no lo pinta hasta que le cambian las props (ver RutaPolyline);
+            existiendo desde el principio, la ruta que llega es una actualización de props
+            sobre un overlay que ya está puesto, que es el caso que sí funciona. */}
+        <RutaPolyline
+          coordinates={tramos.recorrido}
+          width={5}
+          // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
+          // filtraba a través de la línea y el tramo recorrido se veía azul.
+          color="#9AA0A6"
+        />
+        <RutaPolyline
+          coordinates={tramos.pendiente}
+          width={6}
+          color="#000000"
+        />
       </MapView>
 
       {/* TEMPORAL: diagnóstico del trazado. Sale en cuanto sepamos por qué no se dibuja. */}

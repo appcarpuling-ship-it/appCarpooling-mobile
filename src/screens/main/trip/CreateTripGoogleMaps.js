@@ -801,13 +801,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             <View style={styles.waypointMarker}><Text style={styles.waypointMarkerText}>{i + 1}</Text></View>
           </Marker>
         ))}
-        {routeCoordinates.length > 0 && (
-          <RutaPolyline
-            coordinates={routeCoordinates}
-            width={5}
-            color="#000000"
-          />
-        )}
+        {/* Sin condición: ver RutaPolyline. Montado desde el principio, la ruta que llega es
+            una actualización de props y no un overlay agregado tarde, que iOS no pinta. */}
+        <RutaPolyline coordinates={routeCoordinates} width={5} color="#000000" />
       </MapView>
 
       {/* Back button (mini mode) */}
