@@ -67,8 +67,14 @@ jobs:
           MSG: ${{ steps.msg.outputs.value }}
           OTA_NOTIFY_SECRET: ${{ secrets.OTA_NOTIFY_SECRET }}
         # EXPO_PUBLIC_API_BASE_URL ya está en el env del job (literal, apunta al dev server).
+        # Se imprime el codigo HTTP: este curl venia fallando con 403 desde siempre
+        # —faltaba OTA_NOTIFY_SECRET en el server— y como el paso terminaba en verde
+        # igual, la corrida se veia bien y el aviso no llegaba nunca a nadie.
         run: |
-          curl -sS -X POST "$EXPO_PUBLIC_API_BASE_URL/notifications/ota-complete" \
+          CODIGO=$(curl -sS -o /tmp/ota-notify.txt -w '%{http_code}' -X POST "$EXPO_PUBLIC_API_BASE_URL/notifications/ota-complete" \
             -H "Content-Type: application/json" \
             -H "x-ota-notify-secret: $OTA_NOTIFY_SECRET" \
-            -d "$(node -e 'console.log(JSON.stringify({message: process.env.MSG}))')"
+            -d "$(node -e 'console.log(JSON.stringify({message: process.env.MSG}))')")
+          echo "HTTP $CODIGO"; cat /tmp/ota-notify.txt; echo
+          # No corta la corrida: el OTA ya se publico, que es lo que importa. Pero se ve.
+          [ "$CODIGO" = "200" ] || echo "::warning::El aviso push fallo (HTTP $CODIGO). El OTA se publico igual."
