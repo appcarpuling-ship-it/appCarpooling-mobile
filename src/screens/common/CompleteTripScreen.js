@@ -71,11 +71,11 @@ const CompleteTripScreen = ({ route, navigation }) => {
 
   const fields = [
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
-    // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje.
-    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, placeholder: 'Ej: 2.000',
-      hint: 'Lo que se consumió en este viaje, no lo que cargaste en la estación' },
-    { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: 'Ej: 1.000' },
-    { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: 'Ej: 500',
+    // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje. De
+    // ahí el "del viaje" en la etiqueta: la aclaración larga de abajo se sacó a pedido.
+    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, placeholder: '0', icon: 'speedometer-outline' },
+    { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: '0', icon: 'fast-food-outline' },
+    { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: '0', icon: 'receipt-outline',
       hint: 'Peajes, estacionamiento y demás gastos del viaje' },
     // Campo "Extra conductor" desactivado a pedido del usuario. Sin él, driverPay queda en 0
     // y el viaje se reparte sólo por gastos reales entre todos los que viajaron, que es el
@@ -129,65 +129,73 @@ const CompleteTripScreen = ({ route, navigation }) => {
             Cargá lo que se gastó en este viaje. Se reparte entre todos los que viajaron, vos incluido.
           </Text>
 
-          {fields.map((f) => (
-            <View key={f.key} style={styles.field}>
-              <Text style={[styles.label, { color: ui.textMuted }]}>{f.label}</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { borderColor: f.invalid ? '#EF4444' : ui.border, color: ui.text, backgroundColor: ui.surface },
-                ]}
-                placeholder={f.placeholder}
-                placeholderTextColor={ui.textMuted}
-                keyboardType="number-pad"
-                value={f.value}
-                onChangeText={(v) => { f.set(formatInput(v)); if (error) setError(''); }}
-              />
-              {!!f.hint && (
-                <Text style={[styles.hint, { color: f.invalid ? '#EF4444' : ui.textMuted }]}>{f.hint}</Text>
-              )}
-            </View>
+          {/* Una ficha con los tres montos y el importe alineado a la derecha, como cualquier
+              pantalla de plata. Antes era un input suelto por gasto con la etiqueta arriba, y
+              ocupaba el triple de alto para decir lo mismo. */}
+          <View style={[styles.card, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+            {fields.map((f, i) => (
+              <View
+                key={f.key}
+                style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ui.border }]}
+              >
+                <Ionicons name={f.icon} size={19} color={ui.textMuted} style={styles.rowIcon} />
+                <Text style={[styles.rowLabel, { color: ui.text }]} numberOfLines={1}>{f.label}</Text>
+                <Text style={[styles.peso, { color: f.value ? ui.text : ui.textMuted }]}>$</Text>
+                <TextInput
+                  style={[styles.rowInput, { color: f.invalid ? '#EF4444' : ui.text }]}
+                  placeholder={f.placeholder}
+                  placeholderTextColor={ui.textMuted}
+                  keyboardType="number-pad"
+                  value={f.value}
+                  onChangeText={(v) => { f.set(formatInput(v)); if (error) setError(''); }}
+                />
+              </View>
+            ))}
+          </View>
+
+          {fields.filter((f) => f.hint).map((f) => (
+            <Text key={`hint-${f.key}`} style={[styles.hint, { color: f.invalid ? '#EF4444' : ui.textMuted }]}>
+              {f.hint}
+            </Text>
           ))}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {total > 0 && (
-            <>
-              <View style={[styles.totalRow, { borderTopColor: ui.border }]}>
-                <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total del viaje</Text>
-                <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
-              </View>
+          {/* El resumen va siempre, aunque esté en cero: es el punto de la pantalla, y con los
+              montos vacíos quedaba media pantalla en blanco. */}
+          <View style={[styles.resumen, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+            <View style={styles.totalRow}>
+              <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total del viaje</Text>
+              <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
+            </View>
 
-              {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
-                  llevar gente, así que tiene que quedar claro que el conductor también pone. */}
+            {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
+                llevar gente, así que tiene que quedar claro que el conductor también pone. */}
+            <View style={styles.perPassengerRow}>
+              <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
+                Entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
+              </Text>
+              <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
+            </View>
+
+            {num(driverPay) > 0 && (
               <View style={styles.perPassengerRow}>
                 <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
-                  Gastos entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
+                  Tu extra, repartido entre los pasajeros
                 </Text>
-                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
+                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
               </View>
+            )}
 
-              {num(driverPay) > 0 && (
-                <View style={styles.perPassengerRow}>
-                  <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
-                    Tu extra, repartido entre los pasajeros
-                  </Text>
-                  <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
-                </View>
-              )}
-
-              <View style={[styles.destacado, { borderTopColor: ui.border }]}>
-                <Text style={[styles.perPassengerLabel, { color: ui.text }]}>
-                  Cada pasajero te paga
-                </Text>
-                <Text style={[styles.destacadoValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
-              </View>
-              <View style={styles.perPassengerRow}>
-                <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
-                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
-              </View>
-            </>
-          )}
+            <View style={[styles.destacado, { borderTopColor: ui.border }]}>
+              <Text style={[styles.destacadoLabel, { color: ui.text }]}>Cada pasajero te paga</Text>
+              <Text style={[styles.destacadoValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
+            </View>
+            <View style={styles.perPassengerRow}>
+              <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
+              <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
+            </View>
+          </View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -205,12 +213,16 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 },
   subtitle: { fontSize: 14, fontFamily: 'Sora_400Regular', marginBottom: 20 },
-  field: { marginBottom: 14 },
-  label: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
-  input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: 'Sora_400Regular' },
-  error: { color: '#EF4444', fontSize: 13, marginTop: 2, marginBottom: 6 },
-  hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 5 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14, marginTop: 8 },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, minHeight: 56 },
+  rowIcon: { marginRight: 10 },
+  rowLabel: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+  peso: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginRight: 2 },
+  rowInput: { minWidth: 84, textAlign: 'right', paddingVertical: 12, fontSize: 17, fontFamily: 'Sora_700Bold' },
+  error: { color: '#EF4444', fontSize: 13, marginTop: 10 },
+  hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 8, paddingHorizontal: 2 },
+  resumen: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, padding: 16, marginTop: 20 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   totalValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
   perPassengerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
@@ -220,6 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, marginTop: 12,
   },
+  destacadoLabel: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1, marginRight: 8 },
   destacadoValor: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });
