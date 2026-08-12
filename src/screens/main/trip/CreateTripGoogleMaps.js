@@ -801,8 +801,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           <Polyline
             coordinates={routeCoordinates}
             strokeWidth={5}
-            strokeColor="#010101"
-            strokeColors={['#010101']}
+            // Sin strokeColors: ese prop es para líneas con DEGRADADO y exige un color por
+            // cada punto. Con uno solo para miles de coordenadas iOS la dibuja azul.
+            strokeColor="#000000"
             lineCap="round"
             lineJoin="round"
           />
