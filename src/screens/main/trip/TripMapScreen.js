@@ -53,6 +53,30 @@ const TripMapScreen = ({ route, navigation }) => {
   const [mapReady, setMapReady] = useState(false);
   // Hasta dónde se considera recorrido. En ref para que sólo avance: ver `tramos`.
   const corteRef = useRef(0);
+
+  /**
+   * La cámara sigue al conductor hasta que el conductor toca el mapa.
+   *
+   * Seguir siempre pelea con el usuario: si arrastrás el mapa para ver qué viene más
+   * adelante, a los pocos segundos te lo devuelve de un tirón. Se corta con el primer gesto
+   * y vuelve con el botón de recentrar, que es lo que hace cualquier navegador.
+   *
+   * En ref además de estado porque quien la lee es el callback de watchPositionAsync, que se
+   * crea una vez y se quedaría con el valor viejo.
+   */
+  const [siguiendo, setSiguiendo] = useState(true);
+  const siguiendoRef = useRef(true);
+
+  const seguirAlConductor = (coords) => {
+    if (!siguiendoRef.current || !coords?.latitude) return;
+    mapRef.current?.animateCamera({ center: coords }, { duration: 700 });
+  };
+
+  const recentrar = () => {
+    siguiendoRef.current = true;
+    setSiguiendo(true);
+    seguirAlConductor(driverLocation);
+  };
   // TEMPORAL: cartel de diagnóstico. Dos hipótesis sobre por qué no se dibuja la línea
   // fallaron seguidas, así que en vez de suponer, la pantalla dice qué pasó. Se saca en
   // cuanto esté resuelto.
@@ -147,6 +171,7 @@ const TripMapScreen = ({ route, navigation }) => {
             // pendiente. El conductor no se ve a sí mismo con driverLocation (eso es lo que
             // reciben los pasajeros por socket), así que sin esto no habría por dónde cortar.
             setDriverLocation({ ...coords, heading: loc.coords.heading });
+            seguirAlConductor(coords);
             socketService.sendTripLocationUpdate(trip._id, { ...coords, heading: loc.coords.heading });
           }
         );
@@ -409,6 +434,13 @@ const TripMapScreen = ({ route, navigation }) => {
         paddingAdjustmentBehavior="never"
         showsUserLocation={showMyLocation}
         onMapReady={() => setMapReady(true)}
+        // `isGesture` distingue el arrastre del usuario de los movimientos que hacemos
+        // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
+        onRegionChangeComplete={(r, detalles = {}) => {
+          if (!detalles.isGesture || !siguiendoRef.current) return;
+          siguiendoRef.current = false;
+          setSiguiendo(false);
+        }}
       >
         {!isDriver && driverLocation?.latitude && (
           <Marker
@@ -433,7 +465,10 @@ const TripMapScreen = ({ route, navigation }) => {
             key={`pt-${i}-${mapReady}`}
             coordinate={point.coordinate}
             anchor={{ x: 0.5, y: 0.5 }}
-            zIndex={2}
+            // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
+            // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
+            // mismo justo cuando pasa por una parada.
+            zIndex={1}
             onPress={() =>
               setSelectedStop(
                 selectedStop?.number === i + 1
@@ -518,6 +553,19 @@ const TripMapScreen = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
+      {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
+        <TouchableOpacity
+          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: insets.bottom + (proximaParada ? 96 : 24) }]}
+          onPress={recentrar}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a centrar en mi ubicación"
+        >
+          <Ionicons name="locate" size={22} color={textPrimary} />
+        </TouchableOpacity>
+      )}
+
       {selectedStop && (
         <TouchableOpacity
           style={[styles.stopTooltip, { backgroundColor: cardBg }]}
@@ -541,6 +589,7 @@ const TripMapScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  recentrarBtn: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   diagBox: { position: 'absolute', top: 110, left: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.82)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   diagText: { color: '#FFFFFF', fontSize: 12 },
   container: { flex: 1 },
