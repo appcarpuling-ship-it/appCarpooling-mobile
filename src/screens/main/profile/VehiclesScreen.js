@@ -18,6 +18,7 @@ import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { reportError } from '../../../utils/sentry';
+import { imageForType } from '../../../utils/vehicleImage';
 
 // Mismas etiquetas que el selector de VehicleFormScreen: si difieren, el mismo
 // tipo se muestra con dos nombres distintos según la pantalla.
@@ -169,7 +170,9 @@ const VehiclesScreen = () => {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="car-sport-outline" size={48} color={textMuted} />
+              {/* Sin fotos, la imagen del tipo. El ícono genérico de auto hacía que una
+                  camioneta y un sedán sin fotos se vieran idénticos en la lista. */}
+              <Image source={imageForType(item.type)} style={styles.imagePlaceholderImg} resizeMode="contain" />
             </View>
           )}
 
@@ -330,6 +333,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  imagePlaceholderImg: { width: '55%', height: '75%' },
 
   // Content
   content: {

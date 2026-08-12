@@ -23,6 +23,7 @@ import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 import PillButton from '../../../components/ui/PillButton';
 import { appendFile } from '../../../utils/formDataFile';
+import { imageForType } from '../../../utils/vehicleImage';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const ui = useUI();
@@ -470,6 +471,9 @@ const VehicleFormScreen = ({ navigation, route }) => {
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                   >
+                    {/* La misma imagen que se ve después al elegir el vehículo: elegir el tipo
+                        a ciegas y encontrarse con otro dibujo desconcertaba. */}
+                    <Image source={imageForType(g.canonicalKey)} style={styles.chipImage} resizeMode="contain" />
                     <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{g.label}</Text>
                     {/* El número solo no se entendía: el ícono lo ancla a "pasajeros". */}
                     <View style={styles.chipMetaWrap}>
@@ -739,6 +743,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 999,
   },
+  chipImage: { width: 22, height: 22 },
   chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   chipMetaWrap: { flexDirection: 'row', alignItems: 'center', gap: 3, opacity: 0.75 },
   chipMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
