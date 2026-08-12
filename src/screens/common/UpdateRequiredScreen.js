@@ -3,10 +3,11 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUI } from '../../theme/ui';
 
-// Pantalla terminal: se muestra cuando ya se descargó un OTA nuevo. A propósito no
-// tiene botones ni forma de salir — el usuario tiene que cerrar y abrir la app para
-// que el bundle nuevo se aplique. Mismo layout que ResultScreen, sin CTA ni close.
-const UpdateRequiredScreen = () => {
+// Se muestra cuando ya se descargó un OTA nuevo, mientras la app se reinicia sola para
+// aplicarlo. A propósito no tiene botones ni forma de salir. `manual` es el plan B: si el
+// reinicio automático falla, se le pide al usuario que cierre y abra, como antes.
+// Mismo layout que ResultScreen, sin CTA ni close.
+const UpdateRequiredScreen = ({ manual = false }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
 
@@ -34,8 +35,9 @@ const UpdateRequiredScreen = () => {
 
         <Text style={[styles.title, { color: ui.text }]}>Nueva actualización</Text>
         <Text style={[styles.message, { color: ui.textMuted }]}>
-          Ya descargamos la última versión de Carpuling. Cerrá la aplicación y volvé a
-          abrirla para empezar a usarla.
+          {manual
+            ? 'Ya descargamos la última versión de Carpuling. Cerrá la aplicación y volvé a abrirla para empezar a usarla.'
+            : 'Ya descargamos la última versión de Carpuling. La estamos aplicando, esto tarda un segundo.'}
         </Text>
       </View>
     </View>
