@@ -99,9 +99,9 @@ const CarpoolingsStackNavigator = () => {
         options={{ title: 'Crear Reseña' }}
       />
       <Stack.Screen
-        name="UserReviewsFromTrip"
+        name="UserReviews"
         component={UserReviewsScreen}
-        options={{ title: 'Reseñas del Usuario' }}
+        options={{ title: 'Reseñas' }}
       />
       <Stack.Screen
         name="UserProfile"
