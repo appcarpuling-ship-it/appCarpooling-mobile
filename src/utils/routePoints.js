@@ -48,16 +48,6 @@ const decodePolyline = (encoded) => {
   return pts;
 };
 
-/** Índice del punto del trazado más cercano: sirve como "qué tan avanzado" está una parada. */
-const posicionEnTrazado = (trazado, coord) => {
-  let mejorDist = Infinity;
-  let mejorIdx = Number.MAX_SAFE_INTEGER;
-  for (let i = 0; i < trazado.length; i++) {
-    const d = metersBetween(trazado[i], coord);
-    if (d < mejorDist) { mejorDist = d; mejorIdx = i; }
-  }
-  return mejorIdx;
-};
 
 /**
  * Sin trazado: cuánto avanzó la parada sobre el eje origen→destino. No es la ruta real, pero
@@ -82,18 +72,21 @@ const avanceSobreElEje = (origen, destino, punto) => {
  * bajada B. Una ruta imposible, y es lo que ve tanto el pasajero en el detalle como el
  * conductor cuando maneja.
  *
- * Se usa el trazado guardado del viaje si existe (exacto) y si no la proyección sobre el eje
- * origen→destino. Las paradas sin coordenadas quedan al final, en su orden original.
+ * Se ordena por la proyección sobre el eje origen→destino. NO se usa el trazado guardado
+ * del viaje: ese se calculó antes de que existiera ninguna reserva, así que no pasa por los
+ * puntos de recogida ni de bajada, y medir "qué tan avanzada" está una parada contra una
+ * ruta que no la contempla da un orden poco confiable.
+ *
+ * Las paradas sin coordenadas quedan al final, en su orden original.
  */
 const comparadorDeRuta = (trip) => {
-  const trazado = decodePolyline(trip?.routePolyline);
   const origen = trip?.origin?.coordinates;
   const destino = trip?.destination?.coordinates;
 
   const avance = (stop) => {
     const c = stop?.coordinates;
     if (c?.latitude == null || c?.longitude == null) return Number.MAX_SAFE_INTEGER;
-    return trazado.length > 1 ? posicionEnTrazado(trazado, c) : avanceSobreElEje(origen, destino, c);
+    return avanceSobreElEje(origen, destino, c);
   };
 
   return (a, b) => {
