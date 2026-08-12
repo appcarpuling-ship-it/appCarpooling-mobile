@@ -45,20 +45,29 @@ const ResultScreen = ({ route, navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Un resultado es terminal: la accion ya se hizo y la pantalla que la disparo
-  // (completar viaje, publicar solicitud) no tiene sentido volver a verla. Antes
-  // el default era goBack(), que justamente devolvia al formulario recien enviado.
-  // Sin sesion no existe la ruta 'Main' (AppNavigator monta el stack de auth), y
-  // navegar a una ruta inexistente no tira: deja el boton muerto. Ahi vuelve atras,
-  // que es lo correcto en los errores de registro/verificacion.
+  // Un EXITO es terminal: la accion ya se hizo y la pantalla que la disparo (completar viaje,
+  // publicar solicitud) no tiene sentido volver a verla, asi que se RESETEA el stack. Con
+  // navigate, si el flujo llego aca desde una pestaña, 'Main' podia ya no estar en el stack y
+  // se empujaba uno nuevo ENCIMA del resultado: desde el Home, el gesto de volver atras del
+  // iPhone devolvia a la pantalla de exito.
   //
-  // Con sesion se RESETEA el stack, no se navega. Con navigate, si el flujo llego aca
-  // desde una pestaña, 'Main' podia ya no estar en el stack y se empujaba uno nuevo
-  // ENCIMA del resultado: desde el Home, el gesto de volver atras del iPhone devolvia a
-  // la pantalla de exito. El reset ademas se lleva puesta la pantalla que disparo la
-  // accion, que es exactamente la que no hay que poder volver a ver.
+  // Un ERROR no lo es, y ese es el caso que quedaba mal. Las dos salidas de abajo existen
+  // porque navegar o resetear hacia una ruta que no esta en el navegador NO falla ni avisa:
+  // simplemente deja el boton muerto.
   const goHome = () => {
+    // Un ERROR no es terminal: la accion no se hizo y hay que corregirla, asi que se vuelve al
+    // formulario. Mandarlo al Home lo obliga a rehacer todo desde cero para arreglar un campo.
+    if (isError) return navigation.goBack();
+
     if (!isAuthenticated) return navigation.goBack();
+
+    // 'Main' no siempre existe: con sesion iniciada pero sin telefono cargado (alguien que
+    // entro con Google), AppNavigator monta SOLO 'CompleteProfile'. Resetear hacia una ruta
+    // que no esta en el navegador no falla ni avisa: deja el boton muerto, que es justo lo que
+    // pasaba al fallar el alta por telefono repetido.
+    const rutas = navigation.getState()?.routeNames || [];
+    if (!rutas.includes('Main')) return navigation.goBack();
+
     navigation.reset({
       index: 0,
       routes: [{ name: 'Main', params: { screen: 'HomeTab', params: { screen: 'Home' } } }],
