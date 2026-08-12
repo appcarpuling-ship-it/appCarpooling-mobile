@@ -154,7 +154,12 @@ const CreateReviewScreen = ({ route, navigation }) => {
                 showsMyLocationButton={false}
               >
                 {coordinates.length > 1 && (
-                  <RutaPolyline coordinates={coordinates} width={5} color="#000000" />
+                  <RutaPolyline
+                    key={`ruta-${coordinates.length}`}
+                    coordinates={coordinates}
+                    width={5}
+                    color="#000000"
+                  />
                 )}
                 {origen?.latitude != null && (
                   <Marker coordinate={origen} anchor={{ x: 0.5, y: 0.5 }}>

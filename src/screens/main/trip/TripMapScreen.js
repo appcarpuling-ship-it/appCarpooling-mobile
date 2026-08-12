@@ -446,8 +446,15 @@ const TripMapScreen = ({ route, navigation }) => {
         {/* Lo ya recorrido, apagado. El trazado va en lo más bajo del mapa: los marcadores y
             el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
             a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
+        {/* La `key` con mapReady no es cosmética: iOS no pinta el trazado si se agrega antes
+            de que el mapa nativo terminó de armarse, y no se entera solo — se queda invisible
+            hasta que algo fuerza un redibujado (por eso aparecía al tocar un marcador, y por
+            eso se veía en los viajes en curso, donde la posición del conductor re-renderiza
+            cada 8s). Remontarlo cuando el mapa avisa que está listo lo obliga a dibujarse.
+            Mismo truco que ya tenían los marcadores acá al lado. */}
         {tramos.recorrido.length > 1 && (
           <RutaPolyline
+            key={`recorrido-${mapReady}-${tramos.recorrido.length}`}
             coordinates={tramos.recorrido}
             width={5}
             // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
@@ -458,6 +465,7 @@ const TripMapScreen = ({ route, navigation }) => {
         )}
         {tramos.pendiente.length > 1 && (
           <RutaPolyline
+            key={`pendiente-${mapReady}-${tramos.pendiente.length}`}
             coordinates={tramos.pendiente}
             width={6}
             color="#000000"

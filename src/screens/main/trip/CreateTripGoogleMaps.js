@@ -802,7 +802,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           </Marker>
         ))}
         {routeCoordinates.length > 0 && (
-          <RutaPolyline coordinates={routeCoordinates} width={5} color="#000000" />
+          <RutaPolyline
+            key={`ruta-${mapaListo}-${routeCoordinates.length}`}
+            coordinates={routeCoordinates}
+            width={5}
+            color="#000000"
+          />
         )}
       </MapView>
 
