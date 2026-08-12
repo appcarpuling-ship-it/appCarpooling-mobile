@@ -16,7 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta, metersBetween } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -25,9 +25,6 @@ import { ENDPOINTS } from '../../../config/api';
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
-
-/** A cuánto del trazado se considera que el auto va sobre él: precisión del GPS + ancho de calle. */
-const CERCA_DEL_TRAZADO_M = 120;
 
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
@@ -51,8 +48,6 @@ const TripMapScreen = ({ route, navigation }) => {
   // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
   // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
-  // Hasta dónde se considera recorrido. En ref para que sólo avance: ver `tramos`.
-  const corteRef = useRef(0);
 
   /**
    * La cámara sigue al conductor hasta que el conductor toca el mapa.
@@ -373,50 +368,6 @@ const TripMapScreen = ({ route, navigation }) => {
     fitTo(puntos);
   };
 
-  /**
-   * El trazado partido en dos: lo ya recorrido y lo que falta. Se corta en el punto del
-   * trazado más cercano a dónde está el auto, así se ve de un vistazo cuánto queda sin
-   * gastar una sola llamada a Directions.
-   *
-   * Sin viaje en curso o sin posición se devuelve todo como pendiente: pintar medio recorrido
-   * de gris cuando todavía no salió sería mentir.
-   */
-  const tramos = useMemo(() => {
-    if (!routeCoordinates.length) return { recorrido: [], pendiente: [] };
-    if (!isTripStarted || !driverLocation?.latitude) {
-      corteRef.current = 0;
-      return { recorrido: [], pendiente: routeCoordinates };
-    }
-
-    // Sin ninguna parada hecha todavía no se recorrió nada: el conductor va CAMINO a la
-    // primera. El corte por cercanía enganchaba el trazado a la altura del auto y pintaba de
-    // gris las primeras cuadras, que son justamente las que le faltan hacer.
-    if (!paradasHechas.length) {
-      corteRef.current = 0;
-      return { recorrido: [], pendiente: routeCoordinates };
-    }
-    // El corte avanza y NUNCA retrocede, y gana el primer punto suficientemente cerca.
-    //
-    // Antes se buscaba el punto más cercano de TODA la ruta. En una ciudad el trazado pasa
-    // cerca del mismo lugar varias veces —la vuelta a la manzana, la avenida paralela, el
-    // regreso por la misma calle— y cualquiera de esas repeticiones podía ganar: al arrancar
-    // el viaje, sin haberse movido, quedaba medio recorrido pintado de gris. Con la geometría
-    // fina de los steps, que son miles de puntos, pasa mucho más seguido que antes.
-    let corte = corteRef.current;
-    for (let i = corteRef.current; i < routeCoordinates.length; i++) {
-      if (metersBetween(routeCoordinates[i], driverLocation) <= CERCA_DEL_TRAZADO_M) { corte = i; break; }
-    }
-    corteRef.current = corte;
-
-    // Fuera del trazado (desvío, GPS malo) el corte se queda donde estaba: mejor no mover nada
-    // que inventar un avance.
-    if (corte === 0) return { recorrido: [], pendiente: routeCoordinates };
-    return {
-      // Se solapan en el punto de corte para que no quede un hueco entre las dos líneas.
-      recorrido: routeCoordinates.slice(0, corte + 1),
-      pendiente: routeCoordinates.slice(corte),
-    };
-  }, [routeCoordinates, driverLocation?.latitude, driverLocation?.longitude, isTripStarted, paradasHechas.length]);
 
   const initialRegion = originCoords?.latitude
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
@@ -483,25 +434,12 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         ))}
 
-        {/* Lo ya recorrido, apagado. El trazado va en lo más bajo del mapa: los marcadores y
-            el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
-            a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
-        {/* Sin condición: el trazado se monta con el mapa aunque todavía no haya ruta. Si se
-            agrega DESPUÉS, iOS no lo pinta hasta que le cambian las props (ver RutaPolyline);
-            existiendo desde el principio, la ruta que llega es una actualización de props
-            sobre un overlay que ya está puesto, que es el caso que sí funciona. */}
-        <RutaPolyline
-          coordinates={tramos.recorrido}
-          width={5}
-          // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
-          // filtraba a través de la línea y el tramo recorrido se veía azul.
-          color="#9AA0A6"
-        />
-        <RutaPolyline
-          coordinates={tramos.pendiente}
-          width={6}
-          color="#000000"
-        />
+        {/* El recorrido completo, en negro y de una sola pieza. Estuvo partido en "ya
+            recorrido" (gris) y "pendiente", pero el corte se calculaba por cercanía al auto y
+            se equivocaba de las dos formas posibles: enganchaba un tramo por el que el
+            trazado vuelve a pasar, o pintaba como hechas las cuadras que faltaban. Un dato
+            que miente es peor que no darlo. */}
+        <RutaPolyline coordinates={routeCoordinates} width={6} color="#000000" />
       </MapView>
 
 
