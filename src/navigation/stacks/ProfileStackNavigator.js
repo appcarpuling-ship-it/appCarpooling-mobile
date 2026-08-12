@@ -118,7 +118,8 @@ const ProfileStackNavigator = () => {
       <Stack.Screen
         name="CreateReview"
         component={CreateReviewScreen}
-        options={{ title: 'Crear Reseña' }}
+        // Mismo criterio que CreateReviewFromTrip: una vez que se abre, se sale calificando.
+        options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen
         name="BlockedUsers"
