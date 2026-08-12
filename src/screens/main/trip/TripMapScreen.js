@@ -113,6 +113,9 @@ const TripMapScreen = ({ route, navigation }) => {
   const driverId = trip?.driver?._id || trip?.driver?.id || trip?.driver;
   const isDriver = Boolean(userId && driverId && String(userId) === String(driverId));
   const isTripStarted = trip?.status === 'started';
+  // Sólo el conductor en viaje tiene su propia posición en estado (la del watchPositionAsync
+  // que ya corre para avisarles a los pasajeros). Para el resto sigue el punto nativo.
+  const dibujamosNuestroPunto = Boolean(isDriver && isTripStarted && driverLocation?.latitude);
 
   useEffect(() => {
     isMounted.current = true;
@@ -383,7 +386,11 @@ const TripMapScreen = ({ route, navigation }) => {
         style={styles.map}
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
-        showsUserLocation={showMyLocation}
+        // El punto nativo, salvo cuando lo dibujamos nosotros (abajo): el SDK lo pinta por
+        // encima de los overlays pero POR DEBAJO de los marcadores, y no hay zIndex que lo
+        // arregle. Con el viaje en curso el conductor quedaba tapado por el número de la
+        // parada justo al llegar a ella, que es cuando más necesita verse.
+        showsUserLocation={showMyLocation && !dibujamosNuestroPunto}
         onMapReady={() => setMapReady(true)}
         // `isGesture` distingue el arrastre del usuario de los movimientos que hacemos
         // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
@@ -440,6 +447,20 @@ const TripMapScreen = ({ route, navigation }) => {
             trazado vuelve a pasar, o pintaba como hechas las cuadras que faltaban. Un dato
             que miente es peor que no darlo. */}
         <RutaPolyline coordinates={routeCoordinates} width={6} color="#000000" />
+        {/* Nuestra posición, por encima de las paradas. Mismo aspecto que el punto nativo. */}
+        {dibujamosNuestroPunto && (
+          <Marker
+            coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={10}
+            flat
+            tracksViewChanges={false}
+          >
+            <View style={styles.miPuntoHalo}>
+              <View style={styles.miPunto} />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
 
@@ -523,6 +544,8 @@ const TripMapScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  miPuntoHalo: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.22)' },
+  miPunto: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#4285F4', borderWidth: 2.5, borderColor: '#FFFFFF' },
   recentrarBtn: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject },
