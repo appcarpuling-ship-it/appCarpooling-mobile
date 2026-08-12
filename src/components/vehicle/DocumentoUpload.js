@@ -107,7 +107,7 @@ const DocumentoUpload = ({
 
       <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
         <View style={styles.modalFondo}>
-          <View style={[styles.modalCaja, { backgroundColor: ui.bg }]}>
+          <View style={[styles.modalCaja, { backgroundColor: ui.card, borderColor: ui.border }]}>
             <View style={[styles.modalHeader, { borderBottomColor: ui.border }]}>
               <Text style={[styles.modalTitulo, { color: ui.text }]}>{label}</Text>
               <TouchableOpacity onPress={() => setAbierto(false)} hitSlop={8}>
@@ -188,8 +188,28 @@ const styles = StyleSheet.create({
   fechaText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
   vencido: { color: '#EF4444', fontSize: 12, fontFamily: 'Sora_700Bold' },
 
-  modalFondo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalCaja: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 22, overflow: 'hidden' },
+  // Centrado, no pegado abajo: es un diálogo de una sola decisión, igual que AlertModal. Como
+  // hoja inferior competía con la barra de gestos y quedaba lejos de donde estabas mirando.
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCaja: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 22,
+    paddingBottom: 18,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   modalTitulo: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   modalBtns: { flexDirection: 'row', gap: 10, paddingHorizontal: 18, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
