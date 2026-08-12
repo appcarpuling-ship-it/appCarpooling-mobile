@@ -48,6 +48,10 @@ const TripMapScreen = ({ route, navigation }) => {
   // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
   // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
+  // TEMPORAL: cartel de diagnóstico. Dos hipótesis sobre por qué no se dibuja la línea
+  // fallaron seguidas, así que en vez de suponer, la pantalla dice qué pasó. Se saca en
+  // cuanto esté resuelto.
+  const [diag, setDiag] = useState('iniciando');
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
   // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
@@ -278,6 +282,7 @@ const TripMapScreen = ({ route, navigation }) => {
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
+      setDiag('sin coordenadas de origen/destino');
       fitTo(markerCoords());
       setLoading(false);
       return true; // sin puntas no hay nada que reintentar
@@ -304,11 +309,12 @@ const TripMapScreen = ({ route, navigation }) => {
           }));
         }
         if (points.length > 0) {
+          setDiag(`ruta ok: ${points.length} pts`);
           setRouteCoordinates(points);
           fitTo(points);
           return true;
         }
-        sinRuta();
+        sinRuta('respuesta sin puntos');
       } else if (waypointsParam) {
         // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
         // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
@@ -320,16 +326,17 @@ const TripMapScreen = ({ route, navigation }) => {
         const rs = simple.routes?.[0];
         const pts = rs?.overview_polyline?.points ? decodePolyline(rs.overview_polyline.points) : [];
         if (pts.length > 0) {
+          setDiag(`ruta sin paradas: ${pts.length} pts`);
           setRouteCoordinates(pts);
           fitTo(pts);
           return true;
         }
-        sinRuta();
+        sinRuta('reintento sin paradas vacio');
       } else {
-        sinRuta();
+        sinRuta(`sin rutas (status ${data?.status || '?'})`);
       }
     } catch (e) {
-      sinRuta();
+      sinRuta(`error: ${String(e?.message || e).slice(0, 60)}`);
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -346,7 +353,8 @@ const TripMapScreen = ({ route, navigation }) => {
    * ponytail: con el viaje empezado, el corte de "recorrido / pendiente" se calcula sobre esta
    * recta y el avance queda aproximado. Es preferible a no dibujar nada.
    */
-  const sinRuta = () => {
+  const sinRuta = (motivo) => {
+    setDiag(`FALLBACK — ${motivo}`);
     const puntos = markerCoords();
     if (puntos.length > 1) setRouteCoordinates(puntos);
     fitTo(puntos);
@@ -458,6 +466,11 @@ const TripMapScreen = ({ route, navigation }) => {
         )}
       </MapView>
 
+      {/* TEMPORAL: diagnóstico del trazado. Sale en cuanto sepamos por qué no se dibuja. */}
+      <View style={styles.diagBox} pointerEvents="none">
+        <Text style={styles.diagText}>{diag} · dibujadas {routeCoordinates.length}</Text>
+      </View>
+
       {/* Back button */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
@@ -525,6 +538,8 @@ const TripMapScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  diagBox: { position: 'absolute', top: 110, left: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.82)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  diagText: { color: '#FFFFFF', fontSize: 12 },
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject },
   topBar: {
