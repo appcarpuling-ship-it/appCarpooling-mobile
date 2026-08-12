@@ -40,6 +40,7 @@ import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
+import Rating from '../../../components/ui/Rating';
 
 const BANNER_SCROLL_SPEED = 30;
 
@@ -880,6 +881,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.driverName, { color: textPrimary }]}>
                 {driver?.firstName} {driver?.lastName}
               </Text>
+              <Rating rating={driver?.rating} count={driver?.ratingCount} style={styles.driverRating} />
               <Text style={[styles.driverPhotoHint, { color: textMuted }]}>
                 {driver?.avatar ? 'Toca para ampliar' : ''}
               </Text>
@@ -1481,6 +1483,7 @@ const styles = StyleSheet.create({
   driverInitials: { fontSize: 18, fontFamily: 'Sora_600SemiBold' },
   driverInfo: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
+  driverRating: { marginTop: 3 },
   driverPhotoHint: { fontSize: 12, marginTop: 4 },
 
   // Vehicle

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -41,7 +40,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
   const { reviewType = 'driver' } = params;
 
   const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Se entra por dos caminos: desde la notificación, que manda sólo `tripId`, y desde el
@@ -94,7 +92,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
         trip: trip._id,
         reviewedUser: reviewedUser._id,
         rating,
-        comment: comment.trim(),
         // El server valida `reviewType`. Antes se mandaba como `type` y la calificación
         // fallaba SIEMPRE por validación, sin que nada lo dijera.
         reviewType,
@@ -200,18 +197,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
               <Text style={[styles.textoRating, { color: ui.textMuted }]}>{TEXTO_POR_ESTRELLA[rating]}</Text>
             </View>
 
-            {/* Comentario opcional: exigir texto en una pantalla que aparece sola es la forma
-                más rápida de que la gente escriba "asd" para sacársela de encima. */}
-            <TextInput
-              style={[styles.comentario, { backgroundColor: ui.surface, color: ui.text, borderColor: ui.border }]}
-              placeholder="Dejá un comentario (opcional)"
-              placeholderTextColor={ui.textMuted}
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-            />
           </View>
         </ScrollView>
 
@@ -250,10 +235,6 @@ const styles = StyleSheet.create({
   estrella: { marginHorizontal: 2 },
   textoRating: { fontSize: 14, fontFamily: 'Sora_500Medium', marginTop: 10 },
 
-  comentario: {
-    marginTop: 24, minHeight: 96, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, fontFamily: 'Sora_400Regular',
-  },
   footer: { paddingHorizontal: 24, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });
 
