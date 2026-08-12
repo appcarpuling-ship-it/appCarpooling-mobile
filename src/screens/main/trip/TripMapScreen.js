@@ -9,7 +9,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
@@ -18,6 +18,7 @@ import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, decodePolyline, metersBetween } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
+import RutaPolyline from '../../../components/map/RutaPolyline';
 import { ENDPOINTS } from '../../../config/api';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
@@ -90,8 +91,15 @@ const TripMapScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     isMounted.current = true;
-    fetchRoute();
-    return () => { isMounted.current = false; };
+    let reintento;
+    (async () => {
+      const trazada = await fetchRoute();
+      // Directions falla por cosas pasajeras: el 429 de la API cuando varias pantallas piden
+      // a la vez, o la red del celular justo al arrancar el viaje. No había segundo intento,
+      // así que el mapa se quedaba sin ninguna línea hasta salir y volver a entrar.
+      if (!trazada && isMounted.current) reintento = setTimeout(fetchRoute, 2500);
+    })();
+    return () => { isMounted.current = false; clearTimeout(reintento); };
   }, []);
 
   // El punto azul, siempre y para cualquiera que mire el mapa. Antes sólo aparecía con el
@@ -278,7 +286,7 @@ const TripMapScreen = ({ route, navigation }) => {
     if (!originCoords?.latitude || !destCoords?.latitude) {
       fitTo(markerCoords());
       setLoading(false);
-      return;
+      return true; // sin puntas no hay nada que reintentar
     }
     try {
       const orig = `${originCoords.latitude},${originCoords.longitude}`;
@@ -304,9 +312,9 @@ const TripMapScreen = ({ route, navigation }) => {
         if (points.length > 0) {
           setRouteCoordinates(points);
           fitTo(points);
-        } else {
-          fitTo(markerCoords());
+          return true;
         }
+        fitTo(markerCoords());
       } else if (waypointsParam) {
         // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
         // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
@@ -320,9 +328,9 @@ const TripMapScreen = ({ route, navigation }) => {
         if (pts.length > 0) {
           setRouteCoordinates(pts);
           fitTo(pts);
-        } else {
-          fitTo(markerCoords());
+          return true;
         }
+        fitTo(markerCoords());
       } else {
         fitTo(markerCoords());
       }
@@ -331,6 +339,7 @@ const TripMapScreen = ({ route, navigation }) => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
+    return false;
   };
 
   /**
@@ -420,24 +429,20 @@ const TripMapScreen = ({ route, navigation }) => {
             el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
             a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
         {tramos.recorrido.length > 1 && (
-          <Polyline
+          <RutaPolyline
             coordinates={tramos.recorrido}
-            strokeWidth={5}
+            width={5}
             // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
             // filtraba a través de la línea y el tramo recorrido se veía azul.
-            strokeColor="#9AA0A6"
-            lineCap="round"
-            lineJoin="round"
+            color="#9AA0A6"
             zIndex={0}
           />
         )}
         {tramos.pendiente.length > 1 && (
-          <Polyline
+          <RutaPolyline
             coordinates={tramos.pendiente}
-            strokeWidth={6}
-            strokeColor="#000000"
-            lineCap="round"
-            lineJoin="round"
+            width={6}
+            color="#000000"
             zIndex={1}
           />
         )}

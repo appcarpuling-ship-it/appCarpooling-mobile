@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +34,7 @@ import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import MapCenterPin, { usePinAlzado } from '../../../components/ui/MapCenterPin';
+import RutaPolyline from '../../../components/map/RutaPolyline';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -798,15 +799,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           </Marker>
         ))}
         {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeWidth={5}
-            // Sin strokeColors: ese prop es para líneas con DEGRADADO y exige un color por
-            // cada punto. Con uno solo para miles de coordenadas iOS la dibuja azul.
-            strokeColor="#000000"
-            lineCap="round"
-            lineJoin="round"
-          />
+          <RutaPolyline coordinates={routeCoordinates} width={5} color="#000000" />
         )}
       </MapView>
 

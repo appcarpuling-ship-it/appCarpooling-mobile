@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useAlert } from '../../../context/AlertContext';
 import { post_withauth, get_withauth, buildImageUri } from '../../../services/apiService';
@@ -20,6 +20,7 @@ import { ENDPOINTS } from '../../../config/api';
 import PillButton from '../../../components/ui/PillButton';
 import { useUI } from '../../../theme/ui';
 import { useTripRoute } from '../../../hooks/useTripRoute';
+import RutaPolyline from '../../../components/map/RutaPolyline';
 
 const { height: ALTO_PANTALLA } = Dimensions.get('window');
 const ALTO_MAPA = Math.round(ALTO_PANTALLA * 0.34);
@@ -153,7 +154,7 @@ const CreateReviewScreen = ({ route, navigation }) => {
                 showsMyLocationButton={false}
               >
                 {coordinates.length > 1 && (
-                  <Polyline coordinates={coordinates} strokeWidth={5} strokeColor="#000000" lineCap="round" lineJoin="round" />
+                  <RutaPolyline coordinates={coordinates} width={5} color="#000000" />
                 )}
                 {origen?.latitude != null && (
                   <Marker coordinate={origen} anchor={{ x: 0.5, y: 0.5 }}>
