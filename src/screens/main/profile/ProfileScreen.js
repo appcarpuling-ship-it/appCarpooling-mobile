@@ -169,6 +169,9 @@ const ProfileScreen = () => {
       title: 'Sesión',
       items: [
         { id: 7, title: 'Cerrar Sesión', subtitle: 'Salí de tu cuenta', icon: 'log-out-outline', onPress: handleLogout, danger: true },
+        // Tiene que poder hacerse desde adentro de la app: es requisito de App Store y, sobre
+        // todo, es el derecho de cualquiera a llevarse sus datos.
+        { id: 13, title: 'Eliminar cuenta', subtitle: 'Borrá tu cuenta y todos tus datos', icon: 'trash-outline', onPress: () => navigation.navigate('DeleteAccount'), danger: true },
       ],
     },
   ];

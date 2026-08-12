@@ -19,6 +19,7 @@ import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import ReferralScreen from '../../screens/main/profile/ReferralScreen';
 import CouponsScreen from '../../screens/main/profile/CouponsScreen';
 import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
+import DeleteAccountScreen from '../../screens/main/profile/DeleteAccountScreen';
 
 const Stack = createStackNavigator();
 
@@ -120,6 +121,11 @@ const ProfileStackNavigator = () => {
         component={CreateReviewScreen}
         // Mismo criterio que CreateReviewFromTrip: una vez que se abre, se sale calificando.
         options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="DeleteAccount"
+        component={DeleteAccountScreen}
+        options={{ title: 'Eliminar cuenta' }}
       />
       <Stack.Screen
         name="BlockedUsers"

@@ -5,9 +5,6 @@ import * as Updates from 'expo-updates';
 import UpdateRequiredScreen from '../screens/common/UpdateRequiredScreen';
 import { navigationRef } from '../navigation/rootNavigation';
 
-/** Lo que se ve la pantalla antes de reiniciar sola: suficiente para leerla, sin ser una espera. */
-const PAUSA_ANTES_DE_REINICIAR_MS = 1400;
-
 /**
  * Cada cuánto, como mucho, se le pregunta al servidor si hay update.
  *
@@ -17,8 +14,6 @@ const ESPERA_ENTRE_CHEQUEOS_MS = 20000;
 
 export default function OtaUpdateListener() {
   const [visible, setVisible] = useState(false);
-  // Si el reinicio automático falla, se cae al pedido manual de siempre.
-  const [manual, setManual] = useState(false);
 
   const ultimoChequeo = useRef(0);
   const enCurso = useRef(false);
@@ -32,7 +27,6 @@ export default function OtaUpdateListener() {
     if (!Updates.isEnabled) return undefined;
 
     let cancelled = false;
-    let timer;
 
     /**
      * Se chequea al arrancar, al volver del fondo y al navegar.
@@ -40,8 +34,11 @@ export default function OtaUpdateListener() {
      * Antes era sólo al montar el bundle, o sea únicamente arrancando la app desde cero. Como
      * uno casi siempre vuelve desde el fondo en vez de matarla, el chequeo no corría nunca y
      * el update quedaba esperando. Encima con `fallbackToCacheTimeout: 0` el arranque usa
-     * SIEMPRE el bundle guardado, así que sin este reload el cambio recién aparecía en la
-     * apertura siguiente y parecía que el OTA no había salido.
+     * SIEMPRE el bundle guardado, así que el cambio recién aparecía en la apertura siguiente
+     * y parecía que el OTA no había salido.
+     *
+     * Cuando hay uno nuevo se muestra la pantalla y ahí se queda: reiniciar es decisión del
+     * usuario, no de un temporizador.
      */
     const revisar = async () => {
       if (cancelled || enCurso.current || yaEncontrado.current) return;
@@ -56,14 +53,6 @@ export default function OtaUpdateListener() {
         if (cancelled) return;
         yaEncontrado.current = true;
         setVisible(true);
-
-        timer = setTimeout(async () => {
-          try {
-            await Updates.reloadAsync();
-          } catch {
-            if (!cancelled) setManual(true);
-          }
-        }, PAUSA_ANTES_DE_REINICIAR_MS);
       } catch {
         /* sin red, sin ruido */
       } finally {
@@ -87,7 +76,6 @@ export default function OtaUpdateListener() {
 
     return () => {
       cancelled = true;
-      if (timer) clearTimeout(timer);
       clearTimeout(engancheNav);
       subApp.remove();
       if (subNav) subNav();
@@ -101,7 +89,7 @@ export default function OtaUpdateListener() {
       {/* El Modal abre una ventana nativa aparte: necesita su propio provider
           para medir los insets de esta ventana (mismo caso que en HomeScreen). */}
       <SafeAreaProvider>
-        <UpdateRequiredScreen manual={manual} />
+        <UpdateRequiredScreen />
       </SafeAreaProvider>
     </Modal>
   );

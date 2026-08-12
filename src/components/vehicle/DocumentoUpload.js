@@ -82,13 +82,12 @@ const DocumentoUpload = ({
           {procesando ? (
             <ActivityIndicator size="small" color={ui.text} />
           ) : (
-            <>
-              <View style={[styles.icono, { backgroundColor: ui.invertBg }]}>
-                <Ionicons name="document-text-outline" size={20} color={ui.invertText} />
-              </View>
-              <Text style={[styles.subirText, { color: ui.textMuted }]}>Subir documento</Text>
-            </>
+            <Ionicons name="camera-outline" size={19} color={ui.textMuted} />
           )}
+          <Text style={[styles.subirText, { color: ui.text }]}>
+            {procesando ? 'Procesando…' : 'Subir documento'}
+          </Text>
+          {!procesando && <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />}
         </TouchableOpacity>
       )}
 
@@ -108,7 +107,7 @@ const DocumentoUpload = ({
 
       <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
         <View style={styles.modalFondo}>
-          <View style={[styles.modalCaja, { backgroundColor: ui.bg }]}>
+          <View style={[styles.modalCaja, { backgroundColor: ui.card, borderColor: ui.border }]}>
             <View style={[styles.modalHeader, { borderBottomColor: ui.border }]}>
               <Text style={[styles.modalTitulo, { color: ui.text }]}>{label}</Text>
               <TouchableOpacity onPress={() => setAbierto(false)} hitSlop={8}>
@@ -119,6 +118,11 @@ const DocumentoUpload = ({
               value={temp}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              // Sin esto la ruedita sale con el esquema del sistema y no con el de la app: en
+              // tema oscuro quedaban números casi negros sobre fondo negro, ilegibles salvo la
+              // fila seleccionada. `textColor` es el que pinta las filas de alrededor.
+              themeVariant={ui.isDarkMode ? 'dark' : 'light'}
+              textColor={ui.text}
               // Un documento que vence antes de hoy no sirve: no se puede ni elegir.
               minimumDate={new Date()}
               onChange={(e, fecha) => {
@@ -133,11 +137,17 @@ const DocumentoUpload = ({
             />
             {Platform.OS === 'ios' && (
               <View style={[styles.modalBtns, { borderTopColor: ui.border }]}>
-                <TouchableOpacity onPress={() => setAbierto(false)} style={styles.modalBtn}>
+                <TouchableOpacity
+                  onPress={() => setAbierto(false)}
+                  style={[styles.modalBtn, { backgroundColor: ui.surface }]}
+                >
                   <Text style={{ color: ui.textMuted, fontFamily: 'Sora_600SemiBold', fontSize: 15 }}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => confirmar(temp)} style={styles.modalBtn}>
-                  <Text style={{ color: ui.text, fontFamily: 'Sora_700Bold', fontSize: 15 }}>Confirmar</Text>
+                <TouchableOpacity
+                  onPress={() => confirmar(temp)}
+                  style={[styles.modalBtn, { backgroundColor: ui.invertBg }]}
+                >
+                  <Text style={{ color: ui.invertText, fontFamily: 'Sora_700Bold', fontSize: 15 }}>Confirmar</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -149,12 +159,12 @@ const DocumentoUpload = ({
 };
 
 const styles = StyleSheet.create({
-  bloque: { marginTop: 18 },
+  bloque: { marginTop: 20 },
   label: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 3, marginBottom: 8 },
 
   preview: { marginTop: 8 },
-  img: { width: '100%', height: 150, borderRadius: 12 },
+  img: { width: '100%', height: 130, borderRadius: 12 },
   quitar: {
     position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12,
     backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center',
@@ -162,12 +172,14 @@ const styles = StyleSheet.create({
   reemplazar: { marginTop: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 999, paddingVertical: 9, alignItems: 'center' },
   reemplazarText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
+  // Fila y no caja grande: tres documentos en columna con un recuadro alto cada uno se comían
+  // la pantalla entera y había que scrollear tres veces para llenar un formulario.
   subir: {
-    marginTop: 8, borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, borderStyle: 'dashed',
-    paddingVertical: 22, alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 14,
   },
-  icono: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  subirText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
+  subirText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   fecha: {
     marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -176,12 +188,32 @@ const styles = StyleSheet.create({
   fechaText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
   vencido: { color: '#EF4444', fontSize: 12, fontFamily: 'Sora_700Bold' },
 
-  modalFondo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCaja: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  // Centrado, no pegado abajo: es un diálogo de una sola decisión, igual que AlertModal. Como
+  // hoja inferior competía con la barra de gestos y quedaba lejos de donde estabas mirando.
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCaja: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 22,
+    paddingBottom: 18,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   modalTitulo: { fontSize: 16, fontFamily: 'Sora_700Bold' },
-  modalBtns: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth },
-  modalBtn: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  modalBtns: { flexDirection: 'row', gap: 10, paddingHorizontal: 18, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  modalBtn: { flex: 1, alignItems: 'center', paddingVertical: 13, borderRadius: 14 },
 });
 
 export default DocumentoUpload;
