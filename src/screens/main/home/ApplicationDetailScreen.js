@@ -12,6 +12,7 @@ import { acceptTripRequestApplication } from '../../../services/tripRequestServi
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { useUI } from '../../../theme/ui';
+import Rating from '../../../components/ui/Rating';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId } = route.params;
@@ -93,13 +94,14 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.driverName, { color: textPrimary }]}>
                 {driver.firstName} {driver.lastName}
               </Text>
-              {driver.totalTrips != null && (
-                <View style={styles.ratingRow}>
+              <View style={styles.ratingRow}>
+                <Rating rating={driver.rating} count={driver.ratingCount} size={13} />
+                {driver.totalTrips != null && (
                   <Text style={[styles.ratingText, { color: textMuted }]}>
-                    {driver.totalTrips} viaje{driver.totalTrips !== 1 ? 's' : ''}
+                    · {driver.totalTrips} viaje{driver.totalTrips !== 1 ? 's' : ''}
                   </Text>
-                </View>
-              )}
+                )}
+              </View>
             </View>
           </View>
         </View>

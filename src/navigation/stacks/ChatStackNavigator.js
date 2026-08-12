@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import ChatsScreen from '../../screens/main/chat/ChatsScreen';
 import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
+import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +54,11 @@ const ChatStackNavigator = () => {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Stack.Screen
+        name="UserReviews"
+        component={UserReviewsScreen}
+        options={{ title: 'Reseñas' }}
       />
     </Stack.Navigator>
   );

@@ -13,6 +13,7 @@ import { get_withauth, put_withauth, buildImageUri } from '../../../services/api
 import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
+import Rating from '../../../components/ui/Rating';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
@@ -439,6 +440,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {app.driverSnapshot?.firstName} {app.driverSnapshot?.lastName}
                     </Text>
+                    <Rating
+                      rating={app.driverSnapshot?.rating}
+                      count={app.driverSnapshot?.ratingCount}
+                      size={13}
+                      style={{ marginTop: 3 }}
+                    />
                     {app.vehicleSnapshot && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                         <Text style={[styles.passengerSeats, { color: textMuted }]}>

@@ -96,12 +96,16 @@ const CarpoolingsStackNavigator = () => {
       <Stack.Screen
         name="CreateReviewFromTrip"
         component={CreateReviewScreen}
-        options={{ title: 'Crear Reseña' }}
+        // Calificar es obligatorio: sin header (o sea sin flecha de volver) y sin gesto para
+        // atrás. Esta pantalla se abre sola al arrancar la app cuando quedó un viaje sin
+        // puntuar, y con la flecha se salteaba en un toque. El botón físico de Android lo
+        // corta la pantalla con BackHandler.
+        options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen
-        name="UserReviewsFromTrip"
+        name="UserReviews"
         component={UserReviewsScreen}
-        options={{ title: 'Reseñas del Usuario' }}
+        options={{ title: 'Reseñas' }}
       />
       <Stack.Screen
         name="UserProfile"

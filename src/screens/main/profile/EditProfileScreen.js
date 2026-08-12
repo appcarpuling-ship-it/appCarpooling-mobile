@@ -24,6 +24,7 @@ import { showAlertAsync } from '../../../context/AlertContext';
 import PermissionModal from '../../../components/modals/PermissionModal';
 import PillButton from '../../../components/ui/PillButton';
 import { appendFile } from '../../../utils/formDataFile';
+import DocumentoUpload from '../../../components/vehicle/DocumentoUpload';
 
 const EditProfileScreen = ({ navigation }) => {
   const ui = useUI();
@@ -53,6 +54,13 @@ const EditProfileScreen = ({ navigation }) => {
   const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  // Licencia de conducir. El DNI dice quién sos, no que puedas manejar: son dos documentos
+  // distintos y hasta ahora sólo se pedía el primero. Va con vencimiento, como en Uber.
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [licenseUri, setLicenseUri] = useState(null);
+  const [licenseExpiry, setLicenseExpiry] = useState(
+    user?.driverLicenseExpiry ? new Date(user.driverLicenseExpiry) : null,
+  );
   const [dniFrontLoading, setDniFrontLoading] = useState(false);
   const [dniBackLoading, setDniBackLoading] = useState(false);
 
@@ -128,6 +136,38 @@ const EditProfileScreen = ({ navigation }) => {
     ]);
   };
 
+  /**
+   * La licencia se sube cuando están la foto Y la fecha: el server rechaza una sin la otra,
+   * porque una licencia vencida se ve igual que una al día.
+   */
+  const subirLicencia = async (imageUri, fecha) => {
+    if (!imageUri || !fecha) return;
+    setLicenseLoading(true);
+    try {
+      const fd = new FormData();
+      await appendFile(fd, 'driverLicense', imageUri, 'licencia.jpg');
+      fd.append('driverLicenseExpiry', fecha.toISOString());
+      const response = await put_withauth_formdata(ENDPOINTS.UPLOAD_DNI, fd);
+      if (response.success) {
+        setLicenseUri(null);
+        await refreshUser();
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Perfil Actualizado',
+          message: 'Licencia de conducir actualizada',
+          primaryLabel: 'Continuar',
+          image: require('../../../../assets/icons/pngwing.com (16).png'),
+        });
+      } else {
+        navigation.navigate('Result', { type: 'error', title: 'Error', message: response.message || 'No se pudo subir la licencia' });
+      }
+    } catch (e) {
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: e.message || 'No se pudo subir la licencia' });
+    } finally {
+      setLicenseLoading(false);
+    }
+  };
+
   const uploadDniSide = async (side, imageUri) => {
     const field = side === 'front' ? 'dniFront' : 'dniBack';
     const setDniLoading = side === 'front' ? setDniFrontLoading : setDniBackLoading;
@@ -153,6 +193,28 @@ const EditProfileScreen = ({ navigation }) => {
     } finally {
       setDniLoading(false);
     }
+  };
+
+  const pickLicencia = async () => {
+    try {
+      const imageAsset = await pickImageFromGallery({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.85,
+      });
+      const uri = imageAsset?.uri || imageAsset?.assets?.[0]?.uri;
+      if (!uri) return;
+      setLicenseUri(uri);
+      // Si la fecha ya estaba puesta se sube de una; si no, espera a que la elija.
+      if (licenseExpiry) await subirLicencia(uri, licenseExpiry);
+    } catch {
+      navigation.navigate('Result', { type: 'error', title: 'Error', message: 'No se pudo seleccionar la imagen' });
+    }
+  };
+
+  const elegirVencimientoLicencia = async (fecha) => {
+    setLicenseExpiry(fecha);
+    if (licenseUri) await subirLicencia(licenseUri, fecha);
   };
 
   const pickDniDocument = async (side) => {
@@ -497,6 +559,21 @@ const EditProfileScreen = ({ navigation }) => {
             <Text style={[styles.sectionHint, { color: textMuted }]}>
               Se la pedimos a conductores y pasajeros. Las fotos se guardan de forma segura y no se muestran en tu perfil.
             </Text>
+
+            {/* Licencia: sólo hace falta para manejar, pero se pide acá junto al resto de la
+                documentación personal. Lleva vencimiento, como el seguro del vehículo. */}
+            <DocumentoUpload
+              label="Licencia de conducir"
+              hint="Sólo si vas a publicar viajes como conductor."
+              uri={licenseUri}
+              uriGuardada={!licenseUri && user?.driverLicenseUrl ? buildImageUri(user.driverLicenseUrl) : null}
+              onElegir={pickLicencia}
+              onQuitar={() => setLicenseUri(null)}
+              procesando={licenseLoading}
+              vencimiento={licenseExpiry}
+              onVencimiento={elegirVencimientoLicencia}
+              isDarkMode={ui.isDarkMode}
+            />
           </View>
 
           <PillButton

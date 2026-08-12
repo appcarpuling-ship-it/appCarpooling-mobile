@@ -48,7 +48,8 @@ const UserReviewsScreen = ({ route, navigation }) => {
 
   const loadReviews = async () => {
     try {
-      const params = filterType !== 'all' ? { type: filterType } : {};
+      // El server lee `reviewType`. Mandando `type` los tres filtros devolvían lo mismo.
+      const params = filterType !== 'all' ? { reviewType: filterType } : {};
       const response = await get_public(ENDPOINTS.GET_USER_REVIEWS(userId), params);
 
       if (response.success) {

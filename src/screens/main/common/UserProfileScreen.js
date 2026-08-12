@@ -18,6 +18,7 @@ import { ENDPOINTS } from '../../../config/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
+import Rating from '../../../components/ui/Rating';
 
 const REPORT_REASONS = [
   { value: 'harassment', label: 'Acoso o amenazas' },
@@ -237,6 +238,22 @@ const UserProfileScreen = ({ route, navigation }) => {
         <Text style={[styles.name, { color: ui.text }]}>
           {profile.firstName} {profile.lastName}
         </Text>
+        {/* Tocar abre la lista de reseñas, que ya existía pero no la enlazaba nadie. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('UserReviews', {
+            userId: profile._id,
+            userName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
+          })}
+          disabled={!profile.ratingCount}
+          hitSlop={8}
+          style={styles.ratingRow}
+          activeOpacity={0.7}
+        >
+          <Rating rating={profile.rating} count={profile.ratingCount} size={15} />
+          {profile.ratingCount ? (
+            <Ionicons name="chevron-forward" size={14} color={ui.textMuted} />
+          ) : null}
+        </TouchableOpacity>
         {(profile.city || profile.province) && (
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={15} color={ui.textMuted} />
@@ -434,6 +451,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: { fontSize: 36, fontFamily: 'Sora_700Bold' },
   name: { fontSize: 24, fontFamily: 'Sora_700Bold', marginBottom: 6 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 6 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   location: { fontSize: 14 },
   actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },

@@ -20,6 +20,7 @@ import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useTutorial } from '../../../context/TutorialContext';
+import Rating from '../../../components/ui/Rating';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
@@ -242,6 +243,23 @@ const ProfileScreen = () => {
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
+          {/* Cómo lo están puntuando: un conductor necesita verlo sin esperar a que se lo
+              cuente un pasajero. Toca y ve las reseñas una por una. */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('UserReviews', {
+              userId: user?._id,
+              userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+            })}
+            disabled={!user?.ratingCount}
+            hitSlop={8}
+            style={styles.ratingRow}
+            activeOpacity={0.7}
+          >
+            <Rating rating={user?.rating} count={user?.ratingCount} size={15} />
+            {user?.ratingCount ? (
+              <Ionicons name="chevron-forward" size={14} color={textMuted} />
+            ) : null}
+          </TouchableOpacity>
           {/* {user?.gender ? (
             <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
               Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
@@ -377,6 +395,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     marginBottom: 4,
   },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 8 },
   email: {
     fontFamily: 'Sora_400Regular',
     fontSize: 14,

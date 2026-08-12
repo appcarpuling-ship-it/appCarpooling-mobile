@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +34,8 @@ import { useFrequentAddresses } from '../../../hooks/useFrequentAddresses';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import MapCenterPin, { usePinAlzado } from '../../../components/ui/MapCenterPin';
+import RutaPolyline from '../../../components/map/RutaPolyline';
+import { useMapFit } from '../../../hooks/useMapFit';
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -65,10 +67,15 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const { showAlert } = useAlert();
   const frequentAddresses = useFrequentAddresses();
   const mapRef = useRef(null);
+  const [mapaListo, setMapaListo] = useState(false);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
   const waypointInputRefs = useRef([]);
   const isMounted = useRef(true);
+
+  // Encuadre que espera a que el mapa esté listo (ver useMapFit): con el setTimeout de antes,
+  // si el mapa tardaba en inicializar el fit se perdía y la ruta quedaba fuera de cuadro.
+  const encuadrar = useMapFit(mapRef, mapaListo, { top: 100, right: 50, bottom: 300, left: 50 });
   const waypointDebounceTimers = useRef([]);
   const mapSelectionModeRef = useRef(null);
   const mapSelectionIdleTimerRef = useRef(null);
@@ -284,12 +291,8 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   // red, etc.) — antes esos casos no lanzan excepción y el mapa se quedaba quieto sin avisar nada.
   const fitToMarkersOnly = () => {
     const coords = [originMarker, ...waypointMarkers, destinationMarker].filter(m => m?.latitude && m?.longitude);
-    if (coords.length < 2 || !mapRef.current || !isMounted.current) return;
-    setTimeout(() => {
-      if (mapRef.current && isMounted.current) {
-        mapRef.current.fitToCoordinates(coords, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true });
-      }
-    }, 300);
+    if (coords.length < 2) return;
+    encuadrar(coords);
   };
 
   const getDirections = async () => {
@@ -320,7 +323,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           setDistanceKm(totalDist / 1000);
           setDuration(totalDur >= 3600 ? `${Math.floor(totalDur / 3600)}h ${Math.floor((totalDur % 3600) / 60)}min` : `${Math.floor(totalDur / 60)} min`);
           if (mapRef.current && isMounted.current) {
-            setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.fitToCoordinates(points, { edgePadding: { top: 100, right: 50, bottom: 300, left: 50 }, animated: true }); }, 300);
+            encuadrar(points);
           }
         } else {
           fitToMarkersOnly();
@@ -756,6 +759,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
+        onMapReady={() => setMapaListo(true)}
         onRegionChange={(r) => {
           lastRegionRef.current = r;
           if (mapSelectionModeRef.current) levantarPin(true);
@@ -797,17 +801,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             <View style={styles.waypointMarker}><Text style={styles.waypointMarkerText}>{i + 1}</Text></View>
           </Marker>
         ))}
-        {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeWidth={5}
-            // Sin strokeColors: ese prop es para líneas con DEGRADADO y exige un color por
-            // cada punto. Con uno solo para miles de coordenadas iOS la dibuja azul.
-            strokeColor="#000000"
-            lineCap="round"
-            lineJoin="round"
-          />
-        )}
+        {/* Sin condición: ver RutaPolyline. Montado desde el principio, la ruta que llega es
+            una actualización de props y no un overlay agregado tarde, que iOS no pinta. */}
+        <RutaPolyline coordinates={routeCoordinates} width={5} color="#000000" />
       </MapView>
 
       {/* Back button (mini mode) */}

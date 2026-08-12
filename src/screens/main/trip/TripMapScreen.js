@@ -9,15 +9,17 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, decodePolyline, metersBetween } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
+import RutaPolyline from '../../../components/map/RutaPolyline';
+import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
@@ -46,6 +48,30 @@ const TripMapScreen = ({ route, navigation }) => {
   // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
   // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
+
+  /**
+   * La cámara sigue al conductor hasta que el conductor toca el mapa.
+   *
+   * Seguir siempre pelea con el usuario: si arrastrás el mapa para ver qué viene más
+   * adelante, a los pocos segundos te lo devuelve de un tirón. Se corta con el primer gesto
+   * y vuelve con el botón de recentrar, que es lo que hace cualquier navegador.
+   *
+   * En ref además de estado porque quien la lee es el callback de watchPositionAsync, que se
+   * crea una vez y se quedaría con el valor viejo.
+   */
+  const [siguiendo, setSiguiendo] = useState(true);
+  const siguiendoRef = useRef(true);
+
+  const seguirAlConductor = (coords) => {
+    if (!siguiendoRef.current || !coords?.latitude) return;
+    mapRef.current?.animateCamera({ center: coords }, { duration: 700 });
+  };
+
+  const recentrar = () => {
+    siguiendoRef.current = true;
+    setSiguiendo(true);
+    seguirAlConductor(driverLocation);
+  };
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
   // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
@@ -87,11 +113,21 @@ const TripMapScreen = ({ route, navigation }) => {
   const driverId = trip?.driver?._id || trip?.driver?.id || trip?.driver;
   const isDriver = Boolean(userId && driverId && String(userId) === String(driverId));
   const isTripStarted = trip?.status === 'started';
+  // Sólo el conductor en viaje tiene su propia posición en estado (la del watchPositionAsync
+  // que ya corre para avisarles a los pasajeros). Para el resto sigue el punto nativo.
+  const dibujamosNuestroPunto = Boolean(isDriver && isTripStarted && driverLocation?.latitude);
 
   useEffect(() => {
     isMounted.current = true;
-    fetchRoute();
-    return () => { isMounted.current = false; };
+    let reintento;
+    (async () => {
+      const trazada = await fetchRoute();
+      // Directions falla por cosas pasajeras: el 429 de la API cuando varias pantallas piden
+      // a la vez, o la red del celular justo al arrancar el viaje. No había segundo intento,
+      // así que el mapa se quedaba sin ninguna línea hasta salir y volver a entrar.
+      if (!trazada && isMounted.current) reintento = setTimeout(fetchRoute, 2500);
+    })();
+    return () => { isMounted.current = false; clearTimeout(reintento); };
   }, []);
 
   // El punto azul, siempre y para cualquiera que mire el mapa. Antes sólo aparecía con el
@@ -129,6 +165,7 @@ const TripMapScreen = ({ route, navigation }) => {
             // pendiente. El conductor no se ve a sí mismo con driverLocation (eso es lo que
             // reciben los pasajeros por socket), así que sin esto no habría por dónde cortar.
             setDriverLocation({ ...coords, heading: loc.coords.heading });
+            seguirAlConductor(coords);
             socketService.sendTripLocationUpdate(trip._id, { ...coords, heading: loc.coords.heading });
           }
         );
@@ -156,17 +193,10 @@ const TripMapScreen = ({ route, navigation }) => {
     };
   }, [trip?._id, isTripStarted, isDriver]);
 
-  const fitTo = (coords) => {
-    if (!coords?.length) return;
-    setTimeout(() => {
-      if (mapRef.current && isMounted.current) {
-        mapRef.current.fitToCoordinates(coords, {
-          edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
-          animated: true,
-        });
-      }
-    }, 400);
-  };
+  // El encuadre espera a que el mapa esté listo: ver useMapFit. Con el setTimeout de antes,
+  // si el mapa tardaba más de 400 ms en inicializar la cámara se quedaba en la región inicial
+  // —un cuadrito alrededor del origen— y de la ruta se veía sólo el principio.
+  const fitTo = useMapFit(mapRef, mapReady, { top: 80, right: 40, bottom: 80, left: 40 });
 
   /** Lo que se pueda encuadrar aunque no haya trayecto: origen, paradas y destino que tengan coords. */
   const markerCoords = () => [
@@ -278,7 +308,7 @@ const TripMapScreen = ({ route, navigation }) => {
     if (!originCoords?.latitude || !destCoords?.latitude) {
       fitTo(markerCoords());
       setLoading(false);
-      return;
+      return true; // sin puntas no hay nada que reintentar
     }
     try {
       const orig = `${originCoords.latitude},${originCoords.longitude}`;
@@ -291,22 +321,14 @@ const TripMapScreen = ({ route, navigation }) => {
       if (!isMounted.current) return;
       if (data.routes?.length > 0) {
         const r = data.routes[0];
-        // overview_polyline primero: es la geometría que Google simplifica PARA MOSTRAR, con
-        // un algoritmo que respeta la forma del camino. Sumar el polyline de cada paso da
-        // miles de puntos —lo que hacía tardar— y recortarlos de a uno cada N, como se hacía
-        // hasta ahora, cortaba las curvas y sacaba la línea de las calles.
-        let points = r.overview_polyline?.points ? decodePolyline(r.overview_polyline.points) : [];
-        if (points.length === 0) {
-          r.legs?.forEach(leg => leg.steps?.forEach(step => {
-            if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points));
-          }));
-        }
+        // Con el detalle de los steps, que es el que sigue las calles: ver puntosDeRuta.
+        const points = puntosDeRuta(r);
         if (points.length > 0) {
           setRouteCoordinates(points);
           fitTo(points);
-        } else {
-          fitTo(markerCoords());
+          return true;
         }
+        sinRuta();
       } else if (waypointsParam) {
         // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
         // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
@@ -315,51 +337,40 @@ const TripMapScreen = ({ route, navigation }) => {
         console.warn('[TripMap] Directions no devolvió ruta con paradas; se reintenta sin ellas');
         const simple = await getDirections(orig, dest);
         if (!isMounted.current) return;
-        const rs = simple.routes?.[0];
-        const pts = rs?.overview_polyline?.points ? decodePolyline(rs.overview_polyline.points) : [];
+        const pts = puntosDeRuta(simple.routes?.[0]);
         if (pts.length > 0) {
           setRouteCoordinates(pts);
           fitTo(pts);
-        } else {
-          fitTo(markerCoords());
+          return true;
         }
+        sinRuta();
       } else {
-        fitTo(markerCoords());
+        sinRuta();
       }
     } catch (e) {
-      fitTo(markerCoords());
+      sinRuta();
     } finally {
       if (isMounted.current) setLoading(false);
     }
+    return false;
   };
 
   /**
-   * El trazado partido en dos: lo ya recorrido y lo que falta. Se corta en el punto del
-   * trazado más cercano a dónde está el auto, así se ve de un vistazo cuánto queda sin
-   * gastar una sola llamada a Directions.
+   * Directions no dio nada. Se une lo que hay —origen, paradas y destino— con una recta.
    *
-   * Sin viaje en curso o sin posición se devuelve todo como pendiente: pintar medio recorrido
-   * de gris cuando todavía no salió sería mentir.
+   * No sigue las calles y se ve feo, pero un mapa con los marcadores y NINGUNA línea es
+   * indistinguible de un mapa roto: no hay forma de saber si el viaje no tiene ruta o si la
+   * petición se cayó. Con la recta al menos se lee el viaje, y se nota que es provisoria.
+   *
+   * ponytail: con el viaje empezado, el corte de "recorrido / pendiente" se calcula sobre esta
+   * recta y el avance queda aproximado. Es preferible a no dibujar nada.
    */
-  const tramos = useMemo(() => {
-    if (!routeCoordinates.length) return { recorrido: [], pendiente: [] };
-    if (!isTripStarted || !driverLocation?.latitude) {
-      return { recorrido: [], pendiente: routeCoordinates };
-    }
-    let mejorDist = Infinity;
-    let corte = 0;
-    for (let i = 0; i < routeCoordinates.length; i++) {
-      const d = metersBetween(routeCoordinates[i], driverLocation);
-      if (d < mejorDist) { mejorDist = d; corte = i; }
-    }
-    // Muy lejos del trazado (desvío, GPS malo): no se corta nada en vez de inventar avance.
-    if (mejorDist > 3000) return { recorrido: [], pendiente: routeCoordinates };
-    return {
-      // Se solapan en el punto de corte para que no quede un hueco entre las dos líneas.
-      recorrido: routeCoordinates.slice(0, corte + 1),
-      pendiente: routeCoordinates.slice(corte),
-    };
-  }, [routeCoordinates, driverLocation?.latitude, driverLocation?.longitude, isTripStarted]);
+  const sinRuta = () => {
+    const puntos = markerCoords();
+    if (puntos.length > 1) setRouteCoordinates(puntos);
+    fitTo(puntos);
+  };
+
 
   const initialRegion = originCoords?.latitude
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
@@ -375,8 +386,19 @@ const TripMapScreen = ({ route, navigation }) => {
         style={styles.map}
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
-        showsUserLocation={showMyLocation}
+        // El punto nativo, salvo cuando lo dibujamos nosotros (abajo): el SDK lo pinta por
+        // encima de los overlays pero POR DEBAJO de los marcadores, y no hay zIndex que lo
+        // arregle. Con el viaje en curso el conductor quedaba tapado por el número de la
+        // parada justo al llegar a ella, que es cuando más necesita verse.
+        showsUserLocation={showMyLocation && !dibujamosNuestroPunto}
         onMapReady={() => setMapReady(true)}
+        // `isGesture` distingue el arrastre del usuario de los movimientos que hacemos
+        // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
+        onRegionChangeComplete={(r, detalles = {}) => {
+          if (!detalles.isGesture || !siguiendoRef.current) return;
+          siguiendoRef.current = false;
+          setSiguiendo(false);
+        }}
       >
         {!isDriver && driverLocation?.latitude && (
           <Marker
@@ -401,7 +423,10 @@ const TripMapScreen = ({ route, navigation }) => {
             key={`pt-${i}-${mapReady}`}
             coordinate={point.coordinate}
             anchor={{ x: 0.5, y: 0.5 }}
-            zIndex={2}
+            // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
+            // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
+            // mismo justo cuando pasa por una parada.
+            zIndex={1}
             onPress={() =>
               setSelectedStop(
                 selectedStop?.number === i + 1
@@ -416,32 +441,28 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         ))}
 
-        {/* Lo ya recorrido, apagado. El trazado va en lo más bajo del mapa: los marcadores y
-            el punto azul del GPS tienen que quedar por encima, si no el conductor se pierde
-            a sí mismo debajo de la línea justo cuando va sobre la ruta. */}
-        {tramos.recorrido.length > 1 && (
-          <Polyline
-            coordinates={tramos.recorrido}
-            strokeWidth={5}
-            // Gris OPACO, no negro translúcido: al 22% de opacidad el celeste del río se
-            // filtraba a través de la línea y el tramo recorrido se veía azul.
-            strokeColor="#9AA0A6"
-            lineCap="round"
-            lineJoin="round"
-            zIndex={0}
-          />
-        )}
-        {tramos.pendiente.length > 1 && (
-          <Polyline
-            coordinates={tramos.pendiente}
-            strokeWidth={6}
-            strokeColor="#000000"
-            lineCap="round"
-            lineJoin="round"
-            zIndex={1}
-          />
+        {/* El recorrido completo, en negro y de una sola pieza. Estuvo partido en "ya
+            recorrido" (gris) y "pendiente", pero el corte se calculaba por cercanía al auto y
+            se equivocaba de las dos formas posibles: enganchaba un tramo por el que el
+            trazado vuelve a pasar, o pintaba como hechas las cuadras que faltaban. Un dato
+            que miente es peor que no darlo. */}
+        <RutaPolyline coordinates={routeCoordinates} width={6} color="#000000" />
+        {/* Nuestra posición, por encima de las paradas. Mismo aspecto que el punto nativo. */}
+        {dibujamosNuestroPunto && (
+          <Marker
+            coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={10}
+            flat
+            tracksViewChanges={false}
+          >
+            <View style={styles.miPuntoHalo}>
+              <View style={styles.miPunto} />
+            </View>
+          </Marker>
         )}
       </MapView>
+
 
       {/* Back button */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -487,6 +508,19 @@ const TripMapScreen = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
+      {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
+        <TouchableOpacity
+          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: insets.bottom + (proximaParada ? 96 : 24) }]}
+          onPress={recentrar}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a centrar en mi ubicación"
+        >
+          <Ionicons name="locate" size={22} color={textPrimary} />
+        </TouchableOpacity>
+      )}
+
       {selectedStop && (
         <TouchableOpacity
           style={[styles.stopTooltip, { backgroundColor: cardBg }]}
@@ -510,6 +544,9 @@ const TripMapScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  miPuntoHalo: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.22)' },
+  miPunto: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#4285F4', borderWidth: 2.5, borderColor: '#FFFFFF' },
+  recentrarBtn: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject },
   topBar: {

@@ -2,36 +2,31 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Image,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useAlert } from '../../../context/AlertContext';
 import { post_withauth, get_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import PillButton from '../../../components/ui/PillButton';
 import { useUI } from '../../../theme/ui';
-import { useTripRoute } from '../../../hooks/useTripRoute';
-
-const { height: ALTO_PANTALLA } = Dimensions.get('window');
-const ALTO_MAPA = Math.round(ALTO_PANTALLA * 0.34);
 
 const TEXTO_POR_ESTRELLA = ['Tocá una estrella', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 
 /**
- * Calificar al otro después del viaje.
+ * Calificar al otro después del viaje. Es obligatorio: no hay forma de salir sin puntuar.
  *
- * El mapa arriba con el recorrido completo no es decoración: al abrirse sola días después,
- * esta pantalla tiene que decir de qué viaje habla antes de pedir estrellas.
+ * Sin mapa a propósito. Tenía uno con el recorrido completo para ubicar de qué viaje habla,
+ * pero un MapView en una pantalla que se abre sola al arrancar la app es demasiada superficie
+ * para que algo falle —y en esta app ya nos dio varios dolores de cabeza—. "Viaje a" con la
+ * provincia alcanza para reconocerlo.
  */
 const CreateReviewScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
@@ -41,7 +36,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
   const { reviewType = 'driver' } = params;
 
   const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Se entra por dos caminos: desde la notificación, que manda sólo `tripId`, y desde el
@@ -62,22 +56,16 @@ const CreateReviewScreen = ({ route, navigation }) => {
     return () => { cancelado = true; };
   }, [params.tripId]);
 
-  const { coordinates, loading: cargandoRuta } = useTripRoute(trip);
+  // Calificar es obligatorio: no hay botón de volver ni gesto para atrás (ver el navegador),
+  // y acá se corta también el botón físico de Android, que si no era la salida de escape.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, []);
 
-  const origen = trip?.origin?.coordinates;
-  const destino = trip?.destination?.coordinates;
   // Sólo la provincia: el destino exacto ya lo vivió, lo que ubica el viaje en la memoria
   // es a dónde fue.
   const provinciaDestino = trip?.destination?.province || trip?.destination?.city || '';
-
-  const region = origen?.latitude != null
-    ? {
-      latitude: (origen.latitude + (destino?.latitude ?? origen.latitude)) / 2,
-      longitude: (origen.longitude + (destino?.longitude ?? origen.longitude)) / 2,
-      latitudeDelta: Math.abs((origen.latitude - (destino?.latitude ?? origen.latitude))) * 1.6 + 0.15,
-      longitudeDelta: Math.abs((origen.longitude - (destino?.longitude ?? origen.longitude))) * 1.6 + 0.15,
-    }
-    : null;
 
   const avatarUrl = reviewedUser?.avatar ? buildImageUri(reviewedUser.avatar) : null;
   const nombre = `${reviewedUser?.firstName || ''} ${reviewedUser?.lastName || ''}`.trim();
@@ -94,14 +82,15 @@ const CreateReviewScreen = ({ route, navigation }) => {
         trip: trip._id,
         reviewedUser: reviewedUser._id,
         rating,
-        comment: comment.trim(),
         // El server valida `reviewType`. Antes se mandaba como `type` y la calificación
         // fallaba SIEMPRE por validación, sin que nada lo dijera.
         reviewType,
       });
 
       if (response.success) {
-        navigation.replace('Result', {
+        // navigate y no replace: 'Result' vive en el stack raiz y esta pantalla corre
+        // dentro de una pestaña, asi que el replace subia y reemplazaba a 'Main' entero.
+        navigation.navigate('Result', {
           type: 'success',
           title: '¡Gracias!',
           message: 'Tu calificación quedó registrada.',
@@ -125,40 +114,7 @@ const CreateReviewScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Recorrido completo del viaje */}
-          <View style={[styles.mapaWrap, { height: ALTO_MAPA, backgroundColor: ui.surface }]}>
-            {region ? (
-              <MapView
-                provider={PROVIDER_GOOGLE}
-                style={StyleSheet.absoluteFill}
-                initialRegion={region}
-                pointerEvents="none"
-                showsUserLocation={false}
-                showsMyLocationButton={false}
-              >
-                {coordinates.length > 1 && (
-                  <Polyline coordinates={coordinates} strokeWidth={5} strokeColor="#000000" lineCap="round" lineJoin="round" />
-                )}
-                {origen?.latitude != null && (
-                  <Marker coordinate={origen} anchor={{ x: 0.5, y: 0.5 }}>
-                    <View style={styles.puntoIni} />
-                  </Marker>
-                )}
-                {destino?.latitude != null && (
-                  <Marker coordinate={destino} anchor={{ x: 0.5, y: 0.5 }}>
-                    <View style={styles.puntoFin} />
-                  </Marker>
-                )}
-              </MapView>
-            ) : null}
-            {cargandoRuta && (
-              <View style={styles.mapaCargando}>
-                <ActivityIndicator size="small" color={ui.textMuted} />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.cuerpo}>
+          <View style={[styles.cuerpo, { paddingTop: insets.top + 32 }]}>
             <Text style={[styles.viajeLabel, { color: ui.textMuted }]}>Viaje a</Text>
             <Text style={[styles.viajeDestino, { color: ui.text }]} numberOfLines={1}>
               {provinciaDestino || 'Tu último viaje'}
@@ -200,18 +156,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
               <Text style={[styles.textoRating, { color: ui.textMuted }]}>{TEXTO_POR_ESTRELLA[rating]}</Text>
             </View>
 
-            {/* Comentario opcional: exigir texto en una pantalla que aparece sola es la forma
-                más rápida de que la gente escriba "asd" para sacársela de encima. */}
-            <TextInput
-              style={[styles.comentario, { backgroundColor: ui.surface, color: ui.text, borderColor: ui.border }]}
-              placeholder="Dejá un comentario (opcional)"
-              placeholderTextColor={ui.textMuted}
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-            />
           </View>
         </ScrollView>
 
@@ -231,12 +175,8 @@ const CreateReviewScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  mapaWrap: { width: '100%', overflow: 'hidden' },
-  mapaCargando: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  puntoIni: { width: 12, height: 12, borderRadius: 6, borderWidth: 2.5, borderColor: '#010101', backgroundColor: '#FFFFFF' },
-  puntoFin: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101', borderWidth: 2, borderColor: '#FFFFFF' },
 
-  cuerpo: { paddingHorizontal: 24, paddingTop: 22 },
+  cuerpo: { paddingHorizontal: 24 },
   viajeLabel: { fontSize: 12, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
   viajeDestino: { fontSize: 26, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, marginTop: 4 },
 
@@ -250,10 +190,6 @@ const styles = StyleSheet.create({
   estrella: { marginHorizontal: 2 },
   textoRating: { fontSize: 14, fontFamily: 'Sora_500Medium', marginTop: 10 },
 
-  comentario: {
-    marginTop: 24, minHeight: 96, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, fontFamily: 'Sora_400Regular',
-  },
   footer: { paddingHorizontal: 24, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });
 

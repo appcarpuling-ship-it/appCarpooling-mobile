@@ -4,8 +4,10 @@ const VEHICLE_IMAGES = {
   sedan: require('../../assets/icons/pngwing.com (4).png'),
   hatchback: require('../../assets/icons/pngwing.com (4).png'),
   suv: require('../../assets/icons/pngwing.com (3).png'),
-  pickup: require('../../assets/icons/pngwing.com (3).png'),
-  van: require('../../assets/icons/pngwing.com (3).png'),
+  // Camioneta propia. Antes reusaban la imagen de la SUV, así que elegir "Camioneta" no
+  // cambiaba nada en pantalla y los tres tipos se veían igual.
+  pickup: require('../../assets/icons/camioneta.png'),
+  van: require('../../assets/icons/camioneta.png'),
   otro: require('../../assets/icons/pngwing.com (4).png'),
 };
 

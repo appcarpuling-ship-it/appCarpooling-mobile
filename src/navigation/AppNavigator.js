@@ -181,7 +181,10 @@ const AppNavigator = () => {
         name="Result"
         component={ResultScreen}
         // ponytail: 'card' (default) = push de pantalla real, no modal desde abajo.
-        options={{ headerShown: false }}
+        // Sin gesto de volver: un resultado es terminal y atras esta el formulario que se
+        // acaba de enviar (calificar un viaje ya calificado, por ejemplo). Se sale por el
+        // boton o por la X.
+        options={{ headerShown: false, gestureEnabled: false }}
       />
     </Stack.Navigator>
   );
