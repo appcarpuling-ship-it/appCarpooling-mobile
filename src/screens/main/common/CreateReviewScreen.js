@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -61,6 +61,21 @@ const CreateReviewScreen = ({ route, navigation }) => {
   }, [params.tripId]);
 
   const { coordinates, loading: cargandoRuta } = useTripRoute(trip);
+  const mapaRef = useRef(null);
+  const mapaListo = useRef(false);
+
+  // El encuadre se calcula sobre el trazado, no a ojo con la media de las puntas: la cuenta a
+  // mano no sabe por dónde va el camino y podía dejar la línea fuera de un mapa que ocupa un
+  // tercio de la pantalla. `initialRegion` es solo el primer cuadro mientras llega la ruta.
+  const encuadrar = useCallback(() => {
+    if (!mapaListo.current || coordinates.length < 2) return;
+    mapaRef.current?.fitToCoordinates(coordinates, {
+      edgePadding: { top: 44, right: 44, bottom: 44, left: 44 },
+      animated: false,
+    });
+  }, [coordinates]);
+
+  useEffect(encuadrar, [encuadrar]);
 
   const origen = trip?.origin?.coordinates;
   const destino = trip?.destination?.coordinates;
@@ -98,7 +113,9 @@ const CreateReviewScreen = ({ route, navigation }) => {
       });
 
       if (response.success) {
-        navigation.replace('Result', {
+        // navigate y no replace: 'Result' vive en el stack raiz y esta pantalla corre
+        // dentro de una pestaña, asi que el replace subia y reemplazaba a 'Main' entero.
+        navigation.navigate('Result', {
           type: 'success',
           title: '¡Gracias!',
           message: 'Tu calificación quedó registrada.',
@@ -126,9 +143,11 @@ const CreateReviewScreen = ({ route, navigation }) => {
           <View style={[styles.mapaWrap, { height: ALTO_MAPA, backgroundColor: ui.surface }]}>
             {region ? (
               <MapView
+                ref={mapaRef}
                 provider={PROVIDER_GOOGLE}
                 style={StyleSheet.absoluteFill}
                 initialRegion={region}
+                onMapReady={() => { mapaListo.current = true; encuadrar(); }}
                 pointerEvents="none"
                 showsUserLocation={false}
                 showsMyLocationButton={false}

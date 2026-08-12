@@ -51,9 +51,18 @@ const ResultScreen = ({ route, navigation }) => {
   // Sin sesion no existe la ruta 'Main' (AppNavigator monta el stack de auth), y
   // navegar a una ruta inexistente no tira: deja el boton muerto. Ahi vuelve atras,
   // que es lo correcto en los errores de registro/verificacion.
+  //
+  // Con sesion se RESETEA el stack, no se navega. Con navigate, si el flujo llego aca
+  // desde una pestaña, 'Main' podia ya no estar en el stack y se empujaba uno nuevo
+  // ENCIMA del resultado: desde el Home, el gesto de volver atras del iPhone devolvia a
+  // la pantalla de exito. El reset ademas se lleva puesta la pantalla que disparo la
+  // accion, que es exactamente la que no hay que poder volver a ver.
   const goHome = () => {
     if (!isAuthenticated) return navigation.goBack();
-    navigation.navigate('Main', { screen: 'HomeTab', params: { screen: 'Home' } });
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main', params: { screen: 'HomeTab', params: { screen: 'Home' } } }],
+    });
   };
 
   const handlePrimary = () => {
