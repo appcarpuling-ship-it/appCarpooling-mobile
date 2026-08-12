@@ -175,10 +175,6 @@ const TripMapScreen = ({ route, navigation }) => {
     destCoords?.latitude && { latitude: destCoords.latitude, longitude: destCoords.longitude },
   ].filter(Boolean);
 
-  /** ¿El trazado pasa por todas las paradas? 150 m tolera el ancho de calle y la resolución. */
-  const stopsCoveredBy = (points) =>
-    stops.length === 0 ||
-    stops.every((s) => points.some((p) => metersBetween(p, s.coordinates) < 150));
 
   /**
    * Las paradas del recorrido en el orden en que se van a pisar: los puntos de los pasajeros
@@ -218,7 +214,7 @@ const TripMapScreen = ({ route, navigation }) => {
         quien: 'A finalizar el viaje',
       },
     ].filter(Boolean);
-  }, [trip?.intermediateStops, trip?.routePolyline, destCoords?.latitude, destCoords?.longitude]);
+  }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;
@@ -268,24 +264,15 @@ const TripMapScreen = ({ route, navigation }) => {
 
 
   const fetchRoute = async () => {
-    // La ruta guardada al crear el viaje: no cambia nunca, así que verla no cuesta una
-    // llamada a Directions. Los viajes viejos y las solicitudes no la tienen y siguen pidiéndola.
+    // SIN trazado guardado. Se calcula siempre con las coordenadas reales del viaje: origen,
+    // las paradas de cada pasajero en el orden del camino, y destino.
     //
-    // Pero si el viaje tiene paradas, hay que confirmar que la guardada las contemple:
-    // se guardaron rutas calculadas sin los waypoints (y EditTripScreen nunca la recalcula
-    // al agregar una parada), y el mapa dibujaba un trazado que no pasa por la parada.
-    // Cuando no las cubre se descarta y se pide a Directions, que sí manda los waypoints.
-    const saved = decodePolyline(trip?.routePolyline);
-    if (saved.length > 0) {
-      // Se dibuja YA la ruta guardada, aunque después haya que pedir una nueva: pedirla a
-      // Google es un viaje de red y hasta que contestaba el mapa quedaba pelado, que es lo
-      // que se sentía como "tarda muchísimo". Si además cubre las paradas, no hace falta
-      // pedir nada y encima nos ahorramos la llamada.
-      setRouteCoordinates(saved);
-      fitTo(saved);
-      setLoading(false);
-      if (stopsCoveredBy(saved)) return;
-    }
+    // El trazado que se guardaba al crear el viaje se calculaba ANTES de que existiera
+    // ninguna reserva, así que nunca contemplaba los puntos de recogida ni de bajada, y
+    // tampoco se recalculaba al agregar una parada. Se dibujaba un recorrido que no pasaba
+    // por donde el conductor tiene que pasar. Como las coordenadas de cada punto ya quedan
+    // guardadas en el viaje, la ruta se puede pedir completa y correcta cada vez.
+    //
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
