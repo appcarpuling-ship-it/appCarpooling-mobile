@@ -26,6 +26,9 @@ import { ENDPOINTS } from '../../../config/api';
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
 
+/** A cuánto del trazado se considera que el auto va sobre él: precisión del GPS + ancho de calle. */
+const CERCA_DEL_TRAZADO_M = 120;
+
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
   const insets = useSafeAreaInsets();
@@ -48,6 +51,8 @@ const TripMapScreen = ({ route, navigation }) => {
   // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
   // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
+  // Hasta dónde se considera recorrido. En ref para que sólo avance: ver `tramos`.
+  const corteRef = useRef(0);
   // TEMPORAL: cartel de diagnóstico. Dos hipótesis sobre por qué no se dibuja la línea
   // fallaron seguidas, así que en vez de suponer, la pantalla dice qué pasó. Se saca en
   // cuanto esté resuelto.
@@ -362,16 +367,25 @@ const TripMapScreen = ({ route, navigation }) => {
   const tramos = useMemo(() => {
     if (!routeCoordinates.length) return { recorrido: [], pendiente: [] };
     if (!isTripStarted || !driverLocation?.latitude) {
+      corteRef.current = 0;
       return { recorrido: [], pendiente: routeCoordinates };
     }
-    let mejorDist = Infinity;
-    let corte = 0;
-    for (let i = 0; i < routeCoordinates.length; i++) {
-      const d = metersBetween(routeCoordinates[i], driverLocation);
-      if (d < mejorDist) { mejorDist = d; corte = i; }
+    // El corte avanza y NUNCA retrocede, y gana el primer punto suficientemente cerca.
+    //
+    // Antes se buscaba el punto más cercano de TODA la ruta. En una ciudad el trazado pasa
+    // cerca del mismo lugar varias veces —la vuelta a la manzana, la avenida paralela, el
+    // regreso por la misma calle— y cualquiera de esas repeticiones podía ganar: al arrancar
+    // el viaje, sin haberse movido, quedaba medio recorrido pintado de gris. Con la geometría
+    // fina de los steps, que son miles de puntos, pasa mucho más seguido que antes.
+    let corte = corteRef.current;
+    for (let i = corteRef.current; i < routeCoordinates.length; i++) {
+      if (metersBetween(routeCoordinates[i], driverLocation) <= CERCA_DEL_TRAZADO_M) { corte = i; break; }
     }
-    // Muy lejos del trazado (desvío, GPS malo): no se corta nada en vez de inventar avance.
-    if (mejorDist > 3000) return { recorrido: [], pendiente: routeCoordinates };
+    corteRef.current = corte;
+
+    // Fuera del trazado (desvío, GPS malo) el corte se queda donde estaba: mejor no mover nada
+    // que inventar un avance.
+    if (corte === 0) return { recorrido: [], pendiente: routeCoordinates };
     return {
       // Se solapan en el punto de corte para que no quede un hueco entre las dos líneas.
       recorrido: routeCoordinates.slice(0, corte + 1),
