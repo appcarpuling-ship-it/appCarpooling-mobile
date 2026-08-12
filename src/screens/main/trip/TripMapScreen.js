@@ -16,7 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, decodePolyline, metersBetween } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta, metersBetween } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
 import RutaPolyline, { VERSION_MAPA } from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -298,16 +298,8 @@ const TripMapScreen = ({ route, navigation }) => {
       if (!isMounted.current) return;
       if (data.routes?.length > 0) {
         const r = data.routes[0];
-        // overview_polyline primero: es la geometría que Google simplifica PARA MOSTRAR, con
-        // un algoritmo que respeta la forma del camino. Sumar el polyline de cada paso da
-        // miles de puntos —lo que hacía tardar— y recortarlos de a uno cada N, como se hacía
-        // hasta ahora, cortaba las curvas y sacaba la línea de las calles.
-        let points = r.overview_polyline?.points ? decodePolyline(r.overview_polyline.points) : [];
-        if (points.length === 0) {
-          r.legs?.forEach(leg => leg.steps?.forEach(step => {
-            if (step.polyline?.points) points.push(...decodePolyline(step.polyline.points));
-          }));
-        }
+        // Con el detalle de los steps, que es el que sigue las calles: ver puntosDeRuta.
+        const points = puntosDeRuta(r);
         if (points.length > 0) {
           setDiag(`ruta ok: ${points.length} pts`);
           setRouteCoordinates(points);
@@ -323,8 +315,7 @@ const TripMapScreen = ({ route, navigation }) => {
         console.warn('[TripMap] Directions no devolvió ruta con paradas; se reintenta sin ellas');
         const simple = await getDirections(orig, dest);
         if (!isMounted.current) return;
-        const rs = simple.routes?.[0];
-        const pts = rs?.overview_polyline?.points ? decodePolyline(rs.overview_polyline.points) : [];
+        const pts = puntosDeRuta(simple.routes?.[0]);
         if (pts.length > 0) {
           setDiag(`ruta sin paradas: ${pts.length} pts`);
           setRouteCoordinates(pts);

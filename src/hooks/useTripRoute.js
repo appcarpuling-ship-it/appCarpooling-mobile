@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDirections } from '../services/mapsService';
-import { decodePolyline, ordenarStops } from '../utils/routePoints';
+import { ordenarStops, puntosDeRuta } from '../utils/routePoints';
 
 /**
  * El recorrido completo de un viaje, listo para dibujar.
@@ -33,18 +33,6 @@ export const useTripRoute = (trip) => {
       return undefined;
     }
 
-    const puntosDe = (ruta) => {
-      if (!ruta) return [];
-      // overview_polyline es la geometría que Google simplifica PARA MOSTRAR: sigue las
-      // calles y trae una cantidad de puntos razonable.
-      if (ruta.overview_polyline?.points) return decodePolyline(ruta.overview_polyline.points);
-      const acumulado = [];
-      ruta.legs?.forEach((leg) => leg.steps?.forEach((step) => {
-        if (step.polyline?.points) acumulado.push(...decodePolyline(step.polyline.points));
-      }));
-      return acumulado;
-    };
-
     (async () => {
       const orig = `${origen.latitude},${origen.longitude}`;
       const dest = `${destino.latitude},${destino.longitude}`;
@@ -57,12 +45,12 @@ export const useTripRoute = (trip) => {
         const data = await getDirections(orig, dest, paradas || undefined);
         if (cancelado) return;
 
-        let puntos = puntosDe(data?.routes?.[0]);
+        let puntos = puntosDeRuta(data?.routes?.[0]);
 
         if (puntos.length === 0 && paradas) {
           const simple = await getDirections(orig, dest);
           if (cancelado) return;
-          puntos = puntosDe(simple?.routes?.[0]);
+          puntos = puntosDeRuta(simple?.routes?.[0]);
         }
 
         // Última red: la línea recta entre las puntas. No sigue las calles, pero decir "este

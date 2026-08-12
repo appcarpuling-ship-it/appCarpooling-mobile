@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { Polyline } from 'react-native-maps';
 
 /** Marca de version del bundle, para el cartel de diagnostico. Subir al tocar algo del mapa. */
-export const VERSION_MAPA = 'v5-nudge';
+export const VERSION_MAPA = 'v6-calles';
 
 /**
  * Una línea de ruta que iOS efectivamente dibuja.

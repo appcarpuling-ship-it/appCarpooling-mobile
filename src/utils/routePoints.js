@@ -140,4 +140,33 @@ const quienLabel = (kind, passenger) =>
     ? `${kind === 'dropoff' ? 'A dejar a' : 'A recoger a'} ${passenger.firstName}`
     : '';
 
-module.exports = { buildRoutePoints, ordenarStops, metersBetween, kindLabel, quienLabel, decodePolyline, MISMO_PUNTO_M };
+/**
+ * Los puntos de una ruta de Directions, siguiendo las calles de verdad.
+ *
+ * Se arma con el polyline de cada STEP, no con `overview_polyline`. El overview es la
+ * geometría que Google simplifica PARA MOSTRAR: en un viaje de 435 km son unos 245 puntos,
+ * casi 2 km por punto, y con eso la línea corta las curvas y las esquinas y se ve al lado de
+ * la calle en vez de encima. Los steps traen el detalle real.
+ *
+ * El overview queda de respaldo: una línea simplificada es mejor que ninguna.
+ *
+ * ponytail: son varios miles de puntos en un viaje largo. Si algún día se nota lento al
+ * dibujar, el lugar para simplificar es acá y con un algoritmo que respete la forma
+ * (Douglas-Peucker), no tirando uno de cada N, que fue justo lo que sacó la línea de la calle.
+ */
+const puntosDeRuta = (ruta) => {
+  if (!ruta) return [];
+
+  const pasos = [];
+  ruta.legs?.forEach((leg) => leg.steps?.forEach((step) => {
+    const puntos = decodePolyline(step.polyline?.points);
+    // El primer punto de cada step repite el último del anterior.
+    if (pasos.length && puntos.length) puntos.shift();
+    pasos.push(...puntos);
+  }));
+  if (pasos.length > 1) return pasos;
+
+  return decodePolyline(ruta.overview_polyline?.points);
+};
+
+module.exports = { buildRoutePoints, ordenarStops, puntosDeRuta, metersBetween, kindLabel, quienLabel, decodePolyline, MISMO_PUNTO_M };
