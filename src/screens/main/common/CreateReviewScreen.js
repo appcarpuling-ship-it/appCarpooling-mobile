@@ -1,200 +1,228 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Animated,
+  Image,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
-import { post_withauth } from '../../../services/apiService';
+import { post_withauth, get_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import PillButton from '../../../components/ui/PillButton';
 import { useUI } from '../../../theme/ui';
+import { useTripRoute } from '../../../hooks/useTripRoute';
 
+const { height: ALTO_PANTALLA } = Dimensions.get('window');
+const ALTO_MAPA = Math.round(ALTO_PANTALLA * 0.34);
+
+const TEXTO_POR_ESTRELLA = ['Tocá una estrella', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
+
+/**
+ * Calificar al otro después del viaje.
+ *
+ * El mapa arriba con el recorrido completo no es decoración: al abrirse sola días después,
+ * esta pantalla tiene que decir de qué viaje habla antes de pedir estrellas.
+ */
 const CreateReviewScreen = ({ route, navigation }) => {
   const { showAlert } = useAlert();
   const ui = useUI();
-  const { trip, reviewedUser, reviewType } = route.params || {};
+  const insets = useSafeAreaInsets();
+  const params = route.params || {};
+  const { reviewType = 'driver' } = params;
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const { user } = useAuth();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  // Se entra por dos caminos: desde la notificación, que manda sólo `tripId`, y desde el
+  // bloqueo al abrir la app, que ya trae el viaje entero. Se aceptan los dos.
+  const [trip, setTrip] = useState(params.trip || null);
+  const [reviewedUser, setReviewedUser] = useState(params.reviewedUser || null);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-  }, []);
+    if (trip || !params.tripId) return undefined;
+    let cancelado = false;
+    get_withauth(ENDPOINTS.GET_TRIP(params.tripId))
+      .then((res) => {
+        if (cancelado || !res?.success) return;
+        setTrip(res.data);
+        setReviewedUser(res.data?.driver || null);
+      })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, [params.tripId]);
 
-  const handleStarPress = (selectedRating) => setRating(selectedRating);
+  const { coordinates, loading: cargandoRuta } = useTripRoute(trip);
 
-  const handleSubmitReview = async () => {
+  const origen = trip?.origin?.coordinates;
+  const destino = trip?.destination?.coordinates;
+  // Sólo la provincia: el destino exacto ya lo vivió, lo que ubica el viaje en la memoria
+  // es a dónde fue.
+  const provinciaDestino = trip?.destination?.province || trip?.destination?.city || '';
+
+  const region = origen?.latitude != null
+    ? {
+      latitude: (origen.latitude + (destino?.latitude ?? origen.latitude)) / 2,
+      longitude: (origen.longitude + (destino?.longitude ?? origen.longitude)) / 2,
+      latitudeDelta: Math.abs((origen.latitude - (destino?.latitude ?? origen.latitude))) * 1.6 + 0.15,
+      longitudeDelta: Math.abs((origen.longitude - (destino?.longitude ?? origen.longitude))) * 1.6 + 0.15,
+    }
+    : null;
+
+  const avatarUrl = reviewedUser?.avatar ? buildImageUri(reviewedUser.avatar) : null;
+  const nombre = `${reviewedUser?.firstName || ''} ${reviewedUser?.lastName || ''}`.trim();
+
+  const enviar = async () => {
+    if (!trip?._id || !reviewedUser?._id) return;
     if (rating === 0) {
-      showAlert('Ocurrió algo', 'Por favor selecciona una calificación');
+      showAlert('Ocurrió algo', 'Elegí una calificación para continuar');
       return;
     }
-
-    if (comment.trim().length < 10) {
-      showAlert('Ocurrió algo', 'Por favor escribe un comentario de al menos 10 caracteres');
-      return;
-    }
-
     setLoading(true);
-
     try {
-      const reviewData = {
+      const response = await post_withauth(ENDPOINTS.CREATE_REVIEW, {
         trip: trip._id,
         reviewedUser: reviewedUser._id,
         rating,
         comment: comment.trim(),
-        type: reviewType, // 'driver' o 'passenger'
-      };
-
-      const response = await post_withauth(ENDPOINTS.CREATE_REVIEW, reviewData);
+        // El server valida `reviewType`. Antes se mandaba como `type` y la calificación
+        // fallaba SIEMPRE por validación, sin que nada lo dijera.
+        reviewType,
+      });
 
       if (response.success) {
-        navigation.navigate('Result', {
+        navigation.replace('Result', {
           type: 'success',
-          title: 'Reseña Enviada',
-          message: 'Tu reseña ha sido enviada exitosamente',
-          onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+          title: '¡Gracias!',
+          message: 'Tu calificación quedó registrada.',
         });
       } else {
-        showAlert('Ocurrió algo', response.message || 'Error al enviar la reseña');
+        showAlert('Ocurrió algo', response.message || 'No se pudo enviar la calificación');
       }
     } catch (error) {
-      showAlert('Ocurrió algo', error.message || 'Error al enviar la reseña');
+      showAlert('Ocurrió algo', error.message || 'No se pudo enviar la calificación');
     } finally {
       setLoading(false);
     }
   };
-
-  const getRatingText = () => {
-    switch (rating) {
-      case 1: return 'Muy malo';
-      case 2: return 'Malo';
-      case 3: return 'Regular';
-      case 4: return 'Bueno';
-      case 5: return 'Excelente';
-      default: return 'Tocá una estrella';
-    }
-  };
-
-  const canSubmit = !loading && rating > 0 && comment.trim().length >= 10;
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: ui.text }]}>
-                Calificá{'\n'}
-                <Text style={styles.titleStrong}>{reviewType === 'driver' ? 'al conductor' : 'al pasajero'}</Text>
-              </Text>
-              <Text style={[styles.subtitle, { color: ui.textMuted }]}>
-                ¿Cómo fue tu experiencia con {reviewedUser.firstName} {reviewedUser.lastName}?
-              </Text>
-            </View>
-
-            {/* Usuario */}
-            <View style={styles.section}>
-              <View style={[styles.userCard, { backgroundColor: ui.surface }]}>
-                <View style={[styles.userAvatar, { backgroundColor: ui.invertBg }]}>
-                  <Text style={[styles.userAvatarText, { color: ui.invertText }]}>
-                    {reviewedUser.firstName?.[0]}{reviewedUser.lastName?.[0]}
-                  </Text>
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={[styles.userName, { color: ui.text }]}>
-                    {reviewedUser.firstName} {reviewedUser.lastName}
-                  </Text>
-                  <Text style={[styles.userRole, { color: ui.textMuted }]}>
-                    {reviewType === 'driver' ? 'Conductor' : 'Pasajero'}
-                  </Text>
-                </View>
+          {/* Recorrido completo del viaje */}
+          <View style={[styles.mapaWrap, { height: ALTO_MAPA, backgroundColor: ui.surface }]}>
+            {region ? (
+              <MapView
+                provider={PROVIDER_GOOGLE}
+                style={StyleSheet.absoluteFill}
+                initialRegion={region}
+                pointerEvents="none"
+                showsUserLocation={false}
+                showsMyLocationButton={false}
+              >
+                {coordinates.length > 1 && (
+                  <Polyline coordinates={coordinates} strokeWidth={5} strokeColor="#000000" lineCap="round" lineJoin="round" />
+                )}
+                {origen?.latitude != null && (
+                  <Marker coordinate={origen} anchor={{ x: 0.5, y: 0.5 }}>
+                    <View style={styles.puntoIni} />
+                  </Marker>
+                )}
+                {destino?.latitude != null && (
+                  <Marker coordinate={destino} anchor={{ x: 0.5, y: 0.5 }}>
+                    <View style={styles.puntoFin} />
+                  </Marker>
+                )}
+              </MapView>
+            ) : null}
+            {cargandoRuta && (
+              <View style={styles.mapaCargando}>
+                <ActivityIndicator size="small" color={ui.textMuted} />
               </View>
-            </View>
+            )}
+          </View>
 
-            {/* Calificación */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: ui.textMuted }]}>Calificación</Text>
-              <View style={styles.starsContainer}>
-                {[1, 2, 3, 4, 5].map((i) => (
+          <View style={styles.cuerpo}>
+            <Text style={[styles.viajeLabel, { color: ui.textMuted }]}>Viaje a</Text>
+            <Text style={[styles.viajeDestino, { color: ui.text }]} numberOfLines={1}>
+              {provinciaDestino || 'Tu último viaje'}
+            </Text>
+
+            <View style={[styles.persona, { borderTopColor: ui.border }]}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarVacio, { backgroundColor: ui.surface }]}>
+                  <Text style={[styles.avatarIniciales, { color: ui.textMuted }]}>
+                    {reviewedUser?.firstName?.[0]}{reviewedUser?.lastName?.[0]}
+                  </Text>
+                </View>
+              )}
+              <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={1}>{nombre}</Text>
+              <Text style={[styles.rol, { color: ui.textMuted }]}>
+                {reviewType === 'driver' ? 'Conductor' : 'Pasajero'}
+              </Text>
+
+              <View style={styles.estrellas}>
+                {[1, 2, 3, 4, 5].map((n) => (
                   <TouchableOpacity
-                    key={i}
-                    onPress={() => handleStarPress(i)}
-                    style={styles.starButton}
-                    activeOpacity={0.7}
+                    key={n}
+                    onPress={() => setRating(n)}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${n} estrella${n > 1 ? 's' : ''}`}
                   >
                     <Ionicons
-                      name={i <= rating ? 'star' : 'star-outline'}
-                      size={36}
-                      color={i <= rating ? ui.text : ui.textMuted}
+                      name={n <= rating ? 'star' : 'star-outline'}
+                      size={38}
+                      color={n <= rating ? ui.text : ui.border}
+                      style={styles.estrella}
                     />
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={[styles.ratingText, { color: ui.textMuted }]}>{getRatingText()}</Text>
+              <Text style={[styles.textoRating, { color: ui.textMuted }]}>{TEXTO_POR_ESTRELLA[rating]}</Text>
             </View>
 
-            {/* Comentario */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: ui.textMuted }]}>Comentario</Text>
-              <Text style={[styles.sectionHint, { color: ui.textMuted }]}>
-                Compartí tu experiencia para ayudar a otros usuarios.
-              </Text>
-              <View
-                style={[
-                  styles.field,
-                  { backgroundColor: ui.surface, borderColor: focused ? ui.text : 'transparent' },
-                ]}
-              >
-                <TextInput
-                  style={[styles.commentInput, { color: ui.text }]}
-                  placeholder="Describí tu experiencia con este usuario..."
-                  placeholderTextColor={ui.textMuted}
-                  value={comment}
-                  onChangeText={setComment}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                  multiline
-                  numberOfLines={4}
-                  maxLength={500}
-                  textAlignVertical="top"
-                />
-              </View>
-              <Text style={[styles.characterCount, { color: ui.textMuted }]}>
-                {comment.length}/500 caracteres
-              </Text>
-            </View>
-
-            <PillButton
-              label="Enviar reseña"
-              onPress={handleSubmitReview}
-              loading={loading}
-              disabled={!canSubmit}
-              style={styles.submit}
+            {/* Comentario opcional: exigir texto en una pantalla que aparece sola es la forma
+                más rápida de que la gente escriba "asd" para sacársela de encima. */}
+            <TextInput
+              style={[styles.comentario, { backgroundColor: ui.surface, color: ui.text, borderColor: ui.border }]}
+              placeholder="Dejá un comentario (opcional)"
+              placeholderTextColor={ui.textMuted}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
             />
-          </Animated.View>
+          </View>
         </ScrollView>
+
+        <View style={[styles.footer, { borderTopColor: ui.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <PillButton
+            label="Enviar calificación"
+            onPress={enviar}
+            loading={loading}
+            disabled={rating === 0 || !trip?._id || !reviewedUser?._id}
+          />
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -203,68 +231,30 @@ const CreateReviewScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { paddingBottom: 48 },
+  mapaWrap: { width: '100%', overflow: 'hidden' },
+  mapaCargando: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  puntoIni: { width: 12, height: 12, borderRadius: 6, borderWidth: 2.5, borderColor: '#010101', backgroundColor: '#FFFFFF' },
+  puntoFin: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101', borderWidth: 2, borderColor: '#FFFFFF' },
 
-  header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 26 },
-  title: { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
-  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
-  subtitle: { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, marginTop: 12 },
+  cuerpo: { paddingHorizontal: 24, paddingTop: 22 },
+  viajeLabel: { fontSize: 12, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
+  viajeDestino: { fontSize: 26, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, marginTop: 4 },
 
-  section: { paddingHorizontal: 24, marginBottom: 26 },
-  sectionLabel: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  sectionHint: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 14,
-    marginLeft: 4,
-  },
+  persona: { alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, marginTop: 22, paddingTop: 26 },
+  avatar: { width: 82, height: 82, borderRadius: 41 },
+  avatarVacio: { alignItems: 'center', justifyContent: 'center' },
+  avatarIniciales: { fontSize: 26, fontFamily: 'Sora_700Bold' },
+  nombre: { fontSize: 20, fontFamily: 'Sora_700Bold', marginTop: 12 },
+  rol: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 2 },
+  estrellas: { flexDirection: 'row', gap: 6, marginTop: 20 },
+  estrella: { marginHorizontal: 2 },
+  textoRating: { fontSize: 14, fontFamily: 'Sora_500Medium', marginTop: 10 },
 
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 24,
+  comentario: {
+    marginTop: 24, minHeight: 96, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, fontFamily: 'Sora_400Regular',
   },
-  userAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  userAvatarText: { fontSize: 18, fontFamily: 'Sora_700Bold' },
-  userInfo: { flex: 1 },
-  userName: { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginBottom: 2 },
-  userRole: { fontSize: 13, fontFamily: 'Sora_500Medium' },
-
-  starsContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  starButton: { padding: 6 },
-  ratingText: { fontSize: 14, fontFamily: 'Sora_500Medium', textAlign: 'center', marginTop: 6 },
-
-  field: {
-    borderRadius: 18,
-    borderWidth: 1.5,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  commentInput: {
-    fontFamily: 'Sora_500Medium',
-    fontSize: 15,
-    minHeight: 100,
-    padding: 0,
-  },
-  characterCount: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'right', marginTop: 6 },
-
-  submit: { marginHorizontal: 24, marginTop: 4 },
+  footer: { paddingHorizontal: 24, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });
 
 export default CreateReviewScreen;

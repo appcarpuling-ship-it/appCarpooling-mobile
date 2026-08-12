@@ -121,6 +121,7 @@ export const ENDPOINTS = {
 
   // Reviews
   CREATE_REVIEW: '/reviews',
+  PENDING_REVIEWS: '/reviews/pending',
   GET_USER_REVIEWS: (id) => `/reviews/user/${id}`,
 
   // Notifications
