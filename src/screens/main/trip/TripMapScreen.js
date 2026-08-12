@@ -48,6 +48,8 @@ const TripMapScreen = ({ route, navigation }) => {
   // captura nueva. Antes origen y destino esquivaban esto con PNGs fijos, pero dejaron de
   // servir cuando pasaron a llevar número: el número depende de cuántas paradas haya.
   const [mapReady, setMapReady] = useState(false);
+  // Ver `tracksViewChanges` en los marcadores: true el tiempo justo para que se dibujen.
+  const [marcadoresVivos, setMarcadoresVivos] = useState(true);
 
   /**
    * La cámara sigue al conductor hasta que el conductor toca el mapa.
@@ -116,6 +118,12 @@ const TripMapScreen = ({ route, navigation }) => {
   // Sólo el conductor en viaje tiene su propia posición en estado (la del watchPositionAsync
   // que ya corre para avisarles a los pasajeros). Para el resto sigue el punto nativo.
   const dibujamosNuestroPunto = Boolean(isDriver && isTripStarted && driverLocation?.latitude);
+
+  useEffect(() => {
+    if (!mapReady) return undefined;
+    const t = setTimeout(() => setMarcadoresVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [mapReady]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -427,6 +435,10 @@ const TripMapScreen = ({ route, navigation }) => {
             // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
             // mismo justo cuando pasa por una parada.
             zIndex={1}
+            // Android redibuja la vista del marcador en cada frame mientras `tracksViewChanges`
+            // esté en true, y eso es el parpadeo de los numeritos. Se apaga apenas el marcador
+            // termina de dibujarse: si se apagara desde el arranque, saldrían en blanco.
+            tracksViewChanges={marcadoresVivos}
             onPress={() =>
               setSelectedStop(
                 selectedStop?.number === i + 1
