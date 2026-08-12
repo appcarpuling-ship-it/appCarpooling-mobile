@@ -155,7 +155,6 @@ const CreateReviewScreen = ({ route, navigation }) => {
               >
                 {coordinates.length > 1 && (
                   <RutaPolyline
-                    key={`ruta-${coordinates.length}`}
                     coordinates={coordinates}
                     width={5}
                     color="#000000"
