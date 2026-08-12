@@ -73,7 +73,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
     // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje. De
     // ahí el "del viaje" en la etiqueta: la aclaración larga de abajo se sacó a pedido.
-    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, icon: 'speedometer-outline' },
+    { key: 'fuel', label: 'Combustible del viaje *', value: fuel, set: setFuel, icon: 'speedometer-outline' },
     { key: 'food', label: 'Comida', value: food, set: setFood, icon: 'fast-food-outline' },
     // "Peajes y otros" en la etiqueta y no en una aclaración abajo: decía lo mismo y dejaba
     // un renglón de texto suelto colgando de la ficha.
@@ -96,7 +96,9 @@ const CompleteTripScreen = ({ route, navigation }) => {
   ];
 
   const handleSubmit = async () => {
-    if (total <= 0) { setError('Ingresá al menos un costo válido'); return; }
+    // Combustible obligatorio: sin él el reparto queda sobre comida/peajes y el gasto real
+    // del viaje no entra. Comida y peajes siguen siendo opcionales.
+    if (num(fuel) <= 0) { setError('Cargá el combustible del viaje'); return; }
     if (extraExcedido) {
       setError(gastos > 0
         ? `El extra del conductor no puede superar $${formatMoney(topeExtra)}`

@@ -1001,6 +1001,12 @@ const TripDetailScreen = ({ route, navigation }) => {
                 {trip.rules?.largeLuggageAllowed ? 'Equipaje grande permitido' : 'Sin equipaje grande'}
               </Text>
             </View>
+            {trip.rules?.womenOnly && (
+              <View style={styles.ruleItem}>
+                <Ionicons name="woman-outline" size={18} color={textPrimary} />
+                <Text style={[styles.ruleText, { color: textPrimary }]}>Solo mujeres</Text>
+              </View>
+            )}
           </View>
         </View>
 
