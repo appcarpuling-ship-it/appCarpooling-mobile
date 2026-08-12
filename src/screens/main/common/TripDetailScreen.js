@@ -25,7 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
-import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { buildRoutePoints } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import socketService from '../../../services/socketService';
@@ -165,8 +165,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const canReserveWomenOnlyTrip = trip ? (!trip.womenOnly || user?.gender === 'female') : false;
 
   const tripFreeSeats = useMemo(() => (trip ? tripRemainingSeats(trip) : 0), [trip]); // guard: incluye holds
-  const tripShownSeats = useMemo(() => (trip ? tripDisplaySeats(trip) : 0), [trip]); // display: sin holds
-  const tripSeatCap = useMemo(() => (trip ? tripSeatCapacity(trip) : 0), [trip]);
 
   const headerBackTint = ui.text;
   useLayoutEffect(() => {
@@ -851,7 +849,7 @@ const TripDetailScreen = ({ route, navigation }) => {
           <View style={styles.metaItem}>
             <Ionicons name="person-outline" size={16} color={textMuted} />
             <Text style={[styles.metaText, { color: textPrimary }]}>
-              {tripShownSeats}/{tripSeatCap} libres
+              {tripSeatsLabel(trip)}
             </Text>
           </View>
         </View>
