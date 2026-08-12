@@ -24,6 +24,7 @@ import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 import PillButton from '../../../components/ui/PillButton';
 import { appendFile } from '../../../utils/formDataFile';
 import { imageForType } from '../../../utils/vehicleImage';
+import DocumentoUpload from '../../../components/vehicle/DocumentoUpload';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const ui = useUI();
@@ -94,6 +95,16 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const [photos, setPhotos] = useState([]);
   const [existingPhotos, setExistingPhotos] = useState([]);
   const [registrationCardUri, setRegistrationCardUri] = useState(null);
+  // Los mismos papeles que pide Uber. Seguro y VTV llevan vencimiento: sin la fecha, uno
+  // vencido se ve igual que uno al día.
+  const [insuranceUri, setInsuranceUri] = useState(null);
+  const [insuranceExpiry, setInsuranceExpiry] = useState(
+    vehicleData?.insuranceExpiry ? new Date(vehicleData.insuranceExpiry) : null,
+  );
+  const [inspectionUri, setInspectionUri] = useState(null);
+  const [inspectionExpiry, setInspectionExpiry] = useState(
+    vehicleData?.inspectionExpiry ? new Date(vehicleData.inspectionExpiry) : null,
+  );
   const [loading, setLoading] = useState(false);
   const [processingNewPhotos, setProcessingNewPhotos] = useState(false);
   const [processingRegistration, setProcessingRegistration] = useState(false);
@@ -158,6 +169,29 @@ const VehicleFormScreen = ({ navigation, route }) => {
       return result.uri;
     } catch {
       return uri;
+    }
+  };
+
+  /** Un solo picker para los tres documentos: el bloque era idéntico salvo el setter. */
+  const pickDocumento = async (setUri) => {
+    const hasPermission = await handlePermissionRequest();
+    if (!hasPermission) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: false,
+        quality: 0.85,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setProcessingRegistration(true);
+        try {
+          setUri(await compressImage(result.assets[0].uri));
+        } finally {
+          setProcessingRegistration(false);
+        }
+      }
+    } catch {
+      showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
     }
   };
 
@@ -239,6 +273,24 @@ const VehicleFormScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Seguro y VTV. En alta son obligatorios; editando se exigen sólo si el vehículo todavía
+    // no los tiene, para que nadie quede con el auto trabado por documentación que la app no
+    // le pedía cuando lo cargó.
+    const faltaDoc = [
+      { uri: insuranceUri, enServidor: vehicleData?.insuranceUrl, fecha: insuranceExpiry, label: 'el seguro del vehículo' },
+      { uri: inspectionUri, enServidor: vehicleData?.inspectionUrl, fecha: inspectionExpiry, label: 'la VTV o RTO' },
+    ].find((d) => (!d.uri && !d.enServidor) || !d.fecha);
+
+    if (faltaDoc) {
+      showAlert(
+        'Ocurrió algo',
+        !faltaDoc.uri && !faltaDoc.enServidor
+          ? `Subí ${faltaDoc.label}.`
+          : `Indicá la fecha de vencimiento de ${faltaDoc.label}.`,
+      );
+      return;
+    }
+
     const yearNum = parseInt(year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
       showAlert('Ocurrió algo', 'Revisá el año: no parece válido.');
@@ -276,6 +328,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
       if (registrationCardUri) {
         await appendFile(fd, 'registrationCard', registrationCardUri, 'registration-card.jpg');
       }
+      if (insuranceUri) await appendFile(fd, 'insurance', insuranceUri, 'seguro.jpg');
+      if (inspectionUri) await appendFile(fd, 'inspection', inspectionUri, 'vtv.jpg');
+      // ISO: el server las guarda como Date y así no depende del formato local.
+      if (insuranceExpiry) fd.append('insuranceExpiry', insuranceExpiry.toISOString());
+      if (inspectionExpiry) fd.append('inspectionExpiry', inspectionExpiry.toISOString());
 
       const response = isEdit
         ? await put_withauth_formdata(`/vehicles/${vehicleData._id}`, fd)
@@ -490,7 +547,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Documentación</Text>
             <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Tarjeta verde o cédula del vehículo. La patente debe coincidir con lo que cargás abajo (se verifica automáticamente).
+              Los tres papeles del vehículo. La patente de la cédula debe coincidir con la que cargás abajo (se verifica automáticamente).
             </Text>
             <View style={styles.regCardRow}>
               {registrationCardUri ? (
@@ -548,6 +605,34 @@ const VehicleFormScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Seguro y VTV: los otros dos papeles que pide cualquier app de viajes. Los dos
+                con vencimiento, porque vencidos no sirven para nada. */}
+            <DocumentoUpload
+              label="Seguro del vehículo"
+              hint="Póliza vigente. Es la documentación más importante si pasa algo en el viaje."
+              uri={insuranceUri}
+              uriGuardada={!insuranceUri && vehicleData?.insuranceUrl ? buildImageUri(vehicleData.insuranceUrl) : null}
+              onElegir={() => pickDocumento(setInsuranceUri)}
+              onQuitar={() => setInsuranceUri(null)}
+              procesando={processingRegistration}
+              vencimiento={insuranceExpiry}
+              onVencimiento={setInsuranceExpiry}
+              isDarkMode={isDarkMode}
+            />
+
+            <DocumentoUpload
+              label="VTV o RTO"
+              hint="La verificación técnica al día."
+              uri={inspectionUri}
+              uriGuardada={!inspectionUri && vehicleData?.inspectionUrl ? buildImageUri(vehicleData.inspectionUrl) : null}
+              onElegir={() => pickDocumento(setInspectionUri)}
+              onQuitar={() => setInspectionUri(null)}
+              procesando={processingRegistration}
+              vencimiento={inspectionExpiry}
+              onVencimiento={setInspectionExpiry}
+              isDarkMode={isDarkMode}
+            />
           </View>
 
           {/* Info */}
