@@ -66,17 +66,16 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const personas = seats + 1;
   const porPersona = gastos / personas;
   const extraPorAsiento = seats > 0 ? num(driverPay) / seats : 0;
-  const porAsiento = porPersona + extraPorAsiento;
 
   const fields = [
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
     // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje. De
     // ahí el "del viaje" en la etiqueta: la aclaración larga de abajo se sacó a pedido.
-    { key: 'fuel', label: 'Combustible del viaje *', value: fuel, set: setFuel, icon: 'speedometer-outline' },
-    { key: 'food', label: 'Comida', value: food, set: setFood, icon: 'fast-food-outline' },
+    { key: 'fuel', label: 'Combustible del viaje *', value: fuel, set: setFuel },
+    { key: 'food', label: 'Comida', value: food, set: setFood },
     // "Peajes y otros" en la etiqueta y no en una aclaración abajo: decía lo mismo y dejaba
     // un renglón de texto suelto colgando de la ficha.
-    { key: 'other', label: 'Peajes y otros', value: other, set: setOther, icon: 'receipt-outline' },
+    { key: 'other', label: 'Peajes y otros', value: other, set: setOther },
     // Campo "Extra conductor" desactivado a pedido del usuario. Sin él, driverPay queda en 0
     // y el viaje se reparte sólo por gastos reales entre todos los que viajaron, que es el
     // encuadre de gastos compartidos en su forma más pura. La validación del tope sigue en
@@ -140,7 +139,6 @@ const CompleteTripScreen = ({ route, navigation }) => {
                 key={f.key}
                 style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ui.border }]}
               >
-                <Ionicons name={f.icon} size={19} color={ui.textMuted} style={styles.rowIcon} />
                 <Text style={[styles.rowLabel, { color: ui.text }]} numberOfLines={1}>{f.label}</Text>
                 {/* El "$" va DENTRO del valor y no como texto aparte: separado, el input
                     right-aligned lo dejaba a media pantalla del número ("$        0"). */}
@@ -161,17 +159,11 @@ const CompleteTripScreen = ({ route, navigation }) => {
           {/* El resumen va siempre, aunque esté en cero: es el punto de la pantalla, y con los
               montos vacíos quedaba media pantalla en blanco. */}
           <View style={[styles.resumen, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-            {/* El número que el conductor va a decir en voz alta, arriba y grande. Antes
-                competía en tamaño con el total del viaje y había que buscarlo entre cuatro
-                renglones iguales. */}
-            <Text style={[styles.heroLabel, { color: ui.textMuted }]}>Cada pasajero te paga</Text>
-            <Text style={[styles.heroValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
+            {/* El total arriba y grande, y debajo cómo se reparte. */}
+            <Text style={[styles.heroLabel, { color: ui.textMuted }]}>Total del viaje</Text>
+            <Text style={[styles.heroValor, { color: ui.text }]}>${formatMoney(total)}</Text>
 
             <View style={[styles.detalles, { borderTopColor: ui.border }]}>
-              <View style={styles.fila}>
-                <Text style={[styles.filaLabel, { color: ui.textMuted }]}>Total del viaje</Text>
-                <Text style={[styles.filaValor, { color: ui.text }]}>${formatMoney(total)}</Text>
-              </View>
 
               {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
                   llevar gente, así que tiene que quedar claro que el conductor también pone. */}
@@ -209,7 +201,6 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, fontFamily: 'Sora_400Regular', marginBottom: 20 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, minHeight: 56 },
-  rowIcon: { marginRight: 10 },
   rowLabel: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
   rowInput: { minWidth: 96, textAlign: 'right', paddingVertical: 12, fontSize: 17, fontFamily: 'Sora_700Bold' },
   error: { color: '#EF4444', fontSize: 13, marginTop: 10 },
