@@ -73,10 +73,11 @@ const CompleteTripScreen = ({ route, navigation }) => {
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
     // tanque entero para un viaje corto cargaba el tanque completo como gasto del viaje. De
     // ahí el "del viaje" en la etiqueta: la aclaración larga de abajo se sacó a pedido.
-    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, placeholder: '0', icon: 'speedometer-outline' },
-    { key: 'food', label: 'Comida', value: food, set: setFood, placeholder: '0', icon: 'fast-food-outline' },
-    { key: 'other', label: 'Otros gastos', value: other, set: setOther, placeholder: '0', icon: 'receipt-outline',
-      hint: 'Peajes, estacionamiento y demás gastos del viaje' },
+    { key: 'fuel', label: 'Combustible del viaje', value: fuel, set: setFuel, icon: 'speedometer-outline' },
+    { key: 'food', label: 'Comida', value: food, set: setFood, icon: 'fast-food-outline' },
+    // "Peajes y otros" en la etiqueta y no en una aclaración abajo: decía lo mismo y dejaba
+    // un renglón de texto suelto colgando de la ficha.
+    { key: 'other', label: 'Peajes y otros', value: other, set: setOther, icon: 'receipt-outline' },
     // Campo "Extra conductor" desactivado a pedido del usuario. Sin él, driverPay queda en 0
     // y el viaje se reparte sólo por gastos reales entre todos los que viajaron, que es el
     // encuadre de gastos compartidos en su forma más pura. La validación del tope sigue en
@@ -140,60 +141,57 @@ const CompleteTripScreen = ({ route, navigation }) => {
               >
                 <Ionicons name={f.icon} size={19} color={ui.textMuted} style={styles.rowIcon} />
                 <Text style={[styles.rowLabel, { color: ui.text }]} numberOfLines={1}>{f.label}</Text>
-                <Text style={[styles.peso, { color: f.value ? ui.text : ui.textMuted }]}>$</Text>
+                {/* El "$" va DENTRO del valor y no como texto aparte: separado, el input
+                    right-aligned lo dejaba a media pantalla del número ("$        0"). */}
                 <TextInput
                   style={[styles.rowInput, { color: f.invalid ? '#EF4444' : ui.text }]}
-                  placeholder={f.placeholder}
+                  placeholder="$0"
                   placeholderTextColor={ui.textMuted}
                   keyboardType="number-pad"
-                  value={f.value}
+                  value={f.value ? `$${f.value}` : ''}
                   onChangeText={(v) => { f.set(formatInput(v)); if (error) setError(''); }}
                 />
               </View>
             ))}
           </View>
 
-          {fields.filter((f) => f.hint).map((f) => (
-            <Text key={`hint-${f.key}`} style={[styles.hint, { color: f.invalid ? '#EF4444' : ui.textMuted }]}>
-              {f.hint}
-            </Text>
-          ))}
-
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {/* El resumen va siempre, aunque esté en cero: es el punto de la pantalla, y con los
               montos vacíos quedaba media pantalla en blanco. */}
           <View style={[styles.resumen, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-            <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: ui.textMuted }]}>Total del viaje</Text>
-              <Text style={[styles.totalValue, { color: ui.text }]}>${formatMoney(total)}</Text>
-            </View>
+            {/* El número que el conductor va a decir en voz alta, arriba y grande. Antes
+                competía en tamaño con el total del viaje y había que buscarlo entre cuatro
+                renglones iguales. */}
+            <Text style={[styles.heroLabel, { color: ui.textMuted }]}>Cada pasajero te paga</Text>
+            <Text style={[styles.heroValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
 
-            {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
-                llevar gente, así que tiene que quedar claro que el conductor también pone. */}
-            <View style={styles.perPassengerRow}>
-              <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
-                Entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
-              </Text>
-              <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
-            </View>
-
-            {num(driverPay) > 0 && (
-              <View style={styles.perPassengerRow}>
-                <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>
-                  Tu extra, repartido entre los pasajeros
-                </Text>
-                <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
+            <View style={[styles.detalles, { borderTopColor: ui.border }]}>
+              <View style={styles.fila}>
+                <Text style={[styles.filaLabel, { color: ui.textMuted }]}>Total del viaje</Text>
+                <Text style={[styles.filaValor, { color: ui.text }]}>${formatMoney(total)}</Text>
               </View>
-            )}
 
-            <View style={[styles.destacado, { borderTopColor: ui.border }]}>
-              <Text style={[styles.destacadoLabel, { color: ui.text }]}>Cada pasajero te paga</Text>
-              <Text style={[styles.destacadoValor, { color: ui.text }]}>${formatMoney(porAsiento)}</Text>
-            </View>
-            <View style={styles.perPassengerRow}>
-              <Text style={[styles.perPassengerLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
-              <Text style={[styles.perPassengerValue, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
+              {/* El reparto a la vista: es la diferencia entre compartir gastos y cobrar por
+                  llevar gente, así que tiene que quedar claro que el conductor también pone. */}
+              <View style={styles.fila}>
+                <Text style={[styles.filaLabel, { color: ui.textMuted }]}>
+                  Entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
+                </Text>
+                <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
+              </View>
+
+              {num(driverPay) > 0 && (
+                <View style={styles.fila}>
+                  <Text style={[styles.filaLabel, { color: ui.textMuted }]}>Tu extra, entre los pasajeros</Text>
+                  <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
+                </View>
+              )}
+
+              <View style={styles.fila}>
+                <Text style={[styles.filaLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
+                <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -217,23 +215,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, minHeight: 56 },
   rowIcon: { marginRight: 10 },
   rowLabel: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
-  peso: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginRight: 2 },
-  rowInput: { minWidth: 84, textAlign: 'right', paddingVertical: 12, fontSize: 17, fontFamily: 'Sora_700Bold' },
+  rowInput: { minWidth: 96, textAlign: 'right', paddingVertical: 12, fontSize: 17, fontFamily: 'Sora_700Bold' },
   error: { color: '#EF4444', fontSize: 13, marginTop: 10 },
-  hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 8, paddingHorizontal: 2 },
-  resumen: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, padding: 16, marginTop: 20 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalLabel: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-  totalValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
-  perPassengerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  perPassengerLabel: { fontSize: 13, fontFamily: 'Sora_400Regular', flex: 1, marginRight: 8 },
-  perPassengerValue: { fontSize: 15, fontFamily: 'Sora_700Bold' },
-  destacado: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, marginTop: 12,
-  },
-  destacadoLabel: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1, marginRight: 8 },
-  destacadoValor: { fontSize: 20, fontFamily: 'Sora_800ExtraBold' },
+  resumen: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, padding: 18, marginTop: 20 },
+  heroLabel: { fontSize: 13, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.3, textTransform: 'uppercase' },
+  heroValor: { fontSize: 38, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1.2, marginTop: 2 },
+  detalles: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12, marginTop: 14, gap: 7 },
+  fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  filaLabel: { fontSize: 13, fontFamily: 'Sora_400Regular', flex: 1, marginRight: 8 },
+  filaValor: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });
 
