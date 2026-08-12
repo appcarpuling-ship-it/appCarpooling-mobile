@@ -19,6 +19,7 @@ import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, decodePolyline, metersBetween } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
@@ -164,17 +165,10 @@ const TripMapScreen = ({ route, navigation }) => {
     };
   }, [trip?._id, isTripStarted, isDriver]);
 
-  const fitTo = (coords) => {
-    if (!coords?.length) return;
-    setTimeout(() => {
-      if (mapRef.current && isMounted.current) {
-        mapRef.current.fitToCoordinates(coords, {
-          edgePadding: { top: 80, right: 40, bottom: 80, left: 40 },
-          animated: true,
-        });
-      }
-    }, 400);
-  };
+  // El encuadre espera a que el mapa esté listo: ver useMapFit. Con el setTimeout de antes,
+  // si el mapa tardaba más de 400 ms en inicializar la cámara se quedaba en la región inicial
+  // —un cuadrito alrededor del origen— y de la ruta se veía sólo el principio.
+  const fitTo = useMapFit(mapRef, mapReady, { top: 80, right: 40, bottom: 80, left: 40 });
 
   /** Lo que se pueda encuadrar aunque no haya trayecto: origen, paradas y destino que tengan coords. */
   const markerCoords = () => [
