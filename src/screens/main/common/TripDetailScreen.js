@@ -224,6 +224,22 @@ const TripDetailScreen = ({ route, navigation }) => {
   // si cada pantalla arma su lista, el "3" de una deja de ser el "3" de la otra.
   const routePoints = useMemo(() => buildRoutePoints(trip), [trip]);
 
+  // Apiladas por defecto: en un viaje con paradas, la lista completa empujaba el precio, el
+  // conductor y el botón de reservar fuera de la primera pantalla.
+  const [paradasAbiertas, setParadasAbiertas] = useState(false);
+
+  // El número que se muestra es la posición REAL en el recorrido, no el índice de la lista
+  // visible: apilado, el destino tiene que seguir diciendo 4 y no 2.
+  const puntosNumerados = useMemo(
+    () => routePoints.map((p, i) => ({ ...p, numero: i + 1 })),
+    [routePoints],
+  );
+  const cantidadParadas = Math.max(0, puntosNumerados.length - 2);
+  const hayParadasIntermedias = cantidadParadas > 0;
+  const puntosVisibles = paradasAbiertas || !hayParadasIntermedias
+    ? puntosNumerados
+    : [puntosNumerados[0], puntosNumerados[puntosNumerados.length - 1]];
+
   const fmtCurrency = (n) =>
     n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
@@ -780,20 +796,51 @@ const TripDetailScreen = ({ route, navigation }) => {
               direcciones de alto variable— y con dos paradas ya se desincronizaban: el
               número quedaba al lado de la dirección equivocada. Así no puede pasar,
               porque el círculo y el texto son hermanos de la misma fila. */}
-          {routePoints.map((point, i) => (
-            <View key={`point-${i}`} style={styles.routePoint}>
+          {/* Con varias paradas la lista se hacía larguísima y tapaba todo lo demás. Apiladas
+              se ven sólo las dos puntas, que es lo que uno mira primero. La línea entre ellas
+              lleva los puntitos y el contador para que no parezca un viaje directo: una parada
+              escondida sin avisar es peor que una lista larga. */}
+          {hayParadasIntermedias && (
+            <TouchableOpacity
+              style={styles.paradasToggle}
+              onPress={() => setParadasAbiertas((v) => !v)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: paradasAbiertas }}
+              accessibilityLabel={paradasAbiertas ? 'Ocultar paradas intermedias' : 'Ver paradas intermedias'}
+            >
+              <Text style={[styles.paradasToggleText, { color: textMuted }]}>
+                {paradasAbiertas ? 'Ocultar paradas' : `${cantidadParadas} parada${cantidadParadas !== 1 ? 's' : ''} en el camino`}
+              </Text>
+              <Ionicons
+                name={paradasAbiertas ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={textMuted}
+              />
+            </TouchableOpacity>
+          )}
+
+          {puntosVisibles.map((point, i) => (
+            <View key={`point-${point.numero}`} style={styles.routePoint}>
               <View style={styles.routeRail}>
                 <View style={[styles.routeDot, { backgroundColor: point.isEnd ? accent : textMuted }]}>
                   <Text style={[styles.routeDotNum, { color: point.isEnd ? accentInverse : '#FFFFFF' }]}>
-                    {i + 1}
+                    {point.numero}
                   </Text>
                 </View>
-                {i < routePoints.length - 1 && (
-                  <View style={[styles.routeRailLine, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
+                {i < puntosVisibles.length - 1 && (
+                  <View style={[styles.routeRailLine, { backgroundColor: dark ? '#333' : '#D0D0D0' }]}>
+                    {/* Apiladas: los puntitos dicen que entre estas dos hay algo más. */}
+                    {!paradasAbiertas && hayParadasIntermedias && (
+                      <View style={[styles.railPuntos, { backgroundColor: cardBg }]}>
+                        <Ionicons name="ellipsis-vertical" size={13} color={textMuted} />
+                      </View>
+                    )}
+                  </View>
                 )}
               </View>
 
-              <View style={[styles.routeBody, i < routePoints.length - 1 && styles.routeBodyGap]}>
+              <View style={[styles.routeBody, i < puntosVisibles.length - 1 && styles.routeBodyGap]}>
                 {!!point.label && (
                   <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
                 )}
@@ -1428,6 +1475,15 @@ const styles = StyleSheet.create({
   // circulo. Por eso el trazo se estira solo cuando la direccion ocupa tres renglones,
   // sin ningun alto fijo que adivinar.
   routeRail: { width: 18, alignItems: 'center', paddingTop: 2 },
+  paradasToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14 },
+  paradasToggleText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  // La línea mide 1.5px de ancho: los puntitos se centran sobre ella desbordando a los lados
+  // (left negativo y ancho fijo), si no quedarían recortados. El fondo de la card los recorta
+  // contra la línea y da la sensación de tramo interrumpido.
+  railPuntos: {
+    position: 'absolute', top: '50%', marginTop: -11, left: -6.25,
+    width: 14, alignItems: 'center', paddingVertical: 3,
+  },
   routeRailLine: { flex: 1, width: 1.5, marginVertical: 4 },
   routeDot: {
     width: 18,

@@ -67,7 +67,6 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const porPersona = gastos / personas;
   const extraPorAsiento = seats > 0 ? num(driverPay) / seats : 0;
   const porAsiento = porPersona + extraPorAsiento;
-  const parteDelConductor = Math.max(0, porPersona - num(driverPay));
 
   const fields = [
     // "Combustible" a secas se leía como lo que pagaste en la estación, y el que llena el
@@ -189,11 +188,6 @@ const CompleteTripScreen = ({ route, navigation }) => {
                   <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(extraPorAsiento)} c/u</Text>
                 </View>
               )}
-
-              <View style={styles.fila}>
-                <Text style={[styles.filaLabel, { color: ui.textMuted }]}>Te queda a vos</Text>
-                <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(parteDelConductor)}</Text>
-              </View>
             </View>
           </View>
         </ScrollView>
