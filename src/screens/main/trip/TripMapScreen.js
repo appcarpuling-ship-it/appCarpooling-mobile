@@ -18,7 +18,7 @@ import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta, metersBetween } from '../../../utils/routePoints';
 import { put_withauth } from '../../../services/apiService';
-import RutaPolyline, { VERSION_MAPA } from '../../../components/map/RutaPolyline';
+import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
 
@@ -77,10 +77,6 @@ const TripMapScreen = ({ route, navigation }) => {
     setSiguiendo(true);
     seguirAlConductor(driverLocation);
   };
-  // TEMPORAL: cartel de diagnóstico. Dos hipótesis sobre por qué no se dibuja la línea
-  // fallaron seguidas, así que en vez de suponer, la pantalla dice qué pasó. Se saca en
-  // cuanto esté resuelto.
-  const [diag, setDiag] = useState('iniciando');
   const [driverLocation, setDriverLocation] = useState(trip?.currentLocation || null);
   const [showMyLocation, setShowMyLocation] = useState(false);
   // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
@@ -312,7 +308,6 @@ const TripMapScreen = ({ route, navigation }) => {
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
-      setDiag('sin coordenadas de origen/destino');
       fitTo(markerCoords());
       setLoading(false);
       return true; // sin puntas no hay nada que reintentar
@@ -331,12 +326,11 @@ const TripMapScreen = ({ route, navigation }) => {
         // Con el detalle de los steps, que es el que sigue las calles: ver puntosDeRuta.
         const points = puntosDeRuta(r);
         if (points.length > 0) {
-          setDiag(`ruta ok: ${points.length} pts`);
           setRouteCoordinates(points);
           fitTo(points);
           return true;
         }
-        sinRuta('respuesta sin puntos');
+        sinRuta();
       } else if (waypointsParam) {
         // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
         // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
@@ -347,17 +341,16 @@ const TripMapScreen = ({ route, navigation }) => {
         if (!isMounted.current) return;
         const pts = puntosDeRuta(simple.routes?.[0]);
         if (pts.length > 0) {
-          setDiag(`ruta sin paradas: ${pts.length} pts`);
           setRouteCoordinates(pts);
           fitTo(pts);
           return true;
         }
-        sinRuta('reintento sin paradas vacio');
+        sinRuta();
       } else {
-        sinRuta(`sin rutas (status ${data?.status || '?'})`);
+        sinRuta();
       }
     } catch (e) {
-      sinRuta(`error: ${String(e?.message || e).slice(0, 60)}`);
+      sinRuta();
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -374,8 +367,7 @@ const TripMapScreen = ({ route, navigation }) => {
    * ponytail: con el viaje empezado, el corte de "recorrido / pendiente" se calcula sobre esta
    * recta y el avance queda aproximado. Es preferible a no dibujar nada.
    */
-  const sinRuta = (motivo) => {
-    setDiag(`FALLBACK — ${motivo}`);
+  const sinRuta = () => {
     const puntos = markerCoords();
     if (puntos.length > 1) setRouteCoordinates(puntos);
     fitTo(puntos);
@@ -392,6 +384,14 @@ const TripMapScreen = ({ route, navigation }) => {
   const tramos = useMemo(() => {
     if (!routeCoordinates.length) return { recorrido: [], pendiente: [] };
     if (!isTripStarted || !driverLocation?.latitude) {
+      corteRef.current = 0;
+      return { recorrido: [], pendiente: routeCoordinates };
+    }
+
+    // Sin ninguna parada hecha todavía no se recorrió nada: el conductor va CAMINO a la
+    // primera. El corte por cercanía enganchaba el trazado a la altura del auto y pintaba de
+    // gris las primeras cuadras, que son justamente las que le faltan hacer.
+    if (!paradasHechas.length) {
       corteRef.current = 0;
       return { recorrido: [], pendiente: routeCoordinates };
     }
@@ -416,7 +416,7 @@ const TripMapScreen = ({ route, navigation }) => {
       recorrido: routeCoordinates.slice(0, corte + 1),
       pendiente: routeCoordinates.slice(corte),
     };
-  }, [routeCoordinates, driverLocation?.latitude, driverLocation?.longitude, isTripStarted]);
+  }, [routeCoordinates, driverLocation?.latitude, driverLocation?.longitude, isTripStarted, paradasHechas.length]);
 
   const initialRegion = originCoords?.latitude
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
@@ -504,10 +504,6 @@ const TripMapScreen = ({ route, navigation }) => {
         />
       </MapView>
 
-      {/* TEMPORAL: diagnóstico del trazado. Sale en cuanto sepamos por qué no se dibuja. */}
-      <View style={styles.diagBox} pointerEvents="none">
-        <Text style={styles.diagText}>{VERSION_MAPA} · {diag} · dibujadas {routeCoordinates.length}</Text>
-      </View>
 
       {/* Back button */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -590,8 +586,6 @@ const TripMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   recentrarBtn: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
-  diagBox: { position: 'absolute', top: 110, left: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.82)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  diagText: { color: '#FFFFFF', fontSize: 12 },
   container: { flex: 1 },
   map: { ...StyleSheet.absoluteFillObject },
   topBar: {
