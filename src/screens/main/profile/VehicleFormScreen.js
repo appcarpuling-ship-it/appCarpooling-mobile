@@ -101,6 +101,9 @@ const VehicleFormScreen = ({ navigation, route }) => {
   const [insuranceExpiry, setInsuranceExpiry] = useState(
     vehicleData?.insuranceExpiry ? new Date(vehicleData.insuranceExpiry) : null,
   );
+  // Declaración jurada. Es lo único de todo este formulario que traslada la responsabilidad a
+  // quien corresponde: nosotros no verificamos pólizas de nadie y no podemos decir que sí.
+  const [declaracion, setDeclaracion] = useState(isEdit);
   const [inspectionUri, setInspectionUri] = useState(null);
   const [inspectionExpiry, setInspectionExpiry] = useState(
     vehicleData?.inspectionExpiry ? new Date(vehicleData.inspectionExpiry) : null,
@@ -291,6 +294,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (!isEdit && !declaracion) {
+      showAlert('Ocurrió algo', 'Tenés que aceptar la declaración para registrar el vehículo.');
+      return;
+    }
+
     const yearNum = parseInt(year);
     if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
       showAlert('Ocurrió algo', 'Revisá el año: no parece válido.');
@@ -331,6 +339,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
       if (insuranceUri) await appendFile(fd, 'insurance', insuranceUri, 'seguro.jpg');
       if (inspectionUri) await appendFile(fd, 'inspection', inspectionUri, 'vtv.jpg');
       // ISO: el server las guarda como Date y así no depende del formato local.
+      if (!isEdit) fd.append('declaracionJurada', 'true');
       if (insuranceExpiry) fd.append('insuranceExpiry', insuranceExpiry.toISOString());
       if (inspectionExpiry) fd.append('inspectionExpiry', inspectionExpiry.toISOString());
 
@@ -633,6 +642,27 @@ const VehicleFormScreen = ({ navigation, route }) => {
               onVencimiento={setInspectionExpiry}
               isDarkMode={isDarkMode}
             />
+
+            {!isEdit && (
+              <TouchableOpacity
+                style={[styles.declaracion, { borderColor: border, backgroundColor: cardBg }]}
+                onPress={() => setDeclaracion((v) => !v)}
+                activeOpacity={0.8}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: declaracion }}
+              >
+                <View style={[
+                  styles.declaracionBox,
+                  { borderColor: declaracion ? ui.invertBg : border, backgroundColor: declaracion ? ui.invertBg : 'transparent' },
+                ]}>
+                  {declaracion && <Ionicons name="checkmark" size={14} color={ui.invertText} />}
+                </View>
+                <Text style={[styles.declaracionText, { color: textMuted }]}>
+                  Declaro que la documentación es de este vehículo, que está vigente y que soy
+                  responsable de mantenerla al día. Carpuling no verifica pólizas ni habilitaciones.
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Info */}
@@ -829,6 +859,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   chipImage: { width: 22, height: 22 },
+  declaracion: { flexDirection: 'row', gap: 10, marginTop: 18, padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  declaracionBox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  declaracionText: { flex: 1, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17 },
   chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   chipMetaWrap: { flexDirection: 'row', alignItems: 'center', gap: 3, opacity: 0.75 },
   chipMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
