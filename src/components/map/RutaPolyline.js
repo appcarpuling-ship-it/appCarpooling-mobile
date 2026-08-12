@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Platform } from 'react-native';
 import { Polyline } from 'react-native-maps';
 
@@ -10,36 +10,34 @@ import { Polyline } from 'react-native-maps';
  *
  *     _polyline.spans = @[[GMSStyleSpan spanWithColor:_strokeColor]];  // _strokeColor es nil
  *
- * y en el SDK de Google los `spans` MANDAN sobre `strokeColor`. Después `setStrokeColor:`
- * asigna la propiedad pero sólo rehace los spans si además hay `lineDashPattern`
- * (`configureStyleSpansIfNeeded` corta con `if (!_strokeColor || !_lineDashPattern ...)`),
- * así que el span de color nulo del init sobrevive y la línea sale del azul por defecto por
- * más que se le pase negro. Por eso las rutas seguían azules en iPhone y no en Android.
+ * y en el SDK de Google los `spans` MANDAN sobre `strokeColor`. `setStrokeColor:` asigna la
+ * propiedad pero sólo rehace los spans si además hay `lineDashPattern`, así que ese span de
+ * color nulo del init sobrevive y la línea sale del azul por defecto.
  *
- * La única puerta que queda desde JS es `strokeColors`, que sí reconstruye los spans. Exige
- * UN COLOR POR COORDENADA: con menos —el `['#010101']` de antes— sólo se pinta el primer
- * tramo y el resto vuelve al azul, que es exactamente lo que se veía. Todos iguales da una
- * línea sólida, porque el degradado de negro a negro es negro.
+ * La salida es `fillColor`, que en esta clase no pinta ningún relleno —una línea no tiene
+ * interior— sino que hace exactamente esto:
  *
- * En Android no se manda: ahí `strokeColor` funciona y no hace falta un array por punto.
+ *     _polyline.spans = @[[GMSStyleSpan spanWithColor:fillColor]];
+ *
+ * Es decir, el mismo camino que ya sabemos que dibuja la línea ENTERA (así se dibujaba la
+ * azul), pero con un color de verdad en vez de nil.
+ *
+ * Antes probé `strokeColors`, que también reconstruye los spans pero arma UNO POR COLOR con
+ * estilos de degradado. Con eso la línea directamente dejó de verse, así que no: un solo span
+ * sólido, que es la forma que está demostrado que cubre todo el trazado.
+ *
+ * En Android no se manda nada de esto: ahí `strokeColor` funciona.
  */
-const RutaPolyline = ({ coordinates, color = '#000000', width = 5, ...rest }) => {
-  const colores = useMemo(
-    () => (Platform.OS === 'ios' ? coordinates.map(() => color) : undefined),
-    [coordinates, color],
-  );
-
-  return (
-    <Polyline
-      coordinates={coordinates}
-      strokeColor={color}
-      strokeColors={colores}
-      strokeWidth={width}
-      lineCap="round"
-      lineJoin="round"
-      {...rest}
-    />
-  );
-};
+const RutaPolyline = ({ coordinates, color = '#000000', width = 5, ...rest }) => (
+  <Polyline
+    coordinates={coordinates}
+    strokeColor={color}
+    {...(Platform.OS === 'ios' ? { fillColor: color } : null)}
+    strokeWidth={width}
+    lineCap="round"
+    lineJoin="round"
+    {...rest}
+  />
+);
 
 export default RutaPolyline;

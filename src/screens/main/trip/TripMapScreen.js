@@ -308,7 +308,7 @@ const TripMapScreen = ({ route, navigation }) => {
           fitTo(points);
           return true;
         }
-        fitTo(markerCoords());
+        sinRuta();
       } else if (waypointsParam) {
         // Sin rutas con las paradas puestas (ZERO_RESULTS, demasiados waypoints, un punto
         // que no cae sobre una calle): se reintenta el tramo origen→destino. Es peor que la
@@ -324,16 +324,32 @@ const TripMapScreen = ({ route, navigation }) => {
           fitTo(pts);
           return true;
         }
-        fitTo(markerCoords());
+        sinRuta();
       } else {
-        fitTo(markerCoords());
+        sinRuta();
       }
     } catch (e) {
-      fitTo(markerCoords());
+      sinRuta();
     } finally {
       if (isMounted.current) setLoading(false);
     }
     return false;
+  };
+
+  /**
+   * Directions no dio nada. Se une lo que hay —origen, paradas y destino— con una recta.
+   *
+   * No sigue las calles y se ve feo, pero un mapa con los marcadores y NINGUNA línea es
+   * indistinguible de un mapa roto: no hay forma de saber si el viaje no tiene ruta o si la
+   * petición se cayó. Con la recta al menos se lee el viaje, y se nota que es provisoria.
+   *
+   * ponytail: con el viaje empezado, el corte de "recorrido / pendiente" se calcula sobre esta
+   * recta y el avance queda aproximado. Es preferible a no dibujar nada.
+   */
+  const sinRuta = () => {
+    const puntos = markerCoords();
+    if (puntos.length > 1) setRouteCoordinates(puntos);
+    fitTo(puntos);
   };
 
   /**
