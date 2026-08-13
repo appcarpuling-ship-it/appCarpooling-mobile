@@ -140,7 +140,8 @@
           "cameraPermission": "Carpuling necesita la cámara para que puedas sacar la foto de tu perfil y de tu DNI en el momento."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withAndroidMediaPermissionsFix"
     ],
     "scheme": "carpooling",
     "extra": {
