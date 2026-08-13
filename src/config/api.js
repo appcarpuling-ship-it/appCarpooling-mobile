@@ -147,6 +147,9 @@ export const ENDPOINTS = {
   SEAT_RESERVATIONS: '/seat-reservations',
   MY_SEAT_RESERVATIONS: '/seat-reservations/my-reservations',
   LIMITE_EXTRA_CONDUCTOR: '/parametros/limite-extra-conductor',
+  // Correo y WhatsApp de soporte, editables por un admin. La pantalla de Ayuda los tenia
+  // hardcodeados, con un telefono de ejemplo.
+  SOPORTE: '/parametros/soporte',
 
   // Banners
   GET_BANNER_SECTIONS: '/banners/sections',
