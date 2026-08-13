@@ -12,6 +12,7 @@ import {
   Pressable,
   Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { sanitizeImageUrl } from '../../utils/imageUtils';
@@ -80,6 +81,20 @@ const BannerDetailModal = ({ visible, banner, onClose, navigation, colors }) => 
     handleClose();
   };
 
+  // Sólo http(s): el server ya filtra al guardar, pero un banner viejo puede traer cualquier
+  // cosa y esto se abre en el teléfono de un usuario.
+  const links = Array.isArray(banner.links)
+    ? banner.links.filter((l) => l?.titulo && /^https?:\/\//i.test(l?.url || ''))
+    : [];
+
+  const abrirLink = async (url) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      /* sin app que lo abra: no se rompe nada */
+    }
+  };
+
   return (
     <Modal visible transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.overlay}>
@@ -125,6 +140,31 @@ const BannerDetailModal = ({ visible, banner, onClose, navigation, colors }) => 
                 ) : null}
               </View>
             ) : null}
+
+            {/* Links: título y texto a la izquierda, flecha a la derecha. Uno por fila, en vez
+                del único botón de `hipervinculo`, que obligaba a elegir un solo destino. */}
+            {links.length > 0 && (
+              <View style={[styles.links, { borderColor: border }]}>
+                {links.map((l, i) => (
+                  <TouchableOpacity
+                    key={`${l.url}-${i}`}
+                    style={[styles.linkRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: border }]}
+                    onPress={() => abrirLink(l.url)}
+                    activeOpacity={0.75}
+                    accessibilityRole="link"
+                    accessibilityLabel={l.titulo}
+                  >
+                    <View style={styles.linkTexts}>
+                      <Text style={[styles.linkTitle, { color: textPrimary }]}>{l.titulo}</Text>
+                      {!!l.texto && (
+                        <Text style={[styles.linkDesc, { color: textSecondary }]}>{l.texto}</Text>
+                      )}
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </ScrollView>
 
           <View
@@ -196,6 +236,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  links: { marginTop: 20, marginHorizontal: 20, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, overflow: 'hidden' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 15 },
+  linkTexts: { flex: 1, gap: 2 },
+  linkTitle: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+  linkDesc: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 18 },
   textBlock: {
     paddingHorizontal: 20,
     paddingTop: 16,
