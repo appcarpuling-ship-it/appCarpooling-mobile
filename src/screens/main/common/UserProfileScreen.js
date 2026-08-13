@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatarInitials: { fontSize: 36, fontFamily: 'Sora_700Bold' },
-  name: { fontSize: 24, fontFamily: 'Sora_700Bold', marginBottom: 6 },
+  name: { fontSize: 24, fontFamily: 'Sora_700Bold', marginBottom: 6, textAlign: 'center' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 6 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   location: { fontSize: 14 },
