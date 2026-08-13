@@ -28,7 +28,7 @@ const CompleteTripScreen = ({ route, navigation }) => {
   const { onSubmit, totalSeats } = route.params || {};
   // El backend reparte el total entre los asientos confirmados (ver seatReservationService.
   // completeTripWithActualCost); esto es sólo la vista previa por asiento, misma cuenta.
-  const seats = totalSeats > 0 ? totalSeats : 1;
+  const seats = totalSeats > 0 ? totalSeats : 0;
 
   const [fuel, setFuel] = useState('');
   const [food, setFood] = useState('');
@@ -169,7 +169,9 @@ const CompleteTripScreen = ({ route, navigation }) => {
                   llevar gente, así que tiene que quedar claro que el conductor también pone. */}
               <View style={styles.fila}>
                 <Text style={[styles.filaLabel, { color: ui.textMuted }]}>
-                  Entre {personas} {personas === 1 ? 'persona' : 'personas'} (vos y {seats} pasajero{seats !== 1 ? 's' : ''})
+                  {seats === 0
+                    ? 'Vos solo, sin pasajeros'
+                    : `Entre ${personas} personas (vos y ${seats} pasajero${seats !== 1 ? 's' : ''})`}
                 </Text>
                 <Text style={[styles.filaValor, { color: ui.textMuted }]}>${formatMoney(porPersona)} c/u</Text>
               </View>

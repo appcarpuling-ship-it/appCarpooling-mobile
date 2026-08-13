@@ -105,37 +105,46 @@ const DocumentoUpload = ({
         </TouchableOpacity>
       )}
 
-      <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
-        <View style={styles.modalFondo}>
-          <View style={[styles.modalCaja, { backgroundColor: ui.card, borderColor: ui.border }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: ui.border }]}>
-              <Text style={[styles.modalTitulo, { color: ui.text }]}>{label}</Text>
-              <TouchableOpacity onPress={() => setAbierto(false)} hitSlop={8}>
-                <Ionicons name="close" size={22} color={ui.text} />
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={temp}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              // Sin esto la ruedita sale con el esquema del sistema y no con el de la app: en
-              // tema oscuro quedaban números casi negros sobre fondo negro, ilegibles salvo la
-              // fila seleccionada. `textColor` es el que pinta las filas de alrededor.
-              themeVariant={ui.isDarkMode ? 'dark' : 'light'}
-              textColor={ui.text}
-              // Un documento que vence antes de hoy no sirve: no se puede ni elegir.
-              minimumDate={new Date()}
-              onChange={(e, fecha) => {
-                if (Platform.OS === 'android') {
-                  setAbierto(false);
-                  if (e.type === 'set' && fecha) onVencimiento(fecha);
-                  return;
-                }
-                if (fecha) setTemp(fecha);
-              }}
-              style={{ marginVertical: 8 }}
-            />
-            {Platform.OS === 'ios' && (
+      {/* Android: el picker del sistema ya es un diálogo modal propio, así que se renderiza
+          suelto (sin envolverlo en nuestro Modal) y solo mientras está abierto. Envolverlo
+          dejaba nuestra tarjeta con el título del documento asomando detrás del diálogo nativo. */}
+      {pideVencimiento && Platform.OS === 'android' && abierto && (
+        <DateTimePicker
+          value={temp}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={(e, fecha) => {
+            setAbierto(false);
+            if (e.type === 'set' && fecha) onVencimiento(fecha);
+          }}
+        />
+      )}
+
+      {Platform.OS === 'ios' && (
+        <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
+          <View style={styles.modalFondo}>
+            <View style={[styles.modalCaja, { backgroundColor: ui.card, borderColor: ui.border }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: ui.border }]}>
+                <Text style={[styles.modalTitulo, { color: ui.text }]}>{label}</Text>
+                <TouchableOpacity onPress={() => setAbierto(false)} hitSlop={8}>
+                  <Ionicons name="close" size={22} color={ui.text} />
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={temp}
+                mode="date"
+                display="spinner"
+                // Sin esto la ruedita sale con el esquema del sistema y no con el de la app: en
+                // tema oscuro quedaban números casi negros sobre fondo negro, ilegibles salvo la
+                // fila seleccionada. `textColor` es el que pinta las filas de alrededor.
+                themeVariant={ui.isDarkMode ? 'dark' : 'light'}
+                textColor={ui.text}
+                // Un documento que vence antes de hoy no sirve: no se puede ni elegir.
+                minimumDate={new Date()}
+                onChange={(e, fecha) => { if (fecha) setTemp(fecha); }}
+                style={{ marginVertical: 8 }}
+              />
               <View style={[styles.modalBtns, { borderTopColor: ui.border }]}>
                 <TouchableOpacity
                   onPress={() => setAbierto(false)}
@@ -150,10 +159,10 @@ const DocumentoUpload = ({
                   <Text style={{ color: ui.invertText, fontFamily: 'Sora_700Bold', fontSize: 15 }}>Confirmar</Text>
                 </TouchableOpacity>
               </View>
-            )}
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 };
