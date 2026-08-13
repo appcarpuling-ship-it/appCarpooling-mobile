@@ -238,22 +238,10 @@ const UserProfileScreen = ({ route, navigation }) => {
         <Text style={[styles.name, { color: ui.text }]}>
           {profile.firstName} {profile.lastName}
         </Text>
-        {/* Tocar abre la lista de reseñas, que ya existía pero no la enlazaba nadie. */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('UserReviews', {
-            userId: profile._id,
-            userName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
-          })}
-          disabled={!profile.ratingCount}
-          hitSlop={8}
-          style={styles.ratingRow}
-          activeOpacity={0.7}
-        >
+        {/* Solo el número, sin lista de reseñas: ni en el perfil propio ni en el ajeno. */}
+        <View style={styles.ratingRow}>
           <Rating rating={profile.rating} count={profile.ratingCount} size={15} />
-          {profile.ratingCount ? (
-            <Ionicons name="chevron-forward" size={14} color={ui.textMuted} />
-          ) : null}
-        </TouchableOpacity>
+        </View>
         {(profile.city || profile.province) && (
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={15} color={ui.textMuted} />

@@ -246,23 +246,11 @@ const ProfileScreen = () => {
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
-          {/* Cómo lo están puntuando: un conductor necesita verlo sin esperar a que se lo
-              cuente un pasajero. Toca y ve las reseñas una por una. */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('UserReviews', {
-              userId: user?._id,
-              userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-            })}
-            disabled={!user?.ratingCount}
-            hitSlop={8}
-            style={styles.ratingRow}
-            activeOpacity={0.7}
-          >
+          {/* Solo el número: sin toque, sin lista de reseñas una por una. Leer lo que
+              escribieron sobre uno no suma nada bueno acá. */}
+          <View style={styles.ratingRow}>
             <Rating rating={user?.rating} count={user?.ratingCount} size={15} />
-            {user?.ratingCount ? (
-              <Ionicons name="chevron-forward" size={14} color={textMuted} />
-            ) : null}
-          </TouchableOpacity>
+          </View>
           {/* {user?.gender ? (
             <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
               Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
