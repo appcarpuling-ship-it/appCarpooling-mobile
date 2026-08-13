@@ -82,7 +82,7 @@ const PrivacyScreen = () => {
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
           {sections.map((s, index) => (
             <View
               key={index}

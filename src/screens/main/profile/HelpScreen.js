@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../../theme/ui';
 import { HELP_GUIDE_CATALOG } from '../../../content/helpGuideContent';
 import GuidedHelpOverlay from '../../../components/help/GuidedHelpOverlay';
+import { get_withauth } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
 
 const HelpScreen = () => {
   const ui = useUI();
@@ -70,22 +72,42 @@ const HelpScreen = () => {
     },
   ];
 
+  /**
+   * El contacto sale del server, no del código.
+   *
+   * Estaba escrito acá adentro, y el teléfono era `+1234567890` —un ejemplo—. Los parámetros
+   * `supportEmail` y `supportWhatsapp` ya existían y son editables por un admin; sólo faltaba
+   * que esta pantalla los leyera. Cambiar el número deja de necesitar un OTA.
+   */
+  const [soporte, setSoporte] = useState({ supportEmail: null, supportWhatsapp: null });
+
+  useEffect(() => {
+    let cancelado = false;
+    get_withauth(ENDPOINTS.SOPORTE)
+      .then((res) => {
+        if (!cancelado && res?.success) setSoporte(res.data || {});
+      })
+      .catch(() => {}); // sin red se muestra sólo lo que haya
+    return () => { cancelado = true; };
+  }, []);
+
+  // Sin dato configurado no se muestra la fila: es peor una vía de contacto que no existe.
   const contactItems = [
-    {
+    soporte.supportEmail && {
       id: 1,
       icon: 'mail-outline',
       title: 'Email',
-      subtitle: 'soporte@carpuling.com',
-      onPress: () => Linking.openURL('mailto:soporte@carpuling.com'),
+      subtitle: soporte.supportEmail,
+      onPress: () => Linking.openURL(`mailto:${soporte.supportEmail}`),
     },
-    {
+    soporte.supportWhatsapp && {
       id: 2,
-      icon: 'call-outline',
-      title: 'Teléfono',
-      subtitle: '+1 234 567 890',
-      onPress: () => Linking.openURL('tel:+1234567890'),
+      icon: 'logo-whatsapp',
+      title: 'WhatsApp',
+      subtitle: `+${soporte.supportWhatsapp}`,
+      onPress: () => Linking.openURL(`https://wa.me/${soporte.supportWhatsapp}`),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
@@ -101,7 +123,7 @@ const HelpScreen = () => {
         <Text style={[styles.guideIntro, { color: textHint }]}>
           Elegí un tema. Te llevamos a la pantalla correcta en la app y te explicamos cada paso con calma. Podés cerrar cuando quieras con «Cerrar» arriba a la derecha.
         </Text>
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
           {HELP_GUIDE_CATALOG.map((item, index) => (
             <TouchableOpacity
               key={item.id}
@@ -129,7 +151,7 @@ const HelpScreen = () => {
 
         {/* FAQ */}
         <Text style={[styles.sectionLabel, styles.sectionLabelSpaced, { color: textLabel }]}>Preguntas frecuentes</Text>
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
           {faqItems.map((item, index) => (
             <View
               key={item.id}
@@ -146,7 +168,7 @@ const HelpScreen = () => {
 
         {/* Contacto */}
         <Text style={[styles.sectionLabel, { color: textLabel, marginTop: 8 }]}>Contacto</Text>
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: ui.border }]}>
           {contactItems.map((item, index) => (
             <TouchableOpacity
               key={item.id}
