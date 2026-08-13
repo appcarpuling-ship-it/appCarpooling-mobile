@@ -35,8 +35,17 @@ const withAndroidMediaPermissionsFix = (config) =>
     let permisos = config.modResults.manifest['uses-permission'];
     if (!Array.isArray(permisos)) permisos = [];
 
-    // Fuera del todo, venga de donde venga.
-    permisos = permisos.filter((p) => !ELIMINAR.includes(p.$?.['android:name']));
+    // BUG que costó dos builds: acá solo se hacía `filter`, sin agregar el `tools:node`.
+    // A esta altura (prebuild) el permiso de la librería TODAVÍA NO ESTÁ en este array —lo
+    // agrega Gradle recién al compilar, mezclando el manifiesto de la app con el de cada
+    // librería— así que filtrar algo que no está presente no hace nada, y la entrada de
+    // `expo-screen-capture` llegaba intacta al `.aab` final. Verificado con
+    // `bundletool dump manifest` sobre el .aab compilado: sin este push, READ_MEDIA_IMAGES
+    // seguía ahí pese al filter. Hace falta EMPUJAR la instrucción, no alcanza con filtrar.
+    for (const nombre of ELIMINAR) {
+      permisos = permisos.filter((p) => p.$?.['android:name'] !== nombre);
+      permisos.push({ $: { 'android:name': nombre, 'tools:node': 'remove' } });
+    }
 
     // Reemplazadas por una versión propia con tope, no importa si alguna librería ya declaró
     // la suya sin tope: se saca la vieja entrada (si la había) y se agrega la que manda.

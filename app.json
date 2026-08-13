@@ -52,7 +52,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.carpuling.app.ar",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 40,
+      "versionCode": 42,
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",
