@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { post_public, get_withauth, put_withauth } from '../services/apiService';
+import { post_public, post_public_formdata, get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS, API_CONFIG } from '../config/api';
 import socketService from '../services/socketService';
 import { registerSessionInvalidHandler, registerAccountDisabledHandler } from '../services/authSession';
@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await post_public(ENDPOINTS.REGISTER, userData);
+      const response = await post_public_formdata(ENDPOINTS.REGISTER, userData);
 
       if (response.success) {
         // Redirigir a verificación de email

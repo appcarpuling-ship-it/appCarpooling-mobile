@@ -276,6 +276,49 @@ export const post_withauth_formdata = (endpoint, formData) =>
 export const put_withauth_formdata = (endpoint, formData) =>
   sendMultipart('PUT', endpoint, formData);
 
+/** Igual que sendMultipart pero sin token (registro: todavía no hay sesión). */
+const sendMultipartPublic = async (endpoint, formData) => {
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(API_CONFIG.TIMEOUT || 15000, 120000));
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...getNativeClientHeaders(false),
+        'X-Platform': 'mobile',
+        'X-Client-Platform': 'mobile',
+        ...tunnelExtraHeaders(),
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(body?.message || 'Error en el servidor');
+      error.response = { status: response.status, data: body };
+      throw handleError(error);
+    }
+
+    return body;
+  } catch (error) {
+    if (error.response) throw error;
+    reportError(error, { helper: 'sendMultipartPublic', endpoint });
+    if (error.name === 'AbortError') {
+      throw new Error('El servidor tardó demasiado en responder. Verificá tu conexión e intentá de nuevo.');
+    }
+    throw new Error(`No pudimos completar el registro. ${error.message || ''}`.trim());
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+export const post_public_formdata = (endpoint, formData) =>
+  sendMultipartPublic(endpoint, formData);
+
 /**
  * Maneja los errores de las peticiones
  * @param {object} error - Error de axios
@@ -297,8 +340,8 @@ const connectionHintForBaseUrl = (baseUrl) => {
   }
   if (/appcarpuling\.cloud/i.test(baseUrl)) {
     return (
-      'No se pudo conectar con appcarpuling.cloud (producción). ' +
-      'Para probar en local, usá el perfil ngrok: `eas build --profile ngrok` o la URL ngrok en .env con Expo.'
+      'No se pudo conectar el servidor(producción).' +
+      'Por favor, verificá tu conexión a Internet y volvé a intentarlo.' 
     );
   }
   // Sin nombrar el servidor ni su URL: al usuario no le sirve y expone la infra.
