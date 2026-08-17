@@ -256,7 +256,13 @@ const VehicleFormScreen = ({ navigation, route }) => {
       if (!result.canceled && result.assets?.length > 0) {
         setProcessingNewPhotos(true);
         try {
-          const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
+          // Secuencial y no Promise.all: comprimir varias fotos de cámara moderna (varios MB
+          // cada una) en paralelo hace que Android decodifique todas a la vez y se quede sin
+          // memoria — alguna volvía en blanco/corrupta. Una por una es más lento pero seguro.
+          const compressed = [];
+          for (const a of result.assets) {
+            compressed.push(await compressImage(a.uri));
+          }
           const next = [...photos, ...compressed];
           if (existingPhotos.length + next.length > 10) {
             showAlert('Ocurrió algo', 'Podés subir hasta 10 fotos.');
