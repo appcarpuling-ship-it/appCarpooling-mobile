@@ -14,7 +14,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { useUI } from '../../../theme/ui';
@@ -207,18 +206,12 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const compressImage = async (uri) => {
-    try {
-      const result = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-      return result.uri;
-    } catch {
-      return uri;
-    }
-  };
+  // Antes pasaba por ImageManipulator (resize + recompresión) además del quality:0.8 del
+  // picker. En Android, con fotos grandes de cámara moderna, manipulateAsync a veces "termina
+  // bien" (sin tirar excepción) pero devuelve un bitmap en blanco — no lo agarra ningún catch
+  // porque no falla, solo produce basura. El picker ya comprime solo con `quality`, así que se
+  // saca el paso extra: el archivo pesa un poco más pero no sale en blanco.
+  const compressImage = async (uri) => uri;
 
   /** Un solo picker para los tres documentos: el bloque era idéntico salvo el setter. */
   const pickDocumento = (setUri) => chooseDocSource(setUri, setProcessingRegistration);
