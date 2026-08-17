@@ -484,11 +484,13 @@ const TripDetails = ({ navigation, route }) => {
 
                     {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
                         y bajaba según cuánto contenido tuviera cada paso. */}
-                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) }]}>
-                    {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último. */}
-                    {!!faltante && (
-                        <Text style={[styles.faltante, { color: textMuted }]}>{faltante}</Text>
-                    )}
+                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+                    {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último.
+                        El texto se renderiza siempre (vacío si no hay nada que avisar) para que
+                        reserve la misma altura y el botón no salte de lugar entre pasos. */}
+                    <Text style={[styles.faltante, { color: textMuted }]} numberOfLines={1}>
+                        {faltante || ' '}
+                    </Text>
                     <TouchableOpacity
                         style={[
                             styles.submitBtn,

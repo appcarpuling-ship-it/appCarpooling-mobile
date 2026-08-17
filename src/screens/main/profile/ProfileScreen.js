@@ -385,6 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     letterSpacing: -0.6,
     marginBottom: 4,
+    textAlign: 'center',
   },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 8 },
   email: {

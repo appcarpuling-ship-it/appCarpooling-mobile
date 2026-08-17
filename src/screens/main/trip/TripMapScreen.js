@@ -286,7 +286,7 @@ const TripMapScreen = ({ route, navigation }) => {
     if (enElDestino) {
       navigation.navigate('CompleteTrip', {
         onSubmit: submitCompleteTrip,
-        totalSeats: trip?.passengers?.length || 1,
+        totalSeats: trip?.passengers?.length ?? 0,
       });
       return;
     }

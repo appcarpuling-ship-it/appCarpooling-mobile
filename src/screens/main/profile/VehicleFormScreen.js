@@ -158,7 +158,52 @@ const VehicleFormScreen = ({ navigation, route }) => {
     openSettings,
     handlePermissionRequest,
     forceRefreshPermissions,
+    takePhoto,
   } = useGalleryPermissions();
+
+  /** Mismo selector Cámara/Galería/Cancelar que usa el registro, para un solo documento. */
+  const chooseDocSource = (setUri, setProcessing) => {
+    showAlert('Subir documento', '¿De dónde la querés sacar?', [
+      {
+        text: 'Cámara',
+        onPress: async () => {
+          const asset = await takePhoto({ allowsEditing: false, quality: 0.85 });
+          if (!asset?.uri) return;
+          setProcessing(true);
+          try {
+            setUri(await compressImage(asset.uri));
+          } finally {
+            setProcessing(false);
+          }
+        },
+      },
+      {
+        text: 'Galería',
+        onPress: async () => {
+          const hasPermission = await handlePermissionRequest();
+          if (!hasPermission) return;
+          try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsMultipleSelection: false,
+              quality: 0.85,
+            });
+            if (!result.canceled && result.assets?.[0]?.uri) {
+              setProcessing(true);
+              try {
+                setUri(await compressImage(result.assets[0].uri));
+              } finally {
+                setProcessing(false);
+              }
+            }
+          } catch {
+            showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
+          }
+        },
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
 
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -176,51 +221,28 @@ const VehicleFormScreen = ({ navigation, route }) => {
   };
 
   /** Un solo picker para los tres documentos: el bloque era idéntico salvo el setter. */
-  const pickDocumento = async (setUri) => {
-    const hasPermission = await handlePermissionRequest();
-    if (!hasPermission) return;
+  const pickDocumento = (setUri) => chooseDocSource(setUri, setProcessingRegistration);
+
+  const pickRegistrationCard = () => chooseDocSource(setRegistrationCardUri, setProcessingRegistration);
+
+  const addPhotoFromCamera = async () => {
+    const asset = await takePhoto({ allowsEditing: false, quality: 0.8 });
+    if (!asset?.uri) return;
+    setProcessingNewPhotos(true);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: false,
-        quality: 0.85,
-      });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setProcessingRegistration(true);
-        try {
-          setUri(await compressImage(result.assets[0].uri));
-        } finally {
-          setProcessingRegistration(false);
-        }
+      const compressed = await compressImage(asset.uri);
+      const next = [...photos, compressed];
+      if (existingPhotos.length + next.length > 10) {
+        showAlert('Ocurrió algo', 'Podés subir hasta 10 fotos.');
+        return;
       }
-    } catch {
-      showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
+      setPhotos(next);
+    } finally {
+      setProcessingNewPhotos(false);
     }
   };
 
-  const pickRegistrationCard = async () => {
-    const hasPermission = await handlePermissionRequest();
-    if (!hasPermission) return;
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: false,
-        quality: 0.85,
-      });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setProcessingRegistration(true);
-        try {
-          setRegistrationCardUri(await compressImage(result.assets[0].uri));
-        } finally {
-          setProcessingRegistration(false);
-        }
-      }
-    } catch {
-      showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
-    }
-  };
-
-  const pickImages = async () => {
+  const addPhotosFromGallery = async () => {
     const hasPermission = await handlePermissionRequest();
     if (!hasPermission) return;
 
@@ -248,6 +270,14 @@ const VehicleFormScreen = ({ navigation, route }) => {
     } catch {
       showAlert('Ocurrió algo', 'No pudimos abrir esas imágenes.');
     }
+  };
+
+  const pickImages = () => {
+    showAlert('Agregar fotos', '¿De dónde las querés sacar?', [
+      { text: 'Cámara', onPress: addPhotoFromCamera },
+      { text: 'Galería', onPress: addPhotosFromGallery },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   const handleSubmit = async () => {
