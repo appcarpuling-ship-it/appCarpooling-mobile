@@ -57,7 +57,7 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
 
         <View style={styles.body}>
           <Text style={[styles.intro, { color: ui.textMuted }]}>
-            ¿Cuánto le cobrás a cada pasajero? Te lo paga al llegar, en mano.
+            ¿Cuánto le cobrás a cada pasajero?
           </Text>
 
           <View style={[styles.card, { backgroundColor: ui.surface, borderColor: ui.border }]}>
@@ -86,13 +86,6 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
             </Text>
           )}
 
-          {/* Lo que hace que el número importe: no es un formulario, es una oferta contra otras. */}
-          <View style={styles.nota}>
-            <Ionicons name="information-circle-outline" size={15} color={ui.textMuted} />
-            <Text style={[styles.notaText, { color: ui.textMuted }]}>
-              El pasajero ve tu precio junto al de los demás conductores y elige.
-            </Text>
-          </View>
         </View>
 
         <View style={styles.footer}>
@@ -119,8 +112,6 @@ const styles = StyleSheet.create({
   error: { color: '#EF4444', fontSize: 13, fontFamily: 'Sora_400Regular', paddingHorizontal: 4 },
   total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
 
-  nota: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingHorizontal: 4, marginTop: 4 },
-  notaText: { flex: 1, fontFamily: 'Sora_400Regular', fontSize: 12, lineHeight: 17 },
 
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });
