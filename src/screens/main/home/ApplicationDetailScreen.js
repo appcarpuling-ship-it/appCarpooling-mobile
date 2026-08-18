@@ -30,6 +30,19 @@ const armarRecorrido = (app, tramo) => {
   ].filter((p) => p && p.texto);
 };
 
+/**
+ * Qué contestó el conductor cuando se postuló: mismo tramo, o recorrido propio.
+ *
+ * Sin esto, el que hace el mismo tramo se veía EXACTAMENTE igual que si no hubiéramos
+ * preguntado nada: dos puntos y listo. El pasajero no podía distinguir "este conductor hace
+ * justo tu viaje" de "no sabemos por dónde va", que es la diferencia que la pregunta vino a
+ * responder.
+ */
+const recorridoElegido = (app) =>
+  app.driverOrigin || app.driverDestination
+    ? { texto: 'Viene de más lejos o sigue más allá', icono: 'git-branch-outline' }
+    : { texto: 'Hace tu mismo tramo', icono: 'swap-horizontal-outline' };
+
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId, tramoPasajero } = route.params;
   const { isDarkMode } = useTheme();
@@ -51,6 +64,23 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const driver = app.driverSnapshot || {};
   const vehicle = app.vehicleSnapshot || {};
   const recorrido = armarRecorrido(app, tramoPasajero);
+  const eleccion = recorridoElegido(app);
+
+  // Las fotos: la principal es `photo`, y `photos` puede repetirla. Se deduplica para no
+  // mostrar la misma imagen dos veces, y se corta en 3 secundarias.
+  const todasLasFotos = [vehicle.photo, ...(vehicle.photos || [])].filter(Boolean);
+  const fotosUnicas = [...new Set(todasLasFotos)];
+  const fotoPrincipal = fotosUnicas[0] || null;
+  const fotosSecundarias = fotosUnicas.slice(1, 4);
+
+  // Sólo las que están en true. Las postulaciones viejas no traen `features` en el snapshot.
+  const chipsVehiculo = [
+    { key: 'ac', label: 'Aire', icon: 'snow-outline' },
+    { key: 'music', label: 'Música', icon: 'musical-notes-outline' },
+    { key: 'luggage', label: 'Equipaje', icon: 'bag-outline' },
+    { key: 'pets', label: 'Mascotas', icon: 'paw-outline' },
+    { key: 'smoking', label: 'Se puede fumar', icon: 'flame-outline' },
+  ].filter((c) => vehicle.features?.[c.key]);
 
   const handleAccept = () => {
     showAlert(
@@ -142,6 +172,14 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         {recorrido.length > 0 && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Recorrido</Text>
+
+            {/* Qué eligió al postularse. Va arriba de los puntos porque es el encuadre: sin
+                esto, "hace tu mismo tramo" y "no declaró nada" se ven idénticos. */}
+            <View style={styles.recorridoElegido}>
+              <Ionicons name={eleccion.icono} size={15} color={textPrimary} />
+              <Text style={[styles.recorridoElegidoText, { color: textPrimary }]}>{eleccion.texto}</Text>
+            </View>
+
             {recorrido.map((punto, i) => (
               <View key={`${punto.etiqueta}-${i}`} style={styles.recorridoFila}>
                 <View style={styles.recorridoLinea}>
@@ -166,9 +204,33 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         {Object.keys(vehicle).length > 0 && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
-            {vehicle.photo ? (
-              <Image source={{ uri: buildImageUri(vehicle.photo) }} style={styles.vehiclePhoto} />
+
+            {/* La principal grande y hasta 3 más en fila abajo. El tope es a propósito: con seis
+                fotos la ficha se volvía un scroll de fotos y tapaba los datos del auto. */}
+            {fotoPrincipal ? (
+              <Image source={{ uri: buildImageUri(fotoPrincipal) }} style={styles.vehiclePhoto} />
             ) : null}
+            {fotosSecundarias.length > 0 && (
+              <View style={styles.fotosFila}>
+                {fotosSecundarias.map((f) => (
+                  <Image key={f} source={{ uri: buildImageUri(f) }} style={styles.fotoChica} />
+                ))}
+              </View>
+            )}
+
+            {/* Las características van con la foto y no sueltas: son parte de "cómo es el auto".
+                Las postulaciones viejas no las traen en el snapshot, y ahí no se muestra nada. */}
+            {chipsVehiculo.length > 0 && (
+              <View style={styles.featuresRow}>
+                {chipsVehiculo.map((c) => (
+                  <View key={c.label} style={[styles.featureChip, { backgroundColor: bg }]}>
+                    <Ionicons name={c.icon} size={14} color={textPrimary} />
+                    <Text style={[styles.featureChipText, { color: textPrimary }]}>{c.label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <View style={styles.vehicleRow}>
               <Ionicons name="car-outline" size={20} color={textMuted} />
               <Text style={[styles.vehicleMain, { color: textPrimary }]}>
@@ -288,6 +350,16 @@ const styles = StyleSheet.create({
   vehicleDetailValue: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   // El punto del pasajero va en negro pleno y el del conductor en gris: de un vistazo se ve
   // cuál es "mi" tramo dentro del recorrido más largo.
+  recorridoElegido: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 12 },
+  recorridoElegidoText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+
+  fotosFila: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  fotoChica: { flex: 1, height: 64, borderRadius: 10, backgroundColor: '#00000010' },
+
+  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  featureChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  featureChipText: { fontSize: 12, fontFamily: 'Sora_500Medium' },
+
   recorridoFila: { flexDirection: 'row', gap: 12 },
   recorridoLinea: { alignItems: 'center', width: 10 },
   recorridoPunto: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
