@@ -332,9 +332,6 @@ const TripRequestsScreen = ({ route }) => {
     return s || city || '';
   };
 
-  const fmtCurrency = (n) =>
-    n == null || isNaN(n) ? '-' : '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
   const activeTrips = trips.filter((t) => t.status === 'active' || t.status === 'started');
 
   /** Viaje actualmente seleccionado (origen / destino para el encabezado de solicitudes) */
@@ -469,7 +466,6 @@ const TripRequestsScreen = ({ route }) => {
     const resStatus = item.seatReservation?.reservationStatus || item.status;
     const status = getStatus(resStatus);
     const isPending = resStatus === 'pending_approval' || resStatus === 'pending';
-    const amount = item.seatReservation?.reservationAmount;
     const seats = item.seatsBooked || item.seatsRequested;
 
     return (
@@ -499,12 +495,9 @@ const TripRequestsScreen = ({ route }) => {
               {seats} asiento{seats === 1 ? '' : 's'} · pidió el {fmtDate(item.createdAt)}
             </Text>
           </View>
-          {amount != null && (
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[styles.reqMontoLabel, { color: textMuted }]}>Reserva</Text>
-              <Text style={[styles.amountText, { color: textPrimary }]}>{fmtCurrency(amount)}</Text>
-            </View>
-          )}
+          {/* Acá iba el monto de la reserva. Se sacó: ese número es la CONEXIÓN que el pasajero
+              le paga a la plataforma, no plata del conductor, y mostrárselo hacía creer que era
+              lo que iba a cobrar. Lo que cobra él es su `driverPrice`, que ya fijó al publicar. */}
         </TouchableOpacity>
 
         {/* El estado sólo cuando NO es "esperando": en una pantalla que se llama Solicitudes
@@ -899,9 +892,7 @@ const styles = StyleSheet.create({
   // del mismo color lo dejaba invisible.
   statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
-  amountText:     { fontSize: 17, fontFamily: 'Sora_800ExtraBold' },
   reqSub:         { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
-  reqMontoLabel:  { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.4, textTransform: 'uppercase' },
   reqEstadoWrap:  { paddingHorizontal: 16, paddingBottom: 14, marginTop: -4, alignItems: 'flex-start' },
 
   // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
