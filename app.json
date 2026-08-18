@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carpuling",
     "slug": "carpuling",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/logo/1024x1024.jpg",
@@ -46,13 +46,13 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
       },
-      "buildNumber": "20"
+      "buildNumber": "21"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.carpuling.app.ar",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 43,
+      "versionCode": 44,
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",
