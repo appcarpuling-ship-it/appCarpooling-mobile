@@ -175,10 +175,39 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     });
   };
 
-  const confirmApply = async (vehicleId) => {
+  /**
+   * Elegido el vehículo, falta saber qué recorrido hace el conductor. Puede ser más largo que
+   * el del pasajero —de Misiones a Ushuaia levantando a alguien que va de Concordia a Buenos
+   * Aires— y entonces el viaje tiene que armarse con las cuatro puntas, no con dos.
+   *
+   * Es opcional a propósito: el caso común es hacer el mismo tramo, y ahí pedir dos
+   * direcciones más sería un trámite al pedo.
+   */
+  const confirmApply = (vehicleId) => {
+    showAlert(
+      'Tu recorrido',
+      '¿Hacés exactamente este tramo, o venís de más lejos o seguís más allá?',
+      [
+        { text: 'Hago este mismo tramo', onPress: () => enviarPostulacion(vehicleId) },
+        {
+          text: 'Elegir mi recorrido',
+          onPress: () => navigation.navigate('PickDriverRoute', {
+            mode: 'apply',
+            onDone: ({ origin, destination }) => enviarPostulacion(vehicleId, {
+              driverOrigin: origin,
+              driverDestination: destination,
+            }),
+          }),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]
+    );
+  };
+
+  const enviarPostulacion = async (vehicleId, recorrido) => {
     setApplying(true);
     try {
-      const res = await applyToTripRequest(requestId, vehicleId);
+      const res = await applyToTripRequest(requestId, vehicleId, recorrido);
       if (res.success) {
         navigation.navigate('Result', { type: 'success', title: '¡Propuesta enviada!', message: 'El pasajero revisará tu perfil y vehículo.' });
         setAlreadyApplied(true);
@@ -426,7 +455,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 <TouchableOpacity
                   key={app._id}
                   style={[styles.passengerRow, { borderBottomColor: divider }]}
-                  onPress={() => navigation.navigate('ApplicationDetail', { app, requestId })}
+                  onPress={() => navigation.navigate('ApplicationDetail', {
+                    app,
+                    requestId,
+                    // Para poder mostrar el recorrido completo: dónde sube y baja el pasajero
+                    // entre las puntas del conductor.
+                    tramoPasajero: { origin: request.origin, destination: request.destination },
+                  })}
                   activeOpacity={0.75}
                 >
                   {app.driverSnapshot?.avatar ? (

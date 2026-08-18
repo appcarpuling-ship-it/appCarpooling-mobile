@@ -76,6 +76,14 @@ const AppNavigator = () => {
             component={CreateTripGoogleMaps}
             options={{ headerShown: false }}
           />
+          {/* El mismo mapa de crear viaje, pero para que el conductor elija SU recorrido al
+              postularse a una solicitud. Devuelve el tramo por `onDone` en vez de navegar. */}
+          <Stack.Screen
+            name="PickDriverRoute"
+            component={CreateTripGoogleMaps}
+            options={{ headerShown: false }}
+            initialParams={{ mode: 'apply' }}
+          />
           <Stack.Screen
             name="TripRequestDetails"
             component={TripRequestDetailsScreen}

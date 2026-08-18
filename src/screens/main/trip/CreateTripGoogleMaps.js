@@ -62,6 +62,10 @@ const cityFromGoogleComponents = (components) => {
 
 const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const isRequestMode = navRoute?.params?.mode === 'request';
+  // 'apply': el conductor elige su propio origen y destino para postularse a una solicitud.
+  // Como el modo 'request', no necesita vehículos cargados: acá sólo se elige el recorrido.
+  const isApplyMode = navRoute?.params?.mode === 'apply';
+  const sinVehiculos = isRequestMode || isApplyMode;
   const { isDarkMode } = useColors();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -198,7 +202,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   useEffect(() => {
     isMounted.current = true;
-    if (!isRequestMode) loadVehicles();
+    if (!sinVehiculos) loadVehicles();
     else setLoadingVehicles(false);
     getCurrentLocation();
     if (!GOOGLE_MAPS_API_KEY) showAlert('Ocurrió algo', 'La API Key de Google Maps no está configurada');
@@ -686,6 +690,13 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
+    // El conductor eligiendo SU recorrido para postularse a una solicitud. No navega a ningún
+    // lado: devuelve el tramo al que abrió la pantalla y vuelve.
+    if (isApplyMode) {
+      navRoute.params?.onDone?.({ origin: formData.origin, destination: formData.destination });
+      navigation.goBack();
+      return;
+    }
     if (isRequestMode) {
       navigation.getParent('AppStack')?.navigate('TripRequestDetails', {
         origin: formData.origin,
@@ -710,7 +721,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   // ─── Early returns ────────────────────────────────────────────────────────
 
-  if (!isRequestMode && loadingVehicles) {
+  if (!sinVehiculos && loadingVehicles) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
         {renderEarlyExitHeader()}
@@ -722,7 +733,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     );
   }
 
-  if (!isRequestMode && !vehicles?.length) {
+  if (!sinVehiculos && !vehicles?.length) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
         {renderEarlyExitHeader()}
