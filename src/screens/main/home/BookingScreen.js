@@ -514,7 +514,7 @@ const BookingScreen = ({ route, navigation }) => {
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
               {/* "Pagás ahora" y no "Precio" a secas: abajo va lo que le paga al conductor al
                   llegar, y sin distinguirlos el pasajero cree que el total es todo lo que gasta. */}
-              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Pagás ahora por la app</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asegurás tu asiento</Text>
 
               {/* "Precio base" y "Total" eran el MISMO número siempre que no hubiera descuento:
                   dos filas y un divisor para decir una sola cosa. El desglose aparece sólo
@@ -543,7 +543,7 @@ const BookingScreen = ({ route, navigation }) => {
 
               <View style={styles.priceRow}>
                 <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
-                  {seats > 1 ? `Conexión · ${seats} asientos` : 'Conexión'}
+                  {seats > 1 ? `Pagás ahora · ${seats} asientos` : 'Pagás ahora'}
                 </Text>
                 <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
                   ${formatNumber(displayPrice)} ARS
@@ -572,8 +572,10 @@ const BookingScreen = ({ route, navigation }) => {
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
               <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Al conductor, al llegar</Text>
               <View style={styles.priceRow}>
+                {/* Sin etiqueta con un solo asiento: el encabezado ya dice a quién y cuándo, y
+                    "en mano" era además incorrecto — también se le puede transferir. */}
                 <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
-                  {seats > 1 ? `$${formatNumber(driverPrice)} × ${seats} asientos` : 'En mano'}
+                  {seats > 1 ? `$${formatNumber(driverPrice)} × ${seats} asientos` : ''}
                 </Text>
                 <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
                   ${formatNumber(driverPriceTotal)} ARS

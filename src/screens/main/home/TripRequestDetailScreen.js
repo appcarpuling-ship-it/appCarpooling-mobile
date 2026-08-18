@@ -433,11 +433,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             que la app hable igual en los dos momentos donde hay plata de por medio. */}
         {isPassenger && <View style={[styles.costBanner, { backgroundColor: cardBg, borderColor: divider }]}>
           <View style={styles.costBannerLeft}>
-            <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Pagás ahora por la app</Text>
+            <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Asegurás tu asiento</Text>
             <Text style={[styles.costBannerSub, { color: textMuted }]}>
               {request.seatsNeeded > 1
-                ? `Por conectarte · $${request.pricePerSeat?.toLocaleString()} × ${request.seatsNeeded} asientos`
-                : 'Por conectarte con el conductor'}
+                ? `Pagás ahora · $${request.pricePerSeat?.toLocaleString()} × ${request.seatsNeeded} asientos`
+                : 'Pagás ahora'}
             </Text>
           </View>
           <Text style={[styles.costBannerValue, { color: textPrimary }]}>

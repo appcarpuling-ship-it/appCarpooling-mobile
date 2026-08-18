@@ -1108,11 +1108,11 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Pasajeros confirmados ({passengers.length})
             </Text>
-            {/* Cuánto le queda por cobrar en mano una vez cerrado el viaje. La reserva ya la
+            {/* Cuánto le queda por cobrar una vez cerrado el viaje. La reserva ya la
                 cobró la plataforma, así que este total es sólo el resto que cada uno le paga. */}
             {trip.status === 'completed' && totalOwed > 0 && (
               <View style={[styles.owedRow, { borderTopColor: divider, borderTopWidth: 0, paddingTop: 0, marginTop: -6, marginBottom: 10 }]}>
-                <Text style={[styles.owedLabel, { color: textMuted }]}>Total a cobrar en mano</Text>
+                <Text style={[styles.owedLabel, { color: textMuted }]}>Total a cobrar</Text>
                 <Text style={[styles.owedValue, { color: textPrimary }]}>{fmtCurrency(totalOwed)}</Text>
               </View>
             )}
