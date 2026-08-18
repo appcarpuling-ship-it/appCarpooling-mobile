@@ -28,6 +28,7 @@ import VehiclePickerScreen from '../screens/common/VehiclePickerScreen';
 import CompleteTripScreen from '../screens/common/CompleteTripScreen';
 import PickupMapScreen from '../screens/common/PickupMapScreen';
 import PointPickerScreen from '../screens/common/PointPickerScreen';
+import DriverRoutePickerScreen from '../screens/common/DriverRoutePickerScreen';
 
 const Stack = createStackNavigator();
 
@@ -83,6 +84,13 @@ const AppNavigator = () => {
             component={CreateTripGoogleMaps}
             options={{ headerShown: false }}
             initialParams={{ mode: 'apply' }}
+          />
+          {/* La elección previa: mismo tramo o recorrido propio. Como pantalla y no como
+              alert, para que sea la misma forma que VehiclePicker, el paso anterior. */}
+          <Stack.Screen
+            name="DriverRoutePicker"
+            component={DriverRoutePickerScreen}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="TripRequestDetails"
