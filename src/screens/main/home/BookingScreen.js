@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
-import { tripRemainingSeats, tripDisplaySeats, tripSeatCapacity } from '../../../utils/tripSeatsDisplay';
+import { tripRemainingSeats, tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
 import * as Location from 'expo-location';
@@ -101,7 +101,6 @@ const BookingScreen = ({ route, navigation }) => {
 
   const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
-  const tripCap = useMemo(() => tripSeatCapacity(trip), [trip]);
 
   // Lo que el conductor cobra por asiento: no pasa por la app, se le paga a él al llegar.
   // Es aparte del precio de la conexión que se cobra acá.
@@ -363,7 +362,10 @@ const BookingScreen = ({ route, navigation }) => {
             <View style={styles.routeRow}>
               <View style={styles.routeCol}>
                 <View style={styles.routeDot} />
-                <View style={[styles.routeLine, { backgroundColor: divider }]} />
+                {/* `divider` es ui.bg, o sea el MISMO color del fondo: la línea existía pero era
+                    invisible sobre la tarjeta. Va con el color del texto, que en oscuro es blanco
+                    y en claro es negro, así que se ve en los dos temas. */}
+                <View style={[styles.routeLine, { backgroundColor: textPrimary }]} />
                 <View style={[styles.routeDotDest, { borderColor: accent }]} />
               </View>
               <View style={styles.routeTextCol}>
@@ -514,30 +516,35 @@ const BookingScreen = ({ route, navigation }) => {
                   llegar, y sin distinguirlos el pasajero cree que el total es todo lo que gasta. */}
               <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Pagás ahora por la app</Text>
 
-              <View style={styles.priceRow}>
-                <Text style={[styles.priceLabel, { color: textMuted }]}>
-                  Precio base ({seats} asiento{seats > 1 ? 's' : ''})
-                </Text>
-                <Text style={[styles.priceValue, { color: textPrimary }]}>
-                  ${formatNumber(priceData.pricing.originalPrice || priceData.pricing.totalPrice)} ARS
-                </Text>
-              </View>
-
+              {/* "Precio base" y "Total" eran el MISMO número siempre que no hubiera descuento:
+                  dos filas y un divisor para decir una sola cosa. El desglose aparece sólo
+                  cuando hay algo que desglosar. */}
               {priceData.pricing.discountPercentage > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={[styles.priceLabel, { color: successColor }]}>
-                    Descuento ({priceData.pricing.discountPercentage}%)
-                  </Text>
-                  <Text style={[styles.priceValue, { color: successColor }]}>
-                    -${formatNumber(priceData.pricing.discountAmount)} ARS
-                  </Text>
-                </View>
+                <>
+                  <View style={styles.priceRow}>
+                    <Text style={[styles.priceLabel, { color: textMuted }]}>
+                      Precio base ({seats} asiento{seats > 1 ? 's' : ''})
+                    </Text>
+                    <Text style={[styles.priceValue, { color: textPrimary }]}>
+                      ${formatNumber(priceData.pricing.originalPrice || priceData.pricing.totalPrice)} ARS
+                    </Text>
+                  </View>
+                  <View style={styles.priceRow}>
+                    <Text style={[styles.priceLabel, { color: successColor }]}>
+                      Descuento ({priceData.pricing.discountPercentage}%)
+                    </Text>
+                    <Text style={[styles.priceValue, { color: successColor }]}>
+                      -${formatNumber(priceData.pricing.discountAmount)} ARS
+                    </Text>
+                  </View>
+                  <View style={[styles.priceDivider, { backgroundColor: divider }]} />
+                </>
               )}
 
-              <View style={[styles.priceDivider, { backgroundColor: divider }]} />
-
               <View style={styles.priceRow}>
-                <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>Total</Text>
+                <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
+                  {seats > 1 ? `Conexión · ${seats} asientos` : 'Conexión'}
+                </Text>
                 <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
                   ${formatNumber(displayPrice)} ARS
                 </Text>
@@ -551,50 +558,30 @@ const BookingScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
               )}
-
-              {/* Lo que le paga al CONDUCTOR, aparte y al llegar. Va acá, en la misma pantalla
-                  donde decide pagar, porque es plata que se compromete a poner: enterarse recién
-                  al bajarse del auto es exactamente lo que este rediseño vino a sacar. */}
-              {driverPriceTotal > 0 && (
-                <View style={[styles.priceDivider, { backgroundColor: divider, marginTop: 14 }]} />
-              )}
-              {driverPriceTotal > 0 && (
-                <>
-                  <View style={[styles.priceRow, { marginTop: 12 }]}>
-                    <Text style={[styles.priceLabel, { color: textMuted }]}>
-                      Al conductor, al llegar
-                    </Text>
-                    <Text style={[styles.priceValue, { color: textPrimary }]}>
-                      ${formatNumber(driverPriceTotal)} ARS
-                    </Text>
-                  </View>
-                  <Text style={[styles.priceLabel, { color: textMuted, marginTop: 2 }]}>
-                    ${formatNumber(driverPrice)} por asiento, se lo pagás directamente a él.
-                  </Text>
-                </>
-              )}
             </View>
           )}
 
+          {/* Lo que le paga al CONDUCTOR va en su PROPIA ficha. Estaba metido dentro de la de
+              arriba, cuyo título es "Pagás ahora por la app": esta plata no se paga ahora ni por
+              la app, así que el título se contradecía con su propio contenido. Separadas, cada
+              encabezado dice la verdad y se lee que son dos pagos distintos.
 
-          {/* Trip details */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-            <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Detalles</Text>
-
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: textMuted }]}>Asientos disponibles</Text>
-              <Text style={[styles.detailValue, { color: textPrimary }]}>
-                {tripShownSeats} de {tripCap || trip.totalSeats || 0}
-              </Text>
-            </View>
-
-            {priceData?.distanceKm && (
-              <View style={[styles.detailRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: divider }]}>
-                <Text style={[styles.detailLabel, { color: textMuted }]}>Distancia estimada</Text>
-                <Text style={[styles.detailValue, { color: textPrimary }]}>{priceData.distanceKm} km</Text>
+              Va igual en esta pantalla, donde decide: enterarse al bajarse del auto es
+              exactamente lo que este rediseño vino a sacar. */}
+          {driverPriceTotal > 0 && (
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Al conductor, al llegar</Text>
+              <View style={styles.priceRow}>
+                <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
+                  {seats > 1 ? `$${formatNumber(driverPrice)} × ${seats} asientos` : 'En mano'}
+                </Text>
+                <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
+                  ${formatNumber(driverPriceTotal)} ARS
+                </Text>
               </View>
-            )}
-          </View>
+            </View>
+          )}
+
 
           {/* Preferences */}
           {trip.rules && (
@@ -895,20 +882,6 @@ const styles = StyleSheet.create({
 
   // Vehicle
 
-  // Details
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  detailLabel: {
-    fontSize: 14,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontFamily: 'Sora_500Medium',
-  },
 
   // Preferences
   prefGrid: {
