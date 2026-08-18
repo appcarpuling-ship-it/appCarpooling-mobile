@@ -10,7 +10,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useAuth } from '../../../context/AuthContext';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
-import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest } from '../../../services/tripRequestService';
+import { acceptTripRequestApplication, applyToTripRequest, cancelTripRequest, cancelTripRequestApplication } from '../../../services/tripRequestService';
 import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import Rating from '../../../components/ui/Rating';
@@ -53,9 +53,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [alreadyApplied, setAlreadyApplied] = useState(alreadyAppliedParam ?? false);
   const [checkoutModal,  setCheckoutModal]  = useState({ visible: false, paymentUrl: null });
   const [cancelling,     setCancelling]     = useState(false);
+  const [retirando,      setRetirando]      = useState(false);
 
   const isPassenger = request ? request.isPassenger : false;
   const isDriver    = request ? !request.isPassenger : false;
+
+  // El backend le manda al conductor SOLO su propia postulación (filtra las de terceros), así
+  // que igual se busca por id: si algún día dejara de filtrar, mostrar la oferta de otro sería
+  // peor que no mostrar ninguna.
+  const miPostulacion = request?.applications?.find(
+    (a) => String(a.driver?._id || a.driver) === String(user?._id || user?.id),
+  );
 
   const loadVehicles = async () => {
     try {
@@ -208,6 +216,43 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
       seatsNeeded: request?.seatsNeeded || 1,
       onDone: (driverPrice) => enviarPostulacion(vehicleId, recorrido, driverPrice),
     });
+  };
+
+  /**
+   * Retirar la postulación. Se confirma antes porque es destructivo y no se deshace: para
+   * volver hay que postularse de nuevo, y si mientras tanto la solicitud llegó a 5 postulantes
+   * puede quedarse afuera.
+   */
+  const handleRetirarPostulacion = () => {
+    showAlert(
+      'Retirar postulación',
+      'Se le deja de ofrecer este viaje al pasajero. Podés volver a postularte si querés.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, retirar',
+          style: 'destructive',
+          onPress: async () => {
+            setRetirando(true);
+            try {
+              const res = await cancelTripRequestApplication(requestId);
+              if (res.success) {
+                // Los flags los recalcula el server (canApply mira además el tope de 5
+                // postulantes y el estado de la solicitud): ponerlos a mano acá haría
+                // parpadear "Ofrecer viaje" en casos donde no se puede.
+                await load();
+              } else {
+                showAlert('Ocurrió algo', res.message || 'No se pudo retirar la postulación');
+              }
+            } catch (err) {
+              showAlert('Ocurrió algo', err.message || 'No se pudo retirar la postulación');
+            } finally {
+              setRetirando(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const enviarPostulacion = async (vehicleId, recorrido, driverPrice) => {
@@ -587,10 +632,31 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
             alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
-              <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
-                <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
-                <Text style={[styles.statusFooterText, { color: ui.invertText }]}>Ya te postulaste a este viaje</Text>
-              </View>
+              <>
+                {/* Con cuánto se postuló. Saber que se postuló pero no con qué número lo obliga
+                    a acordarse de memoria justo cuando está comparando contra otras solicitudes.
+                    El backend ya le manda SU postulación (filtra las de los demás, no la suya). */}
+                <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
+                  <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
+                  <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
+                    {miPostulacion?.driverPrice > 0
+                      ? `Te postulaste por $${Number(miPostulacion.driverPrice).toLocaleString('es-AR')} por asiento`
+                      : 'Ya te postulaste a este viaje'}
+                  </Text>
+                </View>
+
+                {/* Retirar: hasta acá, una postulación era irreversible desde la app. */}
+                <TouchableOpacity
+                  style={[styles.footerBtnOutline, { borderColor: ui.border, marginTop: 10 }, retirando && { opacity: 0.6 }]}
+                  onPress={handleRetirarPostulacion}
+                  disabled={retirando}
+                >
+                  {retirando
+                    ? <ActivityIndicator color={textMuted} />
+                    : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Retirar postulación</Text>
+                  }
+                </TouchableOpacity>
+              </>
             ) : canApply ? (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }, applying && { opacity: 0.6 }]}
