@@ -805,7 +805,11 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {trip.status === 'completed' && (
+        {/* El desglose de gastos sólo existe para los viajes viejos, de cuando el conductor los
+            cargaba al completar. Sin `actualCost` el componente devuelve null pero la tarjeta que
+            lo envuelve se dibujaba igual, y quedaba un rectángulo gris vacío en el medio de la
+            pantalla. La condición va acá, en el envoltorio, no adentro del componente. */}
+        {trip.status === 'completed' && trip.actualCost > 0 && (
           <View style={[styles.section, { backgroundColor: cardBg }]}>
             <TripCostBreakdown trip={trip} />
           </View>
@@ -924,8 +928,10 @@ const TripDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* El precio del conductor, antes de todo lo demás: es lo primero que el pasajero mira
-            para decidir si sigue leyendo este viaje o vuelve al listado. */}
-        {trip?.driverPrice > 0 && (
+            para decidir si sigue leyendo este viaje o vuelve al listado.
+            Con el viaje ya terminado no va: ahí el número que importa es "Le pagás al conductor"
+            de Tu reserva, y mostrar los dos repetía el mismo monto dos veces en una pantalla. */}
+        {trip?.driverPrice > 0 && trip.status !== 'completed' && (
           <View style={[styles.section, { backgroundColor: cardBg }]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Precio del conductor</Text>
             <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
