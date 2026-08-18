@@ -163,6 +163,33 @@ export const getLastNotificationResponse = async () => {
 };
 
 /**
+ * Aviso local inmediato, sin pasar por el server.
+ *
+ * Para lo que hay que decirle al conductor en el momento —cobrarle al que acaba de bajar— y que
+ * no puede ser un alert: manejando, un modal le pide un toque y le tapa el mapa. Esto baja como
+ * notificación, no bloquea nada y se va solo. Se ve con la app abierta porque el handler de
+ * arriba tiene `shouldShowBanner: true`.
+ *
+ * @returns {Promise<boolean>} false si no se pudo mostrar (típicamente porque el usuario no dio
+ *          permiso de notificaciones). Se devuelve en vez de tragarlo para que el llamador
+ *          decida: un recordatorio de cobro que no aparece es peor que uno feo.
+ */
+export const mostrarAvisoLocal = async ({ title, body }) => {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return false;
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: true },
+      trigger: null, // null = ahora, sin programar
+    });
+    return true;
+  } catch (error) {
+    console.error('❌ Error mostrando aviso local:', error);
+    return false;
+  }
+};
+
+/**
  * Limpiar todas las notificaciones
  */
 export const clearAllNotifications = async () => {
@@ -204,6 +231,7 @@ export default {
   removePushTokenFromServer,
   setupNotificationListeners,
   getLastNotificationResponse,
+  mostrarAvisoLocal,
   clearAllNotifications,
   getBadgeCount,
   setBadgeCount,

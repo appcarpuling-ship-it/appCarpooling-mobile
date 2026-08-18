@@ -19,6 +19,7 @@ import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
+import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { put_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -311,21 +312,29 @@ const TripMapScreen = ({ route, navigation }) => {
    * Al dejar a un pasajero, recordarle al conductor que le cobre. El monto es el que él mismo
    * publicó al crear el viaje y el pasajero ya vio antes de reservar: acá no se decide nada,
    * sólo se recuerda en el momento en que hay que cobrarlo, que es cuando la persona se baja.
+   *
+   * Va como NOTIFICACIÓN y no como alert. Era un modal con un botón "Listo, cobrado", y tenía
+   * tres problemas: pedía un segundo toque manejando, tapaba el mapa, y ese botón prometía un
+   * registro de cobro que no existe en ningún lado. Así baja, se lee y se va sola.
+   *
+   * No bloquea el avance: la parada se marca igual, en paralelo.
    */
-  const avisarCobro = (parada, alSeguir) => {
+  const avisarCobro = async (parada) => {
     const precio = Math.max(0, Number(trip?.driverPrice) || 0);
-    const nombre = parada?.pasajero?.firstName;
-    if (precio <= 0 || parada?.kind !== 'dropoff') return alSeguir();
+    if (precio <= 0 || parada?.kind !== 'dropoff') return;
 
+    const nombre = parada?.pasajero?.firstName;
     const asientos = asientosDePasajero(trip, parada.pasajero);
     const total = precio * asientos;
-    showAlert(
-      nombre ? `Bajó ${nombre}` : 'Bajó el pasajero',
-      asientos > 1
-        ? `Cobrale $${total.toLocaleString('es-AR')} ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
-        : `Cobrale $${total.toLocaleString('es-AR')}.`,
-      [{ text: 'Listo, cobrado', onPress: alSeguir }]
-    );
+    const titulo = nombre ? `Bajó ${nombre}` : 'Bajó el pasajero';
+    const cuerpo = asientos > 1
+      ? `Cobrale $${total.toLocaleString('es-AR')} ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
+      : `Cobrale $${total.toLocaleString('es-AR')}.`;
+
+    // Sin permiso de notificaciones no aparece nada, y quedarse sin el recordatorio del cobro es
+    // peor que un modal: ahí sí cae al alert.
+    const mostrada = await mostrarAvisoLocal({ title: titulo, body: cuerpo });
+    if (!mostrada) showAlert(titulo, cuerpo);
   };
 
   const avanzar = () => {
@@ -334,7 +343,9 @@ const TripMapScreen = ({ route, navigation }) => {
       return;
     }
     const parada = proximaParada;
-    avisarCobro(parada, () => setParadasHechas((prev) => [...prev, parada.id]));
+    // Avanza YA, sin esperar al aviso: un solo toque, como era antes de agregar el recordatorio.
+    setParadasHechas((prev) => [...prev, parada.id]);
+    avisarCobro(parada);
   };
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
