@@ -128,12 +128,11 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
             que cobra la app. */}
         {app.driverPrice > 0 && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Su precio</Text>
+            {/* "por asiento" pasa al rótulo al sacar la aclaración de abajo: sin eso, $30.000
+                puede leerse como el total de la reserva y no como el precio de cada lugar. */}
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Su precio por asiento</Text>
             <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
               ${Number(app.driverPrice).toLocaleString('es-AR')}
-            </Text>
-            <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 4 }}>
-              Por asiento. Se lo pagás a él al llegar, aparte de lo que cobra la app por conectarlos.
             </Text>
           </View>
         )}
@@ -160,9 +159,6 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 </View>
               </View>
             ))}
-            <Text style={[styles.recorridoNota, { color: textMuted }]}>
-              Pagás sólo tu tramo, desde donde subís hasta donde bajás.
-            </Text>
           </View>
         )}
 
@@ -299,7 +295,6 @@ const styles = StyleSheet.create({
   recorridoTexto: { flex: 1, paddingBottom: 14 },
   recorridoEtiqueta: { fontSize: 11, fontFamily: 'Sora_500Medium', marginBottom: 2 },
   recorridoDireccion: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19 },
-  recorridoNota: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17 },
   footer: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
   acceptBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   acceptBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
