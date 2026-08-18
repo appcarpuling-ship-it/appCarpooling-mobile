@@ -935,9 +935,6 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
               ${Number(trip.driverPrice).toLocaleString('es-AR')}
             </Text>
-            <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 4 }}>
-              Por asiento, se lo pagás a él al llegar. Aparte, la app cobra su cargo por conectarlos.
-            </Text>
           </View>
         )}
 
