@@ -46,7 +46,7 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
       },
-      "buildNumber": "22"
+      "buildNumber": "23"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
