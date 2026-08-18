@@ -25,10 +25,21 @@ const VehiclePickerScreen = ({ route, navigation }) => {
     setIndex(next);
   };
 
+  /**
+   * El goBack va ANTES del onSelect, no después.
+   *
+   * Al revés, cuando el callback navega —como al postularse a una solicitud, que sigue a
+   * DriverRoutePicker— las dos acciones caen en el mismo tick: el navigate apila la pantalla
+   * nueva y el goBack se la lleva puesta, dejándote de vuelta acá. El síntoma es que el botón
+   * "no hace nada", sin error ni aviso.
+   *
+   * Es el mismo orden que ya usan DriverRoutePicker y DriverPricePicker, los otros dos pasos
+   * de ese flujo. Para quien sólo guarda el id (crear viaje) el orden da igual.
+   */
   const confirm = () => {
     const v = vehicles[index];
-    if (v) onSelect?.(v._id);
     navigation.goBack();
+    if (v) onSelect?.(v._id);
   };
 
   const renderItem = ({ item }) => (
