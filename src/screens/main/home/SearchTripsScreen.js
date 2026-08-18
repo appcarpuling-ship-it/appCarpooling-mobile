@@ -34,7 +34,6 @@ const SearchTripsScreen = ({ route, navigation }) => {
     destinationCity: destination?.trim() || '',
     date: departureDate || '',
     minSeats: '',
-    maxPrice: '',
     minRating: 0,
     timeOfDay: '',
     vehicleType: '',
@@ -63,7 +62,6 @@ const SearchTripsScreen = ({ route, navigation }) => {
         destinationCity: destination?.trim() || '',
         date: departureDate || '',
         minSeats: '',
-        maxPrice: '',
       };
 
       searchTrips(initialSearchData);
@@ -83,11 +81,10 @@ const SearchTripsScreen = ({ route, navigation }) => {
   const applyAdvancedFilters = (trips, filters) => {
     let filtered = Array.isArray(trips) ? trips : [];
 
-    if (filters.maxPrice && !isNaN(parseFloat(filters.maxPrice))) {
-      filtered = filtered.filter(trip =>
-        trip.pricePerSeat && trip.pricePerSeat <= parseFloat(filters.maxPrice)
-      );
-    }
+    // Sin filtro por precio: el precio de un viaje no existe hasta que el pasajero elige dónde
+    // sube y dónde baja (paga su tramo, no el recorrido del conductor). El que había comparaba
+    // contra `pricePerSeat`, que es el del viaje completo, y escondía viajes largos en los que
+    // el tramo del pasajero salía barato.
 
     if (filters.minRating && filters.minRating > 0) {
       filtered = filtered.filter(trip =>
@@ -147,13 +144,8 @@ const SearchTripsScreen = ({ route, navigation }) => {
     const sorted = [...trips];
 
     switch (filters.sortBy) {
-      case 'price':
-        sorted.sort((a, b) => {
-          const priceA = a.pricePerSeat || 0;
-          const priceB = b.pricePerSeat || 0;
-          return filters.sortOrder === 'asc' ? priceA - priceB : priceB - priceA;
-        });
-        break;
+      // 'price' se sacó por lo mismo que el filtro: ordenaba por el recorrido completo del
+      // conductor. Los viajes guardados con sortBy:'price' de antes caen al default (fecha).
       case 'rating':
         sorted.sort((a, b) => {
           const ratingA = a.driver?.rating || 0;
@@ -248,7 +240,6 @@ const SearchTripsScreen = ({ route, navigation }) => {
     let count = 0;
     if (filters.date) count++;
     if (filters.minSeats) count++;
-    if (filters.maxPrice) count++;
     if (filters.minRating > 0) count++;
     if (filters.timeOfDay) count++;
     if (filters.vehicleType) count++;

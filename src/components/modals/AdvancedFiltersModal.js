@@ -161,12 +161,11 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
     destinationCity: '',
     date: '',
     minSeats: '',
-    maxPrice: '',
     minRating: 0,
     timeOfDay: '', // 'morning', 'afternoon', 'evening', 'night'
     vehicleType: '', // 'sedan', 'suv', 'hatchback', 'pickup'
     instantBooking: false,
-    sortBy: 'departureDate', // 'departureDate', 'price', 'rating'
+    sortBy: 'departureDate', // 'departureDate', 'rating'
     sortOrder: 'asc', // 'asc', 'desc'
     ...initialFilters,
   });
@@ -203,7 +202,6 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
       destinationCity: initialFilters.destinationCity || '',
       date: '',
       minSeats: '',
-      maxPrice: '',
       minRating: 0,
       timeOfDay: '',
       vehicleType: '',
@@ -441,9 +439,13 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
                       </View>
                     </View>
 
-                    {/* Capacidad y Precio */}
+                    {/* Sin "Precio Máximo": el precio de un viaje no está definido hasta que el
+                        pasajero elige dónde sube y dónde baja —paga su tramo, no el viaje del
+                        conductor—, así que al listar no hay un número que filtrar. El que había
+                        era el del recorrido completo, que ni siquiera se muestra en la lista:
+                        escondía viajes largos que para el tramo del pasajero salían baratos. */}
                     <View style={styles.section}>
-                      <Text style={dynamicStyles.sectionTitle}>Capacidad y Precio</Text>
+                      <Text style={dynamicStyles.sectionTitle}>Capacidad</Text>
                       <View style={styles.row}>
                         <View style={styles.halfInput}>
                           <Text style={dynamicStyles.inputLabel}>Asientos Mínimos</Text>
@@ -455,20 +457,6 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
                               placeholderTextColor={colors.textTertiary}
                               value={filters.minSeats}
                               onChangeText={(text) => updateFilter('minSeats', text)}
-                              keyboardType="number-pad"
-                            />
-                          </View>
-                        </View>
-                        <View style={styles.halfInput}>
-                          <Text style={dynamicStyles.inputLabel}>Precio Máximo</Text>
-                          <View style={dynamicStyles.inputContainer}>
-                            <Ionicons name="cash" size={18} color={colors.accentGreen} />
-                            <TextInput
-                              style={styles.input}
-                              placeholder="$1500"
-                              placeholderTextColor={colors.textTertiary}
-                              value={filters.maxPrice}
-                              onChangeText={(text) => updateFilter('maxPrice', text)}
                               keyboardType="number-pad"
                             />
                           </View>
@@ -516,8 +504,11 @@ const AdvancedFiltersModal = ({ visible, onClose, onApplyFilters, initialFilters
                     <View style={styles.section}>
                       <Text style={dynamicStyles.sectionTitle}>Ordenar por</Text>
                       <View style={styles.sortButtonsContainer}>
+                        {/* Sin "Precio" por lo mismo que el filtro: ordenaba por el precio del
+                            recorrido completo del conductor, no por lo que paga el pasajero.
+                            Dos viajes que sirven para el mismo tramo cuestan igual, pero el más
+                            largo aparecía último como si fuera carísimo. */}
                         {renderSortButton('departureDate', 'Fecha', 'calendar-outline')}
-                        {renderSortButton('price', 'Precio', 'cash-outline')}
                         {renderSortButton('rating', 'Rating', 'star-outline')}
                       </View>
                     </View>
