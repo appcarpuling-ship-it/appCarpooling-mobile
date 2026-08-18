@@ -423,6 +423,14 @@ const TripDetails = ({ navigation, route }) => {
                                             : '');
                                     }}
                                     keyboardType="number-pad"
+                                    // Es el último campo del paso: al abrirse el teclado quedaba
+                                    // contra el borde, con la fila cortada y la aclaración de abajo
+                                    // fuera de pantalla. El timeout espera a que el teclado termine
+                                    // de animar, o el scroll calcula el alto viejo y se queda corto.
+                                    onFocus={() => setTimeout(
+                                        () => scrollRef.current?.scrollToEnd({ animated: true }),
+                                        120,
+                                    )}
                                 />
                             </View>
                         </View>
