@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
   Animated, TextInput, Platform, Keyboard, KeyboardAvoidingView, BackHandler,
@@ -95,6 +96,11 @@ const PointPickerScreen = ({ route, navigation }) => {
   // deja los tiles sin cargar): si llega un punto mientras tanto, se guarda y se aplica en
   // onMapReady.
   const mapaListo = useRef(false);
+  // El mapa se suelta al perder el foco: es una vista nativa cara y en un stack sigue montada
+  // aunque no se vea. Apilar varias fue lo que hizo que iOS matara la app por RAM.
+  // Se olvida que estaba listo, o al volver el animateToRegion le pega a un mapa que ya no esta.
+  const estaEnfoco = useIsFocused();
+  useEffect(() => { if (!estaEnfoco) mapaListo.current = false; }, [estaEnfoco]);
   const regionPendiente = useRef(null);
   const searchDebounce = useRef(null);
   const idleTimer = useRef(null);
@@ -258,7 +264,7 @@ const PointPickerScreen = ({ route, navigation }) => {
             ya no lo movía— y encima el animateToRegion le pegaba a un mapa recién montado, que
             es justo el caso donde iOS deja los tiles en celeste. El buscador es un overlay
             opaco que lo tapa entero, así que mantenerlo montado abajo no se ve. */}
-        {region ? (
+        {region && estaEnfoco ? (
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}

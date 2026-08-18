@@ -14,7 +14,7 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -72,6 +72,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const frequentAddresses = useFrequentAddresses();
   const mapRef = useRef(null);
   const [mapaListo, setMapaListo] = useState(false);
+  // Al soltar el mapa hay que olvidar que estaba listo: si no, useMapFit encuadra contra un
+  // mapa que ya no existe y al volver nunca se reencuadra.
+  const estaEnfoco = useIsFocused();
+  useEffect(() => { if (!estaEnfoco) setMapaListo(false); }, [estaEnfoco]);
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
   const waypointInputRefs = useRef([]);
@@ -769,8 +773,16 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     <View style={styles.container}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-      {/* Map */}
-      <MapView
+      {/* El mapa se monta SÓLO con la pantalla enfocada.
+
+          Un MapView de Google es una vista nativa cara, y en un stack todo lo que dejás atrás
+          sigue montado. Esta pantalla además está registrada dos veces (CreateTrip y
+          PickDriverRoute), así que se podían apilar dos mapas de acá más los de los pickers: el
+          watchdog de iOS mató la app por RAM (confirmado en Sentry, con LOW_MEMORY antes).
+
+          Se desmonta el MAPA, no la pantalla: los marcadores y la ruta viven en estado y siguen
+          ahí al volver. La región también está en estado, así que la cámara vuelve sola. */}
+      {estaEnfoco && <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
@@ -820,7 +832,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         {/* Sin condición: ver RutaPolyline. Montado desde el principio, la ruta que llega es
             una actualización de props y no un overlay agregado tarde, que iOS no pinta. */}
         <RutaPolyline coordinates={routeCoordinates} width={5} color="#000000" />
-      </MapView>
+      </MapView>}
 
       {/* Back button (mini mode) */}
       {!isSearching && (

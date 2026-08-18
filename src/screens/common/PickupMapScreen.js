@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -12,6 +13,10 @@ const PickupMapScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const { coordinates, address, label } = route.params || {};
+
+  // El mapa se suelta al perder el foco: es una vista nativa cara y en un stack sigue montada
+  // aunque no se vea. Apilar varias fue lo que hizo que iOS matara la app por RAM.
+  const estaEnfoco = useIsFocused();
 
   // El punto solo no le dice al conductor si le queda cerca o cruzando la ciudad. Con su
   // propia posición en el mapa lo ve de una, igual que en "Ver trayecto en el mapa".
@@ -32,7 +37,8 @@ const PickupMapScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle={ui.isDarkMode ? 'light-content' : 'dark-content'} />
 
-      <MapView
+      {/* Solo con la pantalla enfocada: ver PointPickerScreen. */}
+      {estaEnfoco && <MapView
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         initialRegion={region}
@@ -50,7 +56,7 @@ const PickupMapScreen = ({ route, navigation }) => {
                 <View style={styles.pinHalo}><View style={styles.pinCore} /></View>
               </Marker>
         )}
-      </MapView>
+      </MapView>}
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: ui.card }]} onPress={() => navigation.goBack()} activeOpacity={0.8}>
