@@ -52,6 +52,11 @@ const TripDetails = ({ navigation, route }) => {
 
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
+    // El precio es el último campo del paso y el teclado lo tapaba. Un setTimeout a ojo no
+    // alcanza: a veces corre antes de que el teclado termine de subir y el scroll calcula el
+    // alto viejo, así que el campo queda tapado igual. keyboardDidShow es el evento que dice
+    // "el teclado YA está arriba", que es justo la condición que hace falta.
+    const precioEnfocado = useRef(false);
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -126,6 +131,11 @@ const TripDetails = ({ navigation, route }) => {
             if (selectedVehicle?.capacity && asientos > selectedVehicle.capacity) {
                 return `El vehículo tiene lugar para ${selectedVehicle.capacity} pasajeros`;
             }
+            // El precio se valida acá y no recién al publicar: está marcado con * en este paso,
+            // y enterarse dos pasos después de que faltaba es lo que los pasos vienen a evitar.
+            if (!(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) > 0)) {
+                return 'Poné cuánto le cobrás a cada pasajero';
+            }
             return null;
         }
         if (step === 2) {
@@ -176,6 +186,14 @@ const TripDetails = ({ navigation, route }) => {
         const sub = BackHandler.addEventListener('hardwareBackPress', volver);
         return () => sub.remove();
     }, [step]);
+
+    // Sube el precio por encima del teclado recién cuando el teclado terminó de aparecer.
+    useEffect(() => {
+        const sub = Keyboard.addListener('keyboardDidShow', () => {
+            if (precioEnfocado.current) scrollRef.current?.scrollToEnd({ animated: true });
+        });
+        return () => sub.remove();
+    }, []);
 
     const handleCreateTrip = async () => {
         const { vehicle, departureDate, departureTime, availableSeats, driverPrice } = formData;
@@ -423,20 +441,17 @@ const TripDetails = ({ navigation, route }) => {
                                             : '');
                                     }}
                                     keyboardType="number-pad"
-                                    // Es el último campo del paso: al abrirse el teclado quedaba
-                                    // contra el borde, con la fila cortada y la aclaración de abajo
-                                    // fuera de pantalla. El timeout espera a que el teclado termine
-                                    // de animar, o el scroll calcula el alto viejo y se queda corto.
-                                    onFocus={() => setTimeout(
-                                        () => scrollRef.current?.scrollToEnd({ animated: true }),
-                                        120,
-                                    )}
+                                    // Es el último campo del paso y el teclado lo tapaba. El scroll
+                                    // de acá cubre el caso de venir de otro input (teclado ya
+                                    // arriba); el de keyboardDidShow, el de abrirlo desde cero.
+                                    onFocus={() => {
+                                        precioEnfocado.current = true;
+                                        scrollRef.current?.scrollToEnd({ animated: true });
+                                    }}
+                                    onBlur={() => { precioEnfocado.current = false; }}
                                 />
                             </View>
                         </View>
-                        <Text style={[styles.capacityHint, { color: textMuted, marginTop: 8, marginLeft: 4 }]}>
-                            Te lo paga cada pasajero al llegar. Aparte, la app le cobra su cargo por conectarlos.
-                        </Text>
                         {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                             <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
                             <TextInput
