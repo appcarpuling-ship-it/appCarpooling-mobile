@@ -44,6 +44,10 @@ const PickupMapScreen = ({ route, navigation }) => {
         initialRegion={region}
         paddingAdjustmentBehavior="never"
         showsUserLocation={showMyLocation}
+        /* Sin edificios 3D, POIs ni interiores: texturas que ocupan RAM y no aportan acá. */
+        showsBuildings={false}
+        showsIndoors={false}
+        showsPointsOfInterest={false}
         showsMyLocationButton={false}
       >
         {coordinates?.latitude && (

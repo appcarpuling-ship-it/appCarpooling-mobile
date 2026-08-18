@@ -808,6 +808,14 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         paddingAdjustmentBehavior="never"
         showsUserLocation={mostrarMiUbicacion}
         showsMyLocationButton={false}
+        /* Google Maps dibuja por defecto edificios 3D, puntos de interés y planos de interiores.
+           Son texturas que ocupan RAM y acá no aportan nada: es un mapa para marcar de dónde
+           salís y a dónde vas. Apagarlos baja la memoria de cada instancia y de paso deja el
+           mapa más limpio para ver los marcadores. */
+        showsBuildings={false}
+        showsIndoors={false}
+        showsPointsOfInterest={false}
+        showsTraffic={false}
         onPress={handleMapPress}
       >
         {originMarker && (

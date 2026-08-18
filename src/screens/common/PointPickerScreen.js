@@ -298,6 +298,10 @@ const PointPickerScreen = ({ route, navigation }) => {
               }, IDLE_GEOCODE_MS);
             }}
             showsUserLocation={mostrarMiUbicacion}
+            /* Sin edificios 3D, POIs ni interiores: texturas que ocupan RAM y no aportan acá. */
+            showsBuildings={false}
+            showsIndoors={false}
+            showsPointsOfInterest={false}
             showsMyLocationButton={false}
           >
           </MapView>
