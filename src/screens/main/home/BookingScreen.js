@@ -570,7 +570,7 @@ const BookingScreen = ({ route, navigation }) => {
               exactamente lo que este rediseño vino a sacar. */}
           {driverPriceTotal > 0 && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Al conductor, al llegar</Text>
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Al conductor le pagás al llegar</Text>
               <View style={styles.priceRow}>
                 {/* Sin etiqueta con un solo asiento: el encabezado ya dice a quién y cuándo, y
                     "en mano" era además incorrecto — también se le puede transferir. */}
