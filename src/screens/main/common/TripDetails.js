@@ -52,11 +52,14 @@ const TripDetails = ({ navigation, route }) => {
 
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
-    // El precio es el último campo del paso y el teclado lo tapaba. Un setTimeout a ojo no
-    // alcanza: a veces corre antes de que el teclado termine de subir y el scroll calcula el
-    // alto viejo, así que el campo queda tapado igual. keyboardDidShow es el evento que dice
-    // "el teclado YA está arriba", que es justo la condición que hace falta.
-    const precioEnfocado = useRef(false);
+    // El teclado tapaba los campos del paso 1 (asientos y precio), que son los últimos de la
+    // pantalla. Un setTimeout a ojo no alcanza: a veces corre antes de que el teclado termine
+    // de subir y el scroll calcula el alto viejo, así que el campo queda tapado igual.
+    // keyboardDidShow es el evento que dice "el teclado YA está arriba".
+    //
+    // La bandera es de CUALQUIER campo y no de uno en particular: parchear campo por campo es
+    // cómo el de asientos quedó tapado después de arreglar el de precio.
+    const campoEnfocado = useRef(false);
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -79,6 +82,15 @@ const TripDetails = ({ navigation, route }) => {
     });
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+    // Los dos campos del paso 1 comparten esto: al enfocarse suben por encima del teclado. El
+    // scroll de acá cubre venir de otro input (teclado ya arriba); el de keyboardDidShow, el de
+    // abrirlo desde cero.
+    const enfocarCampo = () => {
+        campoEnfocado.current = true;
+        scrollRef.current?.scrollToEnd({ animated: true });
+    };
+    const desenfocarCampo = () => { campoEnfocado.current = false; };
 
     const onDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -190,7 +202,7 @@ const TripDetails = ({ navigation, route }) => {
     // Sube el precio por encima del teclado recién cuando el teclado terminó de aparecer.
     useEffect(() => {
         const sub = Keyboard.addListener('keyboardDidShow', () => {
-            if (precioEnfocado.current) scrollRef.current?.scrollToEnd({ animated: true });
+            if (campoEnfocado.current) scrollRef.current?.scrollToEnd({ animated: true });
         });
         return () => sub.remove();
     }, []);
@@ -416,6 +428,8 @@ const TripDetails = ({ navigation, route }) => {
                                         handleChange('availableSeats', v);
                                     }}
                                     keyboardType="numeric"
+                                    onFocus={enfocarCampo}
+                                    onBlur={desenfocarCampo}
                                 />
                                 {selectedVehicle?.capacity && (
                                     <Text style={[styles.capacityHint, { color: textMuted }]}>
@@ -444,11 +458,8 @@ const TripDetails = ({ navigation, route }) => {
                                     // Es el último campo del paso y el teclado lo tapaba. El scroll
                                     // de acá cubre el caso de venir de otro input (teclado ya
                                     // arriba); el de keyboardDidShow, el de abrirlo desde cero.
-                                    onFocus={() => {
-                                        precioEnfocado.current = true;
-                                        scrollRef.current?.scrollToEnd({ animated: true });
-                                    }}
-                                    onBlur={() => { precioEnfocado.current = false; }}
+                                    onFocus={enfocarCampo}
+                                    onBlur={desenfocarCampo}
                                 />
                             </View>
                         </View>
