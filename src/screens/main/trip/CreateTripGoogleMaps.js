@@ -690,11 +690,16 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   const handleContinueToDetails = () => {
     if (!originMarker || !destinationMarker) { showAlert('Datos incompletos', 'Por favor seleccioná origen y destino'); return; }
-    // El conductor eligiendo SU recorrido para postularse a una solicitud. No navega a ningún
-    // lado: devuelve el tramo al que abrió la pantalla y vuelve.
+    // El conductor eligiendo SU recorrido para postularse a una solicitud: devuelve el tramo al
+    // que abrió la pantalla y vuelve.
+    //
+    // El goBack va ANTES del onDone, no después. Ese callback hoy navega —sigue a
+    // DriverPricePicker— y al revés las dos acciones caen en el mismo tick: el navigate apila la
+    // pantalla nueva y el goBack se la lleva puesta, dejando el botón "Confirmar ruta" muerto.
+    // Mismo orden que VehiclePicker y DriverRoutePicker, los otros pasos de este flujo.
     if (isApplyMode) {
-      navRoute.params?.onDone?.({ origin: formData.origin, destination: formData.destination });
       navigation.goBack();
+      navRoute.params?.onDone?.({ origin: formData.origin, destination: formData.destination });
       return;
     }
     if (isRequestMode) {
