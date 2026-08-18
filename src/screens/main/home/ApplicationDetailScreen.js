@@ -24,7 +24,7 @@ const armarRecorrido = (app, tramo) => {
   const dir = (p) => p?.address || p?.city;
   return [
     app.driverOrigin && { etiqueta: 'Sale desde', texto: dir(app.driverOrigin), delConductor: true },
-    { etiqueta: 'Te levanta en', texto: dir(tramo.origin) },
+    { etiqueta: 'Te subís en', texto: dir(tramo.origin) },
     { etiqueta: 'Te deja en', texto: dir(tramo.destination) },
     app.driverDestination && { etiqueta: 'Sigue hasta', texto: dir(app.driverDestination), delConductor: true },
   ].filter((p) => p && p.texto);
@@ -185,12 +185,10 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             ) : null}
-            {vehicle.vehicleType ? (
-              <View style={styles.vehicleDetail}>
-                <Text style={[styles.vehicleDetailLabel, { color: textMuted }]}>Tipo</Text>
-                <Text style={[styles.vehicleDetailValue, { color: textPrimary }]}>{vehicle.vehicleType}</Text>
-              </View>
-            ) : null}
+            {/* Sin "Tipo": mostraba `vehicle.vehicleType` crudo, o sea la clave interna del
+                modelo ("sedan", "hatchback"), que en ningún otro lado de la app se ve — el
+                formulario las agrupa y las muestra como "Auto" / "Camioneta". Y para elegir
+                conductor no aporta nada que marca, modelo y capacidad no digan ya. */}
           </View>
         )}
       </ScrollView>
