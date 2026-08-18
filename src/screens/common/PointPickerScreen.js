@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView from 'react-native-maps';
+import { MAP_PROVIDER } from '../../utils/mapProvider';
 import * as Location from 'expo-location';
 import { useUI } from '../../theme/ui';
 import MapCenterPin, { usePinAlzado } from '../../components/ui/MapCenterPin';
@@ -267,7 +268,7 @@ const PointPickerScreen = ({ route, navigation }) => {
         {region && estaEnfoco ? (
           <MapView
             ref={mapRef}
-            provider={PROVIDER_GOOGLE}
+            provider={MAP_PROVIDER}
             style={StyleSheet.absoluteFill}
             initialRegion={region}
             onMapReady={() => {

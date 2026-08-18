@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
+import { MAP_PROVIDER } from '../../../utils/mapProvider';
 
 import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { Ionicons } from '@expo/vector-icons';
@@ -784,7 +785,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           ahí al volver. La región también está en estado, así que la cámara vuelve sola. */}
       {estaEnfoco && <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        provider={MAP_PROVIDER}
         style={styles.map}
         region={region}
         onMapReady={() => setMapaListo(true)}

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
+import { MAP_PROVIDER } from '../../utils/mapProvider';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -39,7 +40,7 @@ const PickupMapScreen = ({ route, navigation }) => {
 
       {/* Solo con la pantalla enfocada: ver PointPickerScreen. */}
       {estaEnfoco && <MapView
-        provider={PROVIDER_GOOGLE}
+        provider={MAP_PROVIDER}
         style={StyleSheet.absoluteFillObject}
         initialRegion={region}
         paddingAdjustmentBehavior="never"
