@@ -213,6 +213,28 @@ const VehicleFormScreen = ({ navigation, route }) => {
   // saca el paso extra: el archivo pesa un poco más pero no sale en blanco.
   const compressImage = async (uri) => uri;
 
+  /**
+   * Al elegir VARIAS fotos juntas en Android, el picker devuelve el array de assets antes de
+   * que termine de copiar cada archivo a la caché de la app: el primer render de <Image> lee
+   * un archivo a medio escribir y queda en blanco para siempre (Image no reintenta solo). Con
+   * una sola foto no pasa porque alcanza a terminar antes de que el JS siga. Se espera a que
+   * cada uri sea realmente legible (con reintentos) antes de agregarla al estado.
+   */
+  const waitUntilReadable = (uri, tries = 8, delayMs = 150) =>
+    new Promise((resolve) => {
+      const intentar = (restantes) => {
+        Image.getSize(
+          uri,
+          () => resolve(uri),
+          () => {
+            if (restantes <= 0) return resolve(uri); // se agotaron los intentos: seguimos igual
+            setTimeout(() => intentar(restantes - 1), delayMs);
+          },
+        );
+      };
+      intentar(tries);
+    });
+
   /** Un solo picker para los tres documentos: el bloque era idéntico salvo el setter. */
   const pickDocumento = (setUri) => chooseDocSource(setUri, setProcessingRegistration);
 
@@ -249,14 +271,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
       if (!result.canceled && result.assets?.length > 0) {
         setProcessingNewPhotos(true);
         try {
-          // Secuencial y no Promise.all: comprimir varias fotos de cámara moderna (varios MB
-          // cada una) en paralelo hace que Android decodifique todas a la vez y se quede sin
-          // memoria — alguna volvía en blanco/corrupta. Una por una es más lento pero seguro.
-          const compressed = [];
+          const listas = [];
           for (const a of result.assets) {
-            compressed.push(await compressImage(a.uri));
+            listas.push(await waitUntilReadable(a.uri));
           }
-          const next = [...photos, ...compressed];
+          const next = [...photos, ...listas];
           if (existingPhotos.length + next.length > 10) {
             showAlert('Ocurrió algo', 'Podés subir hasta 10 fotos.');
             return;
