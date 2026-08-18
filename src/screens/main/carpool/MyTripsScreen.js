@@ -165,14 +165,10 @@ const MyTripsScreen = ({ navigation }) => {
 
   // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
   // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
-  const handleCompleteTrip = (tripId, totalSeats, driverPrice) => {
-    const asientos = totalSeats || 0;
-    const precio = Math.max(0, Number(driverPrice) || 0);
+  const handleCompleteTrip = (tripId) => {
     showAlert(
       'Completar viaje',
-      precio > 0 && asientos > 0
-        ? `Cobrales $${formatNumber(precio)} a cada pasajero ($${formatNumber(precio * asientos)} en total).`
-        : '¿Damos el viaje por terminado?',
+      '¿Damos el viaje por terminado?',
       [
         { text: 'No', style: 'cancel' },
         { text: 'Sí, completar', onPress: () => submitCompleteTrip(tripId) },
@@ -189,7 +185,7 @@ const MyTripsScreen = ({ navigation }) => {
         navigation.navigate('Result', {
           type: 'success',
           title: 'Viaje completado',
-          message: 'Listo, el viaje quedó cerrado.',
+          message: 'Completaste el viaje. ¡Gracias por usar Carpuling!',
         });
         return;
       }
@@ -389,7 +385,7 @@ const MyTripsScreen = ({ navigation }) => {
             <View style={styles.footerRow}>
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: '#FFFFFF', flex: 1 }]}
-                onPress={() => handleCompleteTrip(item._id, item.passengers?.length, item.driverPrice)}
+                onPress={() => handleCompleteTrip(item._id)}
               >
                 <Ionicons name="checkmark-circle-outline" size={15} color="#000000" />
                 <Text style={[styles.footerBtnText, { color: '#000000' }]}>Completar viaje</Text>

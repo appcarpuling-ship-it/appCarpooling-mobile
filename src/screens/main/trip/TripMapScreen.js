@@ -277,20 +277,18 @@ const TripMapScreen = ({ route, navigation }) => {
    * asientos ocupados.
    */
   const submitCompleteTrip = async () => {
-    const asientos = trip?.passengers?.length ?? 0;
-    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), {});
       if (response.success) {
         // El mapa queda debajo en el stack: sin esto, volver atrás desde el resultado te
         // devolvía al mapa de un viaje ya terminado, con su tarjeta y su botón.
         navigation.popToTop();
+        // Sin montos: el cobro ya se le recordó al bajar cada pasajero, y acá repetirlo
+        // convierte el cierre del viaje en una factura. Es el momento de cerrar, no de cobrar.
         navigation.navigate('Result', {
           type: 'success',
           title: 'Viaje completado',
-          message: precio > 0 && asientos > 0
-            ? `Cobrá $${(precio * asientos).toLocaleString('es-AR')} en total ($${precio.toLocaleString('es-AR')} por pasajero).`
-            : 'Listo, el viaje quedó cerrado.',
+          message: 'Completaste el viaje. ¡Gracias por usar Carpuling!',
         });
         return;
       }

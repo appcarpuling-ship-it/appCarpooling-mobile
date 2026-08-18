@@ -640,13 +640,9 @@ const TripDetailScreen = ({ route, navigation }) => {
   // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
-    const totalSeats = passengers.reduce((sum, b) => sum + (b.seatsBooked || b.seatsRequested || 1), 0);
-    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
     showAlert(
       'Completar viaje',
-      precio > 0 && totalSeats > 0
-        ? `Cobrales $${formatNumber(precio)} a cada pasajero ($${formatNumber(precio * totalSeats)} en total).`
-        : '¿Damos el viaje por terminado?',
+      '¿Damos el viaje por terminado?',
       [
         { text: 'No', style: 'cancel' },
         { text: 'Sí, completar', onPress: submitCompleteTrip },
@@ -667,7 +663,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         navigation.navigate('Result', {
           type: 'success',
           title: 'Viaje completado',
-          message: 'Listo, el viaje quedó cerrado.',
+          message: 'Completaste el viaje. ¡Gracias por usar Carpuling!',
         });
         return;
       }
