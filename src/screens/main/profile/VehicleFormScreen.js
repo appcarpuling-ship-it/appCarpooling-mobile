@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { post_withauth_formdata, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useGalleryPermissions } from '../../../hooks/useGalleryPermissions';
 import { useUI } from '../../../theme/ui';
@@ -206,34 +207,18 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
 
-  // Antes pasaba por ImageManipulator (resize + recompresión) además del quality:0.8 del
-  // picker. En Android, con fotos grandes de cámara moderna, manipulateAsync a veces "termina
-  // bien" (sin tirar excepción) pero devuelve un bitmap en blanco — no lo agarra ningún catch
-  // porque no falla, solo produce basura. El picker ya comprime solo con `quality`, así que se
-  // saca el paso extra: el archivo pesa un poco más pero no sale en blanco.
-  const compressImage = async (uri) => uri;
-
-  /**
-   * Al elegir VARIAS fotos juntas en Android, el picker devuelve el array de assets antes de
-   * que termine de copiar cada archivo a la caché de la app: el primer render de <Image> lee
-   * un archivo a medio escribir y queda en blanco para siempre (Image no reintenta solo). Con
-   * una sola foto no pasa porque alcanza a terminar antes de que el JS siga. Se espera a que
-   * cada uri sea realmente legible (con reintentos) antes de agregarla al estado.
-   */
-  const waitUntilReadable = (uri, tries = 8, delayMs = 150) =>
-    new Promise((resolve) => {
-      const intentar = (restantes) => {
-        Image.getSize(
-          uri,
-          () => resolve(uri),
-          () => {
-            if (restantes <= 0) return resolve(uri); // se agotaron los intentos: seguimos igual
-            setTimeout(() => intentar(restantes - 1), delayMs);
-          },
-        );
-      };
-      intentar(tries);
-    });
+  const compressImage = async (uri) => {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      return result.uri;
+    } catch {
+      return uri;
+    }
+  };
 
   /** Un solo picker para los tres documentos: el bloque era idéntico salvo el setter. */
   const pickDocumento = (setUri) => chooseDocSource(setUri, setProcessingRegistration);
@@ -271,11 +256,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
       if (!result.canceled && result.assets?.length > 0) {
         setProcessingNewPhotos(true);
         try {
-          const listas = [];
-          for (const a of result.assets) {
-            listas.push(await waitUntilReadable(a.uri));
-          }
-          const next = [...photos, ...listas];
+          const compressed = await Promise.all(result.assets.map(a => compressImage(a.uri)));
+          const next = [...photos, ...compressed];
           if (existingPhotos.length + next.length > 10) {
             showAlert('Ocurrió algo', 'Podés subir hasta 10 fotos.');
             return;
