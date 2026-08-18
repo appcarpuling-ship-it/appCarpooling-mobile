@@ -98,14 +98,6 @@ const DriverRoutePickerScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         ))}
 
-        {/* La duda que aparece sola al leer "vengo de más lejos": si eso le sale más caro al
-            pasajero. No: paga su tramo y nada más. */}
-        <View style={styles.nota}>
-          <Ionicons name="information-circle-outline" size={15} color={ui.textMuted} />
-          <Text style={[styles.notaText, { color: ui.textMuted }]}>
-            Viajes lo que viajes, el pasajero paga sólo su tramo.
-          </Text>
-        </View>
       </View>
     </View>
   );
@@ -134,8 +126,6 @@ const styles = StyleSheet.create({
   opcionDetalle: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18 },
   opcionPie: { fontFamily: 'Sora_400Regular', fontSize: 11, lineHeight: 15, opacity: 0.8 },
 
-  nota: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingHorizontal: 4, marginTop: 4 },
-  notaText: { flex: 1, fontFamily: 'Sora_400Regular', fontSize: 12, lineHeight: 17 },
 });
 
 export default DriverRoutePickerScreen;
