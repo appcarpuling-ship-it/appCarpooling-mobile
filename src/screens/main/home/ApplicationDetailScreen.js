@@ -123,6 +123,21 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Su precio: es lo que el pasajero está comparando entre las propuestas, así que va
+            arriba de todo lo demás. Se le paga al conductor al llegar, aparte de la conexión
+            que cobra la app. */}
+        {app.driverPrice > 0 && (
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Su precio</Text>
+            <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
+              ${Number(app.driverPrice).toLocaleString('es-AR')}
+            </Text>
+            <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 4 }}>
+              Por asiento. Se lo pagás a él al llegar, aparte de lo que cobra la app por conectarlos.
+            </Text>
+          </View>
+        )}
+
         {/* Recorrido: lo que el pasajero necesita para decidir si le sirve este conductor.
             Sin esto sólo veía el auto y la calificación, y no por dónde pasa. */}
         {recorrido.length > 0 && (

@@ -254,10 +254,17 @@ const AllTripsScreen = ({ navigation }) => {
                 <Ionicons name="arrow-forward" size={18} color={ui.textMuted} style={styles.arrowIcon} />
                 <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{destAddress}</Text>
               </View>
-              {/* <Text style={styles.priceText}>
-                {item.pricePerSeat ? `$${item.pricePerSeat}` : 'Gratis'}
-              </Text> */}
             </View>
+
+            {/* El precio del conductor, que es fijo del viaje (a diferencia del de la conexión,
+                que depende de dónde suba cada pasajero) y es con lo que se compara un viaje
+                contra otro. Por eso vuelve al listado, donde antes estaba comentado. */}
+            {item.driverPrice > 0 && (
+              <Text style={[styles.addressText, { color: ui.text, marginTop: 4 }]}>
+                ${Number(item.driverPrice).toLocaleString('es-AR')}
+                <Text style={{ color: ui.textMuted, fontSize: 12 }}> por asiento</Text>
+              </Text>
+            )}
 
             <View style={styles.driverRow}>
               <View style={styles.avatarContainer}>

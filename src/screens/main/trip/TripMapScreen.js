@@ -13,10 +13,12 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
+import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
+import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { put_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -31,6 +33,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const ui = useUI();
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
@@ -238,6 +241,10 @@ const TripMapScreen = ({ route, navigation }) => {
         coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
         address: st.address || st.city || 'Parada',
         quien: quienLabel(st.kind, st.passenger),
+        // kind y pasajero se guardan para el aviso de cobro al dejar a alguien: sin ellos no se
+        // sabe si esta parada es una bajada ni a quién hay que cobrarle.
+        kind: st.kind,
+        pasajero: st.passenger,
       }));
 
     // El destino va último y solo. No es una parada de nadie —por eso no lleva "a recoger a"
@@ -263,34 +270,73 @@ const TripMapScreen = ({ route, navigation }) => {
    * "Continuar" para decir "Completar": no tiene por qué volver atrás a buscar dónde estaba
    * esa acción. Es el mismo endpoint que usa el detalle del viaje.
    *
-   * trip.passengers tiene una entrada POR ASIENTO, no por pasajero, así que su largo es
-   * justo lo que necesita la pantalla de costos para repartir.
+   * Ya no se piden gastos: lo que cobra lo fijó al publicar el viaje (`driverPrice`) y el
+   * pasajero lo vio antes de reservar, así que no hay nada que cargar al final.
+   *
+   * trip.passengers tiene una entrada POR ASIENTO, no por pasajero, así que su largo son los
+   * asientos ocupados.
    */
-  const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
+  const submitCompleteTrip = async () => {
+    const asientos = trip?.passengers?.length ?? 0;
+    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), { costBreakdown, driverPay });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), {});
       if (response.success) {
-        const actualizado = response.data?.trip || response.data;
         // El mapa queda debajo en el stack: sin esto, volver atrás desde el resultado te
         // devolvía al mapa de un viaje ya terminado, con su tarjeta y su botón.
         navigation.popToTop();
-        return { ok: true, message: `Costo final: $${Math.round(actualizado?.actualCost || 0).toLocaleString('es-AR')}` };
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Viaje completado',
+          message: precio > 0 && asientos > 0
+            ? `Cobrá $${(precio * asientos).toLocaleString('es-AR')} en total ($${precio.toLocaleString('es-AR')} por pasajero).`
+            : 'Listo, el viaje quedó cerrado.',
+        });
+        return;
       }
-      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: response.message || 'Probá de nuevo en un momento.',
+      });
     } catch (error) {
-      return { ok: false, message: error.message || 'Error al completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: error.message || 'Error al completar el viaje',
+        error,
+      });
     }
+  };
+
+  /**
+   * Al dejar a un pasajero, recordarle al conductor que le cobre. El monto es el que él mismo
+   * publicó al crear el viaje y el pasajero ya vio antes de reservar: acá no se decide nada,
+   * sólo se recuerda en el momento en que hay que cobrarlo, que es cuando la persona se baja.
+   */
+  const avisarCobro = (parada, alSeguir) => {
+    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
+    const nombre = parada?.pasajero?.firstName;
+    if (precio <= 0 || parada?.kind !== 'dropoff') return alSeguir();
+
+    const asientos = asientosDePasajero(trip, parada.pasajero);
+    const total = precio * asientos;
+    showAlert(
+      nombre ? `Bajó ${nombre}` : 'Bajó el pasajero',
+      asientos > 1
+        ? `Cobrale $${total.toLocaleString('es-AR')} ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
+        : `Cobrale $${total.toLocaleString('es-AR')}.`,
+      [{ text: 'Listo, cobrado', onPress: alSeguir }]
+    );
   };
 
   const avanzar = () => {
     if (enElDestino) {
-      navigation.navigate('CompleteTrip', {
-        onSubmit: submitCompleteTrip,
-        totalSeats: trip?.passengers?.length ?? 0,
-      });
+      submitCompleteTrip();
       return;
     }
-    setParadasHechas((prev) => [...prev, proximaParada.id]);
+    const parada = proximaParada;
+    avisarCobro(parada, () => setParadasHechas((prev) => [...prev, parada.id]));
   };
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es

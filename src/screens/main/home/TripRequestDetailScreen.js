@@ -187,10 +187,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     navigation.navigate('DriverRoutePicker', {
       tramo: { origin: request?.origin, destination: request?.destination },
       onSelect: (opcion) => {
-        if (opcion === 'mismo') return enviarPostulacion(vehicleId);
+        if (opcion === 'mismo') return pedirPrecio(vehicleId);
         navigation.navigate('PickDriverRoute', {
           mode: 'apply',
-          onDone: ({ origin, destination }) => enviarPostulacion(vehicleId, {
+          onDone: ({ origin, destination }) => pedirPrecio(vehicleId, {
             driverOrigin: origin,
             driverDestination: destination,
           }),
@@ -199,10 +199,21 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     });
   };
 
-  const enviarPostulacion = async (vehicleId, recorrido) => {
+  /**
+   * Último paso antes de mandar: cuánto cobra. Va después del recorrido y no antes porque el
+   * conductor recién ahí sabe cuánto se desvía, que es lo que puede mover su número.
+   */
+  const pedirPrecio = (vehicleId, recorrido) => {
+    navigation.navigate('DriverPricePicker', {
+      seatsNeeded: request?.seatsNeeded || 1,
+      onDone: (driverPrice) => enviarPostulacion(vehicleId, recorrido, driverPrice),
+    });
+  };
+
+  const enviarPostulacion = async (vehicleId, recorrido, driverPrice) => {
     setApplying(true);
     try {
-      const res = await applyToTripRequest(requestId, vehicleId, recorrido);
+      const res = await applyToTripRequest(requestId, vehicleId, recorrido, driverPrice);
       if (res.success) {
         navigation.navigate('Result', { type: 'success', title: '¡Propuesta enviada!', message: 'El pasajero revisará tu perfil y vehículo.' });
         setAlreadyApplied(true);
@@ -489,7 +500,19 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                       <Text style={{ color: ui.textMuted, fontSize: 10, fontWeight: '600' }}>Rechazado</Text>
                     </View>
                   ) : (
-                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                    /* El precio al lado del chevron: es lo que el pasajero está comparando entre
+                       las hasta 5 propuestas, así que tiene que leerse sin entrar a cada una. */
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      {app.driverPrice > 0 && (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_700Bold' }}>
+                            ${Number(app.driverPrice).toLocaleString('es-AR')}
+                          </Text>
+                          <Text style={{ color: textMuted, fontSize: 10 }}>por asiento</Text>
+                        </View>
+                      )}
+                      <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                    </View>
                   )}
                 </TouchableOpacity>
               ))

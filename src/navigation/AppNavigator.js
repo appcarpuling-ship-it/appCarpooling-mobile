@@ -29,6 +29,7 @@ import CompleteTripScreen from '../screens/common/CompleteTripScreen';
 import PickupMapScreen from '../screens/common/PickupMapScreen';
 import PointPickerScreen from '../screens/common/PointPickerScreen';
 import DriverRoutePickerScreen from '../screens/common/DriverRoutePickerScreen';
+import DriverPricePickerScreen from '../screens/common/DriverPricePickerScreen';
 
 const Stack = createStackNavigator();
 
@@ -90,6 +91,13 @@ const AppNavigator = () => {
           <Stack.Screen
             name="DriverRoutePicker"
             component={DriverRoutePickerScreen}
+            options={{ headerShown: false }}
+          />
+          {/* Último paso de la postulación: cuánto cobra. Es lo que el pasajero compara
+              entre las hasta 5 propuestas que recibe. */}
+          <Stack.Screen
+            name="DriverPricePicker"
+            component={DriverPricePickerScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

@@ -19,6 +19,11 @@ const formatInput = (v) => {
   return digits ? formatMoney(Number(digits)) : '';
 };
 
+// ⚠️ FUERA DE USO desde el 2026-08-18. Nadie navega acá: el conductor ahora fija su precio al
+// PUBLICAR el viaje (`Trip.driverPrice`) y al completar no se le pide nada, así que no hay
+// gastos que repartir. La ruta sigue registrada en AppNavigator y el backend sigue aceptando
+// `costBreakdown` si alguien lo manda, así que reactivarla es volver a navegar acá.
+//
 // Completar viaje como pantalla (antes era CompleteTripCostModal). El caller
 // pasa onSubmit(data) que hace el PUT y devuelve { ok, message }. En éxito se
 // reemplaza por la pantalla Result con la imagen; en error se muestra inline.

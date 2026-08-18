@@ -64,6 +64,7 @@ const TripDetails = ({ navigation, route }) => {
         departureDate:  '',
         departureTime:  '',
         availableSeats: '',
+        driverPrice:    '',
 
         notes:          '',
         allowSmoking:        false,
@@ -177,9 +178,18 @@ const TripDetails = ({ navigation, route }) => {
     }, [step]);
 
     const handleCreateTrip = async () => {
-        const { vehicle, departureDate, departureTime, availableSeats } = formData;
+        const { vehicle, departureDate, departureTime, availableSeats, driverPrice } = formData;
         if (!vehicle || !departureDate || !departureTime || !availableSeats) {
             showAlert('Ocurrió algo', 'Por favor completá todos los campos obligatorios');
+            return;
+        }
+
+        // El precio es obligatorio y lo pone el conductor: es lo que el pasajero ve antes de
+        // reservar y con lo que se compara contra los demás viajes. Sin esto, publicar sin
+        // querer un viaje en $0 es un click de distancia.
+        const precioConductor = parseInt(String(driverPrice).replace(/\./g, ''), 10) || 0;
+        if (precioConductor <= 0) {
+            showAlert('Falta el precio', 'Poné cuánto le cobrás a cada pasajero por el viaje.');
             return;
         }
 
@@ -207,6 +217,9 @@ const TripDetails = ({ navigation, route }) => {
                 departureTime: formData.departureTime,
                 availableSeats: parseInt(availableSeats),
                 pricePerSeat: 0,
+                // Lo que le cobra a cada pasajero, y que le pagan a él al llegar. La conexión
+                // (lo que cobra la app) la calcula el server aparte y no se manda desde acá.
+                driverPrice: precioConductor,
                 notes: formData.notes,
                 rules: {
                     smokingAllowed:      formData.allowSmoking,
@@ -368,7 +381,7 @@ const TripDetails = ({ navigation, route }) => {
                         </View>
 
                         {/* Detalles */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASIENTOS</Text>
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASIENTOS Y PRECIO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
@@ -392,20 +405,43 @@ const TripDetails = ({ navigation, route }) => {
                                     </Text>
                                 )}
                             </View>
-                            {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
-                                <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
+
+                            {/* El precio va pegado a los asientos porque es "por asiento" igual que
+                                ellos. Es libre: es con lo que el conductor compite contra los otros
+                                viajes, y el pasajero lo ve antes de reservar. */}
+                            <View style={styles.inputRow}>
+                                <Ionicons name="cash-outline" size={19} color={textPrimary} />
                                 <TextInput
-                                    style={[styles.input, styles.textArea, { color: textPrimary }]}
-                                    placeholder="Notas adicionales (opcional)"
+                                    style={[styles.input, { color: textPrimary }]}
+                                    placeholder="Precio por pasajero *"
                                     placeholderTextColor={textMuted}
-                                    value={formData.notes}
-                                    onChangeText={v => handleChange('notes', v)}
-                                    multiline
-                                    numberOfLines={3}
-                                    textAlignVertical="top"
+                                    value={formData.driverPrice ? `$${formData.driverPrice}` : ''}
+                                    onChangeText={v => {
+                                        const digits = v.replace(/\D/g, '');
+                                        handleChange('driverPrice', digits
+                                            ? Number(digits).toLocaleString('es-AR')
+                                            : '');
+                                    }}
+                                    keyboardType="number-pad"
                                 />
-                            </View> */}
+                            </View>
                         </View>
+                        <Text style={[styles.capacityHint, { color: textMuted, marginTop: 8, marginLeft: 4 }]}>
+                            Te lo paga cada pasajero al llegar. Aparte, la app le cobra su cargo por conectarlos.
+                        </Text>
+                        {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
+                            <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
+                            <TextInput
+                                style={[styles.input, styles.textArea, { color: textPrimary }]}
+                                placeholder="Notas adicionales (opcional)"
+                                placeholderTextColor={textMuted}
+                                value={formData.notes}
+                                onChangeText={v => handleChange('notes', v)}
+                                multiline
+                                numberOfLines={3}
+                                textAlignVertical="top"
+                            />
+                        </View> */}
 
                             </>
                         )}

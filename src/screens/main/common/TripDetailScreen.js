@@ -636,15 +636,27 @@ const TripDetailScreen = ({ route, navigation }) => {
     ]);
   };
 
+  // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
+  // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
     const totalSeats = passengers.reduce((sum, b) => sum + (b.seatsBooked || b.seatsRequested || 1), 0);
-    navigation.navigate('CompleteTrip', { onSubmit: submitCompleteTrip, totalSeats });
+    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
+    showAlert(
+      'Completar viaje',
+      precio > 0 && totalSeats > 0
+        ? `Cobrales $${formatNumber(precio)} a cada pasajero ($${formatNumber(precio * totalSeats)} en total).`
+        : '¿Damos el viaje por terminado?',
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Sí, completar', onPress: submitCompleteTrip },
+      ]
+    );
   };
 
-  const submitCompleteTrip = async ({ costBreakdown, driverPay }) => {
+  const submitCompleteTrip = async () => {
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { costBreakdown, driverPay });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
       if (response.success) {
         const updatedTrip = response.data?.trip || response.data;
         if (updatedTrip) {
@@ -652,11 +664,25 @@ const TripDetailScreen = ({ route, navigation }) => {
         }
         await loadTripDetail();
         await refreshUser();
-        return { ok: true, message: `Costo final: $${formatNumber(updatedTrip?.actualCost)}` };
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Viaje completado',
+          message: 'Listo, el viaje quedó cerrado.',
+        });
+        return;
       }
-      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: response.message || 'Probá de nuevo en un momento.',
+      });
     } catch (error) {
-      return { ok: false, message: error.message || 'Error al completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: error.message || 'Error al completar el viaje',
+        error,
+      });
     }
   };
 
@@ -900,6 +926,20 @@ const TripDetailScreen = ({ route, navigation }) => {
             </Text>
           </View>
         </View>
+
+        {/* El precio del conductor, antes de todo lo demás: es lo primero que el pasajero mira
+            para decidir si sigue leyendo este viaje o vuelve al listado. */}
+        {trip?.driverPrice > 0 && (
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Precio del conductor</Text>
+            <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
+              ${Number(trip.driverPrice).toLocaleString('es-AR')}
+            </Text>
+            <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 4 }}>
+              Por asiento, se lo pagás a él al llegar. Aparte, la app cobra su cargo por conectarlos.
+            </Text>
+          </View>
+        )}
 
         {/* Driver */}
         <View style={[styles.section, { backgroundColor: cardBg }]}>

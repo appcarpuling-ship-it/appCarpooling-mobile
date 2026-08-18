@@ -103,6 +103,11 @@ const BookingScreen = ({ route, navigation }) => {
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
   const tripCap = useMemo(() => tripSeatCapacity(trip), [trip]);
 
+  // Lo que el conductor cobra por asiento: no pasa por la app, se le paga a él al llegar.
+  // Es aparte del precio de la conexión que se cobra acá.
+  const driverPrice = Math.max(0, Number(trip?.driverPrice) || 0);
+  const driverPriceTotal = driverPrice * (seats || 1);
+
   /**
    * Tope del selector: se usa el número mostrado (sin holds), no el del guard,
    * para no dejar "2 disponibles" en pantalla y solo permitir elegir 1 — muy
@@ -505,7 +510,9 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Price Breakdown */}
           {priceData && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Precio</Text>
+              {/* "Pagás ahora" y no "Precio" a secas: abajo va lo que le paga al conductor al
+                  llegar, y sin distinguirlos el pasajero cree que el total es todo lo que gasta. */}
+              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Pagás ahora por la app</Text>
 
               <View style={styles.priceRow}>
                 <Text style={[styles.priceLabel, { color: textMuted }]}>
@@ -543,6 +550,28 @@ const BookingScreen = ({ route, navigation }) => {
                     Ahorrás ${formatNumber(priceData.pricing.discountAmount)} ARS con tu descuento
                   </Text>
                 </View>
+              )}
+
+              {/* Lo que le paga al CONDUCTOR, aparte y al llegar. Va acá, en la misma pantalla
+                  donde decide pagar, porque es plata que se compromete a poner: enterarse recién
+                  al bajarse del auto es exactamente lo que este rediseño vino a sacar. */}
+              {driverPriceTotal > 0 && (
+                <View style={[styles.priceDivider, { backgroundColor: divider, marginTop: 14 }]} />
+              )}
+              {driverPriceTotal > 0 && (
+                <>
+                  <View style={[styles.priceRow, { marginTop: 12 }]}>
+                    <Text style={[styles.priceLabel, { color: textMuted }]}>
+                      Al conductor, al llegar
+                    </Text>
+                    <Text style={[styles.priceValue, { color: textPrimary }]}>
+                      ${formatNumber(driverPriceTotal)} ARS
+                    </Text>
+                  </View>
+                  <Text style={[styles.priceLabel, { color: textMuted, marginTop: 2 }]}>
+                    ${formatNumber(driverPrice)} por asiento, se lo pagás directamente a él.
+                  </Text>
+                </>
               )}
             </View>
           )}

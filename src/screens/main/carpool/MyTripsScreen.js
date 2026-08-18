@@ -163,25 +163,48 @@ const MyTripsScreen = ({ navigation }) => {
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
-  const handleCompleteTrip = (tripId, totalSeats) => {
-    navigation.navigate('CompleteTrip', {
-      onSubmit: (data) => submitCompleteTrip(tripId, data),
-      totalSeats,
-    });
+  // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
+  // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
+  const handleCompleteTrip = (tripId, totalSeats, driverPrice) => {
+    const asientos = totalSeats || 0;
+    const precio = Math.max(0, Number(driverPrice) || 0);
+    showAlert(
+      'Completar viaje',
+      precio > 0 && asientos > 0
+        ? `Cobrales $${formatNumber(precio)} a cada pasajero ($${formatNumber(precio * asientos)} en total).`
+        : '¿Damos el viaje por terminado?',
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Sí, completar', onPress: () => submitCompleteTrip(tripId) },
+      ]
+    );
   };
 
-  const submitCompleteTrip = async (tripId, { costBreakdown, driverPay }) => {
+  const submitCompleteTrip = async (tripId) => {
     try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), { costBreakdown, driverPay });
+      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
       if (response.success) {
-        const updatedTrip = response.data?.trip || response.data;
         await loadMyTrips(1, true);
         await refreshUser();
-        return { ok: true, message: `Costo final: $${formatNumber(updatedTrip?.actualCost)}` };
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Viaje completado',
+          message: 'Listo, el viaje quedó cerrado.',
+        });
+        return;
       }
-      return { ok: false, message: response.message || 'No se pudo completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: response.message || 'Probá de nuevo en un momento.',
+      });
     } catch (error) {
-      return { ok: false, message: error.message || 'Error al completar el viaje' };
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo completar',
+        message: error.message || 'Error al completar el viaje',
+        error,
+      });
     }
   };
 
@@ -366,7 +389,7 @@ const MyTripsScreen = ({ navigation }) => {
             <View style={styles.footerRow}>
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: '#FFFFFF', flex: 1 }]}
-                onPress={() => handleCompleteTrip(item._id, item.passengers?.length)}
+                onPress={() => handleCompleteTrip(item._id, item.passengers?.length, item.driverPrice)}
               >
                 <Ionicons name="checkmark-circle-outline" size={15} color="#000000" />
                 <Text style={[styles.footerBtnText, { color: '#000000' }]}>Completar viaje</Text>

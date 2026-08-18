@@ -272,6 +272,16 @@ const SearchTripsScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* El precio del conductor SÍ se puede mostrar en el listado, a diferencia del de la
+            conexión: es un número fijo del viaje y no depende de dónde suba cada pasajero.
+            Es, además, con lo que los conductores compiten entre sí. */}
+        {item.driverPrice > 0 && (
+          <Text style={[styles.addressText, { color: ui.text, marginTop: 6 }]}>
+            ${Number(item.driverPrice).toLocaleString('es-AR')}
+            <Text style={[styles.metaText, { color: ui.textMuted }]}> por asiento</Text>
+          </Text>
+        )}
+
         <View style={styles.driverRow}>
           <View style={[styles.avatarSmall, { backgroundColor: ui.invertBg }]}>
             <Text style={[styles.avatarText, { color: ui.invertText }]}>
