@@ -426,15 +426,19 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Precio — solo visible para el pasajero */}
+        {/* Precio — solo visible para el pasajero.
+            Decía "Precio a pagar", y arriba de una lista de conductores que piden $30.000 y
+            $50.000 se leía como si el viaje entero costara $2.220. Es sólo la conexión: al
+            conductor se le paga aparte. Mismas palabras que usa la pantalla de reservar, para
+            que la app hable igual en los dos momentos donde hay plata de por medio. */}
         {isPassenger && <View style={[styles.costBanner, { backgroundColor: cardBg, borderColor: divider }]}>
           <View style={styles.costBannerLeft}>
-            <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Precio a pagar</Text>
-            {request.seatsNeeded > 1 && (
-              <Text style={[styles.costBannerSub, { color: textMuted }]}>
-                ${request.pricePerSeat?.toLocaleString()} × {request.seatsNeeded} asientos
-              </Text>
-            )}
+            <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Pagás ahora por la app</Text>
+            <Text style={[styles.costBannerSub, { color: textMuted }]}>
+              {request.seatsNeeded > 1
+                ? `Por conectarte · $${request.pricePerSeat?.toLocaleString()} × ${request.seatsNeeded} asientos`
+                : 'Por conectarte con el conductor'}
+            </Text>
           </View>
           <Text style={[styles.costBannerValue, { color: textPrimary }]}>
             ${((request.pricePerSeat || 0) * (request.seatsNeeded || 1)).toLocaleString()}
