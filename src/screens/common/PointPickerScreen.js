@@ -91,6 +91,11 @@ const PointPickerScreen = ({ route, navigation }) => {
   const [resolving, setResolving] = useState(false);
 
   const mapRef = useRef(null);
+  // El mapa tarda en estar listo. Mover la cámara antes de que lo esté no hace nada (y en iOS
+  // deja los tiles sin cargar): si llega un punto mientras tanto, se guarda y se aplica en
+  // onMapReady.
+  const mapaListo = useRef(false);
+  const regionPendiente = useRef(null);
   const searchDebounce = useRef(null);
   const idleTimer = useRef(null);
   const geocodeId = useRef(0);
@@ -188,22 +193,34 @@ const PointPickerScreen = ({ route, navigation }) => {
     ]).start();
   };
 
+  /**
+   * Planta el pin en un punto elegido a mano (buscador o dirección frecuente) y lleva el mapa
+   * ahí. Los dos caminos hacían exactamente esto, y el que se desincronizara era la mitad del
+   * problema del mapa en celeste.
+   */
+  const plantarPin = (coords, address) => {
+    geocodeId.current++;
+    if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null; }
+    setPinCoords(coords);
+    setPinAddress(address);
+    const r = { ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+    setRegion(r);
+    if (mapaListo.current) mapRef.current?.animateToRegion(r, 500);
+    else regionPendiente.current = r; // el mapa todavía no existe: se aplica en onMapReady
+  };
+
   const elegirDeLaBusqueda = async (prediction) => {
     cerrarBuscador();
     try {
       const data = await getPlaceDetails(prediction.place_id, 'geometry,formatted_address');
       if (data.result?.geometry?.location) {
-        const coords = {
-          latitude: data.result.geometry.location.lat,
-          longitude: data.result.geometry.location.lng,
-        };
-        geocodeId.current++;
-        if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null; }
-        setPinCoords(coords);
-        setPinAddress(prediction.description);
-        const r = { ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 };
-        setRegion(r);
-        mapRef.current?.animateToRegion(r, 500);
+        plantarPin(
+          {
+            latitude: data.result.geometry.location.lat,
+            longitude: data.result.geometry.location.lng,
+          },
+          prediction.description,
+        );
       }
     } catch {}
   };
@@ -212,14 +229,10 @@ const PointPickerScreen = ({ route, navigation }) => {
   const elegirFrecuente = (addr) => {
     cerrarBuscador();
     if (!addr.coordinates?.latitude) return;
-    const coords = { latitude: addr.coordinates.latitude, longitude: addr.coordinates.longitude };
-    geocodeId.current++;
-    if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null; }
-    setPinCoords(coords);
-    setPinAddress(addr.address);
-    const r = { ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 };
-    setRegion(r);
-    mapRef.current?.animateToRegion(r, 500);
+    plantarPin(
+      { latitude: addr.coordinates.latitude, longitude: addr.coordinates.longitude },
+      addr.address,
+    );
   };
 
   const confirmar = async () => {
@@ -237,13 +250,29 @@ const PointPickerScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.fullscreen}>
-        {/* Map — sólo monta con región válida y con el overlay ya en pantalla */}
-        {region && !searchVisible ? (
+        {/* Map — monta apenas hay región válida y NO se desmonta al abrir el buscador.
+            Desmontarlo era el bug: elegirDeLaBusqueda llama a cerrarBuscador() primero (150ms
+            de animación) y recién después, cuando vuelve getPlaceDetails por red, hace
+            setRegion. Como la animación termina antes que la red, el mapa se remontaba con la
+            región VIEJA —initialRegion sólo se aplica al montar, así que el setRegion posterior
+            ya no lo movía— y encima el animateToRegion le pegaba a un mapa recién montado, que
+            es justo el caso donde iOS deja los tiles en celeste. El buscador es un overlay
+            opaco que lo tapa entero, así que mantenerlo montado abajo no se ve. */}
+        {region ? (
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}
             style={StyleSheet.absoluteFill}
             initialRegion={region}
+            onMapReady={() => {
+              mapaListo.current = true;
+              // Si mientras el mapa se estaba armando ya se eligió un punto, se aplica ahora:
+              // el animateToRegion de ese momento se perdió contra un mapa que no existía.
+              if (regionPendiente.current) {
+                mapRef.current?.animateToRegion(regionPendiente.current, 0);
+                regionPendiente.current = null;
+              }
+            }}
             onRegionChange={(_r, details = {}) => {
               if (details.isGesture === false) return;
               levantarPin(true);

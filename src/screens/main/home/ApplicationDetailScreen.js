@@ -14,8 +14,24 @@ import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { useUI } from '../../../theme/ui';
 import Rating from '../../../components/ui/Rating';
 
+/**
+ * El recorrido completo del viaje, como lo va a hacer el conductor: sus puntas afuera y el
+ * tramo del pasajero en el medio. Los puntos del conductor son opcionales —si no declaró
+ * recorrido propio hace el mismo tramo—, y en ese caso se muestran sólo los dos del pasajero.
+ */
+const armarRecorrido = (app, tramo) => {
+  if (!tramo?.origin || !tramo?.destination) return [];
+  const dir = (p) => p?.address || p?.city;
+  return [
+    app.driverOrigin && { etiqueta: 'Sale desde', texto: dir(app.driverOrigin), delConductor: true },
+    { etiqueta: 'Te subís en', texto: dir(tramo.origin) },
+    { etiqueta: 'Te deja en', texto: dir(tramo.destination) },
+    app.driverDestination && { etiqueta: 'Sigue hasta', texto: dir(app.driverDestination), delConductor: true },
+  ].filter((p) => p && p.texto);
+};
+
 const ApplicationDetailScreen = ({ route, navigation }) => {
-  const { app, requestId } = route.params;
+  const { app, requestId, tramoPasajero } = route.params;
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -34,6 +50,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
   const driver = app.driverSnapshot || {};
   const vehicle = app.vehicleSnapshot || {};
+  const recorrido = armarRecorrido(app, tramoPasajero);
 
   const handleAccept = () => {
     showAlert(
@@ -106,6 +123,34 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Recorrido: lo que el pasajero necesita para decidir si le sirve este conductor.
+            Sin esto sólo veía el auto y la calificación, y no por dónde pasa. */}
+        {recorrido.length > 0 && (
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Recorrido</Text>
+            {recorrido.map((punto, i) => (
+              <View key={`${punto.etiqueta}-${i}`} style={styles.recorridoFila}>
+                <View style={styles.recorridoLinea}>
+                  <View style={[
+                    styles.recorridoPunto,
+                    { backgroundColor: punto.delConductor ? textMuted : accent },
+                  ]} />
+                  {i < recorrido.length - 1 && (
+                    <View style={[styles.recorridoTramo, { backgroundColor: divider }]} />
+                  )}
+                </View>
+                <View style={styles.recorridoTexto}>
+                  <Text style={[styles.recorridoEtiqueta, { color: textMuted }]}>{punto.etiqueta}</Text>
+                  <Text style={[styles.recorridoDireccion, { color: textPrimary }]}>{punto.texto}</Text>
+                </View>
+              </View>
+            ))}
+            <Text style={[styles.recorridoNota, { color: textMuted }]}>
+              Pagás sólo tu tramo, desde donde subís hasta donde bajás.
+            </Text>
+          </View>
+        )}
+
         {/* Vehicle info */}
         {Object.keys(vehicle).length > 0 && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -140,12 +185,10 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             ) : null}
-            {vehicle.vehicleType ? (
-              <View style={styles.vehicleDetail}>
-                <Text style={[styles.vehicleDetailLabel, { color: textMuted }]}>Tipo</Text>
-                <Text style={[styles.vehicleDetailValue, { color: textPrimary }]}>{vehicle.vehicleType}</Text>
-              </View>
-            ) : null}
+            {/* Sin "Tipo": mostraba `vehicle.vehicleType` crudo, o sea la clave interna del
+                modelo ("sedan", "hatchback"), que en ningún otro lado de la app se ve — el
+                formulario las agrupa y las muestra como "Auto" / "Camioneta". Y para elegir
+                conductor no aporta nada que marca, modelo y capacidad no digan ya. */}
           </View>
         )}
       </ScrollView>
@@ -232,6 +275,16 @@ const styles = StyleSheet.create({
   vehicleDetail: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
   vehicleDetailLabel: { fontSize: 13 },
   vehicleDetailValue: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  // El punto del pasajero va en negro pleno y el del conductor en gris: de un vistazo se ve
+  // cuál es "mi" tramo dentro del recorrido más largo.
+  recorridoFila: { flexDirection: 'row', gap: 12 },
+  recorridoLinea: { alignItems: 'center', width: 10 },
+  recorridoPunto: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
+  recorridoTramo: { width: StyleSheet.hairlineWidth, flex: 1, minHeight: 22 },
+  recorridoTexto: { flex: 1, paddingBottom: 14 },
+  recorridoEtiqueta: { fontSize: 11, fontFamily: 'Sora_500Medium', marginBottom: 2 },
+  recorridoDireccion: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19 },
+  recorridoNota: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17 },
   footer: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
   acceptBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   acceptBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
