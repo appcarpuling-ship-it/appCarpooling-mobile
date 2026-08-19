@@ -406,6 +406,25 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     return null;
   };
 
+  /**
+   * Mueve la cámara a un punto Y actualiza el estado `region`.
+   *
+   * La causa real de que un marcador recién puesto no apareciera en iOS: `region` es un prop
+   * CONTROLADO de MapView (`region={region}`), y las cuatro funciones que colocan un marcador
+   * sólo llamaban al método imperativo `mapRef.current.animateToRegion(...)`, que mueve la
+   * cámara pero NUNCA toca el estado `region`. Para React eso no es un cambio de prop, así que
+   * MapKit (Apple) no volvía a hacer el layout de sus overlays — el marcador quedaba puesto en
+   * el estado pero sin dibujarse. Recién se veían todos juntos cuando el efecto de
+   * `getDirections` encuadraba la ruta con un `setRegion` real.
+   *
+   * Con Google en iOS no se notaba porque GMSMapView redibuja más a menudo ante cualquier
+   * movimiento de cámara, imperativo o no. Con MapKit, actualizar el estado es lo que fuerza
+   * el redibujado, y por eso pasa a ser obligatorio acá.
+   */
+  const moverCamaraA = (latitude, longitude) => {
+    setRegion({ latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA });
+  };
+
   const clearMapSelectionIdleTimer = () => {
     if (mapSelectionIdleTimerRef.current) {
       clearTimeout(mapSelectionIdleTimerRef.current);
@@ -456,8 +475,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       setMapSelectionMode(null);
       mapSelectionModeRef.current = null;
       clearMapSelectionIdleTimer();
-      if (mapRef.current && isMounted.current) {
-        mapRef.current.animateToRegion(
+      if (isMounted.current) {
+        moverCamaraA(latitude, longitude);
+        mapRef.current?.animateToRegion(
           { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA },
           1000
         );
@@ -511,7 +531,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         setOriginMarker(coords);
         setFormData(prev => ({ ...prev, origin: { address: data?.description || '', city, province, country: 'Argentina', coordinates: coords } }));
         if (originInputRef.current?.setAddressText) { try { originInputRef.current.setAddressText(text); } catch {} }
-        if (mapRef.current && isMounted.current) setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion({ ...coords, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }, 300);
+        moverCamaraA(coords.latitude, coords.longitude);
       }
     } catch (e) { console.error('handleOriginSelect:', e); }
   };
@@ -527,6 +547,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         setDestinationMarker(coords);
         setFormData(prev => ({ ...prev, destination: { address: data?.description || '', city, province, country: 'Argentina', coordinates: coords } }));
         if (destinationInputRef.current?.setAddressText) { try { destinationInputRef.current.setAddressText(text); } catch {} }
+        moverCamaraA(coords.latitude, coords.longitude);
       }
     } catch (e) { console.error('handleDestinationSelect:', e); }
   };
@@ -542,6 +563,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         setWaypointMarkers(prev => { const n = [...prev]; n[idx] = coords; return n; });
         setFormData(prev => { const n = [...prev.waypoints]; n[idx] = { address: data?.description || '', city, province, coordinates: coords }; return { ...prev, waypoints: n }; });
         if (waypointInputRefs.current[idx]?.current?.setAddressText) { try { waypointInputRefs.current[idx].current.setAddressText(text); } catch {} }
+        moverCamaraA(coords.latitude, coords.longitude);
       }
     } catch (e) { console.error('handleWaypointSelect:', e); }
   };
@@ -577,16 +599,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       setOriginMarker(coords);
       setFormData(prev => ({ ...prev, origin: locationData }));
       if (originInputRef.current?.setAddressText) { try { originInputRef.current.setAddressText(text); } catch {} }
-      if (coords && mapRef.current) setTimeout(() => { if (mapRef.current && isMounted.current) mapRef.current.animateToRegion({ ...coords, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }, 300);
+      if (coords) moverCamaraA(coords.latitude, coords.longitude);
     } else if (field === 'destination') {
       setDestinationMarker(coords);
       setFormData(prev => ({ ...prev, destination: locationData }));
       if (destinationInputRef.current?.setAddressText) { try { destinationInputRef.current.setAddressText(text); } catch {} }
+      if (coords) moverCamaraA(coords.latitude, coords.longitude);
     } else if (field?.startsWith('waypoint-')) {
       const idx = parseInt(field.split('-')[1], 10);
       setWaypointMarkers(prev => { const n = [...prev]; n[idx] = coords; return n; });
       setFormData(prev => { const n = [...prev.waypoints]; n[idx] = { ...locationData, order: idx + 1 }; return { ...prev, waypoints: n }; });
       if (waypointInputRefs.current[idx]?.current?.setAddressText) { try { waypointInputRefs.current[idx].current.setAddressText(text); } catch {} }
+      if (coords) moverCamaraA(coords.latitude, coords.longitude);
     }
   };
 

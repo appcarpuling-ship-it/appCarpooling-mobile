@@ -79,8 +79,12 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  pinHalo: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-  pinCore: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101' },
+  pinHalo: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.15)', justifyContent: 'center', alignItems: 'center' },
+  // Sin el anillo blanco, un punto negro se funde con un mapa oscuro (MapKit lo dibuja así de
+  // noche o con el modo oscuro del sistema) y no se ve. Los demás marcadores de la app ya
+  // llevan este mismo borde blanco (ver markerInner en CreateTripGoogleMaps, driverMarker en
+  // TripMapScreen); a éste, al ser el único punto suelto sin recorrido, se le había pasado.
+  pinCore: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101', borderWidth: 2, borderColor: '#FFFFFF' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',

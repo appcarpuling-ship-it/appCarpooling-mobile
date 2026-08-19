@@ -512,10 +512,6 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Price Breakdown */}
           {priceData && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              {/* "Pagás ahora" y no "Precio" a secas: abajo va lo que le paga al conductor al
-                  llegar, y sin distinguirlos el pasajero cree que el total es todo lo que gasta. */}
-              <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Asegurás tu asiento</Text>
-
               {/* "Precio base" y "Total" eran el MISMO número siempre que no hubiera descuento:
                   dos filas y un divisor para decir una sola cosa. El desglose aparece sólo
                   cuando hay algo que desglosar. */}
@@ -571,16 +567,18 @@ const BookingScreen = ({ route, navigation }) => {
           {driverPriceTotal > 0 && (
             <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
               <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Al conductor le pagás al llegar</Text>
-              <View style={styles.priceRow}>
-                {/* Sin etiqueta con un solo asiento: el encabezado ya dice a quién y cuándo, y
-                    "en mano" era además incorrecto — también se le puede transferir. */}
-                <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
-                  {seats > 1 ? `$${formatNumber(driverPrice)} × ${seats} asientos` : ''}
+              {/* Número hero en vez de una fila con la etiqueta vacía (con un solo asiento no
+                  había nada que poner a la izquierda). Mismo estilo que ya usan la ficha del
+                  conductor en el detalle del viaje y la del detalle de la postulación, para
+                  que este monto se lea igual en toda la app. */}
+              <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1, marginTop: 2 }}>
+                ${formatNumber(driverPriceTotal)} ARS
+              </Text>
+              {seats > 1 && (
+                <Text style={[styles.priceLabel, { color: textMuted, marginTop: 4 }]}>
+                  ${formatNumber(driverPrice)} por asiento × {seats}
                 </Text>
-                <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
-                  ${formatNumber(driverPriceTotal)} ARS
-                </Text>
-              </View>
+              )}
             </View>
           )}
 
