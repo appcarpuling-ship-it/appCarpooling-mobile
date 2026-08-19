@@ -329,8 +329,8 @@ const TripMapScreen = ({ route, navigation }) => {
     const total = precio * asientos;
     const titulo = nombre ? `Bajó ${nombre}` : 'Bajó el pasajero';
     const cuerpo = asientos > 1
-      ? `Cobrale $${total.toLocaleString('es-AR')} ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
-      : `Cobrale $${total.toLocaleString('es-AR')}.`;
+      ? `Recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
+      : `Recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje.`;
 
     // Sin permiso de notificaciones no aparece nada, y quedarse sin el recordatorio del cobro es
     // peor que un modal: ahí sí cae al alert.
