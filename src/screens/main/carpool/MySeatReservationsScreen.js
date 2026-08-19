@@ -132,7 +132,11 @@ const MySeatReservationsScreen = ({ navigation }) => {
   const handleCancelReservation = (reservation) => {
     const seatReservationId = reservation.seatReservation?._id || reservation.seatReservation?.id;
     if (!seatReservationId) { showAlert('Ocurrió algo', 'No se puede cancelar'); return; }
-    showAlert('Cancelar', '¿Cancelar esta reserva?', [
+    const yaPagada = reservation.seatReservation?.reservationStatus === 'reserved';
+    const mensaje = yaPagada
+      ? 'Ya pagaste esta reserva. Si la cancelás no se te devuelve el dinero. ¿Cancelar de todas formas?'
+      : '¿Cancelar esta reserva?';
+    showAlert('Cancelar', mensaje, [
       { text: 'No', style: 'cancel' },
       {
         text: 'Sí',
@@ -321,14 +325,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
               onCheckoutPress={handleOpenCheckout}
             />
             <TouchableOpacity
-              style={[styles.cancelBtn, { borderColor: ui.border }]}
+              style={[styles.cancelBtn, { backgroundColor: '#EF4444', borderColor: '#EF4444' }]}
               onPress={() => handleCancelReservation(item)}
               activeOpacity={0.7}
               disabled={cancellingId === item.seatReservation?._id}
             >
               {cancellingId === item.seatReservation?._id
-                ? <ActivityIndicator size="small" color={textMuted} />
-                : <Text style={[styles.cancelText, { color: textMuted }]}>Cancelar reserva</Text>
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
+                : <Text style={[styles.cancelText, { color: '#FFFFFF' }]}>Cancelar reserva</Text>
               }
             </TouchableOpacity>
           </View>

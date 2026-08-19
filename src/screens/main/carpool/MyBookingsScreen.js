@@ -147,8 +147,11 @@ const MyBookingsScreen = ({ navigation }) => {
     loadMyBookings(page + 1, false);
   };
 
-  const handleCancelBooking = (bookingId) => {
-    showAlert('Cancelar reserva', '¿Estás seguro?', [
+  const handleCancelBooking = (bookingId, yaPagada) => {
+    const mensaje = yaPagada
+      ? 'Ya pagaste esta reserva. Si la cancelás no se te devuelve el dinero. ¿Cancelar de todas formas?'
+      : '¿Estás seguro?';
+    showAlert('Cancelar reserva', mensaje, [
       { text: 'No', style: 'cancel' },
       {
         text: 'Sí, cancelar',
@@ -247,9 +250,13 @@ const MyBookingsScreen = ({ navigation }) => {
   };
 
   const canCancel = (item) =>
-    item.seatReservation?.reservationStatus === 'pending_approval' ||
-    item.seatReservation?.reservationStatus === 'pending_payment' ||
-    (item.status === 'pending' && !item.seatReservation);
+    item.trip?.status !== 'started' && (
+      item.seatReservation?.reservationStatus === 'pending_approval' ||
+      item.seatReservation?.reservationStatus === 'pending_payment' ||
+      item.seatReservation?.reservationStatus === 'reserved' ||
+      item.status === 'pending' ||
+      item.status === 'confirmed'
+    );
 
   const canPay = (item) =>
     item.seatReservation?.reservationStatus === 'pending_payment' ||
@@ -372,21 +379,18 @@ const MyBookingsScreen = ({ navigation }) => {
                 <Text style={[styles.btnPrimaryText, { color: isActive ? '#000' : (isDarkMode ? '#000' : '#FFF') }]}>Ir a pagar</Text>
               </TouchableOpacity>
             )}
+            {/* Rojo sólido siempre, sin importar canPay: es una acción destructiva, no una
+                variante de "pagar" o "confirmar" que tenga sentido tintar con el tema. */}
             <TouchableOpacity
-              style={[
-                styles.btnSecondary,
-                canPay(item)
-                  ? { borderWidth: StyleSheet.hairlineWidth, borderColor: ui.border }
-                  : { backgroundColor: ui.invertBg },
-              ]}
-              onPress={() => handleCancelBooking(item._id)}
+              style={[styles.btnSecondary, { backgroundColor: '#EF4444' }]}
+              onPress={() => handleCancelBooking(item._id, item.seatReservation?.reservationStatus === 'reserved' || item.status === 'confirmed')}
               activeOpacity={0.8}
               disabled={cancellingId === item._id}
             >
               {cancellingId === item._id
-                ? <ActivityIndicator size="small" color={canPay(item) ? activeMuted : ui.invertText} />
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
                 : (
-                  <Text style={[styles.btnSecondaryText, { color: canPay(item) ? activeTxt : ui.invertText }]}>
+                  <Text style={[styles.btnSecondaryText, { color: '#FFFFFF' }]}>
                     Cancelar reserva
                   </Text>
                 )

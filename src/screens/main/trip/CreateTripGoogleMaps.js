@@ -90,6 +90,13 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const mapSelectionModeRef = useRef(null);
   const mapSelectionIdleTimerRef = useRef(null);
   const hasMapGestureForSelectionRef = useRef(false);
+  // `details.isGesture` de onRegionChangeComplete es Android-only (siempre undefined en iOS,
+  // ver react-native-maps). Sin esto, en iOS mover el pin arrastrando el mapa nunca disparaba
+  // el reverse-geocode: la rama que lo agenda dependía de `d.isGesture`. Se marca en true antes
+  // de cada movimiento de cámara programático (moverCamaraA, getCurrentLocation, el botón de
+  // ubicación) y se consume en onRegionChangeComplete: si estaba en true, el movimiento fue
+  // nuestro y no del usuario.
+  const isProgrammaticMoveRef = useRef(false);
 
 
   const ui = useUI();
@@ -263,6 +270,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       if (!coords || !isMounted.current) return;
       const { latitude, longitude } = coords;
       const newRegion = { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
+      isProgrammaticMoveRef.current = true;
       setRegion(newRegion);
       setUserLocation({ latitude, longitude });
       if (mapRef.current && isMounted.current) {
@@ -422,6 +430,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
    * el redibujado, y por eso pasa a ser obligatorio acá.
    */
   const moverCamaraA = (latitude, longitude) => {
+    isProgrammaticMoveRef.current = true;
     setRegion({ latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA });
   };
 
@@ -819,10 +828,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           if (!mapSelectionModeRef.current || !hasMapGestureForSelectionRef.current) return;
           scheduleMapSelectionIdleCommit();
         }}
-        onRegionChangeComplete={(r, d = {}) => {
+        onRegionChangeComplete={(r) => {
           lastRegionRef.current = r;
           levantarPin(false);
-          if (d.isGesture) {
+          const fueProgramatico = isProgrammaticMoveRef.current;
+          isProgrammaticMoveRef.current = false;
+          if (!fueProgramatico) {
             setRegion(r);
             if (mapSelectionModeRef.current) {
               hasMapGestureForSelectionRef.current = true;
@@ -880,7 +891,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       {!isSearching && (
         <TouchableOpacity
           style={[styles.myLocationBtn, { backgroundColor: cardBg }]}
-          onPress={() => { getCurrentLocation(); if (userLocation && mapRef.current) mapRef.current.animateToRegion({ ...userLocation, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); }}
+          onPress={() => { getCurrentLocation(); if (userLocation && mapRef.current) { isProgrammaticMoveRef.current = true; mapRef.current.animateToRegion({ ...userLocation, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); } }}
         >
           <Ionicons name="navigate" size={20} color={textPrimary} />
         </TouchableOpacity>

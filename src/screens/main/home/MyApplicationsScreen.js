@@ -176,13 +176,17 @@ const MyApplicationsScreen = ({ navigation }) => {
             <Ionicons name="time-outline" size={13} color={textMuted} />
             <Text style={[styles.metaText, { color: textMuted }]}>{item.departureTime}</Text>
           </View>
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="cash-outline" size={13} color={textMuted} />
-            <Text style={[styles.metaText, { color: textMuted }]}>
-              ${item.pricePerSeat?.toLocaleString()}
-            </Text>
-          </View>
+          {!!item.myApplication?.driverPrice && (
+            <>
+              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+              <View style={styles.metaItem}>
+                <Ionicons name="pricetag-outline" size={13} color={textMuted} />
+                <Text style={[styles.metaText, { color: textMuted }]}>
+                  Ofrecí ${item.myApplication.driverPrice.toLocaleString('es-AR')}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {item.myApplication?.status === 'accepted' && (
@@ -199,11 +203,11 @@ const MyApplicationsScreen = ({ navigation }) => {
             <TouchableOpacity
               onPress={(e) => { e.stopPropagation(); handleCancel(item._id); }}
               disabled={cancelling === item._id}
-              style={[styles.footerBtnOutline, { borderColor: divider }]}
+              style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444' }]}
             >
               {cancelling === item._id
-                ? <ActivityIndicator size="small" color={textMuted} />
-                : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Retirar postulación</Text>
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
+                : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Retirar postulación</Text>
               }
             </TouchableOpacity>
           </View>

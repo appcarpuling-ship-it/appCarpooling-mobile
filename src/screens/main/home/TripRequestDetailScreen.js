@@ -343,7 +343,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textMuted]} />}
@@ -611,7 +611,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
               <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
               <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Pago confirmado. El viaje está en tu agenda.'}
+                {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Pago confirmado. El viaje está en "Mis viajes".'}
               </Text>
             </View>
           )}
@@ -649,15 +649,18 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
 
-                {/* Retirar: hasta acá, una postulación era irreversible desde la app. */}
+                {/* Retirar: hasta acá, una postulación era irreversible desde la app.
+                    Rojo sólido y no el mismo outline que "Ofrecer viaje": es destructivo, y
+                    con el mismo estilo que cualquier otro botón se confundía con una acción
+                    más. */}
                 <TouchableOpacity
-                  style={[styles.footerBtnOutline, { borderColor: ui.border, marginTop: 10 }, retirando && { opacity: 0.6 }]}
+                  style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', marginTop: 10 }, retirando && { opacity: 0.6 }]}
                   onPress={handleRetirarPostulacion}
                   disabled={retirando}
                 >
                   {retirando
-                    ? <ActivityIndicator color={textMuted} />
-                    : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Retirar postulación</Text>
+                    ? <ActivityIndicator color="#FFFFFF" />
+                    : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Retirar postulación</Text>
                   }
                 </TouchableOpacity>
               </>
@@ -679,14 +682,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={ui.textMuted} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar solicitud</Text>
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar solicitud</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -727,7 +730,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         reservationId={requestId}
       />
 
-    </View>
+    </SafeAreaView>
   );
 };
 
