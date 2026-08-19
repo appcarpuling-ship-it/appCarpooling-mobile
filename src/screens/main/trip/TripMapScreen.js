@@ -55,6 +55,7 @@ const TripMapScreen = ({ route, navigation }) => {
           // PRÓXIMO movimiento real del conductor —si no se mueve (GPS quieto o simulador), el
           // pasajero nunca ve nada aunque el conductor ya tenga una posición guardada.
           if (res.data.currentLocation?.latitude) setDriverLocation(res.data.currentLocation);
+          setEsperandome(Boolean(res.data.driverWaitingForMe));
         }
       })
       .catch(() => {});
@@ -65,7 +66,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const ui = useUI();
   const { user } = useAuth();
   const { showAlert } = useAlert();
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications } = useNotifications();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
@@ -116,6 +117,10 @@ const TripMapScreen = ({ route, navigation }) => {
   // Paradas ya pasadas. Local a la pantalla y a propósito: es una ayuda para manejar, no un
   // estado del viaje — si se reinicia la app se recalcula sola por cercanía.
   const [paradasHechas, setParadasHechas] = useState([]);
+  // Id de la parada de recogida donde el conductor ya avisó "Recoger a X" pero todavía no
+  // confirmó "Continuar". Mientras esté acá, el botón cambia de "Recoger a X" a "Continuar"
+  // SIN avanzar la parada — el conductor sigue ahí, esperando a que suba.
+  const [esperandoEnParada, setEsperandoEnParada] = useState(null);
 
   const originCoords = trip?.origin?.coordinates;
   const destCoords = trip?.destination?.coordinates;
@@ -156,17 +161,11 @@ const TripMapScreen = ({ route, navigation }) => {
   // que ya corre para avisarles a los pasajeros). Para el resto sigue el punto nativo.
   const dibujamosNuestroPunto = Boolean(isDriver && isTripStarted && driverLocation?.latitude);
 
-  // "El conductor llegó": se apoya en NotificationContext (ya trae la notificación por socket
-  // en vivo Y la persiste en el server) en vez de un socket propio acá. Así el cartel aparece
-  // aunque el pasajero no haya visto el push, sea porque estaba en otra pantalla cuando llegó
-  // o porque recién ahora vuelve a abrir el mapa.
-  const avisoLlegada = !isDriver
-    ? notifications.find((n) => (
-        n?.type === 'driver_arrived'
-        && !n.isRead
-        && String(n.relatedTrip?._id || n.relatedTrip) === String(trip?._id)
-      ))
-    : null;
+  // "El conductor te espera": arranca con lo que ya diga el server al entrar (driverWaitingForMe,
+  // ver refrescarEstadoViaje) y se corrige en vivo con trip:pickup-status más abajo. Lo abre y
+  // lo cierra el CONDUCTOR (Recoger a X / Continuar) — el pasajero no tiene ninguna acción acá,
+  // por eso no depende de si vio o no la notificación ni tiene botón propio.
+  const [esperandome, setEsperandome] = useState(false);
 
   // El estado general del viaje (completado, cancelado) no era en vivo: el pasajero solo lo
   // veía si salía y volvía a entrar a esta pantalla. Se apoya en el mismo NotificationContext:
@@ -270,10 +269,18 @@ const TripMapScreen = ({ route, navigation }) => {
     const reenviarAlConectar = () => {
       if (ultimaCoordsRef.current) socketService.sendTripLocationUpdate(trip._id, ultimaCoordsRef.current);
     };
+    // "El conductor te espera": vive en el trip (driverWaitingFor) y llega en vivo por este
+    // evento propio, no por notification:new — así el cartel no depende de si la notificación
+    // se marcó como leída ni compite por el listener único que ya usa NotificationContext.
+    const onPickupStatus = (data) => {
+      if (data?.tripId === trip._id) setEsperandome(Boolean(data.waiting));
+    };
+
     if (!isDriver) {
       // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
       unirseAlTracking();
       socketService.socket?.on('connect', unirseAlTracking);
+      socketService.socket?.on('trip:pickup-status', onPickupStatus);
       socketService.onTripLocation((data) => {
         if (data?.tripId === trip._id) {
           setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
@@ -285,8 +292,12 @@ const TripMapScreen = ({ route, navigation }) => {
 
     return () => {
       cancelled = true;
-      if (!isDriver) socketService.socket?.off('connect', unirseAlTracking);
-      else socketService.socket?.off('connect', reenviarAlConectar);
+      if (!isDriver) {
+        socketService.socket?.off('connect', unirseAlTracking);
+        socketService.socket?.off('trip:pickup-status', onPickupStatus);
+      } else {
+        socketService.socket?.off('connect', reenviarAlConectar);
+      }
       locationWatchRef.current?.remove?.();
       locationWatchRef.current = null;
       if (!isDriver) {
@@ -358,14 +369,20 @@ const TripMapScreen = ({ route, navigation }) => {
   const enElDestino = proximaParada?.id === 'destino';
 
   /**
-   * "Continuar" no decía qué iba a pasar al tocarlo. En una parada de recogida, ahora dice
-   * a quién se está por buscar — y es la misma acción de siempre (avanzar), sólo que además
-   * dispara el aviso al pasajero (ver avisarLlegadaRecogida). Sin nombre (parada vieja sin
-   * el pasajero poblado) cae a "Continuar", nunca a un "Recoger a undefined".
+   * "Continuar" no decía qué iba a pasar al tocarlo. En una parada de recogida son DOS toques:
+   * "Recoger a X" avisa al pasajero pero no avanza (el conductor sigue ahí, esperando), y una
+   * vez que ya avisó el botón pasa a "Continuar" — ESE toque es el que avanza de verdad y le
+   * saca el cartel de espera al pasajero. Sin nombre (parada vieja sin el pasajero poblado)
+   * cae directo a "Continuar", nunca a un "Recoger a undefined".
    */
+  const esRecogidaPendienteDeAviso =
+    proximaParada?.kind === 'pickup'
+    && proximaParada?.pasajero?.firstName
+    && esperandoEnParada !== proximaParada.id;
+
   const textoBoton = enElDestino
     ? 'Completar'
-    : proximaParada?.kind === 'pickup' && proximaParada?.pasajero?.firstName
+    : esRecogidaPendienteDeAviso
       ? `Recoger a ${proximaParada.pasajero.firstName}`
       : 'Continuar';
 
@@ -460,16 +477,35 @@ const TripMapScreen = ({ route, navigation }) => {
     }
   };
 
+  // Segundo toque de una recogida: le saca el cartel de espera al pasajero. Lo cierra el
+  // conductor (acá), no el pasajero — es él quien sabe si ya arrancó de nuevo.
+  const confirmarRecogida = async (parada) => {
+    const passengerId = parada?.pasajero?._id || parada?.pasajero;
+    if (!passengerId) return;
+    try {
+      await post_withauth(ENDPOINTS.CONFIRM_PICKUP(trip._id), { passengerId });
+    } catch {
+      // El pasajero se queda con el cartel un rato de más si esto falla; no frena al conductor.
+    }
+  };
+
   const avanzar = () => {
     if (enElDestino) {
       submitCompleteTrip();
       return;
     }
     const parada = proximaParada;
-    // Avanza YA, sin esperar a los avisos: un solo toque, como era antes de agregarlos.
+    if (esRecogidaPendienteDeAviso) {
+      // "Recoger a X": solo avisa. El conductor se queda en esta parada hasta el próximo toque.
+      setEsperandoEnParada(parada.id);
+      avisarLlegadaRecogida(parada);
+      return;
+    }
+    // "Continuar": acá sí avanza de verdad.
     setParadasHechas((prev) => [...prev, parada.id]);
+    setEsperandoEnParada(null);
     avisarCobro(parada);
-    avisarLlegadaRecogida(parada);
+    if (parada.kind === 'pickup') confirmarRecogida(parada);
   };
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
@@ -693,10 +729,10 @@ const TripMapScreen = ({ route, navigation }) => {
       )}
 
       {/* El conductor te está esperando: mismo cartel que ve él ("Yendo a"), para el pasajero.
-          No depende de que hayas visto el push — sale de NotificationContext, que ya la tiene
-          en vivo por socket o, si no estabas mirando el mapa en ese momento, la trae del
-          server la próxima vez que se abre esta pantalla. */}
-      {!isDriver && isTripStarted && avisoLlegada && (
+          Sin botón acá a propósito — lo cierra el conductor con "Continuar" del lado suyo
+          (ver confirmarRecogida), no una acción del pasajero. Sale y entra sola por
+          trip:pickup-status, o al abrir esta pantalla si ya estaba así (driverWaitingForMe). */}
+      {!isDriver && isTripStarted && esperandome && (
         <View style={[styles.navCard, { backgroundColor: cardBg, top: insets.top + 56 }]}>
           <Text style={[styles.navLabel, { color: ui.textMuted }]}>Conductor esperando</Text>
           <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
@@ -705,20 +741,6 @@ const TripMapScreen = ({ route, navigation }) => {
           <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
             Está esperándote afuera
           </Text>
-        </View>
-      )}
-
-      {!isDriver && isTripStarted && avisoLlegada && (
-        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <TouchableOpacity
-            style={styles.navContinuar}
-            onPress={() => markAsRead(avisoLlegada._id)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Continuar"
-          >
-            <Text style={styles.navContinuarText}>Continuar</Text>
-          </TouchableOpacity>
         </View>
       )}
 
