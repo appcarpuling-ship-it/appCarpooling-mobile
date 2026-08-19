@@ -1124,7 +1124,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             {/* Marcar en mapa — siempre visible */}
             <TouchableOpacity
               style={[styles.resultRow, { borderBottomColor: divider }]}
-              onPress={() => { const mode = activeAutocomplete; closeSearch(); setMapSelectionMode(mode); }}
+              onPress={() => {
+                const mode = activeAutocomplete;
+                closeSearch();
+                setMapSelectionMode(mode);
+                // El pin subía sólo cuando disparaba onRegionChange durante el arrastre, y con
+                // MapKit (Apple) ese evento es mucho menos frecuente que con Google: a veces no
+                // llega a dispararse nunca y el pin se queda pegado al mapa. Se levanta acá, al
+                // entrar al modo de selección, sin depender de que el mapa avise que se mueve.
+                // onRegionChangeComplete lo sigue bajando al asentarse — ese sí es confiable en
+                // los dos motores, porque es el evento de "la cámara ya frenó".
+                levantarPin(true);
+              }}
               activeOpacity={0.6}
             >
               <View style={[styles.resultIcon, { backgroundColor: iconBg }]}>
