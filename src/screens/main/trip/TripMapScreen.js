@@ -69,6 +69,9 @@ const TripMapScreen = ({ route, navigation }) => {
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
+  // Última coordenada que mandó el GPS, para poder reenviarla si el socket se reconecta
+  // después de que ya se perdió el intento original (ver reenviarAlConectar más abajo).
+  const ultimaCoordsRef = useRef(null);
 
   const isDark = ui.isDarkMode;
   const cardBg = ui.surface;
@@ -241,13 +244,14 @@ const TripMapScreen = ({ route, navigation }) => {
             distanceInterval: DRIVER_LOCATION_DISTANCE_M,
           },
           (loc) => {
-            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude, heading: loc.coords.heading };
             // También en estado: es el punto por donde se corta el trazado en recorrido y
             // pendiente. El conductor no se ve a sí mismo con driverLocation (eso es lo que
             // reciben los pasajeros por socket), así que sin esto no habría por dónde cortar.
-            setDriverLocation({ ...coords, heading: loc.coords.heading });
+            setDriverLocation(coords);
             seguirAlConductor(coords);
-            socketService.sendTripLocationUpdate(trip._id, { ...coords, heading: loc.coords.heading });
+            ultimaCoordsRef.current = coords;
+            socketService.sendTripLocationUpdate(trip._id, coords);
           }
         );
       }
@@ -258,6 +262,14 @@ const TripMapScreen = ({ route, navigation }) => {
     // reintento, así que el pasajero se quedaba sin unirse a la sala para siempre. Reintentar
     // en cada 'connect' del socket cubre esa carrera y también una reconexión a mitad de viaje.
     const unirseAlTracking = () => socketService.joinTripTracking(trip._id);
+    // Mismo problema que el del pasajero, del lado del conductor: si el GPS entrega la
+    // primera lectura antes de que el socket termine de conectar, sendTripLocationUpdate no
+    // hace nada (silencioso) y watchPositionAsync no vuelve a llamar hasta que el conductor se
+    // mueva 25m — si se queda quieto (probando, o esperando), el viaje se queda SIN ninguna
+    // ubicación guardada. Al reconectar, reenvía la última posición conocida.
+    const reenviarAlConectar = () => {
+      if (ultimaCoordsRef.current) socketService.sendTripLocationUpdate(trip._id, ultimaCoordsRef.current);
+    };
     if (!isDriver) {
       // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
       unirseAlTracking();
@@ -267,11 +279,14 @@ const TripMapScreen = ({ route, navigation }) => {
           setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
         }
       });
+    } else {
+      socketService.socket?.on('connect', reenviarAlConectar);
     }
 
     return () => {
       cancelled = true;
       if (!isDriver) socketService.socket?.off('connect', unirseAlTracking);
+      else socketService.socket?.off('connect', reenviarAlConectar);
       locationWatchRef.current?.remove?.();
       locationWatchRef.current = null;
       if (!isDriver) {
