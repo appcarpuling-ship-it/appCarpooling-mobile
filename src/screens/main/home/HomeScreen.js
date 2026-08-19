@@ -587,14 +587,14 @@ const HomeScreen = ({ navigation, route }) => {
         <View style={[styles.tabPill, { backgroundColor: inputBg }]}>
           <TouchableOpacity
             style={[styles.tabPillItem, activeTab === 'inicio' && { backgroundColor: accent }]}
-            onPress={() => setActiveTab('inicio')}
+            onPress={() => { setActiveTab('inicio'); loadRecentTrips(); if (isAuthenticated) loadActiveTrip(); }}
             activeOpacity={0.8}
           >
             <Text style={[styles.tabPillText, { color: activeTab === 'inicio' ? accentInverse : textMuted }]}>Inicio</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabPillItem, activeTab === 'solicitudes' && { backgroundColor: accent }]}
-            onPress={() => setActiveTab('solicitudes')}
+            onPress={() => { setActiveTab('solicitudes'); loadOpenRequests(); }}
             activeOpacity={0.8}
           >
             <Text style={[styles.tabPillText, { color: activeTab === 'solicitudes' ? accentInverse : textMuted }]}>Solicitudes</Text>
