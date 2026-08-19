@@ -32,12 +32,18 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
   const enter = useRef(new Animated.Value(0)).current;
   const exit = useRef(new Animated.Value(0)).current;
   const curtain = useRef(new Animated.Value(1)).current;
+  // Guarda de esta instancia, no del módulo: antes era un `let` a nivel de módulo, y en Android
+  // "cerrar la app" no siempre mata el proceso de verdad — si el motor de JS sigue vivo, esa
+  // variable quedaba en `true` de la sesión anterior y la animación no volvía a correr nunca,
+  // así que `onComplete` no se llamaba y el splash se quedaba tapando la app para siempre (sólo
+  // desinstalar garantizaba un proceso nuevo). Un ref muere con el componente, no con el proceso.
+  const yaCorrida = useRef(false);
 
   // Espera a las fuentes aunque acá no se use ninguna: App.js recién monta la app
   // con `fontsLoaded`, así que un splash que termina antes destaparía una pantalla vacía.
   useEffect(() => {
-    if (!fontsLoaded || splashAnimationConsumed) return;
-    splashAnimationConsumed = true;
+    if (!fontsLoaded || yaCorrida.current) return;
+    yaCorrida.current = true;
 
     const sequence = Animated.sequence([
       Animated.timing(enter, {
