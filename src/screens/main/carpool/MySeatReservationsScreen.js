@@ -500,8 +500,8 @@ const styles = StyleSheet.create({
   timerBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   timerText:      { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
-  cancelBtn:      { alignSelf: 'stretch', paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
-  cancelText:     { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  cancelBtn:      { alignSelf: 'stretch', paddingVertical: 13, alignItems: 'center', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  cancelText:     { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   emptyTitle:     { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   emptySub:       { fontSize: 13, textAlign: 'center' },

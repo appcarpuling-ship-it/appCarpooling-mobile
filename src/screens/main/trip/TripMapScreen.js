@@ -22,7 +22,7 @@ import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
-import { put_withauth, post_withauth } from '../../../services/apiService';
+import { get_withauth, put_withauth, post_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
@@ -36,7 +36,24 @@ const DRIVER_LOCATION_DISTANCE_M = 25;
 const CAR_ICON = require('../../../../assets/icons/icon-carr.png');
 
 const TripMapScreen = ({ route, navigation }) => {
-  const { trip } = route.params;
+  // `route.params.trip` es una foto fija de cuando se navegó acá. Si el conductor inició el
+  // viaje DESPUÉS de que esa pantalla lo cargara (el caso típico: el pasajero ya tenía el
+  // detalle abierto), `status` seguía en "active" para siempre y el efecto de abajo, que
+  // depende de isTripStarted, nunca se activaba: el pasajero jamás se sumaba al tracking por
+  // socket y no veía el auto. Se refresca el estado una vez al entrar para no arrastrar esa foto vieja.
+  const [trip, setTrip] = useState(route.params.trip);
+  useEffect(() => {
+    if (!trip?._id) return;
+    let cancelado = false;
+    get_withauth(ENDPOINTS.GET_TRIP(trip._id))
+      .then((res) => {
+        if (!cancelado && res?.success && res.data?.status) {
+          setTrip((prev) => (prev ? { ...prev, status: res.data.status, currentLocation: res.data.currentLocation } : prev));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, []);
   const insets = useSafeAreaInsets();
   const ui = useUI();
   const { user } = useAuth();
@@ -51,7 +68,6 @@ const TripMapScreen = ({ route, navigation }) => {
 
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStop, setSelectedStop] = useState(null);
   // Los marcadores son una vista propia con el número adentro, y en Android eso se dibuja
   // capturando la vista en un bitmap. Si la captura sale antes de que el hijo esté medido,
   // el pin queda sin número. Remontarlos cuando el mapa avisa que está listo fuerza una
@@ -532,13 +548,6 @@ const TripMapScreen = ({ route, navigation }) => {
             // esté en true, y eso es el parpadeo de los numeritos. Se apaga apenas el marcador
             // termina de dibujarse: si se apagara desde el arranque, saldrían en blanco.
             tracksViewChanges={marcadoresVivos}
-            onPress={() =>
-              setSelectedStop(
-                selectedStop?.number === i + 1
-                  ? null
-                  : { number: i + 1, address: point.address, kindLabel: point.kindLabel }
-              )
-            }
           >
             <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
               <Text style={styles.routeMarkerNum}>{i + 1}</Text>
@@ -626,19 +635,6 @@ const TripMapScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       )}
 
-      {selectedStop && (
-        <TouchableOpacity
-          style={[styles.stopTooltip, { backgroundColor: cardBg }]}
-          onPress={() => setSelectedStop(null)}
-          activeOpacity={0.9}
-        >
-          <Text style={[styles.stopTooltipLabel, { color: textPrimary }]}>
-            {selectedStop.kindLabel ? `${selectedStop.number} · ${selectedStop.kindLabel}` : selectedStop.number}
-          </Text>
-          <Text style={[styles.stopTooltipAddress, { color: textPrimary }]}>{selectedStop.address}</Text>
-        </TouchableOpacity>
-      )}
-
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#010101" />
@@ -687,19 +683,6 @@ const styles = StyleSheet.create({
   routeMarkerEnd: { backgroundColor: '#010101' },
   driverCarIcon: { width: 34, height: 34 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
-  stopTooltip: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    borderRadius: 18,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
-  },
   navCard: {
     position: 'absolute',
     left: 16,
@@ -731,8 +714,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   navContinuarText: { fontSize: 16, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
-  stopTooltipLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', opacity: 0.5, marginBottom: 4 },
-  stopTooltipAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default TripMapScreen;
