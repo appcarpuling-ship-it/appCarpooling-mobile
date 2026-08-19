@@ -504,11 +504,12 @@ const TripMapScreen = ({ route, navigation }) => {
         style={styles.map}
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
-        // El punto nativo, salvo cuando lo dibujamos nosotros (abajo): el SDK lo pinta por
-        // encima de los overlays pero POR DEBAJO de los marcadores, y no hay zIndex que lo
-        // arregle. Con el viaje en curso el conductor quedaba tapado por el número de la
-        // parada justo al llegar a ella, que es cuando más necesita verse.
-        showsUserLocation={showMyLocation && !dibujamosNuestroPunto}
+        // El punto nativo es la ubicación propia, y el pasajero no la necesita acá: ya ve al
+        // conductor, que es lo que le importa. Para el conductor, salvo cuando lo dibujamos
+        // nosotros (abajo): el SDK lo pinta por encima de los overlays pero POR DEBAJO de los
+        // marcadores, y no hay zIndex que lo arregle. Con el viaje en curso el conductor
+        // quedaba tapado por el número de la parada justo al llegar a ella.
+        showsUserLocation={isDriver && showMyLocation && !dibujamosNuestroPunto}
         onMapReady={() => setMapReady(true)}
         // `isGesture` distingue el arrastre del usuario de los movimientos que hacemos
         // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
@@ -518,7 +519,7 @@ const TripMapScreen = ({ route, navigation }) => {
           setSiguiendo(false);
         }}
       >
-        {!isDriver && driverLocation?.latitude && (
+        {!isDriver && isTripStarted && driverLocation?.latitude && (
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
