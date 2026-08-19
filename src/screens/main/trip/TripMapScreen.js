@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
+import { useNotifications } from '../../../context/NotificationContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
@@ -63,6 +64,7 @@ const TripMapScreen = ({ route, navigation }) => {
   const ui = useUI();
   const { user } = useAuth();
   const { showAlert } = useAlert();
+  const { notifications, markAsRead } = useNotifications();
   const mapRef = useRef(null);
   const isMounted = useRef(true);
   const locationWatchRef = useRef(null);
@@ -149,6 +151,18 @@ const TripMapScreen = ({ route, navigation }) => {
   // Sólo el conductor en viaje tiene su propia posición en estado (la del watchPositionAsync
   // que ya corre para avisarles a los pasajeros). Para el resto sigue el punto nativo.
   const dibujamosNuestroPunto = Boolean(isDriver && isTripStarted && driverLocation?.latitude);
+
+  // "El conductor llegó": se apoya en NotificationContext (ya trae la notificación por socket
+  // en vivo Y la persiste en el server) en vez de un socket propio acá. Así el cartel aparece
+  // aunque el pasajero no haya visto el push, sea porque estaba en otra pantalla cuando llegó
+  // o porque recién ahora vuelve a abrir el mapa.
+  const avisoLlegada = !isDriver
+    ? notifications.find((n) => (
+        n?.type === 'driver_arrived'
+        && !n.isRead
+        && String(n.relatedTrip?._id || n.relatedTrip) === String(trip?._id)
+      ))
+    : null;
 
   useEffect(() => {
     if (!mapReady) return undefined;
@@ -648,6 +662,36 @@ const TripMapScreen = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* El conductor te está esperando: mismo cartel que ve él ("Yendo a"), para el pasajero.
+          No depende de que hayas visto el push — sale de NotificationContext, que ya la tiene
+          en vivo por socket o, si no estabas mirando el mapa en ese momento, la trae del
+          server la próxima vez que se abre esta pantalla. */}
+      {!isDriver && isTripStarted && avisoLlegada && (
+        <View style={[styles.navCard, { backgroundColor: cardBg, top: insets.top + 56 }]}>
+          <Text style={[styles.navLabel, { color: ui.textMuted }]}>Conductor esperando</Text>
+          <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
+            {`El conductor ${[trip?.driver?.firstName, trip?.driver?.lastName].filter(Boolean).join(' ')}`}
+          </Text>
+          <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
+            Está esperándote afuera
+          </Text>
+        </View>
+      )}
+
+      {!isDriver && isTripStarted && avisoLlegada && (
+        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableOpacity
+            style={styles.navContinuar}
+            onPress={() => markAsRead(avisoLlegada._id)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Continuar"
+          >
+            <Text style={styles.navContinuarText}>Continuar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
       {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
         <TouchableOpacity
@@ -707,7 +751,7 @@ const styles = StyleSheet.create({
   // color dice si es una punta del viaje o una parada del camino.
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
-  driverCarIcon: { width: 34, height: 34 },
+  driverCarIcon: { width: 42, height: 42 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   navCard: {
     position: 'absolute',
