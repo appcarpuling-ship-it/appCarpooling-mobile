@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -21,7 +22,7 @@ import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
-import { put_withauth } from '../../../services/apiService';
+import { put_withauth, post_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
@@ -29,6 +30,10 @@ import { ENDPOINTS } from '../../../config/api';
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
+
+/** Lo que ve el PASAJERO en el lugar del conductor: era un círculo negro con una flechita
+ * genérica. Un auto de verdad se lee más rápido de un vistazo en un mapa lleno de otras cosas. */
+const CAR_ICON = require('../../../../assets/icons/icon-carr.png');
 
 const TripMapScreen = ({ route, navigation }) => {
   const { trip } = route.params;
@@ -268,6 +273,18 @@ const TripMapScreen = ({ route, navigation }) => {
   const enElDestino = proximaParada?.id === 'destino';
 
   /**
+   * "Continuar" no decía qué iba a pasar al tocarlo. En una parada de recogida, ahora dice
+   * a quién se está por buscar — y es la misma acción de siempre (avanzar), sólo que además
+   * dispara el aviso al pasajero (ver avisarLlegadaRecogida). Sin nombre (parada vieja sin
+   * el pasajero poblado) cae a "Continuar", nunca a un "Recoger a undefined".
+   */
+  const textoBoton = enElDestino
+    ? 'Completar'
+    : proximaParada?.kind === 'pickup' && proximaParada?.pasajero?.firstName
+      ? `Recoger a ${proximaParada.pasajero.firstName}`
+      : 'Continuar';
+
+  /**
    * Cerrar el viaje desde el mapa. El conductor llega al destino y el botón deja de decir
    * "Continuar" para decir "Completar": no tiene por qué volver atrás a buscar dónde estaba
    * esa acción. Es el mismo endpoint que usa el detalle del viaje.
@@ -338,15 +355,36 @@ const TripMapScreen = ({ route, navigation }) => {
     if (!mostrada) showAlert(titulo, cuerpo);
   };
 
+  /**
+   * Avisarle al PASAJERO (su teléfono, no el del conductor) que el conductor llegó a
+   * buscarlo. A diferencia de avisarCobro, esto no es un recordatorio local: tiene que
+   * cruzar a otro dispositivo, así que pasa por el backend (POST notify-arrival), que
+   * entrega por push + socket + queda guardado en sus notificaciones.
+   *
+   * No bloquea el avance ni lo frena un error: si el push falla, el conductor ya está ahí
+   * igual, y la parada se marca de todos modos.
+   */
+  const avisarLlegadaRecogida = async (parada) => {
+    if (parada?.kind !== 'pickup') return;
+    const passengerId = parada?.pasajero?._id || parada?.pasajero;
+    if (!passengerId) return;
+    try {
+      await post_withauth(ENDPOINTS.NOTIFY_PICKUP_ARRIVAL(trip._id), { passengerId });
+    } catch {
+      // El conductor ya está en la parada aunque el aviso falle; no tiene sentido frenarlo acá.
+    }
+  };
+
   const avanzar = () => {
     if (enElDestino) {
       submitCompleteTrip();
       return;
     }
     const parada = proximaParada;
-    // Avanza YA, sin esperar al aviso: un solo toque, como era antes de agregar el recordatorio.
+    // Avanza YA, sin esperar a los avisos: un solo toque, como era antes de agregarlos.
     setParadasHechas((prev) => [...prev, parada.id]);
     avisarCobro(parada);
+    avisarLlegadaRecogida(parada);
   };
 
   // Al pasar cerca se marca sola: pedirle al conductor que toque un botón en cada parada es
@@ -470,10 +508,9 @@ const TripMapScreen = ({ route, navigation }) => {
             anchor={{ x: 0.5, y: 0.5 }}
             rotation={driverLocation.heading || 0}
             flat
+            tracksViewChanges={false}
           >
-            <View style={styles.driverMarker}>
-              <Ionicons name="navigate" size={16} color="#FFFFFF" />
-            </View>
+            <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
           </Marker>
         )}
 
@@ -569,9 +606,9 @@ const TripMapScreen = ({ route, navigation }) => {
             onPress={avanzar}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={enElDestino ? 'Completar el viaje' : 'Ir a la parada siguiente'}
+            accessibilityLabel={enElDestino ? 'Completar el viaje' : textoBoton}
           >
-            <Text style={styles.navContinuarText}>{enElDestino ? 'Completar' : 'Continuar'}</Text>
+            <Text style={styles.navContinuarText}>{textoBoton}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -648,7 +685,7 @@ const styles = StyleSheet.create({
   // color dice si es una punta del viaje o una parada del camino.
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
-  driverMarker: { width: 30, height: 30, borderRadius: 18, backgroundColor: '#010101', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  driverCarIcon: { width: 34, height: 34 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   stopTooltip: {
     position: 'absolute',

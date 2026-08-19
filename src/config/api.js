@@ -108,6 +108,7 @@ export const ENDPOINTS = {
   CANCEL_TRIP: (id) => `/trips/${id}/cancel`,
   START_TRIP: (id) => `/trips/${id}/start`,
   COMPLETE_TRIP: (id) => `/trips/${id}/complete`,
+  NOTIFY_PICKUP_ARRIVAL: (id) => `/trips/${id}/notify-arrival`,
   DELETE_TRIP: (id) => `/trips/${id}`,
 
   // Bookings
