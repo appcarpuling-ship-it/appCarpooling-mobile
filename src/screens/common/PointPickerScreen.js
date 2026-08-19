@@ -60,6 +60,11 @@ const regionDesde = (coords, delta) => {
 /** Tras soltar el mapa, si el pin queda quieto este tiempo, se resuelve la dirección. */
 const IDLE_GEOCODE_MS = 1000;
 
+// País entero, para cuando no hay punto previo ni fallback (recogida sin nada ya elegido). Es
+// sólo la primera imagen: el mapa se ve de entrada en vez de una pantalla en blanco esperando
+// al GPS, y el useEffect de abajo lo acerca a la ubicación real apenas la tiene.
+const REGION_PAIS = { latitude: -38.4161, longitude: -63.6167, latitudeDelta: 22, longitudeDelta: 22 };
+
 const PointPickerScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -72,8 +77,17 @@ const PointPickerScreen = ({ route, navigation }) => {
   const textMuted = ui.textMuted;
   const divider = ui.bg;
 
-  const regionInicial = regionDesde(initial?.coordinates, 0.01)
+  // Región ya conocida (punto previo, o el destino del viaje si es bajada). Se usa además para
+  // decidir si vale la pena esperar al GPS: con un punto ya conocido, no hace falta.
+  const regionConocida = regionDesde(initial?.coordinates, 0.01)
     || (esBajada ? regionDesde(fallback, 0.05) : null);
+
+  // Lo que se ve al abrir. Antes era `regionConocida` a secas, y sin ella (recogida sin punto
+  // previo) el mapa no se montaba hasta que resolvía el GPS —`region &&` más abajo lo tapaba
+  // con un spinner—. En un Android con GPS lento eso se sentía como "el mapa tarda en cargar":
+  // no tardaba, directamente no existía todavía. Ahora arranca en el país entero y el efecto
+  // de abajo lo acerca en cuanto tiene la posición real, sin bloquear el primer render.
+  const regionInicial = regionConocida || REGION_PAIS;
 
   const [region, setRegion] = useState(regionInicial);
   const [pinCoords, setPinCoords] = useState(
@@ -133,9 +147,11 @@ const PointPickerScreen = ({ route, navigation }) => {
     return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
   };
 
-  // Sin punto previo ni destino al que ir, abre donde está parado el usuario.
+  // Sin punto previo ni destino al que ir, abre en el país entero (regionInicial) y se acerca
+  // acá apenas tiene la posición real. Antes esto era lo único que decidía si el mapa se
+  // montaba o no; ahora corre en paralelo, sin bloquear el primer render.
   useEffect(() => {
-    if (regionInicial) return;
+    if (regionConocida) return;
     let cancelado = false;
     (async () => {
       try {
@@ -149,9 +165,8 @@ const PointPickerScreen = ({ route, navigation }) => {
         const addr = await geocodeInverso(coords);
         if (!cancelado) setPinAddress(addr || '');
       } catch {
-        if (cancelado) return;
-        setRegion(regionDesde(fallback, 0.05)
-          || { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+        // Sin permiso ni fix de GPS, se queda en REGION_PAIS: ya se estaba mostrando desde el
+        // primer render, no hace falta un segundo fallback más cerrado.
       }
     })();
     return () => { cancelado = true; };
