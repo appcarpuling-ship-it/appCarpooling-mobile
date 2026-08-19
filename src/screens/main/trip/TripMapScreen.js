@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -43,12 +43,12 @@ const TripMapScreen = ({ route, navigation }) => {
   // depende de isTripStarted, nunca se activaba: el pasajero jamás se sumaba al tracking por
   // socket y no veía el auto. Se refresca el estado una vez al entrar para no arrastrar esa foto vieja.
   const [trip, setTrip] = useState(route.params.trip);
-  useEffect(() => {
+
+  const refrescarEstadoViaje = useCallback(() => {
     if (!trip?._id) return;
-    let cancelado = false;
     get_withauth(ENDPOINTS.GET_TRIP(trip._id))
       .then((res) => {
-        if (!cancelado && res?.success && res.data?.status) {
+        if (res?.success && res.data?.status) {
           setTrip((prev) => (prev ? { ...prev, status: res.data.status, currentLocation: res.data.currentLocation } : prev));
           // `driverLocation` arrancó con el `currentLocation` de la foto vieja (route.params.trip),
           // que useState solo lee una vez al montar. Sin esto, el auto no aparecía hasta el
@@ -58,8 +58,9 @@ const TripMapScreen = ({ route, navigation }) => {
         }
       })
       .catch(() => {});
-    return () => { cancelado = true; };
-  }, []);
+  }, [trip?._id]);
+
+  useEffect(() => { refrescarEstadoViaje(); }, []);
   const insets = useSafeAreaInsets();
   const ui = useUI();
   const { user } = useAuth();
@@ -163,6 +164,20 @@ const TripMapScreen = ({ route, navigation }) => {
         && String(n.relatedTrip?._id || n.relatedTrip) === String(trip?._id)
       ))
     : null;
+
+  // El estado general del viaje (completado, cancelado) no era en vivo: el pasajero solo lo
+  // veía si salía y volvía a entrar a esta pantalla. Se apoya en el mismo NotificationContext:
+  // cuando llega el aviso de que el viaje terminó, se vuelve a pedir el viaje. Cortado por
+  // isTripStarted para no repetir el pedido en cada notificación nueva que llegue después:
+  // una vez que el status deja de ser "started" esta condición ya no se cumple más.
+  useEffect(() => {
+    if (isDriver || !isTripStarted) return;
+    const huboCambioDeEstado = notifications.some((n) => (
+      ['trip_completed', 'trip_cancelled'].includes(n?.type)
+      && String(n.relatedTrip?._id || n.relatedTrip) === String(trip?._id)
+    ));
+    if (huboCambioDeEstado) refrescarEstadoViaje();
+  }, [notifications, isDriver, isTripStarted]);
 
   useEffect(() => {
     if (!mapReady) return undefined;
