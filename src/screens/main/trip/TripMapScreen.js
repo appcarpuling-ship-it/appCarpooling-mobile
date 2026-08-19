@@ -156,6 +156,19 @@ const TripMapScreen = ({ route, navigation }) => {
     return () => clearTimeout(t);
   }, [mapReady]);
 
+  // Mismo problema que arriba (Android, captura en bitmap) pero para el ícono del auto: éste
+  // no existe desde el arranque como los de las paradas, aparece recién cuando llega la
+  // posición del conductor (por el fetch inicial o por socket) — a veces mucho después de que
+  // `marcadoresVivos` ya bajó a false. Sin esto el auto quedaba invisible en Android siempre
+  // que apareciera tarde, que es el caso normal.
+  const [autoMarkerVivo, setAutoMarkerVivo] = useState(true);
+  useEffect(() => {
+    if (!driverLocation?.latitude) return undefined;
+    setAutoMarkerVivo(true);
+    const t = setTimeout(() => setAutoMarkerVivo(false), 900);
+    return () => clearTimeout(t);
+  }, [Boolean(driverLocation?.latitude)]);
+
   useEffect(() => {
     isMounted.current = true;
     let reintento;
@@ -537,7 +550,7 @@ const TripMapScreen = ({ route, navigation }) => {
             anchor={{ x: 0.5, y: 0.5 }}
             rotation={driverLocation.heading || 0}
             flat
-            tracksViewChanges={false}
+            tracksViewChanges={autoMarkerVivo}
           >
             <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
           </Marker>
