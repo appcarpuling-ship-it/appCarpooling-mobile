@@ -1121,7 +1121,6 @@ const TripDetailScreen = ({ route, navigation }) => {
             ) : passengers.map((booking) => {
               const p = booking.passenger;
               const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
-              const owed = amountOwed(booking);
               return (
                 <TouchableOpacity
                   key={booking._id}
@@ -1145,11 +1144,6 @@ const TripDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerSeats, { color: textMuted, marginTop: 3 }]}>
                       {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
                     </Text>
-                    {trip.status === 'completed' && (
-                      <Text style={[styles.passengerOwed, { color: owed > 0 ? textPrimary : textMuted, marginTop: 5 }]}>
-                        {owed > 0 ? `Te debe ${fmtCurrency(owed)}` : 'Sin saldo pendiente'}
-                      </Text>
-                    )}
                   </View>
                   <TouchableOpacity
                     style={[styles.chatBtn, { backgroundColor: cardBg }]}
@@ -1632,7 +1626,6 @@ const styles = StyleSheet.create({
   passengerInfo: { flex: 1 },
   passengerName: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   passengerSeats: { fontSize: 12, marginTop: 2 },
-  passengerOwed: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   chatBtn: {
     width: 34, height: 34, borderRadius: 17,
     justifyContent: 'center', alignItems: 'center',

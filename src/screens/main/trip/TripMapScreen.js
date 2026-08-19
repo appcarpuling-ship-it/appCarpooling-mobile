@@ -206,9 +206,15 @@ const TripMapScreen = ({ route, navigation }) => {
       }
     })();
 
+    // `joinTripTracking` no hace nada si el socket todavía no terminó de conectar (típico
+    // justo al volver de background por una notificación de "el viaje arrancó"): no hay
+    // reintento, así que el pasajero se quedaba sin unirse a la sala para siempre. Reintentar
+    // en cada 'connect' del socket cubre esa carrera y también una reconexión a mitad de viaje.
+    const unirseAlTracking = () => socketService.joinTripTracking(trip._id);
     if (!isDriver) {
       // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
-      socketService.joinTripTracking(trip._id);
+      unirseAlTracking();
+      socketService.socket?.on('connect', unirseAlTracking);
       socketService.onTripLocation((data) => {
         if (data?.tripId === trip._id) {
           setDriverLocation({ latitude: data.latitude, longitude: data.longitude, heading: data.heading });
@@ -218,6 +224,7 @@ const TripMapScreen = ({ route, navigation }) => {
 
     return () => {
       cancelled = true;
+      if (!isDriver) socketService.socket?.off('connect', unirseAlTracking);
       locationWatchRef.current?.remove?.();
       locationWatchRef.current = null;
       if (!isDriver) {
@@ -357,13 +364,13 @@ const TripMapScreen = ({ route, navigation }) => {
     const precio = Math.max(0, Number(trip?.driverPrice) || 0);
     if (precio <= 0 || parada?.kind !== 'dropoff') return;
 
-    const nombre = parada?.pasajero?.firstName;
+    const nombre = parada?.pasajero?.firstName || 'El pasajero';
     const asientos = asientosDePasajero(trip, parada.pasajero);
     const total = precio * asientos;
-    const titulo = nombre ? `Bajó ${nombre}` : 'Bajó el pasajero';
+    const titulo = 'Recordatorio de cobro';
     const cuerpo = asientos > 1
-      ? `Recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
-      : `Recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje.`;
+      ? `${nombre} llegó a su destino, recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje ($${precio.toLocaleString('es-AR')} × ${asientos} asientos).`
+      : `${nombre} llegó a su destino, recordá cobrarle $${total.toLocaleString('es-AR')} de tu viaje.`;
 
     // Sin permiso de notificaciones no aparece nada, y quedarse sin el recordatorio del cobro es
     // peor que un modal: ahí sí cae al alert.

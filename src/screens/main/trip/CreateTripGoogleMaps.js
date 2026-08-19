@@ -97,6 +97,20 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   // ubicación) y se consume en onRegionChangeComplete: si estaba en true, el movimiento fue
   // nuestro y no del usuario.
   const isProgrammaticMoveRef = useRef(false);
+  // Si el movimiento programático no dispara su propio onRegionChangeComplete (mapa aún no
+  // montado, o el `region` no cambia de verdad), la bandera de arriba quedaba en true para
+  // siempre: el primer arrastre real del usuario se leía como programático y no pasaba nada,
+  // y recién el SEGUNDO arrastre (con la bandera ya limpia) actualizaba la dirección. Este
+  // timeout la baja sola si ningún evento nativo la consumió antes.
+  const programmaticMoveResetTimer = useRef(null);
+  const marcarMovimientoProgramatico = () => {
+    isProgrammaticMoveRef.current = true;
+    if (programmaticMoveResetTimer.current) clearTimeout(programmaticMoveResetTimer.current);
+    programmaticMoveResetTimer.current = setTimeout(() => {
+      isProgrammaticMoveRef.current = false;
+      programmaticMoveResetTimer.current = null;
+    }, 1200);
+  };
 
 
   const ui = useUI();
@@ -270,7 +284,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       if (!coords || !isMounted.current) return;
       const { latitude, longitude } = coords;
       const newRegion = { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
-      isProgrammaticMoveRef.current = true;
+      marcarMovimientoProgramatico();
       setRegion(newRegion);
       setUserLocation({ latitude, longitude });
       if (mapRef.current && isMounted.current) {
@@ -430,7 +444,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
    * el redibujado, y por eso pasa a ser obligatorio acá.
    */
   const moverCamaraA = (latitude, longitude) => {
-    isProgrammaticMoveRef.current = true;
+    marcarMovimientoProgramatico();
     setRegion({ latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA });
   };
 
@@ -833,6 +847,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
           levantarPin(false);
           const fueProgramatico = isProgrammaticMoveRef.current;
           isProgrammaticMoveRef.current = false;
+          if (programmaticMoveResetTimer.current) {
+            clearTimeout(programmaticMoveResetTimer.current);
+            programmaticMoveResetTimer.current = null;
+          }
           if (!fueProgramatico) {
             setRegion(r);
             if (mapSelectionModeRef.current) {
@@ -891,7 +909,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       {!isSearching && (
         <TouchableOpacity
           style={[styles.myLocationBtn, { backgroundColor: cardBg }]}
-          onPress={() => { getCurrentLocation(); if (userLocation && mapRef.current) { isProgrammaticMoveRef.current = true; mapRef.current.animateToRegion({ ...userLocation, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); } }}
+          onPress={() => { getCurrentLocation(); if (userLocation && mapRef.current) { marcarMovimientoProgramatico(); mapRef.current.animateToRegion({ ...userLocation, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA }, 1000); } }}
         >
           <Ionicons name="navigate" size={20} color={textPrimary} />
         </TouchableOpacity>
