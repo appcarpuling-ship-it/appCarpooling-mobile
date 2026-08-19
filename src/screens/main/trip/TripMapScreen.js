@@ -49,6 +49,11 @@ const TripMapScreen = ({ route, navigation }) => {
       .then((res) => {
         if (!cancelado && res?.success && res.data?.status) {
           setTrip((prev) => (prev ? { ...prev, status: res.data.status, currentLocation: res.data.currentLocation } : prev));
+          // `driverLocation` arrancó con el `currentLocation` de la foto vieja (route.params.trip),
+          // que useState solo lee una vez al montar. Sin esto, el auto no aparecía hasta el
+          // PRÓXIMO movimiento real del conductor —si no se mueve (GPS quieto o simulador), el
+          // pasajero nunca ve nada aunque el conductor ya tenga una posición guardada.
+          if (res.data.currentLocation?.latitude) setDriverLocation(res.data.currentLocation);
         }
       })
       .catch(() => {});
