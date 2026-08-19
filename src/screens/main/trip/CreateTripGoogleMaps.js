@@ -23,6 +23,7 @@ import { getGoogleMapsApiKey } from '../../../config/googleMapsEnv';
 import { Ionicons } from '@expo/vector-icons';
 import SafePlacesAutocomplete from '../../../components/SafePlacesAutocomplete';
 import * as Location from 'expo-location';
+import { obtenerUbicacion } from '../../../services/locationCache';
 import { get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import {
@@ -43,7 +44,7 @@ const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 /** Tras arrastrar el mapa, si el pin central queda quieto este tiempo, se confirma el punto */
-const MAP_SELECTION_IDLE_MS = 1000;
+const MAP_SELECTION_IDLE_MS = 700;
 const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
 
 /** locality a veces no viene (ej. Santa Cruz); usar provincia o nivel 2. */
@@ -257,11 +258,10 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   const getCurrentLocation = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if (!isMounted.current) return;
-      const { latitude, longitude } = loc.coords;
+      // Del caché si Home ya lo precargó: sin esperar al GPS de nuevo. Ver locationCache.
+      const coords = await obtenerUbicacion();
+      if (!coords || !isMounted.current) return;
+      const { latitude, longitude } = coords;
       const newRegion = { latitude, longitude, latitudeDelta: LATITUDE_DELTA, longitudeDelta: LONGITUDE_DELTA };
       setRegion(newRegion);
       setUserLocation({ latitude, longitude });

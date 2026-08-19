@@ -28,6 +28,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useColors } from '../../../hooks/useColors';
+import { precargarUbicacion } from '../../../services/locationCache';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
@@ -160,6 +161,10 @@ const HomeScreen = ({ navigation, route }) => {
     loadBannerSections();
     loadOpenRequests();
     if (isAuthenticated) loadActiveTrip();
+    // Pide el GPS acá y no cuando se abre un mapa: para cuando el usuario entra a reservar o a
+    // publicar un viaje, la ubicación ya está lista en el caché (ver locationCache) y esas
+    // pantallas no tienen que esperar al GPS de nuevo.
+    precargarUbicacion();
   }, []);
 
   useEffect(() => {

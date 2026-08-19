@@ -11,9 +11,6 @@ const LOGO = require('../../assets/logo/192x192-white.png');
 // costura en ningún modo.
 const SPLASH_BG = '#000000';
 
-/** Evita doble animación en React Strict Mode (remount). */
-let splashAnimationConsumed = false;
-
 /**
  * Solo el logo, al estilo del arranque de Uber: entra, respira un momento y se
  * abre sobre la app.

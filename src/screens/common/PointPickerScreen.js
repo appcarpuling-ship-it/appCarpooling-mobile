@@ -13,6 +13,7 @@ import { useUI } from '../../theme/ui';
 import MapCenterPin, { usePinAlzado } from '../../components/ui/MapCenterPin';
 import { useFrequentAddresses } from '../../hooks/useFrequentAddresses';
 import { searchPlaces, getPlaceDetails, reverseGeocode } from '../../services/mapsService';
+import { obtenerUbicacion } from '../../services/locationCache';
 
 /**
  * Elegir un punto en el mapa: el de recogida o el de bajada de una reserva.
@@ -58,7 +59,7 @@ const regionDesde = (coords, delta) => {
 };
 
 /** Tras soltar el mapa, si el pin queda quieto este tiempo, se resuelve la dirección. */
-const IDLE_GEOCODE_MS = 1000;
+const IDLE_GEOCODE_MS = 700;
 
 // País entero, para cuando no hay punto previo ni fallback (recogida sin nada ya elegido). Es
 // sólo la primera imagen: el mapa se ve de entrada en vez de una pantalla en blanco esperando
@@ -155,11 +156,9 @@ const PointPickerScreen = ({ route, navigation }) => {
     let cancelado = false;
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') throw new Error('denied');
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        if (cancelado) return;
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        // Del caché si Home ya lo precargó: sin esperar al GPS de nuevo. Ver locationCache.
+        const coords = await obtenerUbicacion();
+        if (cancelado || !coords) throw new Error('sin ubicación');
         setPinCoords(coords);
         setRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 });
         const addr = await geocodeInverso(coords);

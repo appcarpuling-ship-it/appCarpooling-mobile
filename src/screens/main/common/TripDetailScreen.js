@@ -1121,8 +1121,6 @@ const TripDetailScreen = ({ route, navigation }) => {
             ) : passengers.map((booking) => {
               const p = booking.passenger;
               const avatarUrl = p?.avatar ? buildImageUri(p.avatar) : null;
-              const rs = booking.seatReservation?.reservationStatus;
-              const paid = rs === 'reserved' || rs === 'trip_completed';
               const owed = amountOwed(booking);
               return (
                 <TouchableOpacity
@@ -1144,19 +1142,9 @@ const TripDetailScreen = ({ route, navigation }) => {
                     <Text style={[styles.passengerName, { color: textPrimary }]}>
                       {p?.firstName} {p?.lastName}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                      <Text style={[styles.passengerSeats, { color: textMuted }]}>
-                        {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
-                      </Text>
-                      <View style={{
-                        paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10,
-                        backgroundColor: paid ? accent : cardBg,
-                      }}>
-                        <Text style={{ fontSize: 11, fontFamily: 'Sora_600SemiBold', color: paid ? accentInverse : textMuted }}>
-                          {paid ? 'Pagó' : 'Confirmado'}
-                        </Text>
-                      </View>
-                    </View>
+                    <Text style={[styles.passengerSeats, { color: textMuted, marginTop: 3 }]}>
+                      {booking.seatsBooked || booking.seatsRequested || 1} asiento(s)
+                    </Text>
                     {trip.status === 'completed' && (
                       <Text style={[styles.passengerOwed, { color: owed > 0 ? textPrimary : textMuted, marginTop: 5 }]}>
                         {owed > 0 ? `Te debe ${fmtCurrency(owed)}` : 'Sin saldo pendiente'}

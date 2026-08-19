@@ -16,7 +16,7 @@ import { calculateReservationPrice, createSeatReservation } from '../../../servi
 import { tripRemainingSeats, tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
 import { useAuth } from '../../../context/AuthContext';
-import * as Location from 'expo-location';
+import { obtenerUbicacion } from '../../../services/locationCache';
 import { reverseGeocode } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
 
@@ -168,10 +168,9 @@ const BookingScreen = ({ route, navigation }) => {
   useEffect(() => {
     const autoDetectPickup = async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        // Del caché si Home ya lo precargó: sin esperar al GPS de nuevo. Ver locationCache.
+        const coords = await obtenerUbicacion();
+        if (!coords) return;
         const data = await reverseGeocode(coords.latitude, coords.longitude);
         const cruda = data?.results?.[0]?.formatted_address;
         if (cruda) setPickupLocation({ address: cleanAddress(cruda) || cruda, coordinates: coords });
