@@ -553,6 +553,22 @@ const TripRequestsScreen = ({ route }) => {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
+                conductor si no conoce el barrio: este número es lo que le permite decidir
+                en dos segundos en vez de abrir el mapa por cada solicitud. */}
+            {!!item.desvioEtiqueta && (
+              <View style={styles.reqDesvio}>
+                <Ionicons
+                  name={item.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
+                  size={14}
+                  color={item.desvioKm > 2 ? textMuted : '#10B981'}
+                />
+                <Text style={[styles.reqDesvioText, { color: item.desvioKm > 2 ? textMuted : '#10B981' }]}>
+                  {item.desvioEtiqueta}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -897,6 +913,8 @@ const styles = StyleSheet.create({
 
   // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
   reqRuta: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
+  reqDesvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 2 },
+  reqDesvioText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 3 },
   reqPuntoRotulo: { fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 15 },
   reqPuntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
