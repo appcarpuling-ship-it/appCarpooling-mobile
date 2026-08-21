@@ -458,6 +458,35 @@ const TripMapScreen = ({ route, navigation }) => {
    * trip.passengers tiene una entrada POR ASIENTO, no por pasajero, así que su largo son los
    * asientos ocupados.
    */
+  /**
+   * Iniciar el viaje desde el mapa. Es el PRIMER estado del botón: antes de arrancar, el
+   * conductor abría el mapa y no tenía nada para tocar — el botón recién aparecía con el
+   * viaje ya iniciado, así que tenía que volver al detalle a buscar dónde arrancarlo.
+   *
+   * Iniciar tarde está permitido a propósito (ver el guard en tripController.startTrip):
+   * un viaje que no se puede iniciar tampoco se puede completar, y ahí el conductor nunca
+   * cobra.
+   */
+  const [iniciando, setIniciando] = useState(false);
+  const iniciarViaje = async () => {
+    if (iniciando) return;
+    setIniciando(true);
+    try {
+      const res = await put_withauth(ENDPOINTS.START_TRIP(trip._id), {});
+      if (res?.success) {
+        // Se actualiza en el acto para que el botón pase solo a "Continuar" y arranque el
+        // seguimiento, sin salir y volver a entrar.
+        setTrip((prev) => (prev ? { ...prev, status: 'started' } : prev));
+        return;
+      }
+      showAlert('No se pudo iniciar', res?.message || 'Probá de nuevo en un momento.');
+    } catch (error) {
+      showAlert('No se pudo iniciar', error?.message || 'Probá de nuevo en un momento.');
+    } finally {
+      setIniciando(false);
+    }
+  };
+
   const submitCompleteTrip = async () => {
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), {});
@@ -777,6 +806,25 @@ const TripMapScreen = ({ route, navigation }) => {
               {proximaParada.quien}
             </Text>
           )}
+        </View>
+      )}
+
+      {/* Iniciar viaje: el primer estado del botón. Mismo lugar y mismo tamaño que
+          "Continuar", así el conductor toca siempre en el mismo lado. */}
+      {isDriver && !isTripStarted && trip?.status === 'active' && (
+        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableOpacity
+            style={styles.navContinuar}
+            onPress={iniciarViaje}
+            activeOpacity={0.85}
+            disabled={iniciando}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar el viaje"
+          >
+            <Text style={styles.navContinuarText}>
+              {iniciando ? 'Iniciando…' : 'Iniciar viaje'}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
