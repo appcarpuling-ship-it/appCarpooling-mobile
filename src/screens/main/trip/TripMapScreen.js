@@ -25,6 +25,8 @@ import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { get_withauth, put_withauth, post_withauth } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+import { iniciarSeguimiento, detenerSeguimiento } from '../../../services/ubicacionBackground';
+import { empujarCalificacionPendiente } from '../../../services/calificacionPendiente';
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
 
@@ -188,6 +190,25 @@ const TripMapScreen = ({ route, navigation }) => {
     if (huboCambioDeEstado) refrescarEstadoViaje();
   }, [notifications, isDriver, isTripStarted]);
 
+  /**
+   * El conductor completó el viaje y el pasajero está mirando el mapa.
+   *
+   * Se lo saca de ahí: el mapa de un viaje terminado no sirve para nada y quedarse mirándolo
+   * es la peor forma de enterarse de que llegaste. Va al home y de una a calificar, que es
+   * el momento en que se acuerda de cómo estuvo el viaje.
+   *
+   * `reintentos`: el backend crea la calificación pendiente al completar, y el aviso puede
+   * llegar antes de que esté escrita. Si no está todavía, insiste una vez.
+   */
+  const yaSalioDelViaje = useRef(false);
+  useEffect(() => {
+    if (isDriver || yaSalioDelViaje.current) return;
+    if (trip?.status !== 'completed') return;
+    yaSalioDelViaje.current = true;
+    navigation.popToTop();
+    empujarCalificacionPendiente({ forzar: true, reintentos: 2 });
+  }, [trip?.status, isDriver, navigation]);
+
   useEffect(() => {
     if (!mapReady) return undefined;
     const t = setTimeout(() => setMarcadoresVivos(false), 900);
@@ -325,6 +346,28 @@ const TripMapScreen = ({ route, navigation }) => {
     };
   }, [trip?._id, isTripStarted, isDriver]);
 
+  /**
+   * Seguimiento en SEGUNDO PLANO, sólo para el conductor y sólo con el viaje en curso.
+   *
+   * A propósito NO se corta al desmontar esta pantalla: el punto de todo esto es que siga
+   * reportando cuando el conductor sale del mapa o minimiza la app. Se corta cuando el viaje
+   * deja de estar en curso, que es abajo, y al completarlo desde el botón.
+   *
+   * Si el conductor no da el permiso "Siempre", no pasa nada malo: sigue funcionando el
+   * seguimiento en primer plano, que es el que ya andaba.
+   */
+  useEffect(() => {
+    if (!isDriver || !trip?._id) return;
+    if (isTripStarted) {
+      iniciarSeguimiento(trip._id).then((ok) => {
+        if (!ok) console.log('[mapa] sin permiso de ubicación en segundo plano; queda sólo el de primer plano');
+      });
+    } else {
+      // Cubre el viaje completado o cancelado desde otro lado (el detalle, otro dispositivo).
+      detenerSeguimiento();
+    }
+  }, [isDriver, trip?._id, isTripStarted]);
+
   // El encuadre espera a que el mapa esté listo: ver useMapFit. Con el setTimeout de antes,
   // si el mapa tardaba más de 400 ms en inicializar la cámara se quedaba en la región inicial
   // —un cuadrito alrededor del origen— y de la ruta se veía sólo el principio.
@@ -419,6 +462,9 @@ const TripMapScreen = ({ route, navigation }) => {
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), {});
       if (response.success) {
+        // Antes de navegar: el viaje terminó y no hay nada más que reportar. Dejarlo vivo
+        // sería seguir gastando batería y mostrando la notificación permanente de Android.
+        await detenerSeguimiento();
         // El mapa queda debajo en el stack: sin esto, volver atrás desde el resultado te
         // devolvía al mapa de un viaje ya terminado, con su tarjeta y su botón.
         navigation.popToTop();

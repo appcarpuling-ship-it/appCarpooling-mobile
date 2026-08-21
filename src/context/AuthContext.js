@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { post_public, post_public_formdata, get_withauth, put_withauth } from '../services/apiService';
 import { ENDPOINTS, API_CONFIG } from '../config/api';
 import socketService from '../services/socketService';
+import { detenerSeguimiento } from '../services/ubicacionBackground';
 import { registerSessionInvalidHandler, registerAccountDisabledHandler } from '../services/authSession';
 import {
   registerForPushNotificationsAsync,
@@ -266,6 +267,11 @@ export const AuthProvider = ({ children }) => {
       } catch (pushError) {
         console.log('⚠️ Error eliminando push token:', pushError);
       }
+
+      // Cortar el seguimiento de ubicación en segundo plano: sin sesión no hay a quién
+      // reportarle, y si no se corta queda el servicio corriendo y la notificación
+      // permanente de Android para alguien que ya cerró sesión.
+      try { await detenerSeguimiento(); } catch {}
 
       // Desconectar WebSocket antes de cerrar sesión
       console.log('🔐 AuthContext.logout - Desconectando WebSocket...');

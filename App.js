@@ -11,6 +11,11 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { navigationRef } from './src/navigation/rootNavigation';
 import PushNotificationRouter from './src/components/PushNotificationRouter';
 import { StatusBar } from 'expo-status-bar';
+// Sólo por el efecto de importarlo: registra la tarea de ubicación en segundo plano.
+// TaskManager.defineTask tiene que correr al arrancar la app, ANTES de que el sistema
+// entregue una ubicación — si se registrara recién al abrir el mapa, una tarea que quedó
+// viva de una sesión anterior llegaría sin nadie que la atienda y el SO la descarta.
+import './src/services/ubicacionBackground';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { soraFonts } from './src/theme/typography';

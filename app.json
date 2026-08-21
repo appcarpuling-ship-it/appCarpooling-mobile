@@ -34,14 +34,18 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
-        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
+        "NSLocationAlwaysUsageDescription": "Compartimos tu ubicación con los pasajeros de tu viaje mientras el viaje está en curso, incluso con la app en segundo plano, para que sepan cuándo llegás a buscarlos. Se detiene sola al completar el viaje.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
               "carpooling"
             ]
           }
-        ]
+        ],
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Compartimos tu ubicación con los pasajeros de tu viaje mientras el viaje está en curso, incluso con la app en segundo plano, para que sepan cuándo llegás a buscarlos. Se detiene sola al completar el viaje."
       },
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
@@ -60,7 +64,10 @@
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "intentFilters": [
         {
@@ -130,7 +137,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas."
+          "locationAlwaysAndWhenInUsePermission": "Compartimos tu ubicación con los pasajeros de tu viaje mientras el viaje está en curso, incluso con la app en segundo plano, para que sepan cuándo llegás a buscarlos. Se detiene sola al completar el viaje.",
+          "locationWhenInUsePermission": "Necesitamos tu ubicación para mostrarte en el mapa y calcular rutas.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [
