@@ -256,10 +256,9 @@ const TripMapScreen = ({ route, navigation }) => {
       }
     })();
 
-    // `joinTripTracking` no hace nada si el socket todavía no terminó de conectar (típico
-    // justo al volver de background por una notificación de "el viaje arrancó"): no hay
-    // reintento, así que el pasajero se quedaba sin unirse a la sala para siempre. Reintentar
-    // en cada 'connect' del socket cubre esa carrera y también una reconexión a mitad de viaje.
+    // socketService recuerda la sala y la vuelve a pedir en cada 'connect', así que alcanza
+    // con pedirla una vez: cubre tanto el caso de que el socket todavía no haya conectado
+    // como una reconexión a mitad de viaje.
     const unirseAlTracking = () => socketService.joinTripTracking(trip._id);
     // Mismo problema que el del pasajero, del lado del conductor: si el GPS entrega la
     // primera lectura antes de que el socket termine de conectar, sendTripLocationUpdate no
@@ -279,7 +278,6 @@ const TripMapScreen = ({ route, navigation }) => {
     if (!isDriver) {
       // Pasajero: solo escucha la posición ya calculada por el conductor, sin llamadas propias.
       unirseAlTracking();
-      socketService.socket?.on('connect', unirseAlTracking);
       socketService.socket?.on('trip:pickup-status', onPickupStatus);
       socketService.onTripLocation((data) => {
         if (data?.tripId === trip._id) {
@@ -293,7 +291,6 @@ const TripMapScreen = ({ route, navigation }) => {
     return () => {
       cancelled = true;
       if (!isDriver) {
-        socketService.socket?.off('connect', unirseAlTracking);
         socketService.socket?.off('trip:pickup-status', onPickupStatus);
       } else {
         socketService.socket?.off('connect', reenviarAlConectar);

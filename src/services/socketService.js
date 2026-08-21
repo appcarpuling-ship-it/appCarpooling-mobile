@@ -9,6 +9,15 @@ class SocketService {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    /**
+     * Salas a las que el usuario tiene que estar unido. Los listeners sobreviven a una
+     * reconexión porque se re-enganchan desde `this.listeners`, pero la MEMBRESÍA de las
+     * salas vive en el servidor y se pierde con el socket viejo. Sin esto, después de
+     * cualquier reconexión el cliente seguía escuchando un evento que ya no le llegaba.
+     */
+    this.salas = { conversaciones: new Set(), viajes: new Set() };
+    /** Token con el que se abrió el socket actual, para detectar un cambio de sesión. */
+    this.tokenUsado = null;
   }
 
   /**
@@ -23,6 +32,24 @@ class SocketService {
         console.error('No se encontró token de autenticación');
         return;
       }
+
+      // Idempotente. `connect()` se llama desde AuthContext, useUnreadMessages, ChatsScreen
+      // y MyBookingsScreen, y antes cada llamada creaba un socket NUEVO abandonando el
+      // anterior. Los listeners se re-enganchaban —así que parecía funcionar— pero el socket
+      // nuevo no estaba unido a ninguna sala: el mapa dejaba de recibir la ubicación del
+      // conductor hasta que salías y volvías a entrar, que era lo que re-emitía el join.
+      //
+      // Se compara el token porque después de un login el socket viejo quedaría autenticado
+      // con la sesión anterior: ahí sí hay que rehacerlo.
+      if (this.socket && this.tokenUsado === token) {
+        if (!this.socket.connected) this.socket.connect();
+        return;
+      }
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+      this.tokenUsado = token;
 
       const url = getSocketURL();
       console.log('🔌 Conectando WebSocket a:', url);
@@ -47,6 +74,10 @@ class SocketService {
       this.socket.on('connect', () => {
         console.log('✅ Conectado al servidor WebSocket');
         this.isConnected = true;
+        // Volver a entrar a todas las salas. socket.io reconecta solo, pero del lado del
+        // servidor es una sesión nueva y no recuerda en qué salas estaba.
+        this.salas.conversaciones.forEach((id) => this.socket.emit('conversation:join', id));
+        this.salas.viajes.forEach((id) => this.socket.emit('trip:track:join', id));
       });
 
       this.socket.on('disconnect', () => {
@@ -81,7 +112,10 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
+      this.tokenUsado = null;
       this.listeners.clear();
+      this.salas.conversaciones.clear();
+      this.salas.viajes.clear();
     }
   }
 
@@ -89,6 +123,7 @@ class SocketService {
    * Unirse a una conversación
    */
   joinConversation(conversationId) {
+    this.salas.conversaciones.add(conversationId);
     if (this.socket && this.isConnected) {
       this.socket.emit('conversation:join', conversationId);
     }
@@ -98,6 +133,7 @@ class SocketService {
    * Salir de una conversación
    */
   leaveConversation(conversationId) {
+    this.salas.conversaciones.delete(conversationId);
     if (this.socket && this.isConnected) {
       this.socket.emit('conversation:leave', conversationId);
     }
@@ -242,12 +278,16 @@ class SocketService {
    * Unirse/salir del seguimiento de ubicación en vivo de un viaje
    */
   joinTripTracking(tripId) {
+    // Se recuerda ANTES de emitir: si el socket todavía no conectó, el join sale solo en
+    // cuanto conecte, en vez de perderse en silencio.
+    this.salas.viajes.add(tripId);
     if (this.socket && this.isConnected) {
       this.socket.emit('trip:track:join', tripId);
     }
   }
 
   leaveTripTracking(tripId) {
+    this.salas.viajes.delete(tripId);
     if (this.socket && this.isConnected) {
       this.socket.emit('trip:track:leave', tripId);
     }
