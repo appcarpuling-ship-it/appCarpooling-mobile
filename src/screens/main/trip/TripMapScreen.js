@@ -192,13 +192,18 @@ const TripMapScreen = ({ route, navigation }) => {
   // posición del conductor (por el fetch inicial o por socket) — a veces mucho después de que
   // `marcadoresVivos` ya bajó a false. Sin esto el auto quedaba invisible en Android siempre
   // que apareciera tarde, que es el caso normal.
+  //
+  // Depende TAMBIÉN de isTripStarted: los dos marcadores que usan esto (el auto y el punto
+  // propio del conductor) sólo se montan con el viaje en curso. Si la ubicación ya existía
+  // al abrir el mapa —lo normal— el temporizador se consumía antes de que el marcador
+  // existiera, y al tocar "Iniciar viaje" nacía con la captura ya apagada: invisible.
   const [autoMarkerVivo, setAutoMarkerVivo] = useState(true);
   useEffect(() => {
-    if (!driverLocation?.latitude) return undefined;
+    if (!driverLocation?.latitude || !isTripStarted) return undefined;
     setAutoMarkerVivo(true);
     const t = setTimeout(() => setAutoMarkerVivo(false), 900);
     return () => clearTimeout(t);
-  }, [Boolean(driverLocation?.latitude)]);
+  }, [Boolean(driverLocation?.latitude), isTripStarted]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -671,7 +676,11 @@ const TripMapScreen = ({ route, navigation }) => {
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={10}
             flat
-            tracksViewChanges={false}
+            // Mismo motivo que el auto de acá arriba: en Android un marcador con vista propia
+            // y `tracksViewChanges` en false desde el primer render se dibuja EN BLANCO. Este
+            // estaba hardcodeado en false, así que el conductor se quedaba sin su punto azul
+            // justo al iniciar el viaje — que es cuando se apaga el nativo para poner este.
+            tracksViewChanges={autoMarkerVivo}
           >
             <View style={styles.miPuntoHalo}>
               <View style={styles.miPunto} />
