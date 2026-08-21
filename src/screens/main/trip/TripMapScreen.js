@@ -31,6 +31,13 @@ import { ENDPOINTS } from '../../../config/api';
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
 const DRIVER_LOCATION_DISTANCE_M = 25;
+/**
+ * Piso de frescura. `watchPositionAsync` sólo avisa cuando el conductor se movió 25 m, así
+ * que parado —un semáforo, esperando a que suba alguien— no manda NADA y el pasajero se
+ * queda mirando una posición vieja sin saber si sigue siendo la de ahora. Cada minuto se
+ * reenvía la última conocida: no agrega precisión, agrega que el dato esté vivo.
+ */
+const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
 
 /** Lo que ve el PASAJERO en el lugar del conductor: era un círculo negro con una flechita
  * genérica. Un auto de verdad se lee más rápido de un vistazo en un mapa lleno de otras cosas. */
@@ -273,6 +280,14 @@ const TripMapScreen = ({ route, navigation }) => {
     const reenviarAlConectar = () => {
       if (ultimaCoordsRef.current) socketService.sendTripLocationUpdate(trip._id, ultimaCoordsRef.current);
     };
+
+    // Latido: mantiene fresca la última posición aunque el conductor no se mueva. Sólo
+    // reenvía lo que ya tenía, no pide GPS de nuevo, así que no gasta batería extra.
+    const latido = isDriver
+      ? setInterval(() => {
+          if (ultimaCoordsRef.current) socketService.sendTripLocationUpdate(trip._id, ultimaCoordsRef.current);
+        }, DRIVER_LOCATION_HEARTBEAT_MS)
+      : null;
     // "El conductor te espera": vive en el trip (driverWaitingFor) y llega en vivo por este
     // evento propio, no por notification:new — así el cartel no depende de si la notificación
     // se marcó como leída ni compite por el listener único que ya usa NotificationContext.
@@ -295,6 +310,7 @@ const TripMapScreen = ({ route, navigation }) => {
 
     return () => {
       cancelled = true;
+      if (latido) clearInterval(latido);
       if (!isDriver) {
         socketService.socket?.off('trip:pickup-status', onPickupStatus);
       } else {
