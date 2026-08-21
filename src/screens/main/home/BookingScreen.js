@@ -903,16 +903,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 22,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // Centrado: el `space-between` era para empujar el precio al borde derecho. Sin el
+    // precio dejaba el texto solo, pegado a la izquierda.
+    justifyContent: 'center',
     alignItems: 'center',
   },
   confirmBtnText: {
     fontSize: 16,
     fontFamily: 'Sora_600SemiBold',
-  },
-  confirmBtnPrice: {
-    fontSize: 16,
-    fontFamily: 'Sora_700Bold',
   },
 });
 
