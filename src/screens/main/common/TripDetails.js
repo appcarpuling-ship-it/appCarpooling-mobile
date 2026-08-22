@@ -317,7 +317,13 @@ const TripDetails = ({ navigation, route }) => {
                 del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    // En Android `app.json` ya tiene softwareKeyboardLayoutMode: 'resize', o sea
+                    // que el sistema operativo achica la pantalla solo con el teclado. Sumarle acá
+                    // behavior="height" la achicaba UNA VEZ MÁS: el botón "Continuar" quedaba
+                    // flotando en un hueco de más, con la barra de accesorios del teclado (Samsung)
+                    // asomando en ese espacio de sobra — justo el precio, el último campo del paso.
+                    // undefined en Android = dejar que el sistema resuelva solo.
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     keyboardVerticalOffset={headerHeight}
                     style={styles.flex}
                 >
