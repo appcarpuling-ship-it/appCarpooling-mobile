@@ -119,6 +119,7 @@ const ProfileScreen = () => {
       items: [
         { id: 1, title: 'Editar Perfil',  subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
         { id: 2, title: 'Mis Vehículos',  subtitle: 'Administrá tus vehículos',        icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+        { id: 3, title: 'Mi saldo',       subtitle: 'Lo que debés por los asientos ocupados', icon: 'receipt-outline', onPress: () => navigation.navigate('Saldo') },
       ],
     },
     {

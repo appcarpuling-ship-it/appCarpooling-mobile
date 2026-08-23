@@ -508,53 +508,12 @@ const BookingScreen = ({ route, navigation }) => {
 
           {paso === 3 && (
               <>
-          {/* Price Breakdown */}
-          {priceData && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
-              {/* "Precio base" y "Total" eran el MISMO número siempre que no hubiera descuento:
-                  dos filas y un divisor para decir una sola cosa. El desglose aparece sólo
-                  cuando hay algo que desglosar. */}
-              {priceData.pricing.discountPercentage > 0 && (
-                <>
-                  <View style={styles.priceRow}>
-                    <Text style={[styles.priceLabel, { color: textMuted }]}>
-                      Precio base ({seats} asiento{seats > 1 ? 's' : ''})
-                    </Text>
-                    <Text style={[styles.priceValue, { color: textPrimary }]}>
-                      ${formatNumber(priceData.pricing.originalPrice || priceData.pricing.totalPrice)} ARS
-                    </Text>
-                  </View>
-                  <View style={styles.priceRow}>
-                    <Text style={[styles.priceLabel, { color: successColor }]}>
-                      Descuento ({priceData.pricing.discountPercentage}%)
-                    </Text>
-                    <Text style={[styles.priceValue, { color: successColor }]}>
-                      -${formatNumber(priceData.pricing.discountAmount)} ARS
-                    </Text>
-                  </View>
-                  <View style={[styles.priceDivider, { backgroundColor: divider }]} />
-                </>
-              )}
+          {/* Acá vivía la ficha "Pagás ahora", que mostraba la comisión de Carpuling.
+              El pasajero ya no la paga: la paga el conductor, como saldo, cuando el viaje se
+              completa. Dejarla habría sido pedirle plata que no debe.
 
-              <View style={styles.priceRow}>
-                <Text style={[styles.priceTotalLabel, { color: textPrimary }]}>
-                  {seats > 1 ? `Pagás ahora · ${seats} asientos` : 'Pagás ahora'}
-                </Text>
-                <Text style={[styles.priceTotalValue, { color: textPrimary }]}>
-                  ${formatNumber(displayPrice)} ARS
-                </Text>
-              </View>
-
-              {priceData.pricing.discountPercentage > 0 && (
-                <View style={[styles.discountBadge, { backgroundColor: dark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)' }]}>
-                  <Ionicons name="pricetag-outline" size={14} color={successColor} />
-                  <Text style={[styles.discountBadgeText, { color: successColor }]}>
-                    Ahorrás ${formatNumber(priceData.pricing.discountAmount)} ARS con tu descuento
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+              Lo único que le corresponde ver es lo que le paga al conductor, que es la ficha
+              de abajo. */}
 
           {/* Lo que le paga al CONDUCTOR va en su PROPIA ficha. Estaba metido dentro de la de
               arriba, cuyo título es "Pagás ahora por la app": esta plata no se paga ahora ni por
@@ -679,9 +638,12 @@ const BookingScreen = ({ route, navigation }) => {
                   ? 'No hay cupos disponibles'
                   : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
               </Text>
-              {priceData && tripFreeNow > 0 && (
+              {/* Lo que le paga AL CONDUCTOR, no la comisión de Carpuling: el pasajero no
+                  paga nada por la app. En gastos compartidos da 0 y no se muestra número,
+                  que es correcto — ahí el monto se arregla entre ellos. */}
+              {driverPriceTotal > 0 && tripFreeNow > 0 && (
                 <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
-                  ${formatNumber(displayPrice)} ARS
+                  ${formatNumber(driverPriceTotal)} ARS
                 </Text>
               )}
             </>

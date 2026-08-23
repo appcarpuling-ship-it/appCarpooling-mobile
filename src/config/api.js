@@ -90,6 +90,9 @@ export const ENDPOINTS = {
   GET_BLOCKED_USERS: '/users/blocked',
   UPDATE_USER: (id) => `/users/${id}`,
   FREQUENT_ADDRESSES: '/users/frequent-addresses',
+  // Saldo del conductor: la comisión por asiento ocupado de los viajes que completó.
+  SALDO: '/users/saldo',
+  SALDO_PAGAR: '/users/saldo/pagar',
 
   // Maps (proxy backend — evita exponer la API key de Google en el cliente)
   MAPS_AUTOCOMPLETE: '/maps/autocomplete',

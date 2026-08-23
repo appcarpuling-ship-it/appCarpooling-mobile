@@ -20,6 +20,7 @@ import ReferralScreen from '../../screens/main/profile/ReferralScreen';
 import CouponsScreen from '../../screens/main/profile/CouponsScreen';
 import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 import DeleteAccountScreen from '../../screens/main/profile/DeleteAccountScreen';
+import SaldoScreen from '../../screens/main/profile/SaldoScreen';
 
 const Stack = createStackNavigator();
 
@@ -83,6 +84,11 @@ const ProfileStackNavigator = () => {
         name="VehicleForm"
         component={VehicleFormScreen}
         options={{ title: 'Vehículo' }}
+      />
+      <Stack.Screen
+        name="Saldo"
+        component={SaldoScreen}
+        options={{ title: 'Mi saldo' }}
       />
       <Stack.Screen
         name="Notifications"

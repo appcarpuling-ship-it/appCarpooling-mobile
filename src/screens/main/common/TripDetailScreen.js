@@ -1286,7 +1286,14 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               ) : (
                 <View style={[styles.statusFooter, { backgroundColor: accent }]}>
-                  <Text style={[styles.statusFooterText, { color: accentInverse }]}>Reserva paga</Text>
+                  {/* No dice "Reserva paga": el pasajero no paga nada por la app, así que
+                      no hay nada pago. Le paga al conductor, y lo que necesita saber acá es
+                      justamente eso. */}
+                  <Text style={[styles.statusFooterText, { color: accentInverse }]}>
+                    {trip?.sinPrecioFijo
+                      ? 'Reserva confirmada · gastos compartidos'
+                      : 'Reserva confirmada · le pagás al conductor'}
+                  </Text>
                 </View>
               )
             ) : (

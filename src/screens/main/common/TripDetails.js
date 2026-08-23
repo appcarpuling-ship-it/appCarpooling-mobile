@@ -13,6 +13,7 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     BackHandler,
+    Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -73,6 +74,7 @@ const TripDetails = ({ navigation, route }) => {
         departureTime:  '',
         availableSeats: '',
         driverPrice:    '',
+        sinPrecioFijo:  false,
 
         notes:          '',
         allowSmoking:        false,
@@ -145,7 +147,9 @@ const TripDetails = ({ navigation, route }) => {
             }
             // El precio se valida acá y no recién al publicar: está marcado con * en este paso,
             // y enterarse dos pasos después de que faltaba es lo que los pasos vienen a evitar.
-            if (!(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) > 0)) {
+            // En "Gastos compartidos" no hay precio que poner: es carpooling real, se
+            // arregla directo con los pasajeros.
+            if (!formData.sinPrecioFijo && !(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) > 0)) {
                 return 'Poné cuánto le cobrás a cada pasajero';
             }
             return null;
@@ -218,7 +222,7 @@ const TripDetails = ({ navigation, route }) => {
         // reservar y con lo que se compara contra los demás viajes. Sin esto, publicar sin
         // querer un viaje en $0 es un click de distancia.
         const precioConductor = parseInt(String(driverPrice).replace(/\./g, ''), 10) || 0;
-        if (precioConductor <= 0) {
+        if (!formData.sinPrecioFijo && precioConductor <= 0) {
             showAlert('Falta el precio', 'Poné cuánto le cobrás a cada pasajero por el viaje.');
             return;
         }
@@ -250,6 +254,8 @@ const TripDetails = ({ navigation, route }) => {
                 // Lo que le cobra a cada pasajero, y que le pagan a él al llegar. La conexión
                 // (lo que cobra la app) la calcula el server aparte y no se manda desde acá.
                 driverPrice: precioConductor,
+                // El server lo ignora igual si sinPrecioFijo viene en true: fuerza 0.
+                sinPrecioFijo: formData.sinPrecioFijo === true,
                 notes: formData.notes,
                 rules: {
                     smokingAllowed:      formData.allowSmoking,
@@ -275,6 +281,20 @@ const TripDetails = ({ navigation, route }) => {
                 navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: response.message || 'No pudimos crear el viaje en este momento.' });
             }
         } catch (error) {
+            // Bloqueado por saldo pendiente. Se trata aparte del resto de los errores porque
+            // NO es una falla: el conductor puede resolverlo, y lo que necesita es entender
+            // por qué y adónde ir. Un "Ocurrió algo" genérico lo dejaría sin saber qué hacer.
+            if (error.response?.data?.code === 'SALDO_PENDIENTE') {
+                showAlert(
+                    'Tenés saldo pendiente',
+                    error.response.data.message || 'Saldá tu cuenta para volver a publicar viajes.',
+                    [
+                        { text: 'Ahora no', style: 'cancel' },
+                        { text: 'Ver mi saldo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Saldo', initial: false }) }
+                    ]
+                );
+                return;
+            }
             navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: error.message || 'No pudimos crear el viaje en este momento.' });
         } finally {
             setLoading(false);
@@ -438,9 +458,41 @@ const TripDetails = ({ navigation, route }) => {
                                 )}
                             </View>
 
+                            {/* Cómo cobrás. Es una elección entre dos modalidades, no una
+                                casilla suelta: con precio fijo no hay nada que "compartir", y
+                                con gastos compartidos no hay precio que fijar. Por eso el campo
+                                de precio de abajo desaparece cuando esto se prende, en vez de
+                                quedar ahí pidiendo un número que no va a usar nadie.
+
+                                Lo que Carpuling cobra NO cambia entre modalidades: son los
+                                mismos $2.000 por asiento ocupado en los dos casos. Se dice
+                                explícito acá para que no parezca que "compartir gastos" es una
+                                forma de no pagar la comisión. */}
+                            <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
+                                <Ionicons name="pricetags-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
+                                            Gastos compartidos
+                                        </Text>
+                                        <Switch
+                                            value={formData.sinPrecioFijo}
+                                            onValueChange={v => handleChange('sinPrecioFijo', v)}
+                                        />
+                                    </View>
+                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
+                                        {formData.sinPrecioFijo
+                                            ? 'Sin precio fijo: arreglás los gastos del viaje (nafta, peajes) directo con tus pasajeros. Carpuling te cobra $2.000 por asiento ocupado, aparte.'
+                                            : 'Vos fijás cuánto cobra cada asiento y el pasajero te paga directo a vos. Carpuling te cobra $2.000 por asiento ocupado.'}
+                                    </Text>
+                                </View>
+                            </View>
+
                             {/* El precio va pegado a los asientos porque es "por asiento" igual que
                                 ellos. Es libre: es con lo que el conductor compite contra los otros
-                                viajes, y el pasajero lo ve antes de reservar. */}
+                                viajes, y el pasajero lo ve antes de reservar. Desaparece en gastos
+                                compartidos: ahí no hay precio a propósito. */}
+                            {!formData.sinPrecioFijo && (
                             <View style={styles.inputRow}>
                                 <Ionicons name="cash-outline" size={19} color={textPrimary} />
                                 <TextInput
@@ -462,6 +514,7 @@ const TripDetails = ({ navigation, route }) => {
                                     onBlur={desenfocarCampo}
                                 />
                             </View>
+                            )}
                         </View>
                         {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                             <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />

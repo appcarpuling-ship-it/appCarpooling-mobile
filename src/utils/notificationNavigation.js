@@ -109,6 +109,16 @@ function navigateToProfile(navigation, useMainStack) {
   }
 }
 
+/** Mi saldo: adónde lleva el aviso de "tenés saldo pendiente". */
+function navigateToSaldo(navigation, useMainStack) {
+  const params = { screen: 'Saldo', initial: false };
+  if (useMainStack) {
+    navigation.navigate('Main', { screen: 'ProfileTab', params });
+  } else {
+    navigation.navigate('ProfileTab', params);
+  }
+}
+
 /**
  * Convierte el payload `data` de Expo Push a forma parecida a un documento Notification.
  * Los valores en push suelen ser strings.
@@ -216,6 +226,10 @@ export function navigateFromNotification(navigation, notification, options = {})
       const id = parts[1];
       const mode = parts[2] === 'driver' ? 'driver' : 'passenger';
       if (id) navigateToTripRequestDetail(navigation, id, mode);
+      return;
+    }
+    if (path === 'saldo') {
+      navigateToSaldo(navigation, useMainStack);
       return;
     }
     if (path === 'profile' || path === 'security') {
