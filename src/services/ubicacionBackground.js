@@ -1,7 +1,30 @@
 import * as Location from 'expo-location';
-import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, tunnelExtraHeaders } from '../config/api';
+
+/**
+ * `expo-task-manager` se carga con require() adentro de un try, NO con un import normal.
+ *
+ * Es un módulo NATIVO: existe sólo en binarios compilados desde que se agregó la
+ * dependencia. Un OTA le puede llegar a un binario más viejo que no lo tiene, y como
+ * App.js importa este archivo al arrancar, un import estático explotaría durante el
+ * arranque — pantalla blanca, la app inusable, y sin forma de arreglarlo salvo publicar
+ * otro OTA. Los imports ES además se izan, así que envolverlos en try/catch no sirve:
+ * tiene que ser require().
+ *
+ * Si no está, el seguimiento en segundo plano queda desactivado y TODO LO DEMÁS ANDA
+ * IGUAL: el seguimiento en primer plano, que es el que ya funcionaba, no depende de esto.
+ * Se activa solo cuando entra un binario que sí lo trae.
+ */
+let TaskManager = null;
+try {
+  TaskManager = require('expo-task-manager');
+} catch {
+  console.warn('[ubicacionBackground] expo-task-manager no está en este binario: el seguimiento en segundo plano queda desactivado.');
+}
+
+/** El módulo nativo está y se puede usar. */
+export const disponible = () => TaskManager != null;
 
 /**
  * Seguimiento de la ubicación del conductor con la app en SEGUNDO PLANO.
@@ -26,6 +49,8 @@ const CLAVE_VIAJE = 'ubicacionBackground:tripId';
 const DISTANCIA_M = 25;
 const INTERVALO_MS = 8000;
 
+// Sin el módulo nativo no hay tarea que definir. No es un error: es un binario viejo.
+if (TaskManager) {
 TaskManager.defineTask(TAREA_UBICACION, async ({ data, error }) => {
   if (error) {
     console.warn('[ubicacionBackground] error de la tarea:', error.message);
@@ -66,6 +91,7 @@ TaskManager.defineTask(TAREA_UBICACION, async ({ data, error }) => {
     console.warn('[ubicacionBackground] no se pudo reportar:', e?.message);
   }
 });
+}
 
 /**
  * Pide el permiso de ubicación en segundo plano.
@@ -75,6 +101,7 @@ TaskManager.defineTask(TAREA_UBICACION, async ({ data, error }) => {
  * @returns {Promise<boolean>}
  */
 export async function pedirPermisoBackground() {
+  if (!TaskManager) return false;
   const { status: enUso } = await Location.requestForegroundPermissionsAsync();
   if (enUso !== 'granted') return false;
   const { status } = await Location.requestBackgroundPermissionsAsync();
@@ -83,6 +110,7 @@ export async function pedirPermisoBackground() {
 
 /** ¿Está corriendo ahora mismo? */
 export async function seguimientoActivo() {
+  if (!TaskManager) return false;
   try {
     return await Location.hasStartedLocationUpdatesAsync(TAREA_UBICACION);
   } catch {
@@ -98,6 +126,9 @@ export async function seguimientoActivo() {
  * @returns {Promise<boolean>} false si el permiso no está dado
  */
 export async function iniciarSeguimiento(tripId) {
+  // Binario sin el módulo nativo: el seguimiento en primer plano sigue andando igual, que
+  // es el que el pasajero ve mientras el conductor tiene la app abierta.
+  if (!TaskManager) return false;
   if (!tripId) return false;
 
   const permitido = await pedirPermisoBackground();
@@ -132,6 +163,7 @@ export async function iniciarSeguimiento(tripId) {
 
 /** Corta el seguimiento y se olvida del viaje. Seguro de llamar aunque no esté corriendo. */
 export async function detenerSeguimiento() {
+  if (!TaskManager) return;
   try {
     if (await seguimientoActivo()) {
       await Location.stopLocationUpdatesAsync(TAREA_UBICACION);
