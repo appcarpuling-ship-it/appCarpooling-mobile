@@ -632,21 +632,14 @@ const BookingScreen = ({ route, navigation }) => {
           {loading ? (
             <ActivityIndicator color={accentInverse} size="small" />
           ) : (
-            <>
-              <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
-                {tripFreeNow <= 0
-                  ? 'No hay cupos disponibles'
-                  : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
-              </Text>
-              {/* Lo que le paga AL CONDUCTOR, no la comisión de Carpuling: el pasajero no
-                  paga nada por la app. En gastos compartidos da 0 y no se muestra número,
-                  que es correcto — ahí el monto se arregla entre ellos. */}
-              {driverPriceTotal > 0 && tripFreeNow > 0 && (
-                <Text style={[styles.confirmBtnPrice, { color: accentInverse }]}>
-                  ${formatNumber(driverPriceTotal)} ARS
-                </Text>
-              )}
-            </>
+            // El botón no lleva monto: el pasajero no paga nada por la app al reservar, así
+            // que un número acá se lee como un cobro que no existe. Lo que le va a pagar al
+            // conductor ya está en la ficha de arriba, que es donde corresponde.
+            <Text style={[styles.confirmBtnText, { color: accentInverse }]}>
+              {tripFreeNow <= 0
+                ? 'No hay cupos disponibles'
+                : esUltimoPaso ? 'Solicitar Reserva' : 'Continuar'}
+            </Text>
           )}
         </TouchableOpacity>
 
