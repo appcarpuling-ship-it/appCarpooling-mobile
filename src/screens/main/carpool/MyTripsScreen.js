@@ -618,7 +618,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 11,
-    borderRadius: 10,
+    // Pill: lo usan "Ver reservas" e "Iniciar", que van uno al lado del otro.
+    borderRadius: 999,
     gap: 6,
   },
   footerBtnText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },

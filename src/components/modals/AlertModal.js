@@ -167,7 +167,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 13,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    // Pill, igual que PillButton y que el resto de los botones de la app.
+    borderRadius: 999,
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
