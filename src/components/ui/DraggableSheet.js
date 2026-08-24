@@ -11,6 +11,9 @@ const { height: SCREEN_H } = Dimensions.get('window');
  * agregarlos ahora habría obligado a un build para algo que se puede resolver con
  * `Animated` + `PanResponder`, que ya vienen en React Native y salen por OTA.
  *
+ * Sólo el `header` arrastra el sheet (ver el comentario sobre por qué el body no). El resto
+ * del contenido va en un ScrollView normal.
+ *
  * @param {number[]} snapPoints  Alturas en px, de menor a mayor. Ej: [PEEK, MID, FULL].
  * @param {number} [initialIndex=1]
  * @param {(index:number, heightPx:number) => void} [onSnapChange]
@@ -26,9 +29,6 @@ const DraggableSheet = ({ snapPoints, initialIndex = 1, onSnapChange, header, ch
   // se congela acá al empezar a arrastrar y todo el gesto se calcula contra ese número.
   const startHeightRef = useRef(snapPoints[initialIndex]);
   const indexRef = useRef(initialIndex);
-  // Cuánto scrolleó el contenido, para decidir si un arrastre hacia abajo tiene que
-  // colapsar el sheet o dejarle scrollear al ScrollView (ver contentPanResponder).
-  const scrollYRef = useRef(0);
 
   const clamp = (v) => Math.max(min, Math.min(max, v));
 
@@ -60,71 +60,42 @@ const DraggableSheet = ({ snapPoints, initialIndex = 1, onSnapChange, header, ch
 
   useEffect(() => { onSnapChange?.(initialIndex, snapPoints[initialIndex]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // El arrastre en sí: lo comparten el handle (arriba) y el contenido (ver más abajo), para
-  // que "seguir arrastrando dentro del contenido" mueva el sheet exactamente igual que
-  // arrastrar el handle — sin esto había que soltar y buscar el handle con el dedo.
-  const onGrant = () => { heightAnim.stopAnimation((val) => { startHeightRef.current = val; }); };
-  const onMove = (_, g) => { heightAnim.setValue(clamp(startHeightRef.current - g.dy)); };
-  const onRelease = (_, g) => {
-    animateToIndex(nearestSnapIndex(clamp(startHeightRef.current - g.dy), g.vy));
-  };
-
-  const handlePanResponder = useRef(
+  const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dy) > 4,
-      onPanResponderGrant: onGrant,
-      onPanResponderMove: onMove,
-      onPanResponderRelease: onRelease,
-    })
-  ).current;
-
-  /**
-   * Mismo arrastre, pero decidiendo cuándo robárselo al ScrollView en vez de dejarlo
-   * scrollear:
-   *
-   *   - Si el sheet NO está expandido del todo: cualquier arrastre vertical lo mueve.
-   *     Es lo que hace que "seguir bajando el dedo" dentro del contenido, estando en el
-   *     punto medio, siga agrandando el sheet en vez de quedarse pegado ahí sin hacer nada.
-   *   - Si YA está expandido del todo: se le deja el gesto al ScrollView (que scrollee el
-   *     contenido con normalidad) EXCEPTO cuando el contenido ya está en el tope
-   *     (`scrollYRef.current <= 0`) y se sigue arrastrando hacia ABAJO — ahí es donde
-   *     "seguir bajando" tiene que colapsar el sheet, no quedarse sin efecto.
-   */
-  const contentPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: (_, g) => {
-        if (Math.abs(g.dy) < 6) return false;
-        const expandidoDelTodo = indexRef.current === snapPoints.length - 1;
-        if (!expandidoDelTodo) return true;
-        return scrollYRef.current <= 0 && g.dy > 0;
+      onPanResponderGrant: () => {
+        heightAnim.stopAnimation((val) => { startHeightRef.current = val; });
       },
-      onPanResponderGrant: onGrant,
-      onPanResponderMove: onMove,
-      onPanResponderRelease: onRelease,
+      onPanResponderMove: (_, g) => {
+        // Arrastrar hacia arriba (dy negativo) agranda el sheet.
+        heightAnim.setValue(clamp(startHeightRef.current - g.dy));
+      },
+      onPanResponderRelease: (_, g) => {
+        const finalHeight = clamp(startHeightRef.current - g.dy);
+        animateToIndex(nearestSnapIndex(finalHeight, g.vy));
+      },
     })
   ).current;
 
   return (
     <Animated.View style={[styles.sheet, style, { height: heightAnim }]}>
-      <View {...handlePanResponder.panHandlers}>
+      <View {...panResponder.panHandlers}>
         <View style={styles.handleWrap}>
           <View style={styles.handle} />
         </View>
         {header}
       </View>
-      <View style={styles.body} {...contentPanResponder.panHandlers}>
-        <Animated.ScrollView
-          contentContainerStyle={contentContainerStyle}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
-        >
-          {children}
-        </Animated.ScrollView>
-      </View>
+      <Animated.ScrollView
+        style={styles.body}
+        contentContainerStyle={contentContainerStyle}
+        showsVerticalScrollIndicator={false}
+        // El sheet arranca en un punto medio, no en el más chico: si el usuario ya ve
+        // contenido, que pueda scrollearlo sin tener que arrastrar el sheet primero.
+        bounces={false}
+      >
+        {children}
+      </Animated.ScrollView>
     </Animated.View>
   );
 };
