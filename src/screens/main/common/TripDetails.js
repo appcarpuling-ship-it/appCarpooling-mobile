@@ -74,6 +74,7 @@ const TripDetails = ({ navigation, route }) => {
         availableSeats: '',
         driverPrice:    '',
         sinPrecioFijo:  false,
+        aceptaEfectivo: false,
 
         notes:          '',
         allowSmoking:        false,
@@ -255,6 +256,8 @@ const TripDetails = ({ navigation, route }) => {
                 driverPrice: precioConductor,
                 // El server lo ignora igual si sinPrecioFijo viene en true: fuerza 0.
                 sinPrecioFijo: formData.sinPrecioFijo === true,
+                // Sólo informativo — no cambia cómo se cobra la comisión.
+                aceptaEfectivo: formData.aceptaEfectivo === true,
                 notes: formData.notes,
                 rules: {
                     smokingAllowed:      formData.allowSmoking,
@@ -534,6 +537,39 @@ const TripDetails = ({ navigation, route }) => {
                                 />
                             </View>
                             )}
+
+                            {/* Sólo informativo: en este modelo el pasajero SIEMPRE le paga
+                                directo al conductor, nunca por la app, así que no hay un
+                                segundo método del cual "aceptar efectivo" sea la alternativa.
+                                No cambia el cobro ni el flujo — es un aviso para el pasajero
+                                de que este conductor recibe billetes, no sólo transferencia. */}
+                            <TouchableOpacity
+                                style={[styles.inputRow, { alignItems: 'flex-start' }]}
+                                onPress={() => handleChange('aceptaEfectivo', !formData.aceptaEfectivo)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="wallet-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
+                                            Acepto efectivo
+                                        </Text>
+                                        <View style={[
+                                            styles.toggle,
+                                            { backgroundColor: formData.aceptaEfectivo ? textPrimary : divider },
+                                        ]}>
+                                            <View style={[
+                                                styles.toggleCircle,
+                                                { backgroundColor: formData.aceptaEfectivo ? ui.invertText : textMuted },
+                                                formData.aceptaEfectivo && styles.toggleOn,
+                                            ]} />
+                                        </View>
+                                    </View>
+                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
+                                        Le avisa al pasajero que además de transferencia, también recibís efectivo.
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
                         </View>
                         {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                             <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
