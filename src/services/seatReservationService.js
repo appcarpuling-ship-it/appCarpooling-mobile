@@ -195,11 +195,16 @@ export const getPendingApprovalReservations = async () => {
  * @param {string} status - 'approved' | 'rejected'
  * @returns {Promise<Object>}
  */
-export const confirmFromCallback = async (externalReference, status) => {
+/**
+ * @param {string} paymentId  Lo necesita el pago del SALDO del conductor: el backend lo usa
+ *                            para re-verificar contra la pasarela antes de acreditar. Las
+ *                            reservas lo resuelven por su propia referencia y no lo mandan.
+ */
+export const confirmFromCallback = async (externalReference, status, paymentId) => {
   try {
     const response = await post_withauth(
       `${ENDPOINTS.SEAT_RESERVATIONS}/confirm-from-callback`,
-      { external_reference: externalReference, status }
+      { external_reference: externalReference, status, payment_id: paymentId }
     );
     return response;
   } catch (error) {

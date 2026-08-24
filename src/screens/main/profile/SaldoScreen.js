@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Linking,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +15,8 @@ import { useAlert } from '../../../context/AlertContext';
 import { get_withauth, post_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import PillButton from '../../../components/ui/PillButton';
+import CheckoutWebView from '../../../components/payment/CheckoutWebView';
+import { confirmFromCallback } from '../../../services/seatReservationService';
 
 /**
  * Mi saldo: lo que el conductor le debe a Carpuling por los asientos que se ocuparon en
@@ -37,6 +38,7 @@ const SaldoScreen = () => {
   const [data, setData] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [pagando, setPagando] = useState(false);
+  const [checkout, setCheckout] = useState({ visible: false, paymentUrl: null });
 
   const cargar = useCallback(async () => {
     try {
@@ -61,9 +63,10 @@ const SaldoScreen = () => {
       const res = await post_withauth(ENDPOINTS.SALDO_PAGAR, {});
       const url = res?.data?.paymentUrl;
       if (!url) throw new Error(res?.message || 'No se pudo generar el pago');
-      // Se abre el checkout de dLocal afuera. La deuda baja recién cuando dLocal confirma
-      // por webhook, no al volver: si se descontara acá, alcanzaría con abrir el link.
-      await Linking.openURL(url);
+      // El checkout se abre ADENTRO de la app. Antes salía al navegador con Linking y el
+      // conductor quedaba varado ahí: pagaba y no volvía nunca, así que además nadie le
+      // avisaba a la app que el pago se había hecho.
+      setCheckout({ visible: true, paymentUrl: url });
     } catch (error) {
       showAlert('No se pudo generar el pago', error?.message || 'Intentá de nuevo en un rato.');
     } finally {
@@ -152,6 +155,31 @@ const SaldoScreen = () => {
           <PillButton label={`Saldar ${pesos(deuda)}`} onPress={pagar} loading={pagando} />
         </View>
       )}
+
+      <CheckoutWebView
+        visible={checkout.visible}
+        paymentUrl={checkout.paymentUrl}
+        onClose={() => { setCheckout({ visible: false, paymentUrl: null }); cargar(); }}
+        onPaymentSuccess={async (datos) => {
+          setCheckout({ visible: false, paymentUrl: null });
+          // La deuda NO baja acá: se le avisa al backend, que re-verifica el pago contra la
+          // pasarela antes de acreditar. Si se descontara del lado de la app, alcanzaría con
+          // abrir y cerrar el checkout para quedar sin deuda sin haber pagado.
+          //
+          // Esto es lo que hace que funcione aunque el webhook de la pasarela no llegue.
+          try {
+            await confirmFromCallback(datos?.externalReference, 'approved', datos?.paymentId);
+          } catch (e) {
+            console.warn('[Saldo] no se pudo confirmar el pago:', e?.message);
+          }
+          await cargar();
+          showAlert('Pago recibido', 'Tu saldo se actualizó. Si todavía figura pendiente, esperá unos segundos y volvé a entrar.');
+        }}
+        onPaymentError={(error) => {
+          setCheckout({ visible: false, paymentUrl: null });
+          showAlert('No se pudo procesar el pago', error?.message || 'Probá de nuevo en un momento.');
+        }}
+      />
     </View>
   );
 };
