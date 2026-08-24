@@ -723,7 +723,11 @@ const TripMapScreen = ({ route, navigation }) => {
    * expandido con la lista completa de paradas — la misma numeración que ven los marcadores
    * del mapa, para que las dos vistas cuenten la misma historia.
    */
-  const PEEK = 108 + insets.bottom;
+  // Con el botón de acción viviendo en el header (ver más abajo), el peek necesita un poco
+  // más de alto para no nacer con el botón cortado a la mitad. Sólo crece cuando el botón
+  // va a estar — un pasajero, o el viaje ya completo, no lo necesitan.
+  const conBotonDeAccion = isDriver && ((!isTripStarted && trip?.status === 'active') || (isTripStarted && !!proximaParada));
+  const PEEK = (conBotonDeAccion ? 172 : 108) + insets.bottom;
   const MID = Math.round(SCREEN_HEIGHT * 0.42);
   const FULL = Math.round(SCREEN_HEIGHT * 0.82);
 
@@ -855,48 +859,11 @@ const TripMapScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Antes vivía acá un cartel "Yendo a" con esta misma dirección. Con el sheet de abajo
-          ya no hace falta: su header le dice al conductor exactamente lo mismo (la próxima
-          parada), y el cartel flotante sólo lograba pisarse con el botón de abajo cuando el
-          sheet estaba expandido — los dos flotaban sobre el mismo punto de la pantalla. */}
-
-      {/* Iniciar viaje: el primer estado del botón. Mismo lugar y mismo tamaño que
-          "Continuar", así el conductor toca siempre en el mismo lado.
-          `Math.min(sheetHeight, MID)`: si el conductor expande el sheet del todo, el botón
-          NO lo sigue hasta arriba — se queda esperando a la altura del punto medio, así
-          nunca termina flotando por encima del back button o del status bar. */}
-      {isDriver && !isTripStarted && trip?.status === 'active' && (
-        <View style={[styles.navFooter, { bottom: Math.min(sheetHeight, MID) + 12, paddingBottom: 4 }]}>
-          <TouchableOpacity
-            style={styles.navContinuar}
-            onPress={iniciarViaje}
-            activeOpacity={0.85}
-            disabled={iniciando}
-            accessibilityRole="button"
-            accessibilityLabel="Iniciar el viaje"
-          >
-            <Text style={styles.navContinuarText}>
-              {iniciando ? 'Iniciando…' : 'Iniciar viaje'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Continuar: pasa a la parada siguiente. Abajo y ancho, para tocarlo sin mirar; el
-          check chiquito arriba a la derecha no se entendía ni se acertaba manejando. */}
-      {isDriver && isTripStarted && proximaParada && (
-        <View style={[styles.navFooter, { bottom: Math.min(sheetHeight, MID) + 12, paddingBottom: 4 }]}>
-          <TouchableOpacity
-            style={styles.navContinuar}
-            onPress={avanzar}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={enElDestino ? 'Completar el viaje' : textoBoton}
-          >
-            <Text style={styles.navContinuarText}>{textoBoton}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Antes vivían acá el cartel "Yendo a" y el botón de Iniciar/Continuar, los dos
+          flotando encima del sheet. Terminaban pisándose entre sí (ver el fix de arriba) y
+          encima flotar es más frágil que estar fijo: cualquier otro elemento flotante futuro
+          vuelve a correr el mismo riesgo. Los dos pasaron a vivir DENTRO del header del
+          sheet — fijo, no flota, no hay con qué chocar. */}
 
       {/* El conductor te está esperando: mismo cartel que ve él ("Yendo a"), para el pasajero.
           Sin botón acá a propósito — lo cierra el conductor con "Continuar" del lado suyo
@@ -917,7 +884,9 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
       {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
         <TouchableOpacity
-          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: Math.min(sheetHeight, MID) + (proximaParada ? 84 : 16) }]}
+          // El botón de acción ya no flota por su cuenta —vive dentro del sheet—, así que
+          // acá no hay que dejarle un hueco extra: alcanza con despegarse del borde del sheet.
+          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: Math.min(sheetHeight, MID) + 16 }]}
           onPress={recentrar}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -934,6 +903,7 @@ const TripMapScreen = ({ route, navigation }) => {
         style={{ backgroundColor: cardBg }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}
         header={
+          <>
           <View style={styles.sheetHeader}>
             {isDriver ? (
               <>
@@ -947,7 +917,7 @@ const TripMapScreen = ({ route, navigation }) => {
                   <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
                     {/* A quién va a buscar/dejar, si el viaje está en curso — es la misma info
                         que antes vivía en el cartel "Yendo a" flotante, que se sacó porque
-                        duplicaba esto y además chocaba con el botón de abajo. */}
+                        duplicaba esto. */}
                     {isTripStarted && proximaParada?.quien
                       ? proximaParada.quien
                       : asientosOcupados > 0 ? `${asientosOcupados} pasajero(s)` : 'Sin pasajeros todavía'}
@@ -977,6 +947,41 @@ const TripMapScreen = ({ route, navigation }) => {
               </>
             )}
           </View>
+
+          {/* Iniciar viaje / Continuar. Fijo dentro del header del sheet, así siempre está
+              donde el conductor lo espera: en el peek (para arrancar sin abrir nada), en el
+              medio y en el expandido. Antes flotaba pegado al borde inferior de la pantalla
+              y perseguía la altura del sheet a mano — acá no hay nada que perseguir. */}
+          {isDriver && !isTripStarted && trip?.status === 'active' && (
+            <View style={styles.sheetActionRow}>
+              <TouchableOpacity
+                style={styles.navContinuar}
+                onPress={iniciarViaje}
+                activeOpacity={0.85}
+                disabled={iniciando}
+                accessibilityRole="button"
+                accessibilityLabel="Iniciar el viaje"
+              >
+                <Text style={styles.navContinuarText}>
+                  {iniciando ? 'Iniciando…' : 'Iniciar viaje'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {isDriver && isTripStarted && proximaParada && (
+            <View style={styles.sheetActionRow}>
+              <TouchableOpacity
+                style={styles.navContinuar}
+                onPress={avanzar}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={enElDestino ? 'Completar el viaje' : textoBoton}
+              >
+                <Text style={styles.navContinuarText}>{textoBoton}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          </>
         }
       >
         {/* Etiquetas de plata: el mismo criterio que en el resto de la app — un tag para el
@@ -1075,6 +1080,7 @@ const TripMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingBottom: 14 },
+  sheetActionRow: { paddingHorizontal: 20, paddingBottom: 14 },
   sheetAvatar: { width: 44, height: 44, borderRadius: 22 },
   sheetAvatarFallback: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   sheetTitle: { fontSize: 16, fontFamily: 'Sora_700Bold', letterSpacing: -0.2 },
@@ -1151,7 +1157,6 @@ const styles = StyleSheet.create({
   navLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' },
   navAddress: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, lineHeight: 26, marginTop: 2 },
   navQuien: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
-  navFooter: { position: 'absolute', left: 16, right: 16, bottom: 0 },
   // Negro fijo, no invertido por tema: el mapa siempre se ve claro, así que en modo oscuro
   // el botón salía blanco sobre fondo claro.
   navContinuar: {
