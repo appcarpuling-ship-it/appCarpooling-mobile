@@ -1078,7 +1078,7 @@ const TripMapScreen = ({ route, navigation }) => {
             mismo del auto. */}
         {!isDriver && trip?.vehicle && (
           <>
-            <Text style={[styles.sheetSectionLabel, { color: ui.textMuted, marginTop: 18 }]}>EL AUTO</Text>
+            <Text style={[styles.sheetSectionLabel, { color: ui.textMuted, marginTop: 18 }]}>VEHÍCULO</Text>
             {vehiclePhotoPaths.length > 0 ? (
               <ScrollView
                 horizontal
