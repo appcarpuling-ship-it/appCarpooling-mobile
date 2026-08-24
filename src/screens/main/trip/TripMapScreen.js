@@ -734,7 +734,21 @@ const TripMapScreen = ({ route, navigation }) => {
     return null;
   })();
 
+  // `trip.passengers` tiene UNA ENTRADA POR ASIENTO, no por persona: si benjamin reservó 2
+  // asientos, aparece dos veces. El total de asientos ocupados sale de ahí tal cual — pero
+  // para LISTAR pasajeros hay que agrupar, o el mismo nombre se repite tantas veces como
+  // asientos tenga.
   const asientosOcupados = (trip?.passengers || []).length;
+  const pasajerosUnicos = useMemo(() => {
+    const porId = new Map();
+    (trip?.passengers || []).forEach((p) => {
+      const id = String(p?._id || p);
+      const actual = porId.get(id);
+      if (actual) actual.asientos += 1;
+      else porId.set(id, { ...p, asientos: 1 });
+    });
+    return Array.from(porId.values());
+  }, [trip?.passengers]);
 
   return (
     <View style={styles.container}>
@@ -841,27 +855,18 @@ const TripMapScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* A dónde va ahora. Sólo para el conductor y sólo con el viaje en curso: al pasajero
-          no le sirve y le taparía el mapa. Va arriba y ocupa lo mínimo para que el mapa se
-          siga viendo entero, que es lo que el conductor necesita mientras maneja. */}
-      {isDriver && isTripStarted && proximaParada && (
-        <View style={[styles.navCard, { backgroundColor: cardBg, top: insets.top + 56 }]}>
-          <Text style={[styles.navLabel, { color: ui.textMuted }]}>Yendo a</Text>
-          <Text style={[styles.navAddress, { color: textPrimary }]} numberOfLines={2}>
-            {proximaParada.address}
-          </Text>
-          {!!proximaParada.quien && (
-            <Text style={[styles.navQuien, { color: ui.textMuted }]} numberOfLines={1}>
-              {proximaParada.quien}
-            </Text>
-          )}
-        </View>
-      )}
+      {/* Antes vivía acá un cartel "Yendo a" con esta misma dirección. Con el sheet de abajo
+          ya no hace falta: su header le dice al conductor exactamente lo mismo (la próxima
+          parada), y el cartel flotante sólo lograba pisarse con el botón de abajo cuando el
+          sheet estaba expandido — los dos flotaban sobre el mismo punto de la pantalla. */}
 
       {/* Iniciar viaje: el primer estado del botón. Mismo lugar y mismo tamaño que
-          "Continuar", así el conductor toca siempre en el mismo lado. */}
+          "Continuar", así el conductor toca siempre en el mismo lado.
+          `Math.min(sheetHeight, MID)`: si el conductor expande el sheet del todo, el botón
+          NO lo sigue hasta arriba — se queda esperando a la altura del punto medio, así
+          nunca termina flotando por encima del back button o del status bar. */}
       {isDriver && !isTripStarted && trip?.status === 'active' && (
-        <View style={[styles.navFooter, { bottom: sheetHeight + 12, paddingBottom: 4 }]}>
+        <View style={[styles.navFooter, { bottom: Math.min(sheetHeight, MID) + 12, paddingBottom: 4 }]}>
           <TouchableOpacity
             style={styles.navContinuar}
             onPress={iniciarViaje}
@@ -880,7 +885,7 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Continuar: pasa a la parada siguiente. Abajo y ancho, para tocarlo sin mirar; el
           check chiquito arriba a la derecha no se entendía ni se acertaba manejando. */}
       {isDriver && isTripStarted && proximaParada && (
-        <View style={[styles.navFooter, { bottom: sheetHeight + 12, paddingBottom: 4 }]}>
+        <View style={[styles.navFooter, { bottom: Math.min(sheetHeight, MID) + 12, paddingBottom: 4 }]}>
           <TouchableOpacity
             style={styles.navContinuar}
             onPress={avanzar}
@@ -912,7 +917,7 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
       {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
         <TouchableOpacity
-          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: sheetHeight + (proximaParada ? 84 : 16) }]}
+          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: Math.min(sheetHeight, MID) + (proximaParada ? 84 : 16) }]}
           onPress={recentrar}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -940,7 +945,12 @@ const TripMapScreen = ({ route, navigation }) => {
                     {isTripStarted ? (proximaParada?.address || 'En camino') : 'Antes de arrancar'}
                   </Text>
                   <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
-                    {asientosOcupados > 0 ? `${asientosOcupados} pasajero(s)` : 'Sin pasajeros todavía'}
+                    {/* A quién va a buscar/dejar, si el viaje está en curso — es la misma info
+                        que antes vivía en el cartel "Yendo a" flotante, que se sacó porque
+                        duplicaba esto y además chocaba con el botón de abajo. */}
+                    {isTripStarted && proximaParada?.quien
+                      ? proximaParada.quien
+                      : asientosOcupados > 0 ? `${asientosOcupados} pasajero(s)` : 'Sin pasajeros todavía'}
                   </Text>
                 </View>
               </>
@@ -1031,10 +1041,10 @@ const TripMapScreen = ({ route, navigation }) => {
 
         {/* Pasajeros a bordo: sólo el conductor los ve acá — al pasajero ya se lo dice el
             header con el nombre del conductor. */}
-        {isDriver && (trip?.passengers || []).length > 0 && (
+        {isDriver && pasajerosUnicos.length > 0 && (
           <>
             <Text style={[styles.sheetSectionLabel, { color: ui.textMuted, marginTop: 18 }]}>PASAJEROS</Text>
-            {trip.passengers.map((p, i) => (
+            {pasajerosUnicos.map((p, i) => (
               <View key={p?._id || i} style={styles.sheetPersonRow}>
                 {p?.avatar ? (
                   <Image source={{ uri: buildImageUri(p.avatar) }} style={styles.sheetPersonAvatar} />
@@ -1045,6 +1055,7 @@ const TripMapScreen = ({ route, navigation }) => {
                 )}
                 <Text style={[styles.sheetPersonName, { color: textPrimary }]} numberOfLines={1}>
                   {[p?.firstName, p?.lastName].filter(Boolean).join(' ') || 'Pasajero'}
+                  {p.asientos > 1 ? ` · ${p.asientos} asientos` : ''}
                 </Text>
                 {p?.rating > 0 && <Rating rating={p.rating} count={p.ratingCount} size={12} />}
               </View>
