@@ -1673,14 +1673,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  // borderRadius 999 = pill, igual que PillButton, que es la forma de los botones en toda
+  // la app. Estaba en 12 y el pie del detalle era el unico lugar con botones casi cuadrados.
   footerBtn: {
-    height: 52, borderRadius: 12,
+    height: 52, borderRadius: 999,
     justifyContent: 'center', alignItems: 'center',
     flexDirection: 'row', gap: 6,
   },
   footerBtnText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   footerBtnOutline: {
-    height: 52, borderRadius: 12,
+    height: 52, borderRadius: 999,
     borderWidth: 1.5,
     justifyContent: 'center', alignItems: 'center',
     flexDirection: 'row', gap: 6,
@@ -1696,7 +1698,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 52,
-    borderRadius: 12,
+    borderRadius: 999,
     gap: 8,
   },
   statusFooterText: { fontSize: 15, fontFamily: 'Sora_500Medium' },
