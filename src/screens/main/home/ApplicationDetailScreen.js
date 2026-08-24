@@ -95,12 +95,27 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
             try {
               const res = await acceptTripRequestApplication(requestId, app._id);
               if (res.success) {
+                // El pasajero ya no paga por la app: le paga directo al conductor. El backend
+                // dejó de mandar `payment.url` y acá sólo se hacía goBack(), o sea que la
+                // pantalla se cerraba sin decir nada — el pasajero no sabía si su viaje había
+                // quedado confirmado ni cuánto tenía que llevar.
+                //
+                // `paymentUrl` se sigue contemplando para las solicitudes viejas que quedaron
+                // con un checkout abierto de antes del cambio.
                 const paymentUrl = res.data?.payment?.url;
                 if (paymentUrl) {
                   setCheckoutModal({ visible: true, paymentUrl });
-                } else {
-                  navigation.goBack();
+                  return;
                 }
+                const total = res.data?.totalAmount;
+                navigation.navigate('Result', {
+                  type: 'success',
+                  title: '¡Viaje confirmado!',
+                  message: total > 0
+                    ? `Ya tenés tu lugar. Le pagás $${Number(total).toLocaleString('es-AR')} directamente al conductor, no por la app.`
+                    : 'Ya tenés tu lugar. Coordiná los gastos del viaje directamente con el conductor.',
+                  primaryLabel: 'Listo'
+                });
               }
             } catch (err) {
               navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
