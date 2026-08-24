@@ -8,6 +8,7 @@ import {
   Platform,
   StatusBar,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -30,6 +31,7 @@ import { empujarCalificacionPendiente } from '../../../services/calificacionPend
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
 import DraggableSheet, { SCREEN_HEIGHT } from '../../../components/ui/DraggableSheet';
+import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
 import Rating from '../../../components/ui/Rating';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
@@ -754,6 +756,8 @@ const TripMapScreen = ({ route, navigation }) => {
     return Array.from(porId.values());
   }, [trip?.passengers]);
 
+  const vehiclePhotoPaths = useMemo(() => collectVehiclePhotoPaths(trip?.vehicle), [trip?.vehicle]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -1067,6 +1071,68 @@ const TripMapScreen = ({ route, navigation }) => {
             ))}
           </>
         )}
+
+        {/* El auto: sólo para el PASAJERO. Al conductor no le sirve ver su propio vehículo,
+            y ya lo eligió al publicar. Misma foto y mismos chips de características que el
+            detalle del viaje (utils/vehiclePhotos), para que las dos pantallas cuenten lo
+            mismo del auto. */}
+        {!isDriver && trip?.vehicle && (
+          <>
+            <Text style={[styles.sheetSectionLabel, { color: ui.textMuted, marginTop: 18 }]}>EL AUTO</Text>
+            {vehiclePhotoPaths.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingBottom: 10 }}
+              >
+                {vehiclePhotoPaths.map((path, idx) => {
+                  const uri = buildImageUri(path);
+                  if (!uri) return null;
+                  return <Image key={`vp-${idx}`} source={{ uri }} style={styles.sheetVehiclePhoto} resizeMode="cover" />;
+                })}
+              </ScrollView>
+            ) : (
+              <View style={[styles.sheetVehiclePhotoFallback, { backgroundColor: ui.bg }]}>
+                <Ionicons name="car-outline" size={26} color={ui.textMuted} />
+              </View>
+            )}
+            <Text style={[styles.sheetTimelineAddress, { color: textPrimary, marginTop: 10 }]}>
+              {trip.vehicle.brand} {trip.vehicle.model}
+              {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
+            </Text>
+            <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]}>
+              {[trip.vehicle.color, trip.vehicle.licensePlate].filter(Boolean).join(' · ')}
+            </Text>
+            {trip.vehicle.features && Object.values(trip.vehicle.features).some(Boolean) && (
+              <View style={[styles.sheetTagsRow, { marginTop: 10, marginBottom: 0 }]}>
+                {trip.vehicle.features.ac && (
+                  <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="snow-outline" size={13} color={textPrimary} />
+                    <Text style={[styles.sheetTagText, { color: textPrimary }]}>Aire</Text>
+                  </View>
+                )}
+                {trip.vehicle.features.music && (
+                  <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="musical-notes-outline" size={13} color={textPrimary} />
+                    <Text style={[styles.sheetTagText, { color: textPrimary }]}>Música</Text>
+                  </View>
+                )}
+                {trip.vehicle.features.pets && (
+                  <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="paw-outline" size={13} color={textPrimary} />
+                    <Text style={[styles.sheetTagText, { color: textPrimary }]}>Mascotas</Text>
+                  </View>
+                )}
+                {trip.vehicle.features.luggage && (
+                  <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="bag-handle-outline" size={13} color={textPrimary} />
+                    <Text style={[styles.sheetTagText, { color: textPrimary }]}>Equipaje</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </>
+        )}
       </DraggableSheet>
 
       {loading && (
@@ -1102,6 +1168,9 @@ const styles = StyleSheet.create({
   sheetPersonAvatar: { width: 32, height: 32, borderRadius: 16 },
   sheetPersonAvatarFallback: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   sheetPersonName: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+
+  sheetVehiclePhoto: { width: 140, height: 96, borderRadius: 14 },
+  sheetVehiclePhotoFallback: { width: '100%', height: 96, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 
   miPuntoHalo: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.22)' },
   miPunto: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#4285F4', borderWidth: 2.5, borderColor: '#FFFFFF' },

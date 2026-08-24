@@ -41,6 +41,7 @@ import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 import Rating from '../../../components/ui/Rating';
+import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
 
 const BANNER_SCROLL_SPEED = 30;
 
@@ -107,24 +108,6 @@ const bannerStyles = StyleSheet.create({
   title: { fontSize: 17, fontFamily: 'Sora_700Bold', color: '#FFF', marginBottom: 6 },
   desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
 });
-
-/** Rutas únicas: `photo` principal + array `photos` (sin duplicar). */
-function collectVehiclePhotoPaths(vehicle) {
-  if (!vehicle) return [];
-  const raw = [];
-  if (vehicle.photo) raw.push(vehicle.photo);
-  if (Array.isArray(vehicle.photos)) raw.push(...vehicle.photos);
-  const seen = new Set();
-  const out = [];
-  for (const p of raw) {
-    if (p == null || typeof p !== 'string') continue;
-    const norm = p.trim();
-    if (!norm || seen.has(norm)) continue;
-    seen.add(norm);
-    out.push(norm);
-  }
-  return out;
-}
 
 const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
