@@ -259,12 +259,18 @@ const AllTripsScreen = ({ navigation }) => {
             {/* El precio del conductor, que es fijo del viaje (a diferencia del de la conexión,
                 que depende de dónde suba cada pasajero) y es con lo que se compara un viaje
                 contra otro. Por eso vuelve al listado, donde antes estaba comentado. */}
-            {item.driverPrice > 0 && (
+            {item.driverPrice > 0 ? (
               <Text style={[styles.addressText, { color: ui.text, marginTop: 4 }]}>
                 ${Number(item.driverPrice).toLocaleString('es-AR')}
                 <Text style={{ color: ui.textMuted, fontSize: 12 }}> por asiento</Text>
               </Text>
-            )}
+            ) : item.sinPrecioFijo ? (
+              // Sin esto quedaba un hueco vacío donde va el precio, como si el viaje
+              // costara $0 en vez de ser carpooling real sin costo fijo.
+              <Text style={[styles.addressText, { color: ui.textMuted, marginTop: 4, fontSize: 13 }]}>
+                Gastos compartidos
+              </Text>
+            ) : null}
 
             <View style={styles.driverRow}>
               <View style={styles.avatarContainer}>

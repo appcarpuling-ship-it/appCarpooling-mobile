@@ -426,24 +426,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Precio — solo visible para el pasajero.
-            Decía "Precio a pagar", y arriba de una lista de conductores que piden $30.000 y
-            $50.000 se leía como si el viaje entero costara $2.220. Es sólo la conexión: al
-            conductor se le paga aparte. Mismas palabras que usa la pantalla de reservar, para
-            que la app hable igual en los dos momentos donde hay plata de por medio. */}
-        {isPassenger && <View style={[styles.costBanner, { backgroundColor: cardBg, borderColor: divider }]}>
-          <View style={styles.costBannerLeft}>
-            <Text style={[styles.costBannerLabel, { color: textSecondary }]}>Asegurás tu asiento</Text>
-            <Text style={[styles.costBannerSub, { color: textMuted }]}>
-              {request.seatsNeeded > 1
-                ? `Pagás ahora · $${request.pricePerSeat?.toLocaleString()} × ${request.seatsNeeded} asientos`
-                : 'Pagás ahora'}
-            </Text>
-          </View>
-          <Text style={[styles.costBannerValue, { color: textPrimary }]}>
-            ${((request.pricePerSeat || 0) * (request.seatsNeeded || 1)).toLocaleString()}
-          </Text>
-        </View>}
+        {/* Acá se mostraba "Asegurás tu asiento · Pagás ahora" con la conexión. Ya no va:
+            en una solicitud el pasajero no paga ninguna conexión, y lo que va a pagar
+            depende de QUÉ conductor elija — cada postulación trae su propio precio. Poner
+            un número acá era prometer un precio que todavía no existe. */}
 
         {/* Passenger info (driver mode) */}
         {isDriver && passenger && (

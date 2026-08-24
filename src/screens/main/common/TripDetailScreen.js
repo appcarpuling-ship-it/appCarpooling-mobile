@@ -940,6 +940,19 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Carpooling real: no hay precio de conductor que mostrar. Va en el mismo lugar que
+            la ficha del precio, para que el pasajero no se quede preguntándose por qué no
+            aparece ningún número. */}
+        {trip?.sinPrecioFijo && trip.status !== 'completed' && (
+          <View style={[styles.section, { backgroundColor: cardBg }]}>
+            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Gastos compartidos</Text>
+            <Text style={{ color: textMuted, fontSize: 14, fontFamily: 'Sora_400Regular', lineHeight: 20 }}>
+              Este viaje no tiene precio fijo. Los gastos se reparten entre todos, directo con
+              el conductor, durante el viaje.
+            </Text>
+          </View>
+        )}
+
         {/* Driver */}
         <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor</Text>
