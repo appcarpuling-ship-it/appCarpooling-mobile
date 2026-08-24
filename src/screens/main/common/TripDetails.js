@@ -13,7 +13,6 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     BackHandler,
-    Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -474,17 +473,31 @@ const TripDetails = ({ navigation, route }) => {
                                 mismos $2.000 por asiento ocupado en los dos casos. Se dice
                                 explícito acá para que no parezca que "compartir gastos" es una
                                 forma de no pagar la comisión. */}
-                            <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
+                            {/* El toggle es el mismo que usan las preferencias del viaje, no el
+                                Switch nativo: el verde de iOS es el unico color fuerte en una
+                                pantalla en blanco y negro y se lleva toda la atencion.
+                                Toda la fila es tocable, como en preferencias. */}
+                            <TouchableOpacity
+                                style={[styles.inputRow, { alignItems: 'flex-start' }]}
+                                onPress={() => handleChange('sinPrecioFijo', !formData.sinPrecioFijo)}
+                                activeOpacity={0.7}
+                            >
                                 <Ionicons name="pricetags-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
                                 <View style={{ flex: 1 }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
                                             Gastos compartidos
                                         </Text>
-                                        <Switch
-                                            value={formData.sinPrecioFijo}
-                                            onValueChange={v => handleChange('sinPrecioFijo', v)}
-                                        />
+                                        <View style={[
+                                            styles.toggle,
+                                            { backgroundColor: formData.sinPrecioFijo ? textPrimary : divider },
+                                        ]}>
+                                            <View style={[
+                                                styles.toggleCircle,
+                                                { backgroundColor: formData.sinPrecioFijo ? ui.invertText : textMuted },
+                                                formData.sinPrecioFijo && styles.toggleOn,
+                                            ]} />
+                                        </View>
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
                                         {formData.sinPrecioFijo
@@ -492,7 +505,7 @@ const TripDetails = ({ navigation, route }) => {
                                             : 'Vos fijás cuánto cobra cada asiento y el pasajero te paga directo a vos. Carpuling te cobra $2.000 por asiento ocupado.'}
                                     </Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
 
                             {/* El precio va pegado a los asientos porque es "por asiento" igual que
                                 ellos. Es libre: es con lo que el conductor compite contra los otros

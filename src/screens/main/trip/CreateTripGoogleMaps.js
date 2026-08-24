@@ -78,6 +78,41 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   // mapa que ya no existe y al volver nunca se reencuadra.
   const estaEnfoco = useIsFocused();
   useEffect(() => { if (!estaEnfoco) setMapaListo(false); }, [estaEnfoco]);
+
+  /**
+   * Saldo pendiente: se chequea AL ENTRAR, no al publicar.
+   *
+   * El backend rechaza igual con 402 (el guard de verdad vive allá), pero enterarse recién
+   * después de elegir origen, destino, vehículo, asientos, fecha y precio es tres pasos de
+   * trabajo tirados a la basura. Si ya sabemos que no va a poder publicar, se le dice ahora
+   * y se lo manda a saldar.
+   *
+   * No aplica a los modos 'request'/'apply': ahí no está publicando un viaje propio.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (sinVehiculos) return;
+      let vivo = true;
+      get_withauth(ENDPOINTS.SALDO)
+        .then((res) => {
+          if (!vivo || !res?.success || !res.data?.bloqueado) return;
+          const monto = `$${Number(res.data.deuda || 0).toLocaleString('es-AR')}`;
+          showAlert(
+            'Tenés saldo pendiente',
+            `Debés ${monto} de comisiones. Saldá tu cuenta para volver a publicar viajes.`,
+            [
+              { text: 'Ahora no', style: 'cancel', onPress: () => navigation.goBack() },
+              {
+                text: 'Ver mi saldo',
+                onPress: () => navigation.navigate('ProfileTab', { screen: 'Saldo', initial: false })
+              }
+            ]
+          );
+        })
+        .catch(() => {});
+      return () => { vivo = false; };
+    }, [sinVehiculos, showAlert, navigation])
+  );
   const originInputRef = useRef(null);
   const destinationInputRef = useRef(null);
   const waypointInputRefs = useRef([]);
