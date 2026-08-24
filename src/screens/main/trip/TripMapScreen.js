@@ -23,12 +23,14 @@ import { useUI } from '../../../theme/ui';
 import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
-import { get_withauth, put_withauth, post_withauth } from '../../../services/apiService';
+import { get_withauth, put_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { iniciarSeguimiento, detenerSeguimiento } from '../../../services/ubicacionBackground';
 import { empujarCalificacionPendiente } from '../../../services/calificacionPendiente';
 import { useMapFit } from '../../../hooks/useMapFit';
 import { ENDPOINTS } from '../../../config/api';
+import DraggableSheet, { SCREEN_HEIGHT } from '../../../components/ui/DraggableSheet';
+import Rating from '../../../components/ui/Rating';
 
 /** Cada cuánto se reporta la posición del conductor: nada de APIs pagas, solo GPS + socket */
 const DRIVER_LOCATION_INTERVAL_MS = 8000;
@@ -373,6 +375,29 @@ const TripMapScreen = ({ route, navigation }) => {
   // —un cuadrito alrededor del origen— y de la ruta se veía sólo el principio.
   const fitTo = useMapFit(mapRef, mapReady, { top: 80, right: 40, bottom: 80, left: 40 });
 
+  /**
+   * El sheet de abajo tapa parte del mapa, así que cuando cambia de altura hay que
+   * reencuadrar para que el trazado siga entero por encima de él.
+   *
+   * `useMapFit` fija el padding en el momento en que se llama el hook (no reacciona a que
+   * cambie después), así que un simple cambio de padding no alcanza: hay que volver a pedir
+   * el encuadre a mano, con el padding de abajo actualizado. Por eso se recuerdan los
+   * últimos puntos que se usaron para encuadrar — son distintos según el momento del viaje
+   * (con/sin trazado, con/sin conductor en curso) — y se re-piden con el padding nuevo.
+   */
+  const lastFitPointsRef = useRef([]);
+  const fitToAndRemember = (pts) => { lastFitPointsRef.current = pts; fitTo(pts); };
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const onSheetSnap = (_index, heightPx) => {
+    setSheetHeight(heightPx);
+    if (lastFitPointsRef.current.length) {
+      mapRef.current?.fitToCoordinates(lastFitPointsRef.current, {
+        edgePadding: { top: 80, right: 40, bottom: heightPx + 40, left: 40 },
+        animated: true,
+      });
+    }
+  };
+
   /** Lo que se pueda encuadrar aunque no haya trayecto: origen, paradas y destino que tengan coords. */
   const markerCoords = () => [
     originCoords?.latitude && { latitude: originCoords.latitude, longitude: originCoords.longitude },
@@ -622,7 +647,7 @@ const TripMapScreen = ({ route, navigation }) => {
     // Falta una punta: no hay trayecto posible, pero igual se encuadra lo que haya.
     // Antes salía sin centrar y el mapa quedaba en la región inicial, lejos del viaje.
     if (!originCoords?.latitude || !destCoords?.latitude) {
-      fitTo(markerCoords());
+      fitToAndRemember(markerCoords());
       setLoading(false);
       return true; // sin puntas no hay nada que reintentar
     }
@@ -641,7 +666,7 @@ const TripMapScreen = ({ route, navigation }) => {
         const points = puntosDeRuta(r);
         if (points.length > 0) {
           setRouteCoordinates(points);
-          fitTo(points);
+          fitToAndRemember(points);
           return true;
         }
         sinRuta();
@@ -656,7 +681,7 @@ const TripMapScreen = ({ route, navigation }) => {
         const pts = puntosDeRuta(simple.routes?.[0]);
         if (pts.length > 0) {
           setRouteCoordinates(pts);
-          fitTo(pts);
+          fitToAndRemember(pts);
           return true;
         }
         sinRuta();
@@ -684,13 +709,32 @@ const TripMapScreen = ({ route, navigation }) => {
   const sinRuta = () => {
     const puntos = markerCoords();
     if (puntos.length > 1) setRouteCoordinates(puntos);
-    fitTo(puntos);
+    fitToAndRemember(puntos);
   };
 
 
   const initialRegion = originCoords?.latitude
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
     : { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 2, longitudeDelta: 2 };
+
+  /**
+   * Contenido del sheet de abajo. Estilo Uber: un peek con lo justo para no perder de vista
+   * el viaje, un medio con el resumen (a quién le pagás/quién te paga, el recorrido), y un
+   * expandido con la lista completa de paradas — la misma numeración que ven los marcadores
+   * del mapa, para que las dos vistas cuenten la misma historia.
+   */
+  const PEEK = 108 + insets.bottom;
+  const MID = Math.round(SCREEN_HEIGHT * 0.42);
+  const FULL = Math.round(SCREEN_HEIGHT * 0.82);
+
+  const precioTag = (() => {
+    if (trip?.sinPrecioFijo) return { texto: 'Gastos compartidos', icon: 'people-outline' };
+    const precio = Math.max(0, Number(trip?.driverPrice) || 0);
+    if (precio > 0) return { texto: `$${precio.toLocaleString('es-AR')} por asiento`, icon: 'cash-outline' };
+    return null;
+  })();
+
+  const asientosOcupados = (trip?.passengers || []).length;
 
   return (
     <View style={styles.container}>
@@ -702,6 +746,11 @@ const TripMapScreen = ({ route, navigation }) => {
         style={styles.map}
         initialRegion={initialRegion}
         paddingAdjustmentBehavior="never"
+        // La parte de abajo tapada por el sheet no cuenta como mapa "visible" para los
+        // controles nativos (brújula, etc). El reencuadre real, con el trazado, lo hace
+        // fitToAndRemember/onSheetSnap — esto es sólo para que esos controles no queden
+        // atrás del sheet.
+        mapPadding={{ top: 0, right: 0, bottom: sheetHeight, left: 0 }}
         // El punto nativo es la ubicación propia, y el pasajero no la necesita acá: ya ve al
         // conductor, que es lo que le importa. Para el conductor, salvo cuando lo dibujamos
         // nosotros (abajo): el SDK lo pinta por encima de los overlays pero POR DEBAJO de los
@@ -812,7 +861,7 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Iniciar viaje: el primer estado del botón. Mismo lugar y mismo tamaño que
           "Continuar", así el conductor toca siempre en el mismo lado. */}
       {isDriver && !isTripStarted && trip?.status === 'active' && (
-        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.navFooter, { bottom: sheetHeight + 12, paddingBottom: 4 }]}>
           <TouchableOpacity
             style={styles.navContinuar}
             onPress={iniciarViaje}
@@ -831,7 +880,7 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Continuar: pasa a la parada siguiente. Abajo y ancho, para tocarlo sin mirar; el
           check chiquito arriba a la derecha no se entendía ni se acertaba manejando. */}
       {isDriver && isTripStarted && proximaParada && (
-        <View style={[styles.navFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.navFooter, { bottom: sheetHeight + 12, paddingBottom: 4 }]}>
           <TouchableOpacity
             style={styles.navContinuar}
             onPress={avanzar}
@@ -863,7 +912,7 @@ const TripMapScreen = ({ route, navigation }) => {
       {/* Recentrar. Sólo aparece cuando dejó de seguir, que es cuando sirve. */}
       {isDriver && isTripStarted && !siguiendo && driverLocation?.latitude && (
         <TouchableOpacity
-          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: insets.bottom + (proximaParada ? 96 : 24) }]}
+          style={[styles.recentrarBtn, { backgroundColor: cardBg, bottom: sheetHeight + (proximaParada ? 84 : 16) }]}
           onPress={recentrar}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -872,6 +921,137 @@ const TripMapScreen = ({ route, navigation }) => {
           <Ionicons name="locate" size={22} color={textPrimary} />
         </TouchableOpacity>
       )}
+
+      <DraggableSheet
+        snapPoints={[PEEK, MID, FULL]}
+        initialIndex={1}
+        onSnapChange={onSheetSnap}
+        style={{ backgroundColor: cardBg }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}
+        header={
+          <View style={styles.sheetHeader}>
+            {isDriver ? (
+              <>
+                <View style={[styles.sheetAvatarFallback, { backgroundColor: ui.bg }]}>
+                  <Ionicons name="navigate" size={20} color={textPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sheetTitle, { color: textPrimary }]} numberOfLines={1}>
+                    {isTripStarted ? (proximaParada?.address || 'En camino') : 'Antes de arrancar'}
+                  </Text>
+                  <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
+                    {asientosOcupados > 0 ? `${asientosOcupados} pasajero(s)` : 'Sin pasajeros todavía'}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                {trip?.driver?.avatar ? (
+                  <Image source={{ uri: buildImageUri(trip.driver.avatar) }} style={styles.sheetAvatar} />
+                ) : (
+                  <View style={[styles.sheetAvatarFallback, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="person" size={20} color={textPrimary} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sheetTitle, { color: textPrimary }]} numberOfLines={1}>
+                    {[trip?.driver?.firstName, trip?.driver?.lastName].filter(Boolean).join(' ') || 'Tu conductor'}
+                  </Text>
+                  <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
+                    {trip?.vehicle ? `${trip.vehicle.brand} ${trip.vehicle.model}${trip.vehicle.licensePlate ? ` · ${trip.vehicle.licensePlate}` : ''}` : 'En camino'}
+                  </Text>
+                </View>
+                {trip?.driver?.rating > 0 && (
+                  <Rating rating={trip.driver.rating} count={trip.driver.ratingCount} size={13} />
+                )}
+              </>
+            )}
+          </View>
+        }
+      >
+        {/* Etiquetas de plata: el mismo criterio que en el resto de la app — un tag para el
+            precio o "gastos compartidos", y otro si el conductor acepta efectivo. */}
+        <View style={styles.sheetTagsRow}>
+          {precioTag && (
+            <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+              <Ionicons name={precioTag.icon} size={13} color={textPrimary} />
+              <Text style={[styles.sheetTagText, { color: textPrimary }]}>{precioTag.texto}</Text>
+            </View>
+          )}
+          {trip?.aceptaEfectivo && (
+            <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
+              <Ionicons name="wallet-outline" size={13} color={textPrimary} />
+              <Text style={[styles.sheetTagText, { color: textPrimary }]}>Acepta efectivo</Text>
+            </View>
+          )}
+        </View>
+
+        {/* El recorrido, con la MISMA numeración que los pines del mapa (routePoints), para
+            que el sheet y el mapa cuenten la misma historia. Origen primero, siempre fijo;
+            después las paradas en el orden en que se pisan. */}
+        <Text style={[styles.sheetSectionLabel, { color: ui.textMuted }]}>RECORRIDO</Text>
+        <View style={styles.sheetTimeline}>
+          <View style={styles.sheetTimelineRow}>
+            <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
+              <Text style={styles.sheetTimelineDotNum}>1</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
+                {trip?.origin?.address || trip?.origin?.city || 'Origen'}
+              </Text>
+              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]}>Salida</Text>
+            </View>
+          </View>
+          {navTargets.map((t, i) => {
+            const hecha = paradasHechas.includes(t.id);
+            return (
+              <View key={t.id} style={styles.sheetTimelineRow}>
+                <View style={[
+                  styles.sheetTimelineDot,
+                  { backgroundColor: hecha ? ui.bg : textPrimary, borderWidth: hecha ? 1 : 0, borderColor: ui.border },
+                ]}>
+                  {hecha
+                    ? <Ionicons name="checkmark" size={13} color={ui.textMuted} />
+                    : <Text style={styles.sheetTimelineDotNum}>{i + 2}</Text>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sheetTimelineAddress, { color: hecha ? ui.textMuted : textPrimary }]} numberOfLines={1}>
+                    {t.address}
+                  </Text>
+                  {!!t.quien && (
+                    <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
+                      {t.quien}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Pasajeros a bordo: sólo el conductor los ve acá — al pasajero ya se lo dice el
+            header con el nombre del conductor. */}
+        {isDriver && (trip?.passengers || []).length > 0 && (
+          <>
+            <Text style={[styles.sheetSectionLabel, { color: ui.textMuted, marginTop: 18 }]}>PASAJEROS</Text>
+            {trip.passengers.map((p, i) => (
+              <View key={p?._id || i} style={styles.sheetPersonRow}>
+                {p?.avatar ? (
+                  <Image source={{ uri: buildImageUri(p.avatar) }} style={styles.sheetPersonAvatar} />
+                ) : (
+                  <View style={[styles.sheetPersonAvatarFallback, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="person" size={16} color={textPrimary} />
+                  </View>
+                )}
+                <Text style={[styles.sheetPersonName, { color: textPrimary }]} numberOfLines={1}>
+                  {[p?.firstName, p?.lastName].filter(Boolean).join(' ') || 'Pasajero'}
+                </Text>
+                {p?.rating > 0 && <Rating rating={p.rating} count={p.ratingCount} size={12} />}
+              </View>
+            ))}
+          </>
+        )}
+      </DraggableSheet>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -883,6 +1063,29 @@ const TripMapScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingBottom: 14 },
+  sheetAvatar: { width: 44, height: 44, borderRadius: 22 },
+  sheetAvatarFallback: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sheetTitle: { fontSize: 16, fontFamily: 'Sora_700Bold', letterSpacing: -0.2 },
+  sheetSubtitle: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 2 },
+
+  sheetTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+  sheetTag: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  sheetTagText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
+
+  sheetSectionLabel: { fontSize: 11, fontFamily: 'Sora_700Bold', letterSpacing: 0.6, marginBottom: 10 },
+  sheetTimeline: { gap: 2 },
+  sheetTimelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 6 },
+  sheetTimelineDot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sheetTimelineDotNum: { fontSize: 11, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
+  sheetTimelineAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  sheetTimelineQuien: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
+
+  sheetPersonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  sheetPersonAvatar: { width: 32, height: 32, borderRadius: 16 },
+  sheetPersonAvatarFallback: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  sheetPersonName: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+
   miPuntoHalo: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.22)' },
   miPunto: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#4285F4', borderWidth: 2.5, borderColor: '#FFFFFF' },
   recentrarBtn: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
