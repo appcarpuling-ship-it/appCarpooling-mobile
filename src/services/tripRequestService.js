@@ -18,10 +18,22 @@ export const getMyApplications = (params = {}) =>
  *   Opcional — sin él el viaje se arma con el tramo del pasajero. No cambia el precio: el
  *   pasajero paga siempre desde donde sube hasta donde baja.
  */
-// driverPrice: lo que este conductor cobra por asiento. Es su oferta y el pasajero la compara
-// contra las otras postulaciones. No toca el precio de la conexión, que lo calcula el server.
-export const applyToTripRequest = (requestId, vehicleId, recorrido = {}, driverPrice = 0) =>
-  post_withauth(ENDPOINTS.APPLY_TO_TRIP_REQUEST(requestId), { vehicleId, driverPrice, ...recorrido });
+/**
+ * @param {object} [oferta] `{ driverPrice, sinPrecioFijo, aceptaEfectivo }`. driverPrice es
+ *   lo que este conductor cobra por asiento — su oferta, contra la que el pasajero compara
+ *   las demás postulaciones. No toca el precio de la conexión, que lo calcula el server.
+ *   sinPrecioFijo y aceptaEfectivo son las mismas dos opciones que al publicar un viaje
+ *   normal (TripDetails.js): la primera cambia el cobro (fuerza driverPrice a 0 del lado
+ *   del server), la segunda es sólo informativa.
+ */
+export const applyToTripRequest = (requestId, vehicleId, recorrido = {}, oferta = {}) =>
+  post_withauth(ENDPOINTS.APPLY_TO_TRIP_REQUEST(requestId), {
+    vehicleId,
+    driverPrice: oferta.driverPrice || 0,
+    sinPrecioFijo: oferta.sinPrecioFijo === true,
+    aceptaEfectivo: oferta.aceptaEfectivo === true,
+    ...recorrido
+  });
 
 export const acceptTripRequestApplication = (requestId, applicationId) =>
   put_withauth(ENDPOINTS.ACCEPT_TRIP_REQUEST_APPLICATION(requestId, applicationId), {});

@@ -214,7 +214,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const pedirPrecio = (vehicleId, recorrido) => {
     navigation.navigate('DriverPricePicker', {
       seatsNeeded: request?.seatsNeeded || 1,
-      onDone: (driverPrice) => enviarPostulacion(vehicleId, recorrido, driverPrice),
+      onDone: (oferta) => enviarPostulacion(vehicleId, recorrido, oferta),
     });
   };
 
@@ -255,16 +255,30 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     );
   };
 
-  const enviarPostulacion = async (vehicleId, recorrido, driverPrice) => {
+  const enviarPostulacion = async (vehicleId, recorrido, oferta) => {
     setApplying(true);
     try {
-      const res = await applyToTripRequest(requestId, vehicleId, recorrido, driverPrice);
+      const res = await applyToTripRequest(requestId, vehicleId, recorrido, oferta);
       if (res.success) {
         navigation.navigate('Result', { type: 'success', title: '¡Propuesta enviada!', message: 'El pasajero revisará tu perfil y vehículo.' });
         setAlreadyApplied(true);
         setCanApply(false);
       }
     } catch (err) {
+      // Bloqueado por saldo pendiente. Postularse acá es, en los hechos, publicar un viaje
+      // (si el pasajero acepta, se convierte en uno): mismo bloqueo, mismo aviso que en
+      // CreateTripGoogleMaps, para que no sea una sorpresa distinta según por dónde entró.
+      if (err.response?.data?.code === 'SALDO_PENDIENTE') {
+        showAlert(
+          'Tenés saldo pendiente',
+          err.response.data.message || 'Saldá tu cuenta para volver a postularte.',
+          [
+            { text: 'Ahora no', style: 'cancel' },
+            { text: 'Ver mi saldo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Saldo', initial: false }) }
+          ]
+        );
+        return;
+      }
       navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
     } finally {
       setApplying(false);
@@ -538,14 +552,20 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     /* El precio al lado del chevron: es lo que el pasajero está comparando entre
                        las hasta 5 propuestas, así que tiene que leerse sin entrar a cada una. */
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      {app.driverPrice > 0 && (
+                      {app.driverPrice > 0 ? (
                         <View style={{ alignItems: 'flex-end' }}>
                           <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_700Bold' }}>
                             ${Number(app.driverPrice).toLocaleString('es-AR')}
                           </Text>
                           <Text style={{ color: textMuted, fontSize: 10 }}>por asiento</Text>
                         </View>
-                      )}
+                      ) : app.sinPrecioFijo ? (
+                        // Sin esto quedaba un hueco vacío donde va el precio, como si esta
+                        // postulación no tuviera nada que ofrecer.
+                        <Text style={{ color: textMuted, fontSize: 11, fontFamily: 'Sora_600SemiBold' }}>
+                          Gastos compartidos
+                        </Text>
+                      ) : null}
                       <Ionicons name="chevron-forward" size={16} color={textMuted} />
                     </View>
                   )}
@@ -631,6 +651,8 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
                     {miPostulacion?.driverPrice > 0
                       ? `Te postulaste por $${Number(miPostulacion.driverPrice).toLocaleString('es-AR')} por asiento`
+                      : miPostulacion?.sinPrecioFijo
+                      ? 'Te postulaste con gastos compartidos'
                       : 'Ya te postulaste a este viaje'}
                   </Text>
                 </View>
