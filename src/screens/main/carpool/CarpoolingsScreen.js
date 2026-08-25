@@ -27,6 +27,7 @@ import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import Skeleton from '../../../components/ui/Skeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -78,6 +79,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const showBannerSkeleton = useMinDuration(loading);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
   const bannerAutoScrollTimer = useRef(null);
@@ -254,7 +256,7 @@ const CarpoolingsScreen = ({ navigation }) => {
         </View>
 
         {/* Banners */}
-        {loading ? (
+        {showBannerSkeleton ? (
           <View style={styles.bannerSection}>
             <Skeleton width={BANNER_WIDTH} height={BANNER_HEIGHT} radius={20} style={{ marginLeft: 24 }} />
           </View>

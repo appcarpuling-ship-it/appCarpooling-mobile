@@ -23,6 +23,7 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useTutorial } from '../../../context/TutorialContext';
 import Rating from '../../../components/ui/Rating';
 import Skeleton from '../../../components/ui/Skeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
@@ -31,6 +32,7 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
+  const showAuthSkeleton = useMinDuration(authLoading && !user);
   const lastProfileFetchAtRef = useRef(0);
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
@@ -206,7 +208,7 @@ const ProfileScreen = () => {
             revés — avatar grande y centrado, como una portada más que un perfil). */}
         <View style={styles.header}>
           <View style={styles.headerText}>
-            {authLoading && !user ? (
+            {showAuthSkeleton ? (
               <>
                 <Skeleton width={160} height={24} style={{ marginBottom: 8 }} />
                 <Skeleton width={90} height={14} />
@@ -235,7 +237,7 @@ const ProfileScreen = () => {
             })()}
           </View>
 
-          {authLoading && !user ? (
+          {showAuthSkeleton ? (
             <Skeleton width={60} height={60} radius={30} />
           ) : avatarSource ? (
             <TouchableOpacity

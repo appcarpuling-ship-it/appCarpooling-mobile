@@ -21,6 +21,7 @@ import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
@@ -35,6 +36,7 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
   const [page, setPage]               = useState(1);
   const [hasMore, setHasMore]         = useState(true);
   const [loading, setLoading]         = useState(true);
+  const showSkeleton = useMinDuration(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
@@ -402,7 +404,7 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     );
   };
 
-  if (loading) {
+  if (showSkeleton) {
     return (
       <View style={[styles.container, { backgroundColor: bg }]}>
         <TripListSkeleton />

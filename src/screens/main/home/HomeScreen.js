@@ -37,6 +37,7 @@ import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRe
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
 import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -143,6 +144,7 @@ const HomeScreen = ({ navigation, route }) => {
   const [recentTrips, setRecentTrips] = useState([]);
   const [bannerSections, setBannerSections] = useState([]); // [{sectionTitle, banners}]
   const [loading, setLoading] = useState(false);
+  const showTripsSkeleton = useMinDuration(loading);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState('');
@@ -155,6 +157,7 @@ const HomeScreen = ({ navigation, route }) => {
   const autoOpenedMapRef = useRef(false);
   const [openRequests, setOpenRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const showRequestsSkeleton = useMinDuration(loadingRequests);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -797,7 +800,7 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {loading ? (
+          {showTripsSkeleton ? (
             <HomeTripListSkeleton />
           ) : recentTrips.length > 0 ? (
             recentTrips.map(renderTripCard)
@@ -934,7 +937,7 @@ const HomeScreen = ({ navigation, route }) => {
                 <Text style={[styles.sectionLink, { color: textMuted }]}>Ver todas</Text>
               </TouchableOpacity>
             </View>
-            {loadingRequests ? (
+            {showRequestsSkeleton ? (
               <HomeTripListSkeleton count={1} />
             ) : openRequests.length === 0 ? (
               <View style={[styles.reqEmptySmall, { backgroundColor: cardBg }]}>
