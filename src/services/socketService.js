@@ -176,102 +176,79 @@ class SocketService {
   }
 
   /**
+   * Registra un listener para `event`, reemplazando el anterior si ya había uno.
+   * Se guarda SIEMPRE en this.listeners (no solo cuando hay socket): es lo que hace que
+   * removeListener() funcione más tarde, y lo que permite reenganchar todo en connect()
+   * después de una reconexión.
+   *
+   * Antes cada método onX tenía su propia versión de esto, y varios (onMessageReceived,
+   * onTyping, onConversationUpdated, onMessagesRead, onConversationClosed) armaban un
+   * wrapper inline y llamaban socket.on() directo SIN guardar nada acá — removeListener()
+   * para esos eventos no encontraba nada que sacar y no hacía nada. Cada pantalla que se
+   * suscribía (ej. ChatDetailScreen, una vez por cada chat que se abre) dejaba un listener
+   * pegado para siempre en vez de reemplazar el de la vez anterior.
+   */
+  registerListener(event, callback) {
+    if (this.socket && this.listeners.has(event)) {
+      this.socket.off(event, this.listeners.get(event));
+    }
+    this.listeners.set(event, callback);
+    if (this.socket) {
+      this.socket.on(event, callback);
+    }
+  }
+
+  /**
    * Escuchar mensajes recibidos
    */
   onMessageReceived(callback) {
-    if (this.socket) {
-      this.socket.on('message:received', (message) => {
-        callback(message);
-      });
-    } else {
-      console.warn('Socket no disponible para onMessageReceived');
-    }
+    this.registerListener('message:received', callback);
   }
 
   /**
    * Escuchar cuando alguien está escribiendo
    */
   onTyping(callback) {
-    if (this.socket) {
-      this.socket.on('typing:user', (data) => {
-        callback(data);
-      });
-    }
+    this.registerListener('typing:user', callback);
   }
 
   /**
    * Escuchar actualizaciones de conversaciones
    */
   onConversationUpdated(callback) {
-    if (this.socket) {
-      this.socket.on('conversation:updated', (data) => {
-        callback(data);
-      });
-    } else {
-      console.warn('Socket no disponible para onConversationUpdated');
-    }
+    this.registerListener('conversation:updated', callback);
   }
 
   /**
    * Escuchar mensajes leídos
    */
   onMessagesRead(callback) {
-    if (this.socket) {
-      this.socket.on('messages:read', (data) => {
-        callback(data);
-      });
-    } else {
-      console.warn('Socket no disponible para onMessagesRead');
-    }
+    this.registerListener('messages:read', callback);
   }
 
   /**
    * Escuchar conversaciones cerradas
    */
   onConversationClosed(callback) {
-    if (this.socket) {
-      this.socket.on('conversation:closed', (data) => {
-        callback(data);
-      });
-    } else {
-      console.warn('Socket no disponible para onConversationClosed');
-    }
+    this.registerListener('conversation:closed', callback);
   }
 
   /**
    * Escuchar usuarios en línea
    */
   onUsersOnline(callback) {
-    if (this.socket) {
-      this.socket.on('users:online', callback);
-      this.listeners.set('users:online', callback);
-    }
+    this.registerListener('users:online', callback);
   }
 
   /**
    * Escuchar notificaciones recibidas.
-   * El callback se guarda en this.listeners siempre, y si el socket ya existe
-   * se registra de inmediato; si no, connect() lo aplicará cuando cree el socket.
    */
   onNotificationReceived(callback) {
-    // Quitar listener previo si existe para no registrar el mismo evento dos veces
-    if (this.socket && this.listeners.has('notification:new')) {
-      this.socket.off('notification:new', this.listeners.get('notification:new'));
-    }
-    this.listeners.set('notification:new', callback);
-    if (this.socket) {
-      this.socket.on('notification:new', callback);
-    }
+    this.registerListener('notification:new', callback);
   }
 
   onBookingStatusUpdate(callback) {
-    if (this.socket && this.listeners.has('booking:statusUpdate')) {
-      this.socket.off('booking:statusUpdate', this.listeners.get('booking:statusUpdate'));
-    }
-    this.listeners.set('booking:statusUpdate', callback);
-    if (this.socket) {
-      this.socket.on('booking:statusUpdate', callback);
-    }
+    this.registerListener('booking:statusUpdate', callback);
   }
 
   /**
@@ -303,13 +280,7 @@ class SocketService {
   }
 
   onTripLocation(callback) {
-    if (this.socket && this.listeners.has('trip:location')) {
-      this.socket.off('trip:location', this.listeners.get('trip:location'));
-    }
-    this.listeners.set('trip:location', callback);
-    if (this.socket) {
-      this.socket.on('trip:location', callback);
-    }
+    this.registerListener('trip:location', callback);
   }
 
   /**
