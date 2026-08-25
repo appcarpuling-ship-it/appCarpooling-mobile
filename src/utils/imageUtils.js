@@ -14,6 +14,26 @@ function hashString(str) {
   return (h >>> 0).toString(36);
 }
 
+// Las fotos se suben a Cloudinary sin ningún límite de tamaño (multer solo topea a
+// 10MB el archivo, no las dimensiones): una foto de cámara de celular de 4000px de
+// ancho se decodifica entera en memoria aunque se muestre en un avatar de 40px —
+// iOS no recorta el decode al tamaño de pantalla. Con varias fotos así en pantalla
+// a la vez (avatares, carrusel del vehículo, banners) esto es justo el tipo de cosa
+// que hace crecer la memoria hasta que el sistema mata la app.
+//
+// Cloudinary permite pedir una versión redimensionada agregando un segmento de
+// transformación en la URL, sin re-subir nada. w_768 es de sobra para cualquier
+// uso en esta app (el más grande es el banner, ~pantalla de ancho); c_limit no
+// agranda una imagen más chica; q_auto/f_auto bajan peso de red también.
+const CLOUDINARY_UPLOAD_RE = /^(https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/;
+function capCloudinarySize(url) {
+  const m = url.match(CLOUDINARY_UPLOAD_RE);
+  if (!m) return url;
+  // Ya viene con una transformación (empieza con "letra_" tipo w_768,c_fill) — no tocar.
+  if (/^[a-z]+_/i.test(m[2])) return url;
+  return `${m[1]}w_768,c_limit,q_auto,f_auto/${m[2]}`;
+}
+
 export function sanitizeImageUrl(url) {
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
@@ -21,6 +41,10 @@ export function sanitizeImageUrl(url) {
 
   if (trimmed.startsWith('/uploads') || trimmed.startsWith('/api/uploads')) {
     return `${API_ORIGIN}${trimmed.replace('/api', '')}`;
+  }
+
+  if (trimmed.includes('res.cloudinary.com')) {
+    return capCloudinarySize(trimmed);
   }
 
   if (trimmed.includes('appcarpuling.cloud')) {
