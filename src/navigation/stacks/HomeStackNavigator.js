@@ -31,10 +31,10 @@ const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
-        cardStyle: { backgroundColor: isDarkMode ? '#161616' : '#F9FAFB' },
+        cardStyle: { backgroundColor: isDarkMode ? '#0A0A0A' : '#F9FAFB' },
         headerStatusBarHeight,
         headerStyle: {
-          backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+          backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,

@@ -59,10 +59,10 @@ export const lightColors = {
 // Colores para modo oscuro
 export const darkColors = {
   // Backgrounds - DARK MODE
-  background: '#161616',
-  surface: '#292929',
-  surfaceElevated: '#374151',
-  surfaceHover: '#4B5563',
+  background: '#0A0A0A',
+  surface: '#161616',
+  surfaceElevated: '#1E1E1E',
+  surfaceHover: '#262626',
 
   // Primary colors - Light gray and white tones for dark mode
   primary: '#F9FAFB', // Almost white
@@ -83,8 +83,8 @@ export const darkColors = {
   textMuted: '#9CA3AF',
 
   // Borders & Dividers - DARK
-  border: '#374151',
-  borderLight: '#4B5563',
+  border: '#2A2A2A',
+  borderLight: '#333333',
 
   // Status colors - slightly lighter for dark mode
   success: '#34D399',
@@ -97,21 +97,21 @@ export const darkColors = {
   messageSecondary: '#3B82F6', // Blue for gradient
 
   // Input colors - DARK MODE
-  inputBackground: '#374151',
-  inputBorder: '#4B5563',
+  inputBackground: '#161616',
+  inputBorder: '#2A2A2A',
   inputBorderFocus: '#F9FAFB',
   placeholder: '#9CA3AF',
 
   // Card colors - DARK MODE
-  cardBackground: '#1E1E1E',
-  cardBorder: '#374151',
+  cardBackground: '#1C1C1C',
+  cardBorder: '#2A2A2A',
 
   // Overlay - DARK MODE
-  overlay: 'rgba(17, 24, 39, 0.95)',
+  overlay: 'rgba(0, 0, 0, 0.95)',
   overlayLight: 'rgba(255, 255, 255, 0.1)',
 
   // Shadow - DARK MODE
-  shadow: 'rgba(0, 0, 0, 0.3)',
+  shadow: 'rgba(0, 0, 0, 0.5)',
 };
 
 // Mantener retrocompatibilidad
@@ -131,8 +131,8 @@ export const darkGradients = {
   primary: ['#F9FAFB', '#E5E7EB'],
   primaryVertical: ['#F9FAFB', '#FFFFFF'],  
   accent: ['#F9FAFB', '#E5E7EB'],
-  light: ['#1F2937', '#111827'], // DARK MODE GRADIENT
-  card: ['#1F2937', '#374151'], // DARK CARD GRADIENT
+  light: ['#1C1C1C', '#0A0A0A'], // DARK MODE GRADIENT
+  card: ['#1C1C1C', '#262626'], // DARK CARD GRADIENT
 };
 
 // Mantener retrocompatibilidad

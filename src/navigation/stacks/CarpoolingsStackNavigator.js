@@ -31,7 +31,7 @@ const CarpoolingsStackNavigator = () => {
       screenOptions={({ navigation }) => ({
         headerStatusBarHeight,
         headerStyle: {
-          backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+          backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,

@@ -51,6 +51,9 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
   const centerFocused = state.index === centerIndex;
   const activeFg = '#FFFFFF';
   const inactiveFg = '#8A8A8E';
+  // Overlay blanco: aclara tanto la barra oscura como la clara sin necesitar un
+  // color aparte por tema.
+  const pillBg = 'rgba(255,255,255,0.16)';
 
   const onPress = (route, isFocused) => {
     // emit() respeta los listeners de tabPress ya definidos en el navigator
@@ -91,20 +94,27 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
               accessibilityLabel={label}
               style={styles.tab}
             >
-              {/* Sin fondo en el tab activo: Android lo dibujaba cuadrado por más
-                  que el radio estuviera puesto. El estado activo ya se lee en el
-                  ícono (relleno + blanco vs. contorno gris), el fondo sobraba. */}
-              <View style={styles.iconSlot}>
-                <Ionicons
-                  name={isFocused ? solid : outline}
-                  size={22}
-                  color={isFocused ? activeFg : inactiveFg}
-                />
-                {showBadge && (
-                  <View style={[styles.badge, { borderColor: barBg }]}>
-                    <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                  </View>
-                )}
+              {/* La pastilla marca el tab activo; antes solo lo distinguía el
+                  ícono relleno, que se leía muy poco a simple vista. */}
+              <View style={[styles.tabPill, isFocused && { backgroundColor: pillBg }]}>
+                <View style={styles.iconSlot}>
+                  <Ionicons
+                    name={isFocused ? solid : outline}
+                    size={20}
+                    color={isFocused ? activeFg : inactiveFg}
+                  />
+                  {showBadge && (
+                    <View style={[styles.badge, { borderColor: barBg }]}>
+                      <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text
+                  style={[styles.tabLabel, { color: isFocused ? activeFg : inactiveFg }]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
               </View>
               </TouchableOpacity>
             );
@@ -149,8 +159,10 @@ const styles = StyleSheet.create({
   // no hay nada que recortar (la bajadita y el FAB viven fuera de la barra).
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tabPill:   { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
   // Solo posiciona el ícono y le da lugar al badge; ya no pinta nada.
-  iconSlot:  { width: 46, height: 40, alignItems: 'center', justifyContent: 'center' },
+  iconSlot:  { width: 32, height: 22, alignItems: 'center', justifyContent: 'center' },
+  tabLabel:  { fontFamily: 'Sora_500Medium', fontSize: 10, marginTop: 2 },
 
   fabSpacer: { width: 54 },
 

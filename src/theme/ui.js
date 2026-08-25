@@ -18,10 +18,10 @@ const LIGHT = {
 };
 
 const DARK = {
-  bg: '#161616', // ya es el negro que usa el resto de la app
-  surface: '#212121',
-  card: '#1E1E1E',
-  border: '#2E2E2E',
+  bg: '#0A0A0A', // negro real, no gris oscuro: lo que pedía el estilo Uber
+  surface: '#161616',
+  card: '#1C1C1C',
+  border: '#2A2A2A',
   text: '#FFFFFF',
   textMuted: '#8A8A8E',
   invertBg: '#FFFFFF',

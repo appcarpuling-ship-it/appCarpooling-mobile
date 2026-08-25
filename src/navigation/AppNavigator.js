@@ -107,7 +107,7 @@ const AppNavigator = () => {
               headerShown: true,
               title: 'Detalles de la solicitud',
               headerStyle: {
-                backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+                backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
                 elevation: 0,
                 shadowOpacity: 0,
                 borderBottomWidth: 1,
@@ -125,7 +125,7 @@ const AppNavigator = () => {
               headerShown: true,
               title: 'Solicitud de viaje',
               headerStyle: {
-                backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+                backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
                 elevation: 0,
                 shadowOpacity: 0,
                 borderBottomWidth: 1,
@@ -180,7 +180,7 @@ const AppNavigator = () => {
               headerShown: true,
               title: 'Detalles del Viaje',
               headerStyle: {
-                backgroundColor: isDarkMode ? '#161616' : '#FFFFFF',
+                backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
                 elevation: 0,
                 shadowOpacity: 0,
                 borderBottomWidth: 1,
