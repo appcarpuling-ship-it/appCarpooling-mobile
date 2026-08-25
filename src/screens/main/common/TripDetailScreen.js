@@ -467,31 +467,25 @@ const TripDetailScreen = ({ route, navigation }) => {
       return;
     }
 
-    showAlert('Cancelar reserva', '¿Estás seguro?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Sí, cancelar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setCancellingReservation(true);
-            await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
-            setUserBooking(null);
-            await checkUserBooking();
-            if (typeof refreshUser === 'function') await refreshUser();
-            navigation.navigate('Result', { type: 'success', title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' });
-          } catch (error) {
-            const msg =
-              error?.response?.data?.message ||
-              error?.message ||
-              'No se pudo cancelar';
-            showAlert('Ocurrió algo', msg);
-          } finally {
-            setCancellingReservation(false);
-          }
-        },
+    navigation.navigate('Confirm', {
+      title: 'Cancelar reserva',
+      message: '¿Estás seguro?',
+      confirmLabel: 'Sí, cancelar',
+      destructive: true,
+      onConfirm: async () => {
+        setCancellingReservation(true);
+        try {
+          await cancelSeatReservation(String(seatReservationId), 'Cancelado por el usuario');
+          setUserBooking(null);
+          await checkUserBooking();
+          if (typeof refreshUser === 'function') await refreshUser();
+        } finally {
+          setCancellingReservation(false);
+        }
       },
-    ]);
+      successParams: { title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   const handleStartChat = async () => {
@@ -540,129 +534,82 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
 
   const handleStartTrip = () => {
-    showAlert('Iniciar Viaje', 'Los pasajeros seran notificados.', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Si, iniciar',
-        onPress: async () => {
-          setStartingTrip(true);
-          try {
-            const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
-            if (response.success) {
-              // Se recarga antes de navegar: al volver de la pantalla de resultado el
-              // detalle ya tiene que mostrar el viaje en curso.
-              await loadTripDetail();
-              navigation.navigate('Result', {
-                type: 'success',
-                title: 'Viaje iniciado',
-                message: 'Avisamos a los pasajeros que ya saliste.',
-                primaryLabel: 'Continuar',
-              });
-            } else {
-              navigation.navigate('Result', {
-                type: 'error',
-                title: 'No se pudo iniciar',
-                message: response.message || 'Probá de nuevo en un momento.',
-              });
-            }
-          } catch (error) {
-            reportError(error, { screen: 'TripDetailScreen', action: 'startTrip' });
-            navigation.navigate('Result', {
-              type: 'error',
-              title: 'No se pudo iniciar',
-              message: error.message || 'Probá de nuevo en un momento.',
-              error,
-            });
-          } finally {
-            setStartingTrip(false);
-          }
-        },
+    navigation.navigate('Confirm', {
+      title: 'Iniciar Viaje',
+      message: 'Los pasajeros serán notificados.',
+      confirmLabel: 'Sí, iniciar',
+      onConfirm: async () => {
+        setStartingTrip(true);
+        try {
+          const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
+          if (!response.success) throw new Error(response.message || 'Probá de nuevo en un momento.');
+          // Se recarga antes de navegar: al volver de la pantalla de resultado el
+          // detalle ya tiene que mostrar el viaje en curso.
+          await loadTripDetail();
+        } finally {
+          setStartingTrip(false);
+        }
       },
-    ]);
+      successParams: { title: 'Viaje iniciado', message: 'Avisamos a los pasajeros que ya saliste.', primaryLabel: 'Continuar' },
+      errorParams: { title: 'No se pudo iniciar' },
+    });
   };
 
   const handleCancelTrip = () => {
-    showAlert('Cancelar viaje', '¿Cancelar el viaje? Esto cancelará todas las reservas asociadas.', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Sí, cancelar',
-        style: 'destructive',
-        onPress: async () => {
-          setCancellingTrip(true);
-          try {
-            const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-            if (response.success) {
-              if (socketService.socket && socketService.isConnected) {
-                socketService.socket.emit('trip:cancelled', {
-                  tripId,
-                  cancelledBy: 'driver',
-                  timestamp: new Date().toISOString(),
-                });
-              }
-              navigation.navigate('Result', {
-                type: 'success',
-                title: 'Cancelado',
-                message: 'El viaje ha sido cancelado.',
-                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
-              });
-            } else {
-              showAlert('Ocurrió algo', response.message || 'No se pudo cancelar el viaje');
-            }
-          } catch (error) {
-            reportError(error, { screen: 'TripDetailScreen', action: 'cancelTrip' });
-            showAlert('Ocurrió algo', error.message || 'Error al cancelar el viaje');
-          } finally {
-            setCancellingTrip(false);
+    navigation.navigate('Confirm', {
+      title: 'Cancelar viaje',
+      message: '¿Cancelar el viaje? Esto cancelará todas las reservas asociadas.',
+      confirmLabel: 'Sí, cancelar',
+      destructive: true,
+      onConfirm: async () => {
+        setCancellingTrip(true);
+        try {
+          const response = await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
+          if (!response.success) throw new Error(response.message || 'No se pudo cancelar el viaje');
+          if (socketService.socket && socketService.isConnected) {
+            socketService.socket.emit('trip:cancelled', {
+              tripId,
+              cancelledBy: 'driver',
+              timestamp: new Date().toISOString(),
+            });
           }
-        },
+        } finally {
+          setCancellingTrip(false);
+        }
       },
-    ]);
+      successParams: {
+        title: 'Cancelado',
+        message: 'El viaje ha sido cancelado.',
+        // Confirm se reemplaza por Result (no queda en el stack), así que el
+        // stack al llegar acá es igual que antes: TripDetail debajo de Result.
+        // Dos goBack: uno saca Result, el otro el detalle del viaje ya cancelado.
+        onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+      },
+      errorParams: { title: 'Ocurrió algo', message: 'Error al cancelar el viaje' },
+    });
   };
 
   // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
   // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
   const handleCompleteTrip = () => {
     if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
-    showAlert(
-      'Completar viaje',
-      '¿Damos el viaje por terminado?',
-      [
-        { text: 'No', style: 'cancel' },
-        { text: 'Sí, completar', onPress: submitCompleteTrip },
-      ]
-    );
-  };
-
-  const submitCompleteTrip = async () => {
-    try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
-      if (response.success) {
+    navigation.navigate('Confirm', {
+      title: 'Completar viaje',
+      message: '¿Damos el viaje por terminado?',
+      confirmLabel: 'Sí, completar',
+      onConfirm: async () => {
+        const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
+        if (!response.success) throw new Error(response.message || 'Probá de nuevo en un momento.');
         const updatedTrip = response.data?.trip || response.data;
         if (updatedTrip) {
           setTrip(prev => prev ? { ...prev, ...updatedTrip, status: 'completed' } : prev);
         }
         await loadTripDetail();
         await refreshUser();
-        navigation.navigate('Result', {
-          type: 'success',
-          title: 'Viaje completado',
-          message: 'Completaste el viaje. ¡Gracias por usar Carpuling!',
-        });
-        return;
-      }
-      navigation.navigate('Result', {
-        type: 'error',
-        title: 'No se pudo completar',
-        message: response.message || 'Probá de nuevo en un momento.',
-      });
-    } catch (error) {
-      navigation.navigate('Result', {
-        type: 'error',
-        title: 'No se pudo completar',
-        message: error.message || 'Error al completar el viaje',
-        error,
-      });
-    }
+      },
+      successParams: { title: 'Viaje completado', message: 'Completaste el viaje. ¡Gracias por usar Carpuling!' },
+      errorParams: { title: 'No se pudo completar' },
+    });
   };
 
   if (loading) {

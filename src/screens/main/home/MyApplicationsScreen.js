@@ -75,31 +75,24 @@ const MyApplicationsScreen = ({ navigation }) => {
   useFocusEffect(useCallback(() => { load(1, true); }, [load]));
 
   const handleCancel = (requestId) => {
-    showAlert(
-      'Cancelar postulación',
-      '¿Estás seguro? Perderás tu lugar en esta solicitud.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Cancelar postulación',
-          style: 'destructive',
-          onPress: async () => {
-            setCancelling(requestId);
-            try {
-              const res = await cancelTripRequestApplication(requestId);
-              if (res.success) {
-                await load();
-                navigation.navigate('Result', { type: 'success', title: 'Postulación cancelada', message: 'Ya no estás postulado a esta solicitud.' });
-              }
-            } catch (err) {
-              showAlert('Error', err.message);
-            } finally {
-              setCancelling(null);
-            }
-          }
+    navigation.navigate('Confirm', {
+      title: 'Cancelar postulación',
+      message: '¿Estás seguro? Perderás tu lugar en esta solicitud.',
+      confirmLabel: 'Cancelar postulación',
+      destructive: true,
+      onConfirm: async () => {
+        setCancelling(requestId);
+        try {
+          const res = await cancelTripRequestApplication(requestId);
+          if (!res.success) throw new Error(res.message || 'No se pudo cancelar');
+          await load();
+        } finally {
+          setCancelling(null);
         }
-      ]
-    );
+      },
+      successParams: { title: 'Postulación cancelada', message: 'Ya no estás postulado a esta solicitud.' },
+      errorParams: { title: 'Error' },
+    });
   };
 
   const formatDate = (date) =>

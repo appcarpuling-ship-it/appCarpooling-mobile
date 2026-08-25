@@ -43,20 +43,17 @@ const ProfileScreen = () => {
   const sectionMenuTitleColor = ui.textMuted;
 
   const handleLogout = () => {
-    showAlert('Cerrar Sesión', '¿Estás seguro que deseas cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar Sesión',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await logout();
-          } catch (error) {
-            showAlert('Ocurrió algo', 'No se pudo cerrar sesión. Intenta nuevamente.');
-          }
-        },
-      },
-    ]);
+    navigation.navigate('Confirm', {
+      title: 'Cerrar Sesión',
+      message: '¿Estás seguro que deseas cerrar sesión?',
+      confirmLabel: 'Cerrar Sesión',
+      destructive: true,
+      // El logout desmonta este stack entero apenas isAuthenticated pasa a false, así que
+      // no hace falta pasar por Result: no llega a verse.
+      onConfirm: async () => { await logout(); },
+      successParams: {},
+      errorParams: { title: 'Ocurrió algo', message: 'No se pudo cerrar sesión. Intenta nuevamente.' },
+    });
   };
 
   const handleThemeToggle = () => {

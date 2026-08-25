@@ -151,32 +151,24 @@ const MyBookingsScreen = ({ navigation }) => {
     const mensaje = yaPagada
       ? 'Ya pagaste esta reserva. Si la cancelás no se te devuelve el dinero. ¿Cancelar de todas formas?'
       : '¿Estás seguro?';
-    showAlert('Cancelar reserva', mensaje, [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Sí, cancelar',
-        style: 'destructive',
-        onPress: async () => {
-          setCancellingId(bookingId);
-          try {
-            const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
-            if (!response.success) {
-              showAlert(
-                'No se pudo cancelar',
-                response.message || 'Intentá de nuevo en un momento.'
-              );
-              return;
-            }
-            await loadMyBookings(1, true, { force: true });
-            navigation.navigate('Result', { type: 'success', title: 'Reserva cancelada', message: 'Ya no tenés esa reserva activa.' });
-          } catch (error) {
-            showAlert('Ocurrió algo', error.message || 'No se pudo cancelar.');
-          } finally {
-            setCancellingId(null);
-          }
-        },
+    navigation.navigate('Confirm', {
+      title: 'Cancelar reserva',
+      message: mensaje,
+      confirmLabel: 'Sí, cancelar',
+      destructive: true,
+      onConfirm: async () => {
+        setCancellingId(bookingId);
+        try {
+          const response = await put_withauth(ENDPOINTS.CANCEL_BOOKING(bookingId));
+          if (!response.success) throw new Error(response.message || 'Intentá de nuevo en un momento.');
+          await loadMyBookings(1, true, { force: true });
+        } finally {
+          setCancellingId(null);
+        }
       },
-    ]);
+      successParams: { title: 'Reserva cancelada', message: 'Ya no tenés esa reserva activa.' },
+      errorParams: { title: 'No se pudo cancelar' },
+    });
   };
 
   /**

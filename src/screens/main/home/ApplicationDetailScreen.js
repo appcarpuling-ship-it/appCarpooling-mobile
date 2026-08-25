@@ -83,49 +83,40 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   ].filter((c) => vehicle.features?.[c.key]);
 
   const handleAccept = () => {
-    showAlert(
-      'Aceptar conductor',
-      'Al aceptar este conductor, los demás serán rechazados y se generará el pago.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceptar',
-          onPress: async () => {
-            setAccepting(true);
-            try {
-              const res = await acceptTripRequestApplication(requestId, app._id);
-              if (res.success) {
-                // El pasajero ya no paga por la app: le paga directo al conductor. El backend
-                // dejó de mandar `payment.url` y acá sólo se hacía goBack(), o sea que la
-                // pantalla se cerraba sin decir nada — el pasajero no sabía si su viaje había
-                // quedado confirmado ni cuánto tenía que llevar.
-                //
-                // `paymentUrl` se sigue contemplando para las solicitudes viejas que quedaron
-                // con un checkout abierto de antes del cambio.
-                const paymentUrl = res.data?.payment?.url;
-                if (paymentUrl) {
-                  setCheckoutModal({ visible: true, paymentUrl });
-                  return;
-                }
-                const total = res.data?.totalAmount;
-                navigation.navigate('Result', {
-                  type: 'success',
-                  title: '¡Viaje confirmado!',
-                  message: total > 0
-                    ? `Ya tenés tu lugar. Le pagás $${Number(total).toLocaleString('es-AR')} directamente al conductor, no por la app.`
-                    : 'Ya tenés tu lugar. Coordiná los gastos del viaje directamente con el conductor.',
-                  primaryLabel: 'Listo'
-                });
-              }
-            } catch (err) {
-              navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
-            } finally {
-              setAccepting(false);
-            }
+    navigation.navigate('Confirm', {
+      title: 'Aceptar conductor',
+      message: 'Al aceptar este conductor, los demás serán rechazados y se generará el pago.',
+      confirmLabel: 'Aceptar',
+      onConfirm: async () => {
+        setAccepting(true);
+        try {
+          const res = await acceptTripRequestApplication(requestId, app._id);
+          if (!res.success) throw new Error(res.message || 'No se pudo aceptar');
+
+          // El pasajero ya no paga por la app: le paga directo al conductor. `paymentUrl`
+          // se sigue contemplando solo para las solicitudes viejas que quedaron con un
+          // checkout abierto de antes del cambio — ahí hay que abrir el modal en vez de
+          // mostrar Result, así que se saca el Confirm de encima y se corta acá.
+          const paymentUrl = res.data?.payment?.url;
+          if (paymentUrl) {
+            setCheckoutModal({ visible: true, paymentUrl });
+            navigation.goBack();
+            return { skipResult: true };
           }
+          const total = res.data?.totalAmount;
+          return {
+            title: '¡Viaje confirmado!',
+            message: total > 0
+              ? `Ya tenés tu lugar. Le pagás $${Number(total).toLocaleString('es-AR')} directamente al conductor, no por la app.`
+              : 'Ya tenés tu lugar. Coordiná los gastos del viaje directamente con el conductor.',
+            primaryLabel: 'Listo',
+          };
+        } finally {
+          setAccepting(false);
         }
-      ]
-    );
+      },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   return (

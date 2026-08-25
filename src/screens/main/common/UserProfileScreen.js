@@ -139,23 +139,38 @@ const UserProfileScreen = ({ route, navigation }) => {
 
   const confirmBlock = () => {
     if (isBlocked) {
-      showAlert(
-        'Desbloquear usuario',
-        `¿Querés desbloquear a ${profile?.firstName}?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Desbloquear', onPress: () => runUnblock() },
-        ]
-      );
+      navigation.navigate('Confirm', {
+        title: 'Desbloquear usuario',
+        message: `¿Querés desbloquear a ${profile?.firstName}?`,
+        confirmLabel: 'Desbloquear',
+        onConfirm: runUnblock,
+        successParams: { title: 'Listo', message: 'Usuario desbloqueado.' },
+        errorParams: { title: 'Ocurrió algo', message: 'No se pudo desbloquear' },
+      });
     } else {
-      showAlert(
-        'Bloquear usuario',
-        'No podrán enviarse mensajes y el chat desaparecerá para ambos. ¿Continuar?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Bloquear', style: 'destructive', onPress: () => runBlock() },
-        ]
-      );
+      navigation.navigate('Confirm', {
+        title: 'Bloquear usuario',
+        message: 'No podrán enviarse mensajes y el chat desaparecerá para ambos. ¿Continuar?',
+        confirmLabel: 'Bloquear',
+        destructive: true,
+        onConfirm: runBlock,
+        successParams: {
+          title: 'Listo',
+          message: 'Usuario bloqueado.',
+          // Confirm se reemplaza por Result (no queda en el stack), así que el stack acá
+          // es igual que antes: UserProfile debajo de Result. Dos goBack para no volver
+          // al perfil de alguien que se acaba de bloquear.
+          onPrimary: () => {
+            if (fromChat) {
+              navigation.popToTop();
+            } else {
+              navigation.goBack();
+              navigation.goBack();
+            }
+          },
+        },
+        errorParams: { title: 'Ocurrió algo', message: 'No se pudo bloquear' },
+      });
     }
   };
 
@@ -164,22 +179,6 @@ const UserProfileScreen = ({ route, navigation }) => {
     try {
       await post_withauth(ENDPOINTS.BLOCK_USER(userId), {});
       await refreshUser();
-      navigation.navigate('Result', {
-        type: 'success',
-        title: 'Listo',
-        message: 'Usuario bloqueado.',
-        onPrimary: () => {
-          if (fromChat) {
-            navigation.popToTop();
-          } else {
-            navigation.goBack();
-            navigation.goBack();
-          }
-        },
-      });
-    } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || 'No se pudo bloquear';
-      showAlert('Ocurrió algo', msg);
     } finally {
       setBlockLoading(false);
     }
@@ -190,10 +189,6 @@ const UserProfileScreen = ({ route, navigation }) => {
     try {
       await delete_withauth(ENDPOINTS.UNBLOCK_USER(userId));
       await refreshUser();
-      navigation.navigate('Result', { type: 'success', title: 'Listo', message: 'Usuario desbloqueado.' });
-    } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || 'No se pudo desbloquear';
-      showAlert('Ocurrió algo', msg);
     } finally {
       setBlockLoading(false);
     }

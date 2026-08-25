@@ -136,25 +136,23 @@ const MySeatReservationsScreen = ({ navigation }) => {
     const mensaje = yaPagada
       ? 'Ya pagaste esta reserva. Si la cancelás no se te devuelve el dinero. ¿Cancelar de todas formas?'
       : '¿Cancelar esta reserva?';
-    showAlert('Cancelar', mensaje, [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Sí',
-        style: 'destructive',
-        onPress: async () => {
-          setCancellingId(seatReservationId);
-          try {
-            await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
-            await loadReservations(1, true, { force: true });
-            navigation.navigate('Result', { type: 'success', title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' });
-          } catch (error) {
-            showAlert('Ocurrió algo', error?.response?.data?.message || error.message || 'No se pudo cancelar.', [], 'error');
-          } finally {
-            setCancellingId(null);
-          }
-        },
+    navigation.navigate('Confirm', {
+      title: 'Cancelar',
+      message: mensaje,
+      confirmLabel: 'Sí',
+      destructive: true,
+      onConfirm: async () => {
+        setCancellingId(seatReservationId);
+        try {
+          await cancelSeatReservation(seatReservationId, 'Cancelado por el usuario');
+          await loadReservations(1, true, { force: true });
+        } finally {
+          setCancellingId(null);
+        }
       },
-    ]);
+      successParams: { title: 'Reserva Cancelada', message: 'Tu reserva fue cancelada correctamente.' },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   const formatCurrency = (amount) =>

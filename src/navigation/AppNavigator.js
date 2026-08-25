@@ -23,6 +23,7 @@ import TripRequestDetailsScreen from '../screens/main/home/TripRequestDetailsScr
 import TripMapScreen from '../screens/main/trip/TripMapScreen';
 import ApplicationDetailScreen from '../screens/main/home/ApplicationDetailScreen';
 import ResultScreen from '../screens/common/ResultScreen';
+import ConfirmScreen from '../screens/common/ConfirmScreen';
 import LocationPickerScreen from '../screens/common/LocationPickerScreen';
 import VehiclePickerScreen from '../screens/common/VehiclePickerScreen';
 import CompleteTripScreen from '../screens/common/CompleteTripScreen';
@@ -209,6 +210,11 @@ const AppNavigator = () => {
         // acaba de enviar (calificar un viaje ya calificado, por ejemplo). Se sale por el
         // boton o por la X.
         options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Confirm"
+        component={ConfirmScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

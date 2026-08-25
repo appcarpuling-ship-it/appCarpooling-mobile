@@ -65,14 +65,26 @@ const DeleteAccountScreen = ({ navigation }) => {
       const res = await delete_withauth('/auth/me', tienePassword ? { password } : {});
       if (res?.success) {
         // Sin cuenta no hay sesión que sostener: se cierra y el navegador vuelve al login solo.
-        showAlert('Cuenta eliminada', 'Tu cuenta y tus datos fueron eliminados.', [
-          { text: 'Entendido', onPress: () => logout() },
-        ]);
+        navigation.navigate('Result', {
+          type: 'success',
+          title: 'Cuenta eliminada',
+          message: 'Tu cuenta y tus datos fueron eliminados.',
+          onPrimary: () => logout(),
+        });
         return;
       }
-      showAlert('No se pudo eliminar', res?.message || 'Intentá de nuevo en un rato.');
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo eliminar',
+        message: res?.message || 'Intentá de nuevo en un rato.',
+      });
     } catch (error) {
-      showAlert('No se pudo eliminar', error?.message || 'Intentá de nuevo en un rato.');
+      navigation.navigate('Result', {
+        type: 'error',
+        title: 'No se pudo eliminar',
+        message: error?.message || 'Intentá de nuevo en un rato.',
+        error,
+      });
     } finally {
       setEnviando(false);
     }

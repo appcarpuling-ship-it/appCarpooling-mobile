@@ -97,62 +97,51 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const onRefresh = () => { load(true); };
 
   const handleCancel = () => {
-    showAlert(
-      'Cancelar solicitud',
-      '¿Estás seguro? Los conductores postulados serán notificados.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, cancelar', style: 'destructive',
-          onPress: async () => {
-            setCancelling(true);
-            try {
-              await cancelTripRequest(requestId);
-              navigation.navigate('Result', {
-                type: 'success',
-                title: 'Solicitud cancelada',
-                message: 'Tu solicitud fue cancelada.',
-                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
-              });
-            } catch (err) {
-              showAlert('Error', err.message);
-            } finally {
-              setCancelling(false);
-            }
-          }
+    navigation.navigate('Confirm', {
+      title: 'Cancelar solicitud',
+      message: '¿Estás seguro? Los conductores postulados serán notificados.',
+      confirmLabel: 'Sí, cancelar',
+      destructive: true,
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          await cancelTripRequest(requestId);
+        } finally {
+          setCancelling(false);
         }
-      ]
-    );
+      },
+      successParams: {
+        title: 'Solicitud cancelada',
+        message: 'Tu solicitud fue cancelada.',
+        // Confirm se reemplaza por Result, así que el stack queda igual que antes.
+        onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+      },
+      errorParams: { title: 'Error' },
+    });
   };
 
   const handleCancelTrip = () => {
-    showAlert(
-      'Cancelar viaje',
-      '¿Estás seguro? El viaje será eliminado y el pasajero será notificado. La solicitud volverá a estar abierta.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, cancelar', style: 'destructive',
-          onPress: async () => {
-            setCancelling(true);
-            try {
-              const tripId = request?.createdTrip?._id || request?.createdTrip;
-              await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
-              navigation.navigate('Result', {
-                type: 'success',
-                title: 'Viaje cancelado',
-                message: 'El viaje fue cancelado y el pasajero fue notificado.',
-                onPrimary: () => { navigation.goBack(); navigation.goBack(); },
-              });
-            } catch (err) {
-              showAlert('Error', err.message);
-            } finally {
-              setCancelling(false);
-            }
-          }
+    navigation.navigate('Confirm', {
+      title: 'Cancelar viaje',
+      message: '¿Estás seguro? El viaje será eliminado y el pasajero será notificado. La solicitud volverá a estar abierta.',
+      confirmLabel: 'Sí, cancelar',
+      destructive: true,
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          const tripId = request?.createdTrip?._id || request?.createdTrip;
+          await put_withauth(ENDPOINTS.CANCEL_TRIP(tripId));
+        } finally {
+          setCancelling(false);
         }
-      ]
-    );
+      },
+      successParams: {
+        title: 'Viaje cancelado',
+        message: 'El viaje fue cancelado y el pasajero fue notificado.',
+        onPrimary: () => { navigation.goBack(); navigation.goBack(); },
+      },
+      errorParams: { title: 'Error' },
+    });
   };
 
   const handleApplyPress = () => {
@@ -224,35 +213,27 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
    * puede quedarse afuera.
    */
   const handleRetirarPostulacion = () => {
-    showAlert(
-      'Retirar postulación',
-      'Se le deja de ofrecer este viaje al pasajero. Podés volver a postularte si querés.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, retirar',
-          style: 'destructive',
-          onPress: async () => {
-            setRetirando(true);
-            try {
-              const res = await cancelTripRequestApplication(requestId);
-              if (res.success) {
-                // Los flags los recalcula el server (canApply mira además el tope de 5
-                // postulantes y el estado de la solicitud): ponerlos a mano acá haría
-                // parpadear "Ofrecer viaje" en casos donde no se puede.
-                await load();
-              } else {
-                showAlert('Ocurrió algo', res.message || 'No se pudo retirar la postulación');
-              }
-            } catch (err) {
-              showAlert('Ocurrió algo', err.message || 'No se pudo retirar la postulación');
-            } finally {
-              setRetirando(false);
-            }
-          },
-        },
-      ]
-    );
+    navigation.navigate('Confirm', {
+      title: 'Retirar postulación',
+      message: 'Se le deja de ofrecer este viaje al pasajero. Podés volver a postularte si querés.',
+      confirmLabel: 'Sí, retirar',
+      destructive: true,
+      onConfirm: async () => {
+        setRetirando(true);
+        try {
+          const res = await cancelTripRequestApplication(requestId);
+          if (!res.success) throw new Error(res.message || 'No se pudo retirar la postulación');
+          // Los flags los recalcula el server (canApply mira además el tope de 5
+          // postulantes y el estado de la solicitud): ponerlos a mano acá haría
+          // parpadear "Ofrecer viaje" en casos donde no se puede.
+          await load();
+        } finally {
+          setRetirando(false);
+        }
+      },
+      successParams: { title: 'Postulación retirada', message: 'Ya no le ofrecés viaje a este pasajero.' },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   const enviarPostulacion = async (vehicleId, recorrido, oferta) => {
@@ -286,34 +267,31 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   };
 
   const handleAccept = (applicationId) => {
-    showAlert(
-      'Aceptar conductor',
-      'Al aceptar este conductor, los demás serán rechazados y se generará el pago.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceptar',
-          onPress: async () => {
-            setAccepting(applicationId);
-            try {
-              const res = await acceptTripRequestApplication(requestId, applicationId);
-              if (res.success) {
-                const paymentUrl = res.data?.payment?.url;
-                if (paymentUrl) {
-                  setCheckoutModal({ visible: true, paymentUrl });
-                } else {
-                  load();
-                }
-              }
-            } catch (err) {
-              navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err.message });
-            } finally {
-              setAccepting(null);
-            }
+    navigation.navigate('Confirm', {
+      title: 'Aceptar conductor',
+      message: 'Al aceptar este conductor, los demás serán rechazados y se generará el pago.',
+      confirmLabel: 'Aceptar',
+      onConfirm: async () => {
+        setAccepting(applicationId);
+        try {
+          const res = await acceptTripRequestApplication(requestId, applicationId);
+          if (!res.success) throw new Error(res.message || 'No se pudo aceptar');
+          // paymentUrl: solo en solicitudes viejas con un checkout abierto de antes del
+          // cambio a pago directo. Ahí hay que abrir el modal, no mostrar Result.
+          const paymentUrl = res.data?.payment?.url;
+          if (paymentUrl) {
+            setCheckoutModal({ visible: true, paymentUrl });
+            navigation.goBack();
+            return { skipResult: true };
           }
+          await load();
+        } finally {
+          setAccepting(null);
         }
-      ]
-    );
+      },
+      successParams: { title: 'Conductor aceptado', message: 'El viaje quedó confirmado.' },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   // timeZone UTC: departureDate de una solicitud es un dia de calendario guardado como

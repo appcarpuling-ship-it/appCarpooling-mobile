@@ -9,7 +9,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, delete_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -21,6 +21,7 @@ import { reportError } from '../../../utils/sentry';
 
 const BlockedUsersScreen = () => {
   const ui = useUI();
+  const navigation = useNavigation();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
   const [blocked, setBlocked] = useState([]);
@@ -47,14 +48,14 @@ const BlockedUsersScreen = () => {
   }, [load]));
 
   const confirmUnblock = (item) => {
-    showAlert(
-      'Desbloquear',
-      `¿Querés desbloquear a ${item.firstName} ${item.lastName}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Desbloquear', onPress: () => runUnblock(item) },
-      ]
-    );
+    navigation.navigate('Confirm', {
+      title: 'Desbloquear',
+      message: `¿Querés desbloquear a ${item.firstName} ${item.lastName}?`,
+      confirmLabel: 'Desbloquear',
+      onConfirm: () => runUnblock(item),
+      successParams: { title: 'Listo', message: 'Usuario desbloqueado.' },
+      errorParams: { title: 'Error' },
+    });
   };
 
   const runUnblock = async (item) => {
@@ -63,10 +64,6 @@ const BlockedUsersScreen = () => {
       await delete_withauth(ENDPOINTS.UNBLOCK_USER(item._id));
       await refreshUser();
       setBlocked((prev) => prev.filter((u) => u._id !== item._id));
-    } catch (e) {
-      reportError(e, { screen: 'BlockedUsersScreen', action: 'runUnblock' });
-      const msg = e?.response?.data?.message || 'No se pudo desbloquear';
-      showAlert('Error', msg);
     } finally {
       setUnlockingId(null);
     }

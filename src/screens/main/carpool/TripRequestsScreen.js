@@ -228,41 +228,32 @@ const TripRequestsScreen = ({ route }) => {
     const isSeatReservation = request.bookingType === 'seat_reservation';
     const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
 
-    showAlert(
-      'Aceptar solicitud',
-      `¿Aceptar ${seatsLabelEs(request.seatsBooked || request.seatsRequested)}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceptar',
-          onPress: async () => {
-            setAcceptingRequestId(requestId);
-            try {
-              if (isSeatReservation && seatReservationId) {
-                const res = await approveOrRejectReservation(seatReservationId, 'approve');
-                if (res.success) {
-                  loadRequests(1, { append: false });
-                  navigation.navigate('Result', { type: 'success', title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' });
-                }
-              } else {
-                const res = await put_withauth(`/bookings/${requestId}/confirm`);
-                if (res.success) {
-                  loadRequests(1, { append: false });
-                  navigation.navigate('Result', { type: 'success', title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' });
-                }
-              }
-            } catch (error) {
-              showAlert(
-                'Error',
-                String(error?.response?.data?.message || error?.message || 'No se pudo aprobar o rechazar la solicitud')
-              );
-            } finally {
-              setAcceptingRequestId(null);
-            }
-          },
-        },
-      ]
-    );
+    const successParams = isSeatReservation && seatReservationId
+      ? { title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' }
+      : { title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' };
+
+    navigation.navigate('Confirm', {
+      title: 'Aceptar solicitud',
+      message: `¿Aceptar ${seatsLabelEs(request.seatsBooked || request.seatsRequested)}?`,
+      confirmLabel: 'Aceptar',
+      onConfirm: async () => {
+        setAcceptingRequestId(requestId);
+        try {
+          if (isSeatReservation && seatReservationId) {
+            const res = await approveOrRejectReservation(seatReservationId, 'approve');
+            if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
+          } else {
+            const res = await put_withauth(`/bookings/${requestId}/confirm`);
+            if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
+          }
+          loadRequests(1, { append: false });
+        } finally {
+          setAcceptingRequestId(null);
+        }
+      },
+      successParams,
+      errorParams: { title: 'Error' },
+    });
   };
 
   const handleReject = async () => {

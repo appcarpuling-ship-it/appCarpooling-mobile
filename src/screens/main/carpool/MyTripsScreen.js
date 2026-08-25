@@ -113,48 +113,25 @@ const MyTripsScreen = ({ navigation }) => {
   // handleCancelTrip movido a TripDetailScreen
 
   const handleStartTrip = (tripId) => {
-    showAlert(
-      'Iniciar Viaje',
-      'Los pasajeros seran notificados.',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Si, iniciar',
-          onPress: async () => {
-            setStartingTripId(tripId);
-            try {
-              const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
-              if (response.success) {
-                // El listado se recarga acá y no al volver: cuando el usuario cierra la
-                // pantalla de resultado, el viaje ya tiene que figurar como en curso.
-                loadMyTrips(1, true);
-                navigation.navigate('Result', {
-                  type: 'success',
-                  title: 'Viaje iniciado',
-                  message: 'Avisamos a los pasajeros que ya saliste.',
-                  primaryLabel: 'Continuar',
-                });
-              } else {
-                navigation.navigate('Result', {
-                  type: 'error',
-                  title: 'No se pudo iniciar',
-                  message: response.message || 'Probá de nuevo en un momento.',
-                });
-              }
-            } catch (error) {
-              navigation.navigate('Result', {
-                type: 'error',
-                title: 'No se pudo iniciar',
-                message: error.message || 'Probá de nuevo en un momento.',
-                error,
-              });
-            } finally {
-              setStartingTripId(null);
-            }
-          },
-        },
-      ]
-    );
+    navigation.navigate('Confirm', {
+      title: 'Iniciar Viaje',
+      message: 'Los pasajeros serán notificados.',
+      confirmLabel: 'Sí, iniciar',
+      onConfirm: async () => {
+        setStartingTripId(tripId);
+        try {
+          const response = await put_withauth(ENDPOINTS.START_TRIP(tripId));
+          if (!response.success) throw new Error(response.message || 'Probá de nuevo en un momento.');
+          // El listado se recarga acá y no al volver: cuando el usuario cierra la
+          // pantalla de resultado, el viaje ya tiene que figurar como en curso.
+          loadMyTrips(1, true);
+        } finally {
+          setStartingTripId(null);
+        }
+      },
+      successParams: { title: 'Viaje iniciado', message: 'Avisamos a los pasajeros que ya saliste.', primaryLabel: 'Continuar' },
+      errorParams: { title: 'No se pudo iniciar' },
+    });
   };
 
   const formatNumber = (num) => {
@@ -166,42 +143,19 @@ const MyTripsScreen = ({ navigation }) => {
   // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
   // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
   const handleCompleteTrip = (tripId) => {
-    showAlert(
-      'Completar viaje',
-      '¿Damos el viaje por terminado?',
-      [
-        { text: 'No', style: 'cancel' },
-        { text: 'Sí, completar', onPress: () => submitCompleteTrip(tripId) },
-      ]
-    );
-  };
-
-  const submitCompleteTrip = async (tripId) => {
-    try {
-      const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
-      if (response.success) {
+    navigation.navigate('Confirm', {
+      title: 'Completar viaje',
+      message: '¿Damos el viaje por terminado?',
+      confirmLabel: 'Sí, completar',
+      onConfirm: async () => {
+        const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(tripId), {});
+        if (!response.success) throw new Error(response.message || 'Probá de nuevo en un momento.');
         await loadMyTrips(1, true);
         await refreshUser();
-        navigation.navigate('Result', {
-          type: 'success',
-          title: 'Viaje completado',
-          message: 'Completaste el viaje. ¡Gracias por usar Carpuling!',
-        });
-        return;
-      }
-      navigation.navigate('Result', {
-        type: 'error',
-        title: 'No se pudo completar',
-        message: response.message || 'Probá de nuevo en un momento.',
-      });
-    } catch (error) {
-      navigation.navigate('Result', {
-        type: 'error',
-        title: 'No se pudo completar',
-        message: error.message || 'Error al completar el viaje',
-        error,
-      });
-    }
+      },
+      successParams: { title: 'Viaje completado', message: 'Completaste el viaje. ¡Gracias por usar Carpuling!' },
+      errorParams: { title: 'No se pudo completar' },
+    });
   };
 
   // Mismo criterio que el resto: lo que sigue en juego va sólido, lo cerrado

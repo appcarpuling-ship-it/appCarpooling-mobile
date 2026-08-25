@@ -110,27 +110,19 @@ const VehiclesScreen = () => {
   };
 
   const handleDelete = (vehicleId) => {
-    showAlert(
-      'Eliminar Vehículo',
-      '¿Seguro que querés eliminar este vehículo?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await delete_withauth(ENDPOINTS.DELETE_VEHICLE(vehicleId));
-              if (response.success) {
-                loadVehicles(1, true, { skipMainLoading: true });
-              }
-            } catch (error) {
-              showAlert('Ocurrió algo', error.message);
-            }
-          },
-        },
-      ]
-    );
+    navigation.navigate('Confirm', {
+      title: 'Eliminar Vehículo',
+      message: '¿Seguro que querés eliminar este vehículo?',
+      confirmLabel: 'Eliminar',
+      destructive: true,
+      onConfirm: async () => {
+        const response = await delete_withauth(ENDPOINTS.DELETE_VEHICLE(vehicleId));
+        if (!response.success) throw new Error(response.message || 'No se pudo eliminar el vehículo');
+        loadVehicles(1, true, { skipMainLoading: true });
+      },
+      successParams: { title: 'Vehículo eliminado', message: 'Ya no figura en tu lista.' },
+      errorParams: { title: 'Ocurrió algo' },
+    });
   };
 
   const renderItem = ({ item }) => {
