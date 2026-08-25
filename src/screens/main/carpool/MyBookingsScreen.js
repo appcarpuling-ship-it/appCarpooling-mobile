@@ -20,6 +20,7 @@ import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { reportError } from '../../../utils/sentry';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
@@ -403,8 +404,8 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={textPrimary} />
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <TripListSkeleton />
       </View>
     );
   }

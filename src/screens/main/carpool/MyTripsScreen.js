@@ -22,6 +22,7 @@ import { tripDisplaySeats, tripSeatsLabel } from '../../../utils/tripSeatsDispla
 import { reportError } from '../../../utils/sentry';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
 // arriba. Ahí no tiene sentido otro título + otro toggle Próximos/Pasados: el historial
@@ -359,8 +360,8 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.textPrimary} />
+      <View style={[styles.container, { backgroundColor: ui.bg }]}>
+        <TripListSkeleton />
       </View>
     );
   }
