@@ -49,10 +49,10 @@ const ProfileScreen = () => {
       message: '¿Estás seguro que deseas cerrar sesión?',
       confirmLabel: 'Cerrar Sesión',
       destructive: true,
-      // El logout desmonta este stack entero apenas isAuthenticated pasa a false, así que
-      // no hace falta pasar por Result: no llega a verse.
-      onConfirm: async () => { await logout(); },
-      successParams: {},
+      // skipResult: sin esto se alcanza a ver un "¡Listo!" un instante antes de que
+      // isAuthenticated pase a false y desmonte todo el stack — cerrar sesión no necesita
+      // pantalla de éxito, solo pasar.
+      onConfirm: async () => { await logout(); return { skipResult: true }; },
       errorParams: { title: 'Ocurrió algo', message: 'No se pudo cerrar sesión. Intenta nuevamente.' },
     });
   };
