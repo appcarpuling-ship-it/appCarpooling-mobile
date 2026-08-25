@@ -96,11 +96,11 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           // El pasajero ya no paga por la app: le paga directo al conductor. `paymentUrl`
           // se sigue contemplando solo para las solicitudes viejas que quedaron con un
           // checkout abierto de antes del cambio — ahí hay que abrir el modal en vez de
-          // mostrar Result, así que se saca el Confirm de encima y se corta acá.
+          // mostrar Result. El goBack que saca el Confirm de encima lo hace ConfirmScreen
+          // solo con skipResult, no hace falta pedirlo acá también.
           const paymentUrl = res.data?.payment?.url;
           if (paymentUrl) {
             setCheckoutModal({ visible: true, paymentUrl });
-            navigation.goBack();
             return { skipResult: true };
           }
           const total = res.data?.totalAmount;

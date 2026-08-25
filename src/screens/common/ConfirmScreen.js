@@ -40,10 +40,15 @@ const ConfirmScreen = ({ route, navigation }) => {
     try {
       // onConfirm puede devolver datos que solo se conocen después de ejecutarse (ej. un
       // monto que viene en la respuesta) para completar el mensaje de éxito, mezclándose
-      // sobre successParams. skipResult es el caso raro en el que onConfirm ya manejó su
-      // propia navegación (ej. abrir un checkout en vez de Result) y no hay que pisarla.
+      // sobre successParams. skipResult es el caso raro en el que onConfirm ya hizo lo suyo
+      // (abrir un checkout, cerrar sesión) y esta pantalla no tiene nada que mostrar: solo
+      // se saca de encima con goBack, sin pisar ninguna navegación propia del caller ni
+      // quedarse esperando a que algo externo (ej. el remount por isAuthenticated) la saque.
       const result = await onConfirm?.();
-      if (result?.skipResult) return;
+      if (result?.skipResult) {
+        navigation.goBack();
+        return;
+      }
       navigation.replace('Result', { type: 'success', ...successParams, ...result });
     } catch (e) {
       // Mismo criterio que el resto de la app: el mensaje real de un rechazo

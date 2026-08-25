@@ -277,11 +277,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           const res = await acceptTripRequestApplication(requestId, applicationId);
           if (!res.success) throw new Error(res.message || 'No se pudo aceptar');
           // paymentUrl: solo en solicitudes viejas con un checkout abierto de antes del
-          // cambio a pago directo. Ahí hay que abrir el modal, no mostrar Result.
+          // cambio a pago directo. Ahí hay que abrir el modal, no mostrar Result. El goBack
+          // que saca el Confirm de encima lo hace ConfirmScreen solo con skipResult.
           const paymentUrl = res.data?.payment?.url;
           if (paymentUrl) {
             setCheckoutModal({ visible: true, paymentUrl });
-            navigation.goBack();
             return { skipResult: true };
           }
           await load();
