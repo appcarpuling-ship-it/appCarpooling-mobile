@@ -23,7 +23,10 @@ import { reportError } from '../../../utils/sentry';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
 
-const MyTripsScreen = ({ navigation }) => {
+// historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
+// arriba. Ahí no tiene sentido otro título + otro toggle Próximos/Pasados: el historial
+// es, por definición, solo lo pasado.
+const MyTripsScreen = ({ navigation, historyMode = false }) => {
   const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
@@ -34,7 +37,7 @@ const MyTripsScreen = ({ navigation }) => {
   const [loading, setLoading]       = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab]   = useState('upcoming');
+  const [activeTab, setActiveTab]   = useState(historyMode ? 'past' : 'upcoming');
   const fetchingRef = useRef(false);
   const pulseDot = useRef(new Animated.Value(1)).current;
   const [startingTripId, setStartingTripId] = useState(null);
@@ -370,30 +373,34 @@ const MyTripsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: ui.text }]}>
-          Los viajes{'\n'}
-          <Text style={styles.titleStrong}>que ofrecés</Text>
-        </Text>
-      </View>
+      {!historyMode && (
+        <>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: ui.text }]}>
+              Los viajes{'\n'}
+              <Text style={styles.titleStrong}>que ofrecés</Text>
+            </Text>
+          </View>
 
-      {/* Tabs en pill, como el resto de la app */}
-      <View style={styles.tabsContainer}>
-        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
-          {['upcoming', 'past'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
-              onPress={() => setActiveTab(tab)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
-                {tab === 'upcoming' ? 'Próximos' : 'Pasados'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+          {/* Tabs en pill, como el resto de la app */}
+          <View style={styles.tabsContainer}>
+            <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+              {['upcoming', 'past'].map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+                  onPress={() => setActiveTab(tab)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                    {tab === 'upcoming' ? 'Próximos' : 'Pasados'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
 
       {activeTab === 'past' ? (
         <Text

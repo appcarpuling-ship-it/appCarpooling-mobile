@@ -22,12 +22,15 @@ import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { reportError } from '../../../utils/sentry';
 
-const MyBookingsScreen = ({ navigation }) => {
+// historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
+// arriba. Ahí no tiene sentido otro título + otro toggle Próximas/Pasadas: el historial
+// es, por definición, solo lo pasado.
+const MyBookingsScreen = ({ navigation, historyMode = false }) => {
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
   const [bookings, setBookings]       = useState([]);
-  const [activeTab, setActiveTab]     = useState('upcoming');
+  const [activeTab, setActiveTab]     = useState(historyMode ? 'past' : 'upcoming');
   const [page, setPage]               = useState(1);
   const [hasMore, setHasMore]         = useState(true);
   const [loading, setLoading]         = useState(true);
@@ -410,30 +413,34 @@ const MyBookingsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <View style={styles.screenHeader}>
-        <Text style={[styles.screenTitle, { color: ui.text }]}>
-          Los viajes{'\n'}
-          <Text style={styles.screenTitleStrong}>que reservaste</Text>
-        </Text>
-      </View>
+      {!historyMode && (
+        <>
+          <View style={styles.screenHeader}>
+            <Text style={[styles.screenTitle, { color: ui.text }]}>
+              Los viajes{'\n'}
+              <Text style={styles.screenTitleStrong}>que reservaste</Text>
+            </Text>
+          </View>
 
-      {/* Tabs en pill, iguales a las de Mis Viajes: es la misma pantalla del otro lado. */}
-      <View style={styles.tabsContainer}>
-        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
-          {['upcoming', 'past'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
-              onPress={() => setActiveTab(tab)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
-                {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+          {/* Tabs en pill, iguales a las de Mis Viajes: es la misma pantalla del otro lado. */}
+          <View style={styles.tabsContainer}>
+            <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
+              {['upcoming', 'past'].map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
+                  onPress={() => setActiveTab(tab)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>
+                    {tab === 'upcoming' ? 'Próximas' : 'Pasadas'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
 
       {visibles.length > 0 ? (
         <FlatList

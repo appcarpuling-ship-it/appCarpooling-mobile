@@ -8,8 +8,8 @@ import MyBookingsScreen from '../carpool/MyBookingsScreen';
 /**
  * Raíz del tab Historial: switch "Viajes" (lo que publicaste como conductor) /
  * "Solicitudes" (lo que reservaste como pasajero). Reutiliza MyTripsScreen y
- * MyBookingsScreen tal cual — cada una ya trae su propio toggle próximos/pasados,
- * así que acá no se duplica esa lógica, solo se elige cuál mostrar.
+ * MyBookingsScreen con historyMode: sin su título ni su propio toggle próximos/
+ * pasados (el historial es solo lo pasado, y el switch de arriba ya alcanza).
  */
 const HistoryScreen = (props) => {
   const ui = useUI();
@@ -40,7 +40,9 @@ const HistoryScreen = (props) => {
       </View>
 
       <View style={styles.content}>
-        {section === 'trips' ? <MyTripsScreen {...props} /> : <MyBookingsScreen {...props} />}
+        {section === 'trips'
+          ? <MyTripsScreen {...props} historyMode />
+          : <MyBookingsScreen {...props} historyMode />}
       </View>
     </SafeAreaView>
   );
