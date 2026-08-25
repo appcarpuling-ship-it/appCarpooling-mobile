@@ -36,6 +36,7 @@ import { reportError } from '../../../utils/sentry';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
+import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -797,9 +798,7 @@ const HomeScreen = ({ navigation, route }) => {
           </View>
 
           {loading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" color={textMuted} />
-            </View>
+            <HomeTripListSkeleton />
           ) : recentTrips.length > 0 ? (
             recentTrips.map(renderTripCard)
           ) : (
@@ -936,7 +935,7 @@ const HomeScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             {loadingRequests ? (
-              <ActivityIndicator size="small" color={textMuted} style={{ marginVertical: 16 }} />
+              <HomeTripListSkeleton count={1} />
             ) : openRequests.length === 0 ? (
               <View style={[styles.reqEmptySmall, { backgroundColor: cardBg }]}>
                 <Text style={[styles.reqEmptySmallText, { color: textMuted }]}>No hay solicitudes abiertas</Text>

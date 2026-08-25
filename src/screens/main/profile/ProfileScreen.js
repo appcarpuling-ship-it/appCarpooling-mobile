@@ -21,6 +21,7 @@ import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useTutorial } from '../../../context/TutorialContext';
 import Rating from '../../../components/ui/Rating';
+import Skeleton from '../../../components/ui/Skeleton';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
@@ -204,12 +205,21 @@ const ProfileScreen = () => {
             revés — avatar grande y centrado, como una portada más que un perfil). */}
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>
-              {user?.firstName} {user?.lastName}
-            </Text>
-            <View style={styles.ratingRow}>
-              <Rating rating={user?.rating} count={user?.ratingCount} size={14} />
-            </View>
+            {authLoading && !user ? (
+              <>
+                <Skeleton width={160} height={24} style={{ marginBottom: 8 }} />
+                <Skeleton width={90} height={14} />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>
+                  {user?.firstName} {user?.lastName}
+                </Text>
+                <View style={styles.ratingRow}>
+                  <Rating rating={user?.rating} count={user?.ratingCount} size={14} />
+                </View>
+              </>
+            )}
             {(user?.discountPercentage ?? 0) > 0 && (() => {
               const pct = user.discountPercentage;
               const count = Math.round(pct / 20) || 1;
@@ -225,9 +235,7 @@ const ProfileScreen = () => {
           </View>
 
           {authLoading && !user ? (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-              <ActivityIndicator size="small" color={textMuted} />
-            </View>
+            <Skeleton width={60} height={60} radius={30} />
           ) : avatarSource ? (
             <TouchableOpacity
               onPress={() => setAvatarPreviewVisible(true)}

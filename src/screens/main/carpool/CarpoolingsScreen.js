@@ -9,7 +9,6 @@ import {
   FlatList,
   Dimensions,
   RefreshControl,
-  ActivityIndicator,
   Animated,
   Modal,
 } from 'react-native';
@@ -27,6 +26,7 @@ import NotificationsScreen from '../profile/NotificationsScreen';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
+import Skeleton from '../../../components/ui/Skeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -189,14 +189,6 @@ const CarpoolingsScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={textPrimary} />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
       <ScrollView
@@ -262,7 +254,11 @@ const CarpoolingsScreen = ({ navigation }) => {
         </View>
 
         {/* Banners */}
-        {banners.length > 0 && (
+        {loading ? (
+          <View style={styles.bannerSection}>
+            <Skeleton width={BANNER_WIDTH} height={BANNER_HEIGHT} radius={20} style={{ marginLeft: 24 }} />
+          </View>
+        ) : banners.length > 0 && (
           <View style={styles.bannerSection}>
             <FlatList
               ref={bannerScrollRef}
