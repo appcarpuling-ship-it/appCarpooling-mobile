@@ -40,7 +40,6 @@ const ProfileScreen = () => {
   const border      = ui.border;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const divider     = ui.bg; // separa las filas dentro de la card gris
   const sectionMenuTitleColor = ui.textMuted;
 
   const handleLogout = () => {
@@ -113,15 +112,16 @@ const ProfileScreen = () => {
     avatarLoaderTimeoutRef.current = null;
   };
 
+  // Los 4 accesos más usados van al grid de arriba, estilo Uber; el resto sigue
+  // como lista.
+  const quickAccessItems = [
+    { id: 1, title: 'Editar perfil', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
+    { id: 3, title: 'Mi saldo',      icon: 'receipt-outline', onPress: () => navigation.navigate('Saldo') },
+    { id: 2, title: 'Vehículos',     icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+    { id: 5, title: 'Ayuda',         icon: 'help-circle-outline', onPress: () => navigation.navigate('Help') },
+  ];
+
   const menuSections = [
-    {
-      title: 'Perfil',
-      items: [
-        { id: 1, title: 'Editar Perfil',  subtitle: 'Cambiá tu foto, nombre y datos', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, title: 'Mis Vehículos',  subtitle: 'Administrá tus vehículos',        icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
-        { id: 3, title: 'Mi saldo',       subtitle: 'Lo que debés por los asientos ocupados', icon: 'receipt-outline', onPress: () => navigation.navigate('Saldo') },
-      ],
-    },
     {
       title: 'Privacidad',
       items: [
@@ -134,7 +134,6 @@ const ProfileScreen = () => {
         { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
         { id: 11, title: 'Política de Privacidad', subtitle: 'Cómo usamos tus datos personales',  icon: 'shield-outline',        onPress: () => navigation.navigate('Privacy') },
         { id: 12, title: 'Cookies',                subtitle: 'Información sobre almacenamiento', icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
-        { id: 5,  title: 'Ayuda',                  subtitle: 'Resolvé tus dudas frecuentes',      icon: 'help-circle-outline',   onPress: () => navigation.navigate('Help') },
         { id: 9, title: 'Mostrar introducción',   subtitle: 'Volvé a ver el tutorial de la app', icon: 'book-outline',          onPress: () => resetTutorial() },
         {
           id: 6,
@@ -204,11 +203,33 @@ const ProfileScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textPrimary]} />}
       >
 
-        {/* Header */}
+        {/* Header: nombre a la izquierda, avatar chico a la derecha (antes era al
+            revés — avatar grande y centrado, como una portada más que un perfil). */}
         <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>
+              {user?.firstName} {user?.lastName}
+            </Text>
+            <View style={styles.ratingRow}>
+              <Rating rating={user?.rating} count={user?.ratingCount} size={14} />
+            </View>
+            {(user?.discountPercentage ?? 0) > 0 && (() => {
+              const pct = user.discountPercentage;
+              const count = Math.round(pct / 20) || 1;
+              return (
+                <View style={[styles.discountBadge, { backgroundColor: ui.invertBg }]}>
+                  <Ionicons name="pricetag" size={13} color={ui.invertText} />
+                  <Text style={[styles.discountText, { color: ui.invertText }]}>
+                    {count} descuento{count !== 1 ? 's' : ''} activo{count !== 1 ? 's' : ''} · {pct}% de ahorro
+                  </Text>
+                </View>
+              );
+            })()}
+          </View>
+
           {authLoading && !user ? (
             <View style={[styles.avatarPlaceholder, { backgroundColor: cardBg, borderColor: border }]}>
-              <ActivityIndicator size="large" color={textMuted} />
+              <ActivityIndicator size="small" color={textMuted} />
             </View>
           ) : avatarSource ? (
             <TouchableOpacity
@@ -233,7 +254,7 @@ const ProfileScreen = () => {
                 />
                 {avatarImageLoading ? (
                   <View style={[styles.avatarImageLoader, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.65)' }]}>
-                    <ActivityIndicator size="large" color={ui.invertBg} />
+                    <ActivityIndicator size="small" color={ui.invertBg} />
                   </View>
                 ) : null}
               </View>
@@ -243,47 +264,39 @@ const ProfileScreen = () => {
               <Text style={[styles.avatarInitials, { color: textPrimary }]}>{initials}</Text>
             </View>
           )}
-          <Text style={[styles.name, { color: textPrimary }]}>
-            {user?.firstName} {user?.lastName}
-          </Text>
-          <Text style={[styles.email, { color: textMuted }]}>{user?.email}</Text>
-          {/* Solo el número: sin toque, sin lista de reseñas una por una. Leer lo que
-              escribieron sobre uno no suma nada bueno acá. */}
-          <View style={styles.ratingRow}>
-            <Rating rating={user?.rating} count={user?.ratingCount} size={15} />
-          </View>
-          {/* {user?.gender ? (
-            <Text style={[styles.email, { color: textMuted, marginTop: 6 }]}>
-              Sexo: {user.gender === 'female' ? 'Femenino' : user.gender === 'male' ? 'Masculino' : user.gender}
-            </Text>
-          ) : null} */}
-
-          {(user?.discountPercentage ?? 0) > 0 && (() => {
-            const pct = user.discountPercentage;
-            const count = Math.round(pct / 20) || 1;
-            return (
-              <View style={[styles.discountBadge, { backgroundColor: ui.invertBg }]}>
-                <Ionicons name="pricetag" size={13} color={ui.invertText} />
-                <Text style={[styles.discountText, { color: ui.invertText }]}>
-                  {count} descuento{count !== 1 ? 's' : ''} activo{count !== 1 ? 's' : ''} · {pct}% de ahorro
-                </Text>
-              </View>
-            );
-          })()}
         </View>
 
-        {/* Menu */}
+        {/* Accesos rápidos: los 4 destinos que más se usan, en grid, sin subtítulo
+            ni flecha — el resto de las opciones ya se explican solas en la lista. */}
+        <View style={styles.quickGrid}>
+          {quickAccessItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.quickItem, { backgroundColor: cardBg }]}
+              onPress={item.onPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={item.icon} size={19} color={textPrimary} />
+              <Text style={[styles.quickItemText, { color: textPrimary }]} numberOfLines={1}>
+                {item.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Menu: lista plana, sin tarjeta con borde alrededor — solo separadores
+            finitos entre filas, como el resto de las opciones de cuenta en Uber. */}
         <View style={styles.menuContent}>
           {menuSections.map((section) => (
             <View key={section.title} style={styles.section}>
               <Text style={[styles.sectionLabel, { color: sectionMenuTitleColor }]}>{section.title}</Text>
-              <View style={[styles.sectionCard, { backgroundColor: cardBg, borderColor: border }]}>
+              <View>
                 {section.items.map((item, index) => (
                   <TouchableOpacity
                     key={item.id}
                     style={[
                       styles.menuItem,
-                      index < section.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
+                      index < section.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
                     ]}
                     onPress={item.onPress}
                     activeOpacity={0.7}
@@ -291,7 +304,7 @@ const ProfileScreen = () => {
                     {/* El destructivo se marca invirtiendo el fondo, no con rojo. */}
                     <View style={[
                       styles.iconBox,
-                      { backgroundColor: item.danger ? ui.invertBg : divider },
+                      { backgroundColor: item.danger ? ui.invertBg : cardBg },
                     ]}>
                       <Ionicons
                         name={item.icon}
@@ -326,30 +339,33 @@ const styles = StyleSheet.create({
   container:     { flex: 1 },
   scrollContent: { paddingBottom: TAB_BAR_SPACE },
 
-  // Header
+  // Header: nombre a la izquierda, avatar chico a la derecha.
   header: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     paddingTop: 48,
-    paddingBottom: 28,
+    paddingBottom: 24,
     paddingHorizontal: 24,
+    gap: 16,
   },
+  headerText: { flex: 1 },
   avatarImageWrap: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    marginBottom: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     overflow: 'hidden',
   },
   avatarImage: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   avatarImageLoader: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 64,
+    borderRadius: 30,
   },
   avatarModalBackdrop: {
     flex: 1,
@@ -368,46 +384,65 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
   },
   avatarPlaceholder: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
   avatarInitials: {
     fontFamily: 'Sora_800ExtraBold',
-    fontSize: 44,
+    fontSize: 22,
     letterSpacing: 1,
   },
   name: {
     fontFamily: 'Sora_800ExtraBold',
-    fontSize: 26,
+    fontSize: 24,
     letterSpacing: -0.6,
-    marginBottom: 4,
-    textAlign: 'center',
+    marginBottom: 6,
   },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 8 },
-  email: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: 14,
-  },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   discountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginTop: 12,
+    marginTop: 10,
   },
   discountText: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: 13,
   },
 
-  // Menu
+  // Accesos rápidos (grid 2x2, estilo Uber)
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: 24,
+    marginBottom: 28,
+  },
+  quickItem: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+  },
+  quickItemText: {
+    flexShrink: 1,
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 14,
+  },
+
+  // Menu: lista plana, sin tarjeta contenedora.
   menuContent: { paddingHorizontal: 24 },
   section:     { marginBottom: 28 },
   sectionLabel: {
@@ -417,10 +452,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
     marginLeft: 4,
-  },
-  sectionCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
