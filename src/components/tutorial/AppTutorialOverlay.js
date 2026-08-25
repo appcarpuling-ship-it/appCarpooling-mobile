@@ -47,12 +47,14 @@ const STEPS = [
     tabNav: { tab: 'CarpoolingsTab', screen: 'Carpoolings' },
   },
   {
-    key: 'chat',
-    icon: 'chatbubbles',
-    illustration: require('../../../assets/illustrations/tutorial-chat.png'),
-    title: 'Mensajes',
-    body: 'Coordiná con conductores y pasajeros. Tus conversaciones aparecen acá, con aviso cuando hay mensajes nuevos.',
-    tabNav: { tab: 'ChatsTab', screen: 'Chats' },
+    key: 'history',
+    icon: 'time',
+    // No hay ilustración propia para Historial todavía; se reusa la de Viajes
+    // compartidos por ser la más cercana en tema. Cambiar si se genera una.
+    illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
+    title: 'Historial',
+    body: 'Acá vas a encontrar todo lo que hiciste: los viajes que ofreciste como conductor y las reservas que hiciste como pasajero.',
+    tabNav: { tab: 'HistoryTab', screen: 'History' },
   },
   {
     key: 'profile',

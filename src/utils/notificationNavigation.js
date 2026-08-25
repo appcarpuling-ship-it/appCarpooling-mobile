@@ -61,19 +61,25 @@ function navigateToChat(navigation, conversationId, otherUser, useMainStack) {
       otherUser: otherUser || {},
     },
   };
+  // El tab de Mensajes se sacó de la barra; ChatDetail sigue registrada en
+  // HomeStackNavigator (y en el resto de los stacks), así que el chat puntual
+  // se abre igual, solo que resuelto a través del tab de Inicio.
   if (useMainStack) {
-    navigation.navigate('Main', { screen: 'ChatsTab', params: chatParams });
+    navigation.navigate('Main', { screen: 'HomeTab', params: chatParams });
   } else {
-    navigation.navigate('ChatsTab', chatParams);
+    navigation.navigate('HomeTab', chatParams);
   }
 }
 
+// La bandeja general de conversaciones ya no vive en ningún tab (se sacó a
+// pedido del usuario). Sin un conversationId puntual no hay a dónde abrir el
+// chat, así que esto simplemente lleva a Inicio en vez de fallar en silencio.
 function navigateToChats(navigation, useMainStack) {
-  const params = { screen: 'Chats', initial: false };
+  const params = { screen: 'Home', initial: false };
   if (useMainStack) {
-    navigation.navigate('Main', { screen: 'ChatsTab', params });
+    navigation.navigate('Main', { screen: 'HomeTab', params });
   } else {
-    navigation.navigate('ChatsTab', params);
+    navigation.navigate('HomeTab', params);
   }
 }
 

@@ -300,29 +300,29 @@ const GUIDES = {
     ],
   },
 
+  // Ya no hay una pestaña de Mensajes: el chat se abre desde el detalle de un
+  // viaje o desde el perfil de otro usuario, según el contexto. Sin un lugar fijo
+  // no hay un tab al que mandar al usuario, así que estos pasos no navegan.
   chats: {
     id: 'chats',
     steps: [
       {
         key: 'ch1',
         icon: 'chatbubbles-outline',
-        title: 'Pestaña Mensajes',
-        body: 'La «» en la barra inferior agrupa tus conversaciones con otros usuarios: conductor o pasajeros según el contexto.',
-        nav: { main: { tab: 'ChatsTab', screen: 'Chats' } },
+        title: 'Dónde está el chat',
+        body: 'No hay una pestaña propia para los mensajes: se abre desde el detalle de un viaje (botón para hablar con el conductor o el pasajero) o desde el perfil de esa persona.',
       },
       {
         key: 'ch2',
         icon: 'mail-unread-outline',
-        title: 'Lista de conversaciones',
-        body: 'Vas a ver cada hilo ordenado (a veces con «» si hay mensajes sin leer). Tocá una conversación para abrirla y responder.',
-        nav: { main: { tab: 'ChatsTab', screen: 'Chats' } },
+        title: 'Una conversación por viaje',
+        body: 'Cada conversación queda asociada al viaje en el que se originó. Para retomarla, volvé a entrar al detalle de ese viaje.',
       },
       {
         key: 'ch3',
         icon: 'information-circle-outline',
         title: 'Buenas prácticas',
         body: 'Acordá lugar y hora por chat, respetá el precio publicado y avisá con tiempo si algo cambia. El chat es la herramienta principal para que el carpool funcione sin fricción.',
-        nav: { main: { tab: 'ChatsTab', screen: 'Chats' } },
       },
     ],
   },

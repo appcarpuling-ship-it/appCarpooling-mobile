@@ -3,14 +3,13 @@ import { Keyboard, Platform } from 'react-native';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import { useNotifications } from '../context/NotificationContext';
 import FloatingTabBar from '../components/ui/FloatingTabBar';
 
 // Stack Navigators
 import HomeStackNavigator from './stacks/HomeStackNavigator';
 import CarpoolingsStackNavigator from './stacks/CarpoolingsStackNavigator';
-import ChatStackNavigator from './stacks/ChatStackNavigator';
+import HistoryStackNavigator from './stacks/HistoryStackNavigator';
 import ProfileStackNavigator from './stacks/ProfileStackNavigator';
 import AssistantStackNavigator from './stacks/AssistantStackNavigator';
 import UnreadNewsModalLayer from '../components/modals/UnreadNewsModalLayer';
@@ -24,12 +23,11 @@ const TAB_ROOT = {
   HomeTab: 'Home',
   CarpoolingsTab: 'Carpoolings',
   AssistantTab: 'Assistant',
-  ChatsTab: 'Chats',
+  HistoryTab: 'History',
   ProfileTab: 'Profile',
 };
 
 const MainTabNavigator = () => {
-  const { unreadCount } = useUnreadMessages();
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
   const { tutorialReady, tutorialCompleted, completeTutorial } = useTutorial();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -50,7 +48,7 @@ const MainTabNavigator = () => {
     <>
     <Tab.Navigator
       id="MainTabs"
-      tabBar={(props) => <FloatingTabBar {...props} unreadCount={unreadCount} />}
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={({ route }) => {
         // La barra vive solo en la raíz de cada tab. Adentro de un stack
         // (detalle, formulario, mapa) estorba: tapa el final del scroll y
@@ -96,35 +94,21 @@ const MainTabNavigator = () => {
         options={{ tabBarLabel: 'Asistente' }}
       />
       <Tab.Screen
-        name="ChatsTab"
-        component={ChatStackNavigator}
-        options={{ tabBarLabel: 'Mensajes' }}
-        listeners={({ navigation, route }) => ({
+        name="HistoryTab"
+        component={HistoryStackNavigator}
+        options={{ tabBarLabel: 'Historial' }}
+        listeners={({ navigation }) => ({
           tabPress: (e) => {
-            e.preventDefault();
-
-            console.log('🔄 [ChatTab] Tab pressed');
             const state = navigation.getState();
             const currentRoute = state.routes[state.index];
+            const leavingOtherTab = currentRoute.name !== 'HistoryTab';
+            const inner = currentRoute.state;
+            const nestedInHistory =
+              currentRoute.name === 'HistoryTab' && inner && inner.index > 0;
 
-            console.log('📍 [ChatTab] Current route:', currentRoute.name);
-
-            if (currentRoute.name === 'ChatsTab') {
-              const chatTabState = currentRoute.state;
-              console.log('📚 [ChatTab] Internal state:', chatTabState);
-
-              if (chatTabState && chatTabState.index > 0) {
-                console.log('↩️ [ChatTab] Navegando a inicio del stack');
-                navigation.navigate('ChatsTab', {
-                  screen: 'Chats',
-                  params: { reset: true }
-                });
-              } else {
-                console.log('🏠 [ChatTab] Ya en pantalla principal');
-              }
-            } else {
-              console.log('🔄 [ChatTab] Navegando al tab');
-              navigation.navigate('ChatsTab', { screen: 'Chats' });
+            if (leavingOtherTab || nestedInHistory) {
+              e.preventDefault();
+              navigation.navigate('HistoryTab', { screen: 'History' });
             }
           },
         })}

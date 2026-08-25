@@ -11,7 +11,7 @@ const RUMBO_BLACK = require('../../../assets/agent/rumbo_black_128.png');
 const ICONS = {
   HomeTab:        ['home-outline', 'home'],
   CarpoolingsTab: ['car-outline', 'car'],
-  ChatsTab:       ['chatbubbles-outline', 'chatbubbles'],
+  HistoryTab:     ['time-outline', 'time'],
   ProfileTab:     ['person-outline', 'person'],
 };
 
@@ -27,7 +27,7 @@ const SHOW_RUMBO = false;
 // que la última card se pueda scrollear por encima de la barra.
 export const TAB_BAR_SPACE = 104;
 
-const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => {
+const FloatingTabBar = ({ state, descriptors, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
 
@@ -82,7 +82,6 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
             }
 
             const [outline, solid] = ICONS[route.name] ?? ICONS.HomeTab;
-          const showBadge = route.name === 'ChatsTab' && unreadCount > 0;
 
           return (
             <TouchableOpacity
@@ -103,11 +102,6 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
                     size={20}
                     color={isFocused ? activeFg : inactiveFg}
                   />
-                  {showBadge && (
-                    <View style={[styles.badge, { borderColor: barBg }]}>
-                      <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                    </View>
-                  )}
                 </View>
                 <Text
                   style={[styles.tabLabel, { color: isFocused ? activeFg : inactiveFg }]}
@@ -170,9 +164,6 @@ const styles = StyleSheet.create({
   fabLayer:  { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },
   fab:       { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   fabAvatar:    { width: 34, height: 34, borderRadius: 999 },
-  // Solo el avatar se atenúa; el círculo queda opaco para no dejar pasar el fondo
-  badge:     { position: 'absolute', top: 2, right: 4, minWidth: 17, height: 17, borderRadius: 999, borderWidth: 2, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeText: { fontFamily: 'Sora_700Bold', fontSize: 9, color: '#000000' },
 });
 
 export default FloatingTabBar;

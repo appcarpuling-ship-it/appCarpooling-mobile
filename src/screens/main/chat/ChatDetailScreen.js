@@ -189,11 +189,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
-            // ChatDetail siempre se empuja sobre el stack actual (Chats, o el
-            // detalle del viaje si venís de afuera): goBack vuelve al origen sin
-            // el bucle que causaba saltar al ChatsTab.
+            // ChatDetail siempre se empuja sobre el stack actual (Inicio, o el
+            // detalle del viaje si venís de afuera): goBack vuelve al origen. El
+            // tab de Mensajes ya no existe, así que el fallback es Inicio.
             if (navigation.canGoBack()) navigation.goBack();
-            else navigation.navigate('Chats');
+            else navigation.navigate('Home');
           }}
           activeOpacity={0.7}
         >
