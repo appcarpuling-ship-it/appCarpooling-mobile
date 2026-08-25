@@ -1483,6 +1483,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    // La primera "section" de abajo (precio, gastos compartidos o conductor, según el
+    // viaje) no tiene marginTop propio — solo marginBottom entre secciones consecutivas,
+    // así que sin esto quedaba pegada justo al borde de esta fila.
+    marginBottom: 12,
     gap: 0,
   },
   metaItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -177,7 +178,7 @@ const ProfileScreen = () => {
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
       <Modal
         visible={avatarPreviewVisible}
         transparent
@@ -336,7 +337,7 @@ const ProfileScreen = () => {
         </View>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingTop: 48,
+    paddingTop: 20,
     paddingBottom: 24,
     paddingHorizontal: 24,
     gap: 16,

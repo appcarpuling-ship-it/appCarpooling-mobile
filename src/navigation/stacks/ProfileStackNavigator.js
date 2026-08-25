@@ -58,7 +58,9 @@ const ProfileStackNavigator = () => {
       <Stack.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: 'Mi Perfil' }}
+        // ProfileScreen ya tiene su propio header (nombre + avatar, del rediseño): el nativo
+        // con "Mi Perfil" quedaba duplicado arriba de todo, como el resto de las raíces de tab.
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="EditProfile"
