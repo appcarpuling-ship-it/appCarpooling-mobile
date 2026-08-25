@@ -758,6 +758,15 @@ const TripMapScreen = ({ route, navigation }) => {
 
   const vehiclePhotoPaths = useMemo(() => collectVehiclePhotoPaths(trip?.vehicle), [trip?.vehicle]);
 
+  // Objeto nuevo en cada render si no se memoiza — y con el viaje en curso, TripMapScreen
+  // se re-renderiza cada vez que llega una ubicación del conductor (cada ~8s, ver el
+  // watchPositionAsync de arriba), sostenido durante todo el tiempo que la pantalla queda
+  // abierta. Solo depende de sheetHeight: sin motivo para recrearlo en cada tick de GPS.
+  const mapPadding = useMemo(
+    () => ({ top: 0, right: 0, bottom: sheetHeight, left: 0 }),
+    [sheetHeight]
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -772,7 +781,7 @@ const TripMapScreen = ({ route, navigation }) => {
         // controles nativos (brújula, etc). El reencuadre real, con el trazado, lo hace
         // fitToAndRemember/onSheetSnap — esto es sólo para que esos controles no queden
         // atrás del sheet.
-        mapPadding={{ top: 0, right: 0, bottom: sheetHeight, left: 0 }}
+        mapPadding={mapPadding}
         // El punto nativo es la ubicación propia, y el pasajero no la necesita acá: ya ve al
         // conductor, que es lo que le importa. Para el conductor, salvo cuando lo dibujamos
         // nosotros (abajo): el SDK lo pinta por encima de los overlays pero POR DEBAJO de los
