@@ -18,6 +18,10 @@ const ICONS = {
 // Rumbo va al medio y sobresale del pill, como el botón central de la referencia.
 const CENTER_TAB = 'AssistantTab';
 
+// ponytail: oculto a pedido del usuario, sin sacar la pantalla ni la ruta. Volver a
+// mostrarlo es cambiar esto a true.
+const SHOW_RUMBO = false;
+
 // Alto que ocupa la barra flotante (18 que sobresale el botón + 70 de la barra
 // + separación de abajo). Las pantallas raíz lo usan como paddingBottom para
 // que la última card se pueda scrollear por encima de la barra.
@@ -71,7 +75,7 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
             // El botón se dibuja fuera de la barra (abajo): acá solo se le
             // reserva el lugar en la fila.
             if (route.name === CENTER_TAB) {
-              return <View key={route.key} style={styles.fabSpacer} />;
+              return SHOW_RUMBO ? <View key={route.key} style={styles.fabSpacer} /> : null;
             }
 
             const [outline, solid] = ICONS[route.name] ?? ICONS.HomeTab;
@@ -109,23 +113,25 @@ const FloatingTabBar = ({ state, descriptors, navigation, unreadCount = 0 }) => 
         </View>
 
         {/* El botón, fuera de la barra para que el recorte no lo tape */}
-        <View pointerEvents="box-none" style={styles.fabLayer}>
-          <TouchableOpacity
-            onPress={() => onPress(centerRoute, centerFocused)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityState={{ selected: centerFocused }}
-            accessibilityLabel="Rumbo"
-            // Opacidad siempre 1: al bajarla, la parte que sobresale de la barra
-            // dejaba pasar el fondo. El estado activo lo marca el avatar.
-            style={[styles.fab, { backgroundColor: fabBg }]}
-          >
-            <Image
-              source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
-              style={styles.fabAvatar}
-            />
-          </TouchableOpacity>
-        </View>
+        {SHOW_RUMBO && (
+          <View pointerEvents="box-none" style={styles.fabLayer}>
+            <TouchableOpacity
+              onPress={() => onPress(centerRoute, centerFocused)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ selected: centerFocused }}
+              accessibilityLabel="Rumbo"
+              // Opacidad siempre 1: al bajarla, la parte que sobresale de la barra
+              // dejaba pasar el fondo. El estado activo lo marca el avatar.
+              style={[styles.fab, { backgroundColor: fabBg }]}
+            >
+              <Image
+                source={ui.isDarkMode ? RUMBO_BLACK : RUMBO_WHITE}
+                style={styles.fabAvatar}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
