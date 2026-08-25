@@ -360,14 +360,6 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
     );
   };
 
-  if (showSkeleton) {
-    return (
-      <View style={[styles.container, { backgroundColor: ui.bg }]}>
-        <TripListSkeleton />
-      </View>
-    );
-  }
-
   const filteredTrips = getFilteredTrips();
 
   const textPrimary = ui.invertBg;
@@ -423,7 +415,9 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
       ) : null}
 
       {/* Trips List */}
-      {filteredTrips.length > 0 ? (
+      {showSkeleton ? (
+        <TripListSkeleton />
+      ) : filteredTrips.length > 0 ? (
         <FlatList
           data={filteredTrips}
           renderItem={renderTripItem}

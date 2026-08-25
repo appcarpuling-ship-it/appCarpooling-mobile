@@ -404,14 +404,6 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     );
   };
 
-  if (showSkeleton) {
-    return (
-      <View style={[styles.container, { backgroundColor: bg }]}>
-        <TripListSkeleton />
-      </View>
-    );
-  }
-
   const visibles = bookings.filter((b) => (activeTab === 'past' ? esPasada(b) : !esPasada(b)));
 
   return (
@@ -445,7 +437,9 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
         </>
       )}
 
-      {visibles.length > 0 ? (
+      {showSkeleton ? (
+        <TripListSkeleton />
+      ) : visibles.length > 0 ? (
         <FlatList
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
