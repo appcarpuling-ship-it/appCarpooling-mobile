@@ -22,6 +22,10 @@ const HistoryScreen = (props) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: ui.bg }]} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: ui.text }]}>Historial</Text>
+      </View>
+
       <View style={styles.switchWrap}>
         <View style={[styles.pill, { backgroundColor: ui.surface }]}>
           {sections.map(({ key, label }) => (
@@ -50,7 +54,9 @@ const HistoryScreen = (props) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  switchWrap: { paddingTop: 8, paddingHorizontal: 24, paddingBottom: 4 },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20 },
+  title: { fontFamily: 'Sora_800ExtraBold', fontSize: 28, letterSpacing: -0.6 },
+  switchWrap: { paddingHorizontal: 24, paddingBottom: 4 },
   pill: { flexDirection: 'row', borderRadius: 999, padding: 4 },
   pillItem: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
   pillText: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
