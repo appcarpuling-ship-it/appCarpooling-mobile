@@ -23,7 +23,13 @@ const HistoryScreen = (props) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: ui.bg }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: ui.text }]}>Historial</Text>
+        <Text style={[styles.title, { color: ui.text }]}>
+          Revisá{'\n'}
+          <Text style={styles.titleStrong}>tu historial</Text>
+        </Text>
+        <Text style={[styles.subtitle, { color: ui.textMuted }]}>
+          Los viajes y reservas que ya pasaron.
+        </Text>
       </View>
 
       <View style={styles.switchWrap}>
@@ -54,8 +60,10 @@ const HistoryScreen = (props) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 20 },
-  title: { fontFamily: 'Sora_800ExtraBold', fontSize: 28, letterSpacing: -0.6 },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24 },
+  title: { fontFamily: 'Sora_300Light', fontSize: 34, lineHeight: 42, letterSpacing: -1 },
+  titleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  subtitle: { fontFamily: 'Sora_400Regular', fontSize: 15, marginTop: 12 },
   switchWrap: { paddingHorizontal: 24, paddingBottom: 4 },
   pill: { flexDirection: 'row', borderRadius: 999, padding: 4 },
   pillItem: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
