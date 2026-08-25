@@ -57,6 +57,20 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
   const hasActiveFilters = originProvince || originCity || destinationProvince || destinationCity || selectedDate;
 
+  /**
+   * "Concordia" sola no ubica a nadie: hay ciudades homónimas en varias provincias. Se
+   * omite la provincia si ya está escrita adentro de la ciudad (o al revés), porque en
+   * CABA vienen prácticamente iguales y quedaba repetido.
+   */
+  const cityWithProvince = (loc) => {
+    const city = String(loc?.city || '').trim();
+    const province = String(loc?.province || '').trim();
+    if (!province || !city) return city || province;
+    if (city.toLowerCase().includes(province.toLowerCase())) return city;
+    if (province.toLowerCase().includes(city.toLowerCase())) return province;
+    return `${city}, ${province}`;
+  };
+
   const clearFilters = () => {
     setOriginProvince(''); setOriginCity('');
     setDestinationProvince(''); setDestinationCity('');
@@ -236,14 +250,20 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           </View>
           <View style={styles.routeInfo}>
             <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={2}>
-              {item.origin?.address || item.origin?.city}
+            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={1}>
+              {cityWithProvince(item.origin) || item.origin?.address}
             </Text>
+            {!!item.origin?.address && item.origin.address !== item.origin?.city && (
+              <Text style={[styles.routeAddress, { color: tripRouteMuted }]} numberOfLines={1}>{item.origin.address}</Text>
+            )}
             <View style={{ height: 14 }} />
             <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={2}>
-              {item.destination?.address || item.destination?.city}
+            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={1}>
+              {cityWithProvince(item.destination) || item.destination?.address}
             </Text>
+            {!!item.destination?.address && item.destination.address !== item.destination?.city && (
+              <Text style={[styles.routeAddress, { color: tripRouteMuted }]} numberOfLines={1}>{item.destination.address}</Text>
+            )}
           </View>
         </View>
 
@@ -429,6 +449,7 @@ const styles = StyleSheet.create({
   routeInfo:       { flex: 1 },
   routeLabel:      { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   routeValue:      { fontSize: 14, fontFamily: 'Sora_500Medium' },
+  routeAddress:    { fontSize: 12, marginTop: 1 },
   footer:          { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth },
   footerItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerText:      { fontSize: 12 },
