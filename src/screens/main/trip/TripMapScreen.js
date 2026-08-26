@@ -848,7 +848,7 @@ const TripMapScreen = ({ route, navigation }) => {
           >
             <View style={styles.routeLabelWrap}>
               <View style={[styles.routeLabel, { backgroundColor: cardBg, borderColor: ui.border }]}>
-                <Text style={[styles.routeLabelText, { color: textPrimary }]} numberOfLines={1}>
+                <Text style={[styles.routeLabelText, { color: textPrimary }]} numberOfLines={2}>
                   {point.address}
                 </Text>
               </View>
@@ -1242,14 +1242,15 @@ const styles = StyleSheet.create({
   driverCarIcon: { width: 42, height: 42 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   // marginBottom = radio del pin (13) + separación (6): deja la etiqueta pegada justo
-  // arriba del círculo sin importar cuánto texto tenga (numberOfLines={1} la mantiene a una línea).
+  // arriba del círculo sin importar cuánto texto tenga (el marginBottom no depende de la
+  // altura del label, así que da igual si el texto ocupa una línea o dos).
   routeLabelWrap: { alignItems: 'center', marginBottom: 19 },
   routeLabel: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    maxWidth: 140,
+    maxWidth: 170,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
