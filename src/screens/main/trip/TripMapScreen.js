@@ -49,6 +49,16 @@ const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
  * genérica. Un auto de verdad se lee más rápido de un vistazo en un mapa lleno de otras cosas. */
 const CAR_ICON = require('../../../../assets/icons/icon-carr.png');
 
+/**
+ * Con el mapa alejado (por ejemplo encuadrando un viaje de un pueblo a otro), dos paradas de
+ * la misma ciudad quedan a pocos píxeles y sus etiquetas de calle se pisan. En vez de calcular
+ * colisiones reales, se las oculta mientras el mapa esté demasiado alejado como para que se
+ * lean solas — quedan los pines numerados igual — y aparecen apenas el usuario acerca el zoom
+ * lo suficiente como para que cada una tenga lugar.
+ */
+const LABEL_ZOOM_THRESHOLD = 0.05;
+const zoomAlcanzaParaEtiquetas = (region) => (region?.latitudeDelta ?? 0) <= LABEL_ZOOM_THRESHOLD;
+
 const TripMapScreen = ({ route, navigation }) => {
   // `route.params.trip` es una foto fija de cuando se navegó acá. Si el conductor inició el
   // viaje DESPUÉS de que esa pantalla lo cargara (el caso típico: el pasajero ya tenía el
@@ -719,6 +729,11 @@ const TripMapScreen = ({ route, navigation }) => {
     ? { latitude: originCoords.latitude, longitude: originCoords.longitude, latitudeDelta: 0.5, longitudeDelta: 0.5 }
     : { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 2, longitudeDelta: 2 };
 
+  // Arranca calculado desde el encuadre inicial (normalmente alejado, así que en falso) para
+  // no mostrar las etiquetas ni un instante antes de esconderlas de nuevo apenas se conoce el
+  // zoom real.
+  const [zoomedInEnough, setZoomedInEnough] = useState(() => zoomAlcanzaParaEtiquetas(initialRegion));
+
   /**
    * Contenido del sheet de abajo. Estilo Uber: un peek con lo justo para no perder de vista
    * el viaje, un medio con el resumen (a quién le pagás/quién te paga, el recorrido), y un
@@ -792,6 +807,7 @@ const TripMapScreen = ({ route, navigation }) => {
         // `isGesture` distingue el arrastre del usuario de los movimientos que hacemos
         // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
         onRegionChangeComplete={(r, detalles = {}) => {
+          setZoomedInEnough(zoomAlcanzaParaEtiquetas(r));
           if (!detalles.isGesture || !siguiendoRef.current) return;
           siguiendoRef.current = false;
           setSiguiendo(false);
@@ -837,8 +853,10 @@ const TripMapScreen = ({ route, navigation }) => {
         {/* Calle arriba de cada pin, como en Uber: de un vistazo se sabe qué es cada número
             sin tener que abrir la ficha de abajo. Marker aparte del pin (mismo coordinate,
             anchor abajo + marginBottom fijo) en vez de un solo marker con label+pin apilados:
-            así el pin no se corre de su lugar exacto sin importar cuánto texto tenga la etiqueta. */}
-        {routePoints.map((point, i) => (
+            así el pin no se corre de su lugar exacto sin importar cuánto texto tenga la etiqueta.
+            Solo con zoom suficiente: alejado, paradas de la misma ciudad quedan a pocos
+            píxeles y las etiquetas se pisan entre sí — el pin numerado sigue ahí igual. */}
+        {zoomedInEnough && routePoints.map((point, i) => (
           <Marker
             key={`lbl-${i}-${mapReady}`}
             coordinate={point.coordinate}
