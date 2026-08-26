@@ -23,10 +23,13 @@ const BANNER_HEIGHT = 150;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import MapView from 'react-native-maps';
+import { MAP_PROVIDER } from '../../../utils/mapProvider';
+import RutaPolyline from '../../../components/map/RutaPolyline';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
-import { buildRoutePoints } from '../../../utils/routePoints';
+import { buildRoutePoints, decodePolyline } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
 import socketService from '../../../services/socketService';
 import { ENDPOINTS } from '../../../config/api';
@@ -653,6 +656,41 @@ const TripDetailScreen = ({ route, navigation }) => {
   };
   const statusCfg = statusMap[trip.status];
 
+  // Preview del mapa arriba de todo, como contexto visual inmediato en vez de un botón
+  // perdido en el medio de la pantalla. No interactivo (sin scroll/zoom): es una foto del
+  // trazado, tocarla lleva al mapa de verdad (TripMapScreen).
+  const originCoords = trip.origin?.coordinates;
+  const destCoords = trip.destination?.coordinates;
+  const hasMapPreview = Boolean(originCoords?.latitude && destCoords?.latitude);
+  const straightLine = hasMapPreview
+    ? [
+        { latitude: originCoords.latitude, longitude: originCoords.longitude },
+        { latitude: destCoords.latitude, longitude: destCoords.longitude },
+      ]
+    : [];
+  // Si el polyline guardado viniera vacío o corrupto, mejor la línea recta que
+  // reventar el cálculo de región de más abajo con un min/max de un array vacío.
+  const decodedPolyline = trip.routePolyline ? decodePolyline(trip.routePolyline) : [];
+  const previewCoordinates = decodedPolyline.length >= 2 ? decodedPolyline : straightLine;
+  const previewRegion = hasMapPreview
+    ? (() => {
+        const lats = previewCoordinates.map((p) => p.latitude);
+        const lngs = previewCoordinates.map((p) => p.longitude);
+        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+        // Piso de zoom para que dos puntos casi pegados (mismo barrio) no queden con
+        // el mapa pegado encima, sin lugar para ubicarse.
+        const latitudeDelta = Math.max((maxLat - minLat) * 1.5, 0.03);
+        const longitudeDelta = Math.max((maxLng - minLng) * 1.5, 0.03);
+        return {
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLng + maxLng) / 2,
+          latitudeDelta,
+          longitudeDelta,
+        };
+      })()
+    : null;
+
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView
@@ -675,7 +713,46 @@ const TripDetailScreen = ({ route, navigation }) => {
           />
         }
       >
-        {statusCfg && (
+        {/* Mapa arriba de todo: contexto visual inmediato en vez de un botón perdido en el
+            medio de la pantalla. No interactivo (sin scroll/zoom) — es una foto del trazado,
+            tocarla lleva al mapa de verdad. El estado y "abrir en Google Maps" flotan encima. */}
+        {hasMapPreview && (
+          <TouchableOpacity
+            style={styles.mapPreviewWrap}
+            onPress={() => navigation.navigate('TripMap', { trip })}
+            activeOpacity={0.9}
+          >
+            <MapView
+              provider={MAP_PROVIDER}
+              style={styles.mapPreview}
+              initialRegion={previewRegion}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              pointerEvents="none"
+            >
+              <RutaPolyline coordinates={previewCoordinates} width={4} color={dark ? '#FFFFFF' : '#000000'} />
+            </MapView>
+            {statusCfg && (
+              <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? accentInverse : textMuted }]} />
+                <Text style={[styles.statusText, { color: statusCfg.solid ? accentInverse : textMuted }]}>{statusCfg.label}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.mapPreviewGoogleBtn, { backgroundColor: cardBg }]}
+              onPress={(e) => { e.stopPropagation(); abrirEnGoogleMaps(); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="navigate-outline" size={16} color={textPrimary} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+
+        {/* Sin coordenadas para el preview (viaje viejo, sin geocodificar): el estado igual
+            tiene que verse en algún lado. */}
+        {!hasMapPreview && statusCfg && (
           <View style={styles.statusRow}>
             <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
               <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? accentInverse : textMuted }]} />
@@ -683,6 +760,71 @@ const TripDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         )}
+
+        {/* Cabecera: conductor, fecha/hora/asientos y precio, todo junto. Antes eran 3
+            tarjetas separadas repitiendo la misma info del viaje en compartimentos distintos. */}
+        <View style={[styles.section, { backgroundColor: cardBg }, !hasMapPreview && { marginTop: 4 }]}>
+          <View style={styles.driverRow}>
+            {(() => {
+              const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
+              if (driverPhotoUri) {
+                return (
+                  <TouchableOpacity onPress={() => handleImagePress(driverPhotoUri)} activeOpacity={0.85}>
+                    <Image source={{ uri: driverPhotoUri }} style={styles.driverAvatar} />
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <View style={[styles.driverAvatarPlaceholder, { backgroundColor: bg }]}>
+                  <Text style={[styles.driverInitials, { color: textSecondary }]}>
+                    {driver?.firstName?.[0]}{driver?.lastName?.[0]}
+                  </Text>
+                </View>
+              );
+            })()}
+            <View style={styles.driverInfo}>
+              <Text style={[styles.driverName, { color: textPrimary }]}>
+                {driver?.firstName} {driver?.lastName}
+              </Text>
+              <Rating rating={driver?.rating} count={driver?.ratingCount} style={styles.driverRating} />
+            </View>
+          </View>
+
+          <View style={[styles.headerMetaRow, { borderTopColor: divider }]}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={15} color={textMuted} />
+              <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(trip.departureDate)}</Text>
+            </View>
+            <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={15} color={textMuted} />
+              <Text style={[styles.metaText, { color: textPrimary }]}>{formatDepartureTime(trip.departureTime)}</Text>
+            </View>
+            <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+            <View style={styles.metaItem}>
+              <Ionicons name="person-outline" size={15} color={textMuted} />
+              <Text style={[styles.metaText, { color: textPrimary }]}>{tripSeatsLabel(trip)}</Text>
+            </View>
+          </View>
+
+          {/* Con el viaje ya terminado no va: ahí el número que importa es "Le pagás al
+              conductor" de Tu reserva, y mostrar los dos repetía el mismo monto dos veces. */}
+          {trip?.driverPrice > 0 && trip.status !== 'completed' && (
+            <View style={[styles.headerPriceRow, { borderTopColor: divider }]}>
+              <Text style={[styles.headerPriceLabel, { color: textMuted }]}>Precio del conductor</Text>
+              <Text style={[styles.headerPriceValue, { color: textPrimary }]}>
+                ${Number(trip.driverPrice).toLocaleString('es-AR')}
+              </Text>
+            </View>
+          )}
+          {/* Carpooling real: sin precio de conductor que mostrar. */}
+          {trip?.sinPrecioFijo && trip.status !== 'completed' && (
+            <View style={[styles.headerPriceRow, { borderTopColor: divider }]}>
+              <Text style={[styles.headerPriceLabel, { color: textMuted }]}>Gastos compartidos</Text>
+              <Text style={[styles.headerPriceHint, { color: textMuted }]}>Se arreglan directo con el conductor</Text>
+            </View>
+          )}
+        </View>
 
         {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
             los asientos que reservó ESTE usuario y lo que le sale no aparecían por ningún
@@ -809,111 +951,6 @@ const TripDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           ))}
-        </View>
-
-        {/* Ver trayecto en mapa */}
-        {(trip.origin?.coordinates?.latitude || trip.destination?.coordinates?.latitude) && (
-          <TouchableOpacity
-            style={[styles.mapBtn, { borderColor: dark ? '#2E2E2E' : '#E5E7EB' }]}
-            onPress={() => navigation.navigate('TripMap', { trip })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="map-outline" size={18} color={textPrimary} />
-            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
-            <Ionicons name="chevron-forward" size={16} color={textMuted} />
-          </TouchableOpacity>
-        )}
-
-        {/* Abrir en Google Maps: pide las dos puntas, sin una no hay ruta que trazar */}
-        {trip.origin?.coordinates?.latitude && trip.destination?.coordinates?.latitude && (
-          <TouchableOpacity
-            style={[styles.mapBtn, { borderColor: dark ? '#2E2E2E' : '#E5E7EB' }]}
-            onPress={abrirEnGoogleMaps}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="navigate-outline" size={18} color={textPrimary} />
-            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Abrir en Google Maps</Text>
-            <Ionicons name="open-outline" size={16} color={textMuted} />
-          </TouchableOpacity>
-        )}
-
-        {/* Date / time / seats */}
-        <View style={[styles.metaRow, { borderBottomColor: divider }]}>
-          <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(trip.departureDate)}</Text>
-          </View>
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textPrimary }]}>{formatDepartureTime(trip.departureTime)}</Text>
-          </View>
-          <View style={[styles.metaDivider, { backgroundColor: divider }]} />
-          <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={16} color={textMuted} />
-            <Text style={[styles.metaText, { color: textPrimary }]}>
-              {tripSeatsLabel(trip)}
-            </Text>
-          </View>
-        </View>
-
-        {/* El precio del conductor, antes de todo lo demás: es lo primero que el pasajero mira
-            para decidir si sigue leyendo este viaje o vuelve al listado.
-            Con el viaje ya terminado no va: ahí el número que importa es "Le pagás al conductor"
-            de Tu reserva, y mostrar los dos repetía el mismo monto dos veces en una pantalla. */}
-        {trip?.driverPrice > 0 && trip.status !== 'completed' && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
-            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Precio del conductor</Text>
-            <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
-              ${Number(trip.driverPrice).toLocaleString('es-AR')}
-            </Text>
-          </View>
-        )}
-
-        {/* Carpooling real: no hay precio de conductor que mostrar. Va en el mismo lugar que
-            la ficha del precio, para que el pasajero no se quede preguntándose por qué no
-            aparece ningún número. */}
-        {trip?.sinPrecioFijo && trip.status !== 'completed' && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
-            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Gastos compartidos</Text>
-            <Text style={{ color: textMuted, fontSize: 14, fontFamily: 'Sora_400Regular', lineHeight: 20 }}>
-              Este viaje no tiene precio fijo. Los gastos se reparten entre todos, directo con
-              el conductor, durante el viaje.
-            </Text>
-          </View>
-        )}
-
-        {/* Driver */}
-        <View style={[styles.section, { backgroundColor: cardBg }]}>
-          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor</Text>
-          <View style={styles.driverRow}>
-            {(() => {
-              const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
-              if (driverPhotoUri) {
-                return (
-                  <TouchableOpacity onPress={() => handleImagePress(driverPhotoUri)} activeOpacity={0.85}>
-                    <Image source={{ uri: driverPhotoUri }} style={styles.driverAvatar} />
-                  </TouchableOpacity>
-                );
-              }
-              return (
-                <View style={[styles.driverAvatarPlaceholder, { backgroundColor: cardBg }]}>
-                  <Text style={[styles.driverInitials, { color: textSecondary }]}>
-                    {driver?.firstName?.[0]}{driver?.lastName?.[0]}
-                  </Text>
-                </View>
-              );
-            })()}
-            <View style={styles.driverInfo}>
-              <Text style={[styles.driverName, { color: textPrimary }]}>
-                {driver?.firstName} {driver?.lastName}
-              </Text>
-              <Rating rating={driver?.rating} count={driver?.ratingCount} style={styles.driverRating} />
-              <Text style={[styles.driverPhotoHint, { color: textMuted }]}>
-                {driver?.avatar ? 'Toca para ampliar' : ''}
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Vehicle — galería con todas las fotos */}
@@ -1519,7 +1556,6 @@ const styles = StyleSheet.create({
   driverInfo: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   driverRating: { marginTop: 3 },
-  driverPhotoHint: { fontSize: 12, marginTop: 4 },
 
   // Vehicle
   vehiclePhotosScroll: {
@@ -1585,15 +1621,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
 
-  mapBtn: {
+  // Map preview
+  mapPreviewWrap: {
+    height: 200,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  mapPreview: { ...StyleSheet.absoluteFillObject },
+  mapPreviewBadge: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    gap: 6,
   },
-  mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+  mapPreviewGoogleBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Cabecera consolidada (conductor + fecha/hora/asientos + precio)
+  headerMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  headerPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  headerPriceLabel: { fontSize: 13, fontFamily: 'Sora_500Medium' },
+  headerPriceValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  headerPriceHint: { fontSize: 12 },
 
   // Footer
   footer: {
