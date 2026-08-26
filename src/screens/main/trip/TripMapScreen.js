@@ -865,8 +865,8 @@ const TripMapScreen = ({ route, navigation }) => {
             tracksViewChanges={marcadoresVivos}
           >
             <View style={styles.routeLabelWrap}>
-              <View style={[styles.routeLabel, { backgroundColor: cardBg, borderColor: ui.border }]}>
-                <Text style={[styles.routeLabelText, { color: textPrimary }]} numberOfLines={2}>
+              <View style={styles.routeLabel}>
+                <Text style={styles.routeLabelText} numberOfLines={2}>
                   {point.address}
                 </Text>
               </View>
@@ -1259,23 +1259,26 @@ const styles = StyleSheet.create({
   routeMarkerEnd: { backgroundColor: '#010101' },
   driverCarIcon: { width: 42, height: 42 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
-  // marginBottom = radio del pin (13) + separación (6): deja la etiqueta pegada justo
-  // arriba del círculo sin importar cuánto texto tenga (el marginBottom no depende de la
-  // altura del label, así que da igual si el texto ocupa una línea o dos).
-  routeLabelWrap: { alignItems: 'center', marginBottom: 19 },
+  // marginBottom = radio del pin (13) + separación (9): deja la etiqueta arriba del círculo,
+  // con aire, sin importar cuánto texto tenga (el marginBottom no depende de la altura del
+  // label, así que da igual si el texto ocupa una línea o dos).
+  routeLabelWrap: { alignItems: 'center', marginBottom: 22 },
+  // Blanco fijo y no del tema: sobre un mapa (oscuro o claro) el contraste tiene que ser
+  // siempre el mismo, y con el fondo del tema en modo oscuro quedaba un bloque negro pesado
+  // que casi se confundía con el mapa.
   routeLabel: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxWidth: 170,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    maxWidth: 150,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.25,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 3,
   },
-  routeLabelText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
+  routeLabelText: { fontSize: 10, fontFamily: 'Sora_600SemiBold', color: '#1A1A1A' },
   navCard: {
     position: 'absolute',
     left: 16,
