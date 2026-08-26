@@ -1259,10 +1259,10 @@ const styles = StyleSheet.create({
   routeMarkerEnd: { backgroundColor: '#010101' },
   driverCarIcon: { width: 42, height: 42 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
-  // marginBottom = radio del pin (13) + separación (9): deja la etiqueta arriba del círculo,
-  // con aire, sin importar cuánto texto tenga (el marginBottom no depende de la altura del
-  // label, así que da igual si el texto ocupa una línea o dos).
-  routeLabelWrap: { alignItems: 'center', marginBottom: 22 },
+  // marginBottom = radio del pin (13) + separación (19): deja el pin completo (número
+  // incluido) a la vista debajo de la etiqueta, sin importar cuánto texto tenga (el
+  // marginBottom no depende de la altura del label, así que da igual una línea o dos).
+  routeLabelWrap: { alignItems: 'center', marginBottom: 32 },
   // Blanco fijo y no del tema: sobre un mapa (oscuro o claro) el contraste tiene que ser
   // siempre el mismo, y con el fondo del tema en modo oscuro quedaba un bloque negro pesado
   // que casi se confundía con el mapa.
