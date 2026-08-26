@@ -5,7 +5,6 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    ScrollView,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -15,6 +14,7 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -52,14 +52,6 @@ const TripDetails = ({ navigation, route }) => {
 
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
-    // El teclado tapaba los campos del paso 1 (asientos y precio), que son los últimos de la
-    // pantalla. Un setTimeout a ojo no alcanza: a veces corre antes de que el teclado termine
-    // de subir y el scroll calcula el alto viejo, así que el campo queda tapado igual.
-    // keyboardDidShow es el evento que dice "el teclado YA está arriba".
-    //
-    // La bandera es de CUALQUIER campo y no de uno en particular: parchear campo por campo es
-    // cómo el de asientos quedó tapado después de arreglar el de precio.
-    const campoEnfocado = useRef(false);
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -84,15 +76,6 @@ const TripDetails = ({ navigation, route }) => {
     });
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
-
-    // Los dos campos del paso 1 comparten esto: al enfocarse suben por encima del teclado. El
-    // scroll de acá cubre venir de otro input (teclado ya arriba); el de keyboardDidShow, el de
-    // abrirlo desde cero.
-    const enfocarCampo = () => {
-        campoEnfocado.current = true;
-        scrollRef.current?.scrollToEnd({ animated: true });
-    };
-    const desenfocarCampo = () => { campoEnfocado.current = false; };
 
     const onDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -202,14 +185,6 @@ const TripDetails = ({ navigation, route }) => {
         const sub = BackHandler.addEventListener('hardwareBackPress', volver);
         return () => sub.remove();
     }, [step]);
-
-    // Sube el precio por encima del teclado recién cuando el teclado terminó de aparecer.
-    useEffect(() => {
-        const sub = Keyboard.addListener('keyboardDidShow', () => {
-            if (campoEnfocado.current) scrollRef.current?.scrollToEnd({ animated: true });
-        });
-        return () => sub.remove();
-    }, []);
 
     const handleCreateTrip = async () => {
         const { vehicle, departureDate, departureTime, availableSeats, driverPrice } = formData;
@@ -330,12 +305,18 @@ const TripDetails = ({ navigation, route }) => {
                     style={styles.flex}
                 >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
+                    {/* Antes: scrollToEnd manual al enfocar un input. Rompía si el campo no era
+                        el último del paso (el precio dejó de serlo al sumarse "Gastos
+                        compartidos" después) — scrollToEnd se pasaba de largo y tapaba el campo
+                        real. KeyboardAwareScrollView sube exactamente hasta el input enfocado. */}
+                    <KeyboardAwareScrollView
                         ref={scrollRef}
                         style={styles.flex}
                         contentContainerStyle={styles.scroll}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
+                        enableOnAndroid
+                        extraScrollHeight={20}
                     >
 
                         {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
@@ -359,15 +340,17 @@ const TripDetails = ({ navigation, route }) => {
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <View style={styles.routeRow}>
                                 <View style={styles.routeDots}>
-                                    <View style={[styles.dot, { backgroundColor: textMuted }]} />
+                                    <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
                                     <View style={[styles.line, { backgroundColor: border }]} />
-                                    <View style={[styles.dot, { backgroundColor: textPrimary }]} />
+                                    <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
                                 </View>
                                 <View style={styles.routeLabels}>
+                                    <Text style={[styles.routeLabel, { color: textMuted }]}>Origen</Text>
                                     <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
                                         {[origin.address, origin.city, origin.province].filter(Boolean).join(', ')}
                                     </Text>
-                                    <Text style={[styles.routeText, { color: textPrimary, marginTop: 18 }]} numberOfLines={1}>
+                                    <Text style={[styles.routeLabel, { color: textMuted, marginTop: 16 }]}>Destino</Text>
+                                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
                                         {[destination.address, destination.city, destination.province].filter(Boolean).join(', ')}
                                     </Text>
                                 </View>
@@ -456,8 +439,6 @@ const TripDetails = ({ navigation, route }) => {
                                         handleChange('availableSeats', v);
                                     }}
                                     keyboardType="numeric"
-                                    onFocus={enfocarCampo}
-                                    onBlur={desenfocarCampo}
                                 />
                                 {selectedVehicle?.capacity && (
                                     <Text style={[styles.capacityHint, { color: textMuted }]}>
@@ -532,8 +513,6 @@ const TripDetails = ({ navigation, route }) => {
                                     // Es el último campo del paso y el teclado lo tapaba. El scroll
                                     // de acá cubre el caso de venir de otro input (teclado ya
                                     // arriba); el de keyboardDidShow, el de abrirlo desde cero.
-                                    onFocus={enfocarCampo}
-                                    onBlur={desenfocarCampo}
                                 />
                             </View>
                             )}
@@ -657,7 +636,7 @@ const TripDetails = ({ navigation, route }) => {
                         )}
 
 
-                    </ScrollView>
+                    </KeyboardAwareScrollView>
                     </TouchableWithoutFeedback>
 
                     {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
@@ -800,10 +779,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 3,
     },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    dotOrigin: {
+        width: 9,
+        height: 9,
+        borderRadius: 5,
+        borderWidth: 2,
+    },
+    dotDest: {
+        width: 9,
+        height: 9,
+        borderRadius: 5,
     },
     line: {
         width: 1,
@@ -814,9 +799,16 @@ const styles = StyleSheet.create({
     routeLabels: {
         flex: 1,
     },
+    routeLabel: {
+        fontSize: 11,
+        fontFamily: 'Sora_600SemiBold',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+        marginBottom: 2,
+    },
     routeText: {
         fontSize: 14,
-        fontFamily: 'Sora_500Medium',
+        fontFamily: 'Sora_600SemiBold',
     },
     routeMeta: {
         fontSize: 13,
