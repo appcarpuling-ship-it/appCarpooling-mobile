@@ -834,6 +834,28 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         ))}
 
+        {/* Calle arriba de cada pin, como en Uber: de un vistazo se sabe qué es cada número
+            sin tener que abrir la ficha de abajo. Marker aparte del pin (mismo coordinate,
+            anchor abajo + marginBottom fijo) en vez de un solo marker con label+pin apilados:
+            así el pin no se corre de su lugar exacto sin importar cuánto texto tenga la etiqueta. */}
+        {routePoints.map((point, i) => (
+          <Marker
+            key={`lbl-${i}-${mapReady}`}
+            coordinate={point.coordinate}
+            anchor={{ x: 0.5, y: 1 }}
+            zIndex={2}
+            tracksViewChanges={marcadoresVivos}
+          >
+            <View style={styles.routeLabelWrap}>
+              <View style={[styles.routeLabel, { backgroundColor: cardBg, borderColor: ui.border }]}>
+                <Text style={[styles.routeLabelText, { color: textPrimary }]} numberOfLines={1}>
+                  {point.address}
+                </Text>
+              </View>
+            </View>
+          </Marker>
+        ))}
+
         {/* El recorrido completo, en negro y de una sola pieza. Estuvo partido en "ya
             recorrido" (gris) y "pendiente", pero el corte se calculaba por cercanía al auto y
             se equivocaba de las dos formas posibles: enganchaba un tramo por el que el
@@ -1219,6 +1241,22 @@ const styles = StyleSheet.create({
   routeMarkerEnd: { backgroundColor: '#010101' },
   driverCarIcon: { width: 42, height: 42 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
+  // marginBottom = radio del pin (13) + separación (6): deja la etiqueta pegada justo
+  // arriba del círculo sin importar cuánto texto tenga (numberOfLines={1} la mantiene a una línea).
+  routeLabelWrap: { alignItems: 'center', marginBottom: 19 },
+  routeLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  routeLabelText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   navCard: {
     position: 'absolute',
     left: 16,
