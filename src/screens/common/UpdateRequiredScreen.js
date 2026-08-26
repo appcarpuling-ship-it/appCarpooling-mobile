@@ -1,22 +1,37 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Updates from 'expo-updates';
 import { useUI } from '../../theme/ui';
 
 /**
  * Se muestra cuando ya se descargó un OTA nuevo.
  *
- * No hace nada: avisa. La app NO se reinicia sola —antes lo hacía a los 1400 ms y, visto desde
- * afuera, eso es la app cerrándose de golpe en medio de lo que estabas haciendo—. Tampoco hay
- * botón: cerrar y volver a abrir es decisión de la persona, no nuestra.
+ * Antes no tenía botón: la app no se reiniciaba sola (a los 1400 ms sentía como que se cerraba
+ * de golpe) y cerrar y volver a abrir quedaba en manos de la persona. En Android eso rebotaba
+ * en Samsung con gestión de batería agresiva: "cerrar y volver a abrir" desde recientes no
+ * siempre mata el proceso de verdad, así que la app se reanudaba con el mismo bundle viejo
+ * corriendo y el cartel volvía a aparecer en bucle. `Updates.reloadAsync()` recarga el bundle
+ * ya descargado sin depender de que el SO haya desalojado el proceso.
  *
- * Y tampoco hay forma de salir de acá: sin botón, sin X y sin gesto de atrás. Es a propósito.
- * La versión nueva ya está descargada y el arranque siguiente la usa; seguir usando la vieja
- * sería quedarse con una app que ya sabemos que está desactualizada.
+ * Sigue sin salida por afuera del botón: sin X y sin gesto de atrás. La versión nueva ya está
+ * descargada; seguir usando la vieja sería quedarse con una app que ya sabemos desactualizada.
  */
 const UpdateRequiredScreen = () => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
+  const [reloading, setReloading] = useState(false);
+
+  const handleReload = async () => {
+    if (reloading) return;
+    setReloading(true);
+    try {
+      await Updates.reloadAsync();
+    } catch {
+      // Sin red o algo raro del SO: se puede reintentar tocando de nuevo.
+      setReloading(false);
+    }
+  };
 
   return (
     <View
@@ -42,10 +57,21 @@ const UpdateRequiredScreen = () => {
 
         <Text style={[styles.title, { color: ui.text }]}>Nueva actualización</Text>
         <Text style={[styles.message, { color: ui.textMuted }]}>
-          Ya descargamos la última versión de Carpuling. Cerrá la aplicación y volvé a abrirla
-          para empezar a usarla.
+          Ya descargamos la última versión de Carpuling. Tocá el botón para empezar a usarla.
         </Text>
       </View>
+
+      <TouchableOpacity
+        style={[styles.btn, { backgroundColor: ui.invertBg }, reloading && { opacity: 0.7 }]}
+        onPress={handleReload}
+        disabled={reloading}
+        activeOpacity={0.85}
+      >
+        {reloading
+          ? <ActivityIndicator color={ui.invertText} />
+          : <Text style={[styles.btnText, { color: ui.invertText }]}>Actualizar ahora</Text>
+        }
+      </TouchableOpacity>
     </View>
   );
 };
@@ -60,6 +86,8 @@ const styles = StyleSheet.create({
   haloOuter: { width: '85%', height: '85%', opacity: 0.5 },
   haloInner: { width: '62%', height: '62%', opacity: 0.9 },
   illustration: { width: '68%', height: '68%' },
+  btn: { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
+  btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
 export default UpdateRequiredScreen;
