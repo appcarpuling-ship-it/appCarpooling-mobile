@@ -23,7 +23,7 @@ const BANNER_HEIGHT = 150;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
@@ -733,15 +733,22 @@ const TripDetailScreen = ({ route, navigation }) => {
               pitchEnabled={false}
               pointerEvents="none"
             >
-              {/* Sin trazado real guardado (viajes viejos, o de prueba): línea recta punteada
-                  y más fina, para que se lea como estimación y no como un glitch — una
-                  línea gruesa y sólida cruzando el mapa de punta a punta parece un error. */}
-              <RutaPolyline
-                coordinates={previewCoordinates}
-                width={hasRealRoute ? 4 : 2}
-                color={dark ? '#FFFFFF' : '#000000'}
-                {...(hasRealRoute ? {} : { lineDashPattern: [8, 6] })}
-              />
+              {hasRealRoute ? (
+                <RutaPolyline coordinates={previewCoordinates} width={4} color={dark ? '#FFFFFF' : '#000000'} />
+              ) : (
+                // Sin trazado real guardado (viajes viejos, o de prueba): ninguna línea, ni
+                // punteada. Una línea recta cruza terreno y ríos en diagonal — ninguna calle
+                // hace eso — y se lee como un error más que como una estimación honesta.
+                // Solo los dos puntos, como en la lista de abajo.
+                <>
+                  <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                    <View style={styles.previewDotOrigin} />
+                  </Marker>
+                  <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                    <View style={styles.previewDotDest} />
+                  </Marker>
+                </>
+              )}
             </MapView>
             {statusCfg && (
               <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
@@ -1659,6 +1666,17 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Puntos sueltos del preview cuando no hay trazado real (contorno = origen, relleno =
+  // destino, como en la lista de abajo). Colores fijos, no del tema: van sobre las
+  // baldosas del mapa, que no son ni claras ni oscuras según el tema de la app.
+  previewDotOrigin: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 3,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
+  previewDotDest: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 2,
+    backgroundColor: '#000000', borderColor: '#FFFFFF',
   },
 
   // Cabecera consolidada (conductor + fecha/hora/asientos + precio)
