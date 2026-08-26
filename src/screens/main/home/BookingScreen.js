@@ -12,6 +12,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker } from 'react-native-maps';
+import { MAP_PROVIDER } from '../../../utils/mapProvider';
+import RutaPolyline from '../../../components/map/RutaPolyline';
+import { decodePolyline } from '../../../utils/routePoints';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
 import { tripRemainingSeats, tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
@@ -98,6 +102,47 @@ const BookingScreen = ({ route, navigation }) => {
   const routeParams = route.params || {};
   const trip = routeParams.trip;
   const existingReservation = routeParams.existingReservation;
+
+  // Mini mapa arriba del resumen, mismo criterio que en Detalle del viaje: contexto visual
+  // en vez de solo texto. Sin trazado real guardado no va línea (una recta cruza terreno y
+  // ríos en diagonal, ninguna calle hace eso) — solo los dos puntos.
+  const bookingOriginCoords = trip?.origin?.coordinates;
+  const bookingDestCoords = trip?.destination?.coordinates;
+  const hasBookingMapPreview = Boolean(bookingOriginCoords?.latitude && bookingDestCoords?.latitude);
+  const bookingStraightLine = hasBookingMapPreview
+    ? [
+        { latitude: bookingOriginCoords.latitude, longitude: bookingOriginCoords.longitude },
+        { latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude },
+      ]
+    : [];
+  const bookingDecodedPolyline = trip?.routePolyline ? decodePolyline(trip.routePolyline) : [];
+  const hasBookingRealRoute = bookingDecodedPolyline.length >= 2;
+  const bookingPreviewCoordinates = hasBookingRealRoute ? bookingDecodedPolyline : bookingStraightLine;
+  const bookingPreviewRegion = hasBookingMapPreview
+    ? (() => {
+        const lats = bookingPreviewCoordinates.map((p) => p.latitude);
+        const lngs = bookingPreviewCoordinates.map((p) => p.longitude);
+        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+        const latitudeDelta = Math.max((maxLat - minLat) * 1.5, 0.03);
+        const longitudeDelta = Math.max((maxLng - minLng) * 1.5, 0.03);
+        return {
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLng + maxLng) / 2,
+          latitudeDelta,
+          longitudeDelta,
+        };
+      })()
+    : null;
+  // En Android, un marker con vista propia y tracksViewChanges en false desde el primer
+  // render se dibuja invisible (mismo bug ya resuelto en TripMapScreen/TripDetailScreen).
+  const [bookingMapReady, setBookingMapReady] = useState(false);
+  const [bookingDotsVivos, setBookingDotsVivos] = useState(true);
+  useEffect(() => {
+    if (!bookingMapReady) return undefined;
+    const t = setTimeout(() => setBookingDotsVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [bookingMapReady]);
 
   const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
@@ -352,6 +397,44 @@ const BookingScreen = ({ route, navigation }) => {
           <Text style={[styles.pasoTexto, { color: textMuted }]}>
               Paso {paso} de {PASOS_RESERVA.length} · {PASOS_RESERVA[paso - 1]}
           </Text>
+
+          {/* Mini mapa: contexto visual del recorrido antes del resumen en texto. No
+              interactivo (sin scroll/zoom) — es una foto, no algo para explorar acá. */}
+          {hasBookingMapPreview && (
+            <View style={styles.bookingMapWrap}>
+              <MapView
+                provider={MAP_PROVIDER}
+                style={styles.bookingMapPreview}
+                initialRegion={bookingPreviewRegion}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                pointerEvents="none"
+                onMapReady={() => setBookingMapReady(true)}
+              >
+                {hasBookingRealRoute && (
+                  <RutaPolyline coordinates={bookingPreviewCoordinates} width={4} color="#000000" />
+                )}
+                <Marker
+                  key={`booking-origin-${bookingMapReady}`}
+                  coordinate={{ latitude: bookingOriginCoords.latitude, longitude: bookingOriginCoords.longitude }}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={bookingDotsVivos}
+                >
+                  <View style={styles.bookingDotOrigin} />
+                </Marker>
+                <Marker
+                  key={`booking-dest-${bookingMapReady}`}
+                  coordinate={{ latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude }}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={bookingDotsVivos}
+                >
+                  <View style={styles.bookingDotDest} />
+                </Marker>
+              </MapView>
+            </View>
+          )}
 
           {/* Trip Summary */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -891,6 +974,16 @@ const styles = StyleSheet.create({
   pasoBarra: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 8 },
   pasoTramo: { flex: 1, height: 3, borderRadius: 999 },
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },
+  bookingMapWrap: { height: 140, borderRadius: 20, overflow: 'hidden', marginBottom: 12 },
+  bookingMapPreview: { ...StyleSheet.absoluteFillObject },
+  bookingDotOrigin: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 3,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
+  bookingDotDest: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 2,
+    backgroundColor: '#000000', borderColor: '#FFFFFF',
+  },
   confirmBtn: {
     borderRadius: 999,
     paddingVertical: 16,
