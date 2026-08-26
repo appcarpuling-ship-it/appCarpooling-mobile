@@ -27,8 +27,14 @@ const STEPS = [
 ];
 
 const completeProfileSchema = {
-  firstName: ['required', { type: 'maxLength', value: 50 }],
-  lastName:  ['required', { type: 'maxLength', value: 50 }],
+  // Nombre/apellido NO van 'required': con Sign in with Apple, Apple sólo manda el nombre
+  // real la primera vez que esa Apple ID autoriza esta app — de ahí en más no lo reenvía
+  // (así funciona SIWA, no es recuperable). Ahí el backend guarda un placeholder y, si esto
+  // fuera obligatorio, el usuario quedaría forzado a re-tipear un dato que Apple ya le dio
+  // antes — exactamente lo que Guideline 4 (Sign in with Apple) prohíbe. Queda precargado y
+  // editable, pero no bloquea el paso siguiente.
+  firstName: [{ type: 'maxLength', value: 50 }],
+  lastName:  [{ type: 'maxLength', value: 50 }],
   phone:     ['required', 'phone'],
   gender:    ['required'],
   age:       ['required', 'age'],
@@ -36,9 +42,6 @@ const completeProfileSchema = {
   city:      ['required', { type: 'maxLength', value: 100 }],
   bio:       [{ type: 'maxLength', value: 500 }],
 };
-
-const isPlaceholder = (name) =>
-  !name || ['Usuario', 'Google', 'Apple'].includes(name);
 
 const CompleteProfileScreen = ({ navigation }) => {
   const { user, updateProfile, refreshUser, logout } = useAuth();
@@ -56,8 +59,8 @@ const CompleteProfileScreen = ({ navigation }) => {
   const stepAnim = useRef(new Animated.Value(1)).current;
 
   const initialValues = {
-    firstName: isPlaceholder(user?.firstName) ? '' : (user?.firstName || ''),
-    lastName:  isPlaceholder(user?.lastName)  ? '' : (user?.lastName  || ''),
+    firstName: user?.firstName || '',
+    lastName:  user?.lastName  || '',
     phone: '', gender: '', age: '', city: '', province: '', bio: '',
   };
 
@@ -109,7 +112,7 @@ const CompleteProfileScreen = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    const requiredFields = ['firstName', 'lastName', 'phone', 'gender', 'age', 'province', 'city'];
+    const requiredFields = ['phone', 'gender', 'age', 'province', 'city'];
     requiredFields.forEach(f => setFieldTouched(f, true));
     const { isValid, errors: allErrors } = validateAllFields();
     if (!isValid) {
@@ -166,8 +169,8 @@ const CompleteProfileScreen = ({ navigation }) => {
     switch (currentStep) {
       case 0: return (
         <>
-          <FormInput label="Nombre"   placeholder="Ingresá tu nombre"   leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('firstName')} />
-          <FormInput label="Apellido" placeholder="Ingresá tu apellido" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('lastName')} />
+          <FormInput label="Nombre"   placeholder="Ingresá tu nombre"   leftIcon="person-outline" autoCapitalize="words" {...getFieldProps('firstName')} />
+          <FormInput label="Apellido" placeholder="Ingresá tu apellido" leftIcon="person-outline" autoCapitalize="words" {...getFieldProps('lastName')} />
         </>
       );
       case 1: return (
