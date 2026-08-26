@@ -671,7 +671,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Si el polyline guardado viniera vacío o corrupto, mejor la línea recta que
   // reventar el cálculo de región de más abajo con un min/max de un array vacío.
   const decodedPolyline = trip.routePolyline ? decodePolyline(trip.routePolyline) : [];
-  const previewCoordinates = decodedPolyline.length >= 2 ? decodedPolyline : straightLine;
+  const hasRealRoute = decodedPolyline.length >= 2;
+  const previewCoordinates = hasRealRoute ? decodedPolyline : straightLine;
   const previewRegion = hasMapPreview
     ? (() => {
         const lats = previewCoordinates.map((p) => p.latitude);
@@ -732,7 +733,15 @@ const TripDetailScreen = ({ route, navigation }) => {
               pitchEnabled={false}
               pointerEvents="none"
             >
-              <RutaPolyline coordinates={previewCoordinates} width={4} color={dark ? '#FFFFFF' : '#000000'} />
+              {/* Sin trazado real guardado (viajes viejos, o de prueba): línea recta punteada
+                  y más fina, para que se lea como estimación y no como un glitch — una
+                  línea gruesa y sólida cruzando el mapa de punta a punta parece un error. */}
+              <RutaPolyline
+                coordinates={previewCoordinates}
+                width={hasRealRoute ? 4 : 2}
+                color={dark ? '#FFFFFF' : '#000000'}
+                {...(hasRealRoute ? {} : { lineDashPattern: [8, 6] })}
+              />
             </MapView>
             {statusCfg && (
               <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
