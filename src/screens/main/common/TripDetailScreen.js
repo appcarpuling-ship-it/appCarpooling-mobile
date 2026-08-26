@@ -1662,6 +1662,7 @@ const styles = StyleSheet.create({
   // Map preview
   mapPreviewWrap: {
     height: 200,
+    marginTop: 16,
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 24,
