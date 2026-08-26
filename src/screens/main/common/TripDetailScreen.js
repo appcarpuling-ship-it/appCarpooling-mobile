@@ -734,7 +734,9 @@ const TripDetailScreen = ({ route, navigation }) => {
               pointerEvents="none"
             >
               {hasRealRoute ? (
-                <RutaPolyline coordinates={previewCoordinates} width={4} color={dark ? '#FFFFFF' : '#000000'} />
+                // Fijo en negro, no del tema: va sobre las baldosas del mapa, no sobre la
+                // app — blanco en modo oscuro se perdía contra el verde/celeste del mapa.
+                <RutaPolyline coordinates={previewCoordinates} width={4} color="#000000" />
               ) : (
                 // Sin trazado real guardado (viajes viejos, o de prueba): ninguna línea, ni
                 // punteada. Una línea recta cruza terreno y ríos en diagonal — ninguna calle
