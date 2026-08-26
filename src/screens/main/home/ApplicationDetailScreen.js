@@ -43,6 +43,25 @@ const recorridoElegido = (app) =>
     ? { texto: 'Viene de más lejos o sigue más allá', icono: 'git-branch-outline' }
     : { texto: 'Hace tu mismo tramo', icono: 'swap-horizontal-outline' };
 
+/**
+ * Mismo recorrido que `armarRecorrido`, pero con la forma de `trip` que espera TripMapScreen:
+ * origen/destino son las puntas más lejanas (las del conductor, si declaró recorrido propio) y
+ * el tramo del pasajero queda como parada intermedia para que se vean las 4 paradas en el mapa.
+ */
+const armarTripParaMapa = (app, tramo, driver, vehicle) => {
+  if (!tramo?.origin || !tramo?.destination) return null;
+  const intermediateStops = [];
+  if (app.driverOrigin) intermediateStops.push({ ...tramo.origin, kind: 'pickup', order: 0 });
+  if (app.driverDestination) intermediateStops.push({ ...tramo.destination, kind: 'dropoff', order: 1 });
+  return {
+    origin: app.driverOrigin || tramo.origin,
+    destination: app.driverDestination || tramo.destination,
+    intermediateStops,
+    driver,
+    vehicle,
+  };
+};
+
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId, tramoPasajero } = route.params;
   const { isDarkMode } = useTheme();
@@ -65,6 +84,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const vehicle = app.vehicleSnapshot || {};
   const recorrido = armarRecorrido(app, tramoPasajero);
   const eleccion = recorridoElegido(app);
+  const tripParaMapa = armarTripParaMapa(app, tramoPasajero, driver, vehicle);
 
   // Las fotos: la principal es `photo`, y `photos` puede repetirla. Se deduplica para no
   // mostrar la misma imagen dos veces, y se corta en 3 secundarias.
@@ -206,6 +226,19 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Ver trayecto en mapa: mismas direcciones de arriba, ahora en el mapa. */}
+        {tripParaMapa?.origin?.coordinates?.latitude && (
+          <TouchableOpacity
+            style={[styles.card, styles.mapCard, { backgroundColor: cardBg, borderColor: border }]}
+            onPress={() => navigation.navigate('TripMap', { trip: tripParaMapa })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="map-outline" size={18} color={textPrimary} />
+            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
+            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Vehicle info */}
         {Object.keys(vehicle).length > 0 && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -340,6 +373,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   content: { padding: 16, gap: 12 },
   card: { borderRadius: 14, borderWidth: 1, padding: 16 },
+  mapCard: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
   driverTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 72, height: 72, borderRadius: 36 },
   avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
