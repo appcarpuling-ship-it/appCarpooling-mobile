@@ -7,10 +7,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   Image,
   Animated,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -325,7 +325,17 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={[styles.stepCounter, { color: textMuted }]}>{currentStep + 1}/{STEPS.length}</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        {/* KeyboardAwareScrollView en vez de ScrollView: éste solo se achica con el
+            teclado, no lleva el input enfocado a la vista — con el formulario de 5
+            campos por paso, los de más abajo quedaban tapados por el teclado. */}
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid
+          extraScrollHeight={20}
+        >
           {currentStep === 0 ? (
             <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
               <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
@@ -356,7 +366,7 @@ const RegisterScreen = ({ navigation }) => {
           <Animated.View style={{ opacity: stepAnim }}>
             {renderStepContent()}
           </Animated.View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Action button — always at bottom */}
         <View style={[styles.btnContainer, { backgroundColor: bg }]}>
