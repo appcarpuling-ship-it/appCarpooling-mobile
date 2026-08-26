@@ -733,24 +733,21 @@ const TripDetailScreen = ({ route, navigation }) => {
               pitchEnabled={false}
               pointerEvents="none"
             >
-              {hasRealRoute ? (
+              {/* Sin trazado real guardado (viajes viejos, o de prueba) no va línea: una
+                  recta entre dos ciudades cruza terreno y ríos en diagonal, ninguna calle
+                  hace eso, y se lee como un error más que como una estimación honesta.
+                  Los puntos de origen/destino van siempre, haya o no trazado. */}
+              {hasRealRoute && (
                 // Fijo en negro, no del tema: va sobre las baldosas del mapa, no sobre la
                 // app — blanco en modo oscuro se perdía contra el verde/celeste del mapa.
                 <RutaPolyline coordinates={previewCoordinates} width={4} color="#000000" />
-              ) : (
-                // Sin trazado real guardado (viajes viejos, o de prueba): ninguna línea, ni
-                // punteada. Una línea recta cruza terreno y ríos en diagonal — ninguna calle
-                // hace eso — y se lee como un error más que como una estimación honesta.
-                // Solo los dos puntos, como en la lista de abajo.
-                <>
-                  <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-                    <View style={styles.previewDotOrigin} />
-                  </Marker>
-                  <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-                    <View style={styles.previewDotDest} />
-                  </Marker>
-                </>
               )}
+              <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.previewDotOrigin} />
+              </Marker>
+              <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.previewDotDest} />
+              </Marker>
             </MapView>
             {statusCfg && (
               <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? accent : cardBg }]}>
