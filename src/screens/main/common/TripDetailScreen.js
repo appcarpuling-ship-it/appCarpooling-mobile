@@ -140,6 +140,12 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Puntos de origen/destino del preview de mapa: en Android, un marker con vista propia y
+  // tracksViewChanges en false desde el primer render se dibuja invisible. Igual que en
+  // TripMapScreen, arranca en true (se ve mientras se dibuja) y se apaga solo una vez que
+  // el mapa avisa que está listo.
+  const [mapPreviewReady, setMapPreviewReady] = useState(false);
+  const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
   const [cancellingReservation, setCancellingReservation] = useState(false);
@@ -184,6 +190,12 @@ const TripDetailScreen = ({ route, navigation }) => {
     loadTripDetail();
     loadBanners();
   }, []);
+
+  useEffect(() => {
+    if (!mapPreviewReady) return undefined;
+    const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [mapPreviewReady]);
 
   useFocusEffect(
     useCallback(() => {
@@ -732,6 +744,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               rotateEnabled={false}
               pitchEnabled={false}
               pointerEvents="none"
+              onMapReady={() => setMapPreviewReady(true)}
             >
               {/* Sin trazado real guardado (viajes viejos, o de prueba) no va línea: una
                   recta entre dos ciudades cruza terreno y ríos en diagonal, ninguna calle
@@ -742,10 +755,20 @@ const TripDetailScreen = ({ route, navigation }) => {
                 // app — blanco en modo oscuro se perdía contra el verde/celeste del mapa.
                 <RutaPolyline coordinates={previewCoordinates} width={4} color="#000000" />
               )}
-              <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+              <Marker
+                key={`preview-origin-${mapPreviewReady}`}
+                coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={mapPreviewDotsVivos}
+              >
                 <View style={styles.previewDotOrigin} />
               </Marker>
-              <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+              <Marker
+                key={`preview-dest-${mapPreviewReady}`}
+                coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={mapPreviewDotsVivos}
+              >
                 <View style={styles.previewDotDest} />
               </Marker>
             </MapView>
