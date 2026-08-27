@@ -21,7 +21,7 @@ import { useNotifications } from '../../../context/NotificationContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta, metersBetween, MISMO_PUNTO_M } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { get_withauth, put_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
@@ -461,6 +461,35 @@ const TripMapScreen = ({ route, navigation }) => {
       },
     ].filter(Boolean);
   }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude]);
+
+  /**
+   * Sólo para el TEXTO del sheet "RECORRIDO" (no toca `navTargets`, que sigue mandando en la
+   * lógica de próxima parada / Recoger-Continuar). Cuando un pasajero sube o baja justo en el
+   * origen o el destino del conductor —típico al postularse con "mismo recorrido"— la
+   * dirección salía repetida en dos filas seguidas. El mapa (buildRoutePoints) ya funde ese
+   * caso en un solo pin; acá se hace lo mismo para la lista.
+   */
+  const { origenExtra, sheetItems } = useMemo(() => {
+    const destinoIdx = navTargets.findIndex((t) => t.id === 'destino');
+    const destino = destinoIdx >= 0 ? navTargets[destinoIdx] : null;
+    let stops = navTargets.filter((t) => t.id !== 'destino');
+    let origenExtra = null;
+    if (stops.length && originCoords?.latitude != null &&
+        metersBetween(stops[0].coordinate, originCoords) < MISMO_PUNTO_M) {
+      origenExtra = stops[0].quien;
+      stops = stops.slice(1);
+    }
+    let destinoQuien = destino?.quien || null;
+    if (stops.length && destino &&
+        metersBetween(stops[stops.length - 1].coordinate, destino.coordinate) < MISMO_PUNTO_M) {
+      destinoQuien = [stops[stops.length - 1].quien, destinoQuien].filter(Boolean).join(' · ');
+      stops = stops.slice(0, -1);
+    }
+    return {
+      origenExtra,
+      sheetItems: destino ? [...stops, { ...destino, quien: destinoQuien }] : stops,
+    };
+  }, [navTargets, originCoords]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;
@@ -1067,10 +1096,12 @@ const TripMapScreen = ({ route, navigation }) => {
               <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
                 {trip?.origin?.address || trip?.origin?.city || 'Origen'}
               </Text>
-              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]}>Salida</Text>
+              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]}>
+                {origenExtra ? `Salida · ${origenExtra}` : 'Salida'}
+              </Text>
             </View>
           </View>
-          {navTargets.map((t, i) => {
+          {sheetItems.map((t, i) => {
             const hecha = paradasHechas.includes(t.id);
             return (
               <View key={t.id} style={styles.sheetTimelineRow}>
