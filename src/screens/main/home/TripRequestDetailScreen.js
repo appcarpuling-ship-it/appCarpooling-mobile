@@ -360,7 +360,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const statusCfg   = STATUS_MAP[request.status] || { label: request.status, color: textMuted };
+  // El backend recién marca 'expired' con un job diario: una solicitud 'open'/'awaiting_payment'
+  // cuya fecha ya pasó puede seguir así hasta 24hs (mismo criterio de "pasada" que ya usa el
+  // backend para bucketear en Próximas/Pasadas). Sin esto, quedaba mostrando "Abierta" y
+  // dejando cancelar/postularse a un viaje que ya se hizo o nunca se hizo.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const effectivelyExpired = new Date(request.departureDate) < today
+    && ['open', 'awaiting_payment'].includes(request.status);
+  const statusCfg   = effectivelyExpired
+    ? STATUS_MAP.expired
+    : STATUS_MAP[request.status] || { label: request.status, color: textMuted };
   const acceptedApp = request.applications?.find(a => a.status === 'accepted');
   const passenger   = request.passenger;
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
@@ -731,7 +741,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   }
                 </TouchableOpacity>
               </>
-            ) : canApply ? (
+            ) : canApply && !effectivelyExpired ? (
               <TouchableOpacity
                 style={[styles.footerBtn, { backgroundColor: accent }, applying && { opacity: 0.6 }]}
                 onPress={handleApplyPress}
@@ -746,7 +756,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* Cancelar (passenger) */}
-          {isPassenger && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
+          {isPassenger && !effectivelyExpired && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
                 style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
