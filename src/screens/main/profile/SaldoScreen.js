@@ -30,7 +30,7 @@ import { confirmFromCallback } from '../../../services/seatReservationService';
  */
 const pesos = (n) => `$${Number(n || 0).toLocaleString('es-AR')}`;
 
-const SaldoScreen = () => {
+const SaldoScreen = ({ navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -173,11 +173,19 @@ const SaldoScreen = () => {
             console.warn('[Saldo] no se pudo confirmar el pago:', e?.message);
           }
           await cargar();
-          showAlert('Pago recibido', 'Tu saldo se actualizó. Si todavía figura pendiente, esperá unos segundos y volvé a entrar.');
+          navigation.navigate('Result', {
+            type: 'success',
+            title: 'Pago recibido',
+            message: 'Tu saldo se actualizó. Si todavía figura pendiente, esperá unos segundos y volvé a entrar.',
+          });
         }}
         onPaymentError={(error) => {
           setCheckout({ visible: false, paymentUrl: null });
-          showAlert('No se pudo procesar el pago', error?.message || 'Probá de nuevo en un momento.');
+          navigation.navigate('Result', {
+            type: 'error',
+            title: 'No se pudo procesar el pago',
+            message: error?.message || 'Probá de nuevo en un momento.',
+          });
         }}
       />
     </View>
