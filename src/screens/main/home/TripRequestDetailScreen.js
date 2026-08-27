@@ -157,6 +157,24 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  /**
+   * Una vez aceptado un conductor ya existe el viaje real (`createdTrip`), con conductor,
+   * vehículo y tracking en vivo — cosas que la solicitud en sí no tiene. Mandar la solicitud
+   * disfrazada de viaje a TripMapScreen la dejaba con datos a medias. Si no hay viaje creado
+   * todavía (solicitud abierta) se manda la solicitud, como antes: ahí sólo hacen falta los
+   * dos puntos para el mapa.
+   */
+  const handleOpenMap = async () => {
+    const tripId = request?.createdTrip?._id || request?.createdTrip;
+    if (tripId) {
+      try {
+        const res = await get_withauth(ENDPOINTS.GET_TRIP(tripId));
+        if (res.success) return navigation.navigate('TripMap', { trip: res.data });
+      } catch (_) { /* cae al fallback de abajo */ }
+    }
+    navigation.navigate('TripMap', { trip: request });
+  };
+
   const handleApplyPress = () => {
     if (vehicles.length === 0) {
       return showAlert(
@@ -380,7 +398,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         {hasMapPreview ? (
           <TouchableOpacity
             style={styles.mapPreviewWrap}
-            onPress={() => navigation.navigate('TripMap', { trip: request })}
+            onPress={handleOpenMap}
             activeOpacity={0.9}
           >
             <MapView
