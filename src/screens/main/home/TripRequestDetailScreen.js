@@ -7,6 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
+import RutaPolyline from '../../../components/map/RutaPolyline';
+import { puntosDeRuta } from '../../../utils/routePoints';
+import { getDirections } from '../../../services/mapsService';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -61,12 +64,34 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // invisible; arranca en true y se apaga solo una vez que el mapa avisa que está listo.
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
+  // Trazado real del preview. Una solicitud no guarda polyline (eso lo tiene el viaje, recién
+  // creado): se pide una vez a Directions, igual que TripMapScreen. Sin ruta (falla el pedido,
+  // o no hay coordenadas) no va línea — una recta cruza terreno y ríos en diagonal, y se lee
+  // como un error más que como una estimación.
+  const [previewRoutePoints, setPreviewRoutePoints] = useState([]);
 
   useEffect(() => {
     if (!mapPreviewReady) return undefined;
     const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
     return () => clearTimeout(t);
   }, [mapPreviewReady]);
+
+  const previewOriginCoords = request?.origin?.coordinates;
+  const previewDestCoords   = request?.destination?.coordinates;
+  useEffect(() => {
+    if (!previewOriginCoords?.latitude || !previewDestCoords?.latitude) return;
+    let vivo = true;
+    const orig = `${previewOriginCoords.latitude},${previewOriginCoords.longitude}`;
+    const dest = `${previewDestCoords.latitude},${previewDestCoords.longitude}`;
+    getDirections(orig, dest)
+      .then((data) => {
+        if (!vivo) return;
+        const points = puntosDeRuta(data?.routes?.[0]);
+        if (points.length > 1) setPreviewRoutePoints(points);
+      })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [previewOriginCoords?.latitude, previewOriginCoords?.longitude, previewDestCoords?.latitude, previewDestCoords?.longitude]);
 
   const isPassenger = request ? request.isPassenger : false;
   const isDriver    = request ? !request.isPassenger : false;
@@ -422,6 +447,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               pointerEvents="none"
               onMapReady={() => setMapPreviewReady(true)}
             >
+              {previewRoutePoints.length > 1 && (
+                // Fijo en negro, no del tema: va sobre las baldosas del mapa, no sobre la app.
+                <RutaPolyline coordinates={previewRoutePoints} width={4} color="#000000" />
+              )}
               <Marker
                 key={`preview-origin-${mapPreviewReady}`}
                 coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }}
@@ -464,25 +493,25 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={styles.routeLabelsCol}>
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textMuted }]}>Origen</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(request.origin)}</Text>
-                {request.origin.address && request.origin.address !== request.origin.city && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{request.origin.address}</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.origin.address || cityWithProvince(request.origin)}</Text>
+                {cityWithProvince(request.origin) && cityWithProvince(request.origin) !== request.origin.address && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(request.origin)}</Text>
                 )}
               </View>
               {(request.intermediateStops || []).map((stop, i) => (
                 <View key={i} style={styles.routeStop}>
                   <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {i + 1}</Text>
-                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(stop) || stop.address}</Text>
-                  {stop.address && stop.address !== stop.city && (
-                    <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{stop.address}</Text>
+                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{stop.address || cityWithProvince(stop)}</Text>
+                  {cityWithProvince(stop) && cityWithProvince(stop) !== stop.address && (
+                    <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(stop)}</Text>
                   )}
                 </View>
               ))}
               <View style={styles.routeStop}>
                 <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{cityWithProvince(request.destination)}</Text>
-                {request.destination.address && request.destination.address !== request.destination.city && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{request.destination.address}</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.destination.address || cityWithProvince(request.destination)}</Text>
+                {cityWithProvince(request.destination) && cityWithProvince(request.destination) !== request.destination.address && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(request.destination)}</Text>
                 )}
               </View>
             </View>
