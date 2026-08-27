@@ -99,10 +99,39 @@ const MyTripRequestsScreen = ({ navigation }) => {
     new Date(date).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
       .replace(/^(.)/, c => c.toUpperCase());
 
-  const renderItem = ({ item }) => {
-    const statusInfo = STATUS_LABELS[item.status] || { label: item.status, color: textMuted };
+  /**
+   * Una fila de pie SIEMPRE presente, sea cual sea el estado — antes 'cancelled'/'expired' no
+   * tenían ninguna y esas tarjetas quedaban más bajas que el resto, como si les faltara algo.
+   * Mismo layout (ícono + texto + flecha) para las siete, sólo cambia el contenido.
+   */
+  const footerInfo = (item) => {
     const pendingApps = item.applications?.filter(a => a.status === 'pending').length || 0;
     const totalApps = item.applications?.length || 0;
+    switch (item.status) {
+      case 'open':
+        return {
+          icon: 'people-outline',
+          text: `${totalApps}/5 postulaciones${pendingApps > 0 ? ` · ${pendingApps} esperando respuesta` : ''}`,
+          color: textMuted,
+        };
+      case 'awaiting_payment':
+        return { icon: 'hourglass-outline', text: 'Conductor aceptado — pendiente de pago', color: textMuted };
+      case 'paid':
+        return { icon: 'checkmark-circle-outline', text: '¡Viaje confirmado!', color: textPrimary };
+      case 'completed':
+        return { icon: 'checkmark-done-circle-outline', text: 'Viaje completado', color: textMuted };
+      case 'cancelled':
+        return { icon: 'close-circle-outline', text: 'Solicitud cancelada', color: textMuted };
+      case 'expired':
+        return { icon: 'time-outline', text: 'Se venció sin conductor', color: textMuted };
+      default:
+        return { icon: 'ellipse-outline', text: item.status, color: textMuted };
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    const statusInfo = STATUS_LABELS[item.status] || { label: item.status, color: textMuted };
+    const footer = footerInfo(item);
 
     return (
       <TouchableOpacity
@@ -133,44 +162,13 @@ const MyTripRequestsScreen = ({ navigation }) => {
           </View> */}
         </View>
 
-        {item.status === 'open' && (
-          <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <View style={styles.metaItem}>
-              <Ionicons name="people-outline" size={14} color={textMuted} />
-              <Text style={[styles.metaText, { color: pendingApps > 0 ? ui.textMuted : textMuted }]}>
-                {totalApps}/5 postulaciones
-                {pendingApps > 0 ? ` · ${pendingApps} esperando respuesta` : ''}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {item.status === 'awaiting_payment' && (
-          <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: ui.textMuted, fontSize: 12, flex: 1 }}>
-              Conductor aceptado — pendiente de pago
-            </Text>
-            <Ionicons name="chevron-forward" size={15} color={textMuted} />
-          </View>
-        )}
-
-        {item.status === 'paid' && item.createdTrip && (
-          <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: ui.text, fontSize: 12, flex: 1 }}>
-              ¡Viaje confirmado!
-            </Text>
-            <Ionicons name="chevron-forward" size={15} color={textMuted} />
-          </View>
-        )}
-
-        {item.status === 'completed' && (
-          <View style={[styles.appsRow, { borderTopColor: divider }]}>
-            <Text style={{ color: textMuted, fontSize: 12, flex: 1 }}>
-              Viaje completado
-            </Text>
-            <Ionicons name="chevron-forward" size={15} color={textMuted} />
-          </View>
-        )}
+        <View style={[styles.appsRow, { borderTopColor: divider }]}>
+          <Ionicons name={footer.icon} size={14} color={footer.color} />
+          <Text style={[styles.metaText, { color: footer.color, flex: 1 }]} numberOfLines={1}>
+            {footer.text}
+          </Text>
+          <Ionicons name="chevron-forward" size={15} color={textMuted} />
+        </View>
       </TouchableOpacity>
     );
   };
@@ -257,17 +255,17 @@ const styles = StyleSheet.create({
   tab: { flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
   tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
-  list: { padding: 16, gap: 12 },
-  card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
+  list: { padding: 16, gap: 14 },
+  card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8 },
   city: { fontSize: 14, fontFamily: 'Sora_600SemiBold', flex: 1 },
-  statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  statusBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   statusText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   meta: { borderTopWidth: 1, paddingTop: 8, gap: 5 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 12 },
-  appsRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingTop: 8 },
+  appsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, paddingTop: 10, marginTop: 2 },
 });
 
 export default MyTripRequestsScreen;
