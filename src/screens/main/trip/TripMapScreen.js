@@ -215,8 +215,13 @@ const TripMapScreen = ({ route, navigation }) => {
    * llegar antes de que esté escrita. Si no está todavía, insiste una vez.
    */
   const yaSalioDelViaje = useRef(false);
+  // Si el viaje YA estaba completado cuando se entró acá (por ejemplo, abriendo el mapa de un
+  // viaje viejo desde el historial), no corresponde expulsar a nadie: la persona vino a
+  // propósito a ver ese mapa. Sólo se expulsa cuando el estado cambia a 'completed' EN VIVO,
+  // mientras la pantalla ya estaba abierta.
+  const estabaCompletadoAlEntrar = useRef(trip?.status === 'completed');
   useEffect(() => {
-    if (isDriver || yaSalioDelViaje.current) return;
+    if (isDriver || yaSalioDelViaje.current || estabaCompletadoAlEntrar.current) return;
     if (trip?.status !== 'completed') return;
     yaSalioDelViaje.current = true;
     navigation.popToTop();
