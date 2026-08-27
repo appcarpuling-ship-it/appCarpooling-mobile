@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, Image, RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker } from 'react-native-maps';
+import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
@@ -54,6 +56,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [checkoutModal,  setCheckoutModal]  = useState({ visible: false, paymentUrl: null });
   const [cancelling,     setCancelling]     = useState(false);
   const [retirando,      setRetirando]      = useState(false);
+  // Mini mapa arriba de todo, mismo criterio que TripDetailScreen/BookingScreen. En Android
+  // un marker con vista propia y tracksViewChanges en false desde el primer render se dibuja
+  // invisible; arranca en true y se apaga solo una vez que el mapa avisa que está listo.
+  const [mapPreviewReady, setMapPreviewReady] = useState(false);
+  const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
+
+  useEffect(() => {
+    if (!mapPreviewReady) return undefined;
+    const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [mapPreviewReady]);
 
   const isPassenger = request ? request.isPassenger : false;
   const isDriver    = request ? !request.isPassenger : false;
@@ -334,6 +347,28 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const passenger   = request.passenger;
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
+  // Una solicitud todavía no tiene trazado real (eso lo tiene el viaje, una vez creado): solo
+  // los dos puntos, sin línea — una recta cruza terreno y ríos en diagonal, ninguna calle hace eso.
+  const originCoords = request.origin?.coordinates;
+  const destCoords    = request.destination?.coordinates;
+  const hasMapPreview = Boolean(originCoords?.latitude && destCoords?.latitude);
+  const previewRegion = hasMapPreview
+    ? (() => {
+        const lats = [originCoords.latitude, destCoords.latitude];
+        const lngs = [originCoords.longitude, destCoords.longitude];
+        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+        const latitudeDelta = Math.max((maxLat - minLat) * 1.5, 0.03);
+        const longitudeDelta = Math.max((maxLng - minLng) * 1.5, 0.03);
+        return {
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLng + maxLng) / 2,
+          latitudeDelta,
+          longitudeDelta,
+        };
+      })()
+    : null;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
       <ScrollView
@@ -341,13 +376,54 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textMuted]} />}
       >
 
-        {/* Status badge */}
-        <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
-            <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
+        {/* Mini mapa arriba de todo, con el estado superpuesto. Tocarlo lleva al mapa real. */}
+        {hasMapPreview ? (
+          <TouchableOpacity
+            style={styles.mapPreviewWrap}
+            onPress={() => navigation.navigate('TripMap', { trip: request })}
+            activeOpacity={0.9}
+          >
+            <MapView
+              provider={MAP_PROVIDER}
+              style={styles.mapPreview}
+              initialRegion={previewRegion}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              pointerEvents="none"
+              onMapReady={() => setMapPreviewReady(true)}
+            >
+              <Marker
+                key={`preview-origin-${mapPreviewReady}`}
+                coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={mapPreviewDotsVivos}
+              >
+                <View style={styles.previewDotOrigin} />
+              </Marker>
+              <Marker
+                key={`preview-dest-${mapPreviewReady}`}
+                coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={mapPreviewDotsVivos}
+              >
+                <View style={styles.previewDotDest} />
+              </Marker>
+            </MapView>
+            <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
+              <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.statusRow}>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
+              <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Route */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
@@ -384,19 +460,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
-
-        {/* Ver trayecto en mapa */}
-        {(request.origin?.coordinates?.latitude || request.destination?.coordinates?.latitude) && (
-          <TouchableOpacity
-            style={[styles.mapBtn, { borderColor: divider }]}
-            onPress={() => navigation.navigate('TripMap', { trip: request })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="map-outline" size={18} color={textPrimary} />
-            <Text style={[styles.mapBtnText, { color: textPrimary }]}>Ver trayecto en mapa</Text>
-            <Ionicons name="chevron-forward" size={16} color={textMuted} />
-          </TouchableOpacity>
-        )}
 
         {/* Meta: fecha · hora · km · precio */}
         <View style={[styles.metaRow, { borderBottomColor: divider }]}>
@@ -791,9 +854,24 @@ const styles = StyleSheet.create({
   statusFooter:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12 },
   statusFooterText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
 
-  // Map button
-  mapBtn:     { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
+  // Map preview
+  mapPreviewWrap: { height: 200, marginTop: 16, marginHorizontal: 20, marginBottom: 12, borderRadius: 24, overflow: 'hidden' },
+  mapPreview:     { ...StyleSheet.absoluteFillObject },
+  mapPreviewBadge: {
+    position: 'absolute', top: 14, left: 14,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6,
+  },
+  // Puntos sueltos del preview (contorno = origen, relleno = destino). Colores fijos, no del
+  // tema: van sobre las baldosas del mapa, que no son ni claras ni oscuras según el tema de la app.
+  previewDotOrigin: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 3,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
+  previewDotDest: {
+    width: 14, height: 14, borderRadius: 7, borderWidth: 2,
+    backgroundColor: '#000000', borderColor: '#FFFFFF',
+  },
 
   // Pending payment
   pendingWrap:      { marginBottom: 4 },
