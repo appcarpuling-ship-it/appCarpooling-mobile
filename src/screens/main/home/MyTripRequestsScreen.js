@@ -18,7 +18,8 @@ const STATUS_LABELS = {
   awaiting_payment: { label: 'Pago pendiente', solid: true },
   paid: { label: 'Confirmada', solid: true },
   cancelled: { label: 'Cancelada', solid: false },
-  expired: { label: 'Vencida', solid: false }
+  expired: { label: 'Vencida', solid: false },
+  completed: { label: 'Completada', solid: false }
 };
 
 const isUpcoming = (req) => {
@@ -157,6 +158,15 @@ const MyTripRequestsScreen = ({ navigation }) => {
           <View style={[styles.appsRow, { borderTopColor: divider }]}>
             <Text style={{ color: ui.text, fontSize: 12, flex: 1 }}>
               ¡Viaje confirmado!
+            </Text>
+            <Ionicons name="chevron-forward" size={15} color={textMuted} />
+          </View>
+        )}
+
+        {item.status === 'completed' && (
+          <View style={[styles.appsRow, { borderTopColor: divider }]}>
+            <Text style={{ color: textMuted, fontSize: 12, flex: 1 }}>
+              Viaje completado
             </Text>
             <Ionicons name="chevron-forward" size={15} color={textMuted} />
           </View>

@@ -29,6 +29,7 @@ const STATUS_MAP = {
   paid:             { label: 'Confirmada',     solid: true },
   cancelled:        { label: 'Cancelada',      solid: false },
   expired:          { label: 'Vencida',        color: '#9CA3AF' },
+  completed:        { label: 'Completada',     solid: false },
 };
 
 const TripRequestDetailScreen = ({ route, navigation }) => {
@@ -716,6 +717,16 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
               <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
                 {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Pago confirmado. El viaje está en "Mis viajes".'}
+              </Text>
+            </View>
+          )}
+
+          {/* Completado */}
+          {(isPassenger || isAcceptedDriver) && request.status === 'completed' && (
+            <View style={[styles.statusFooter, { backgroundColor: ui.surface }]}>
+              <Ionicons name="checkmark-done-circle-outline" size={17} color={ui.textMuted} />
+              <Text style={[styles.statusFooterText, { color: ui.textMuted }]}>
+                Viaje completado.
               </Text>
             </View>
           )}
