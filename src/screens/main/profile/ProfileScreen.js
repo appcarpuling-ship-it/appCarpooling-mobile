@@ -115,9 +115,16 @@ const ProfileScreen = () => {
 
   // Los 4 accesos más usados van al grid de arriba, estilo Uber; el resto sigue
   // como lista.
+  // Badge con lo que debe: sin esto, el conductor solo se enteraba de la deuda por la
+  // notificación al completar el viaje (que puede perderse o descartarse) o entrando a
+  // "Mi saldo" por las suyas. Acá queda a la vista cada vez que abre el Perfil.
+  const deuda = user?.deudaEfectivo || 0;
   const quickAccessItems = [
     { id: 1, title: 'Editar perfil', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-    { id: 3, title: 'Mi saldo',      icon: 'receipt-outline', onPress: () => navigation.navigate('Saldo') },
+    {
+      id: 3, title: 'Mi saldo', icon: 'receipt-outline', onPress: () => navigation.navigate('Saldo'),
+      badge: deuda > 0 ? `$${deuda.toLocaleString('es-AR')}` : null,
+    },
     { id: 2, title: 'Vehículos',     icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
     { id: 5, title: 'Ayuda',         icon: 'help-circle-outline', onPress: () => navigation.navigate('Help') },
   ];
@@ -288,6 +295,13 @@ const ProfileScreen = () => {
               <Text style={[styles.quickItemText, { color: textPrimary }]} numberOfLines={1}>
                 {item.title}
               </Text>
+              {!!item.badge && (
+                <View style={[styles.quickItemBadge, { backgroundColor: ui.invertBg }]}>
+                  <Text style={[styles.quickItemBadgeText, { color: ui.invertText }]} numberOfLines={1}>
+                    {item.badge}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -448,6 +462,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: 'Sora_600SemiBold',
     fontSize: 14,
+  },
+  quickItemBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: 'auto',
+  },
+  quickItemBadgeText: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: 11,
   },
 
   // Menu: lista plana, sin tarjeta contenedora.
