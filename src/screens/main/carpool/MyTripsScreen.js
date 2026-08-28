@@ -24,6 +24,7 @@ import { isTripToday } from '../../../utils/tripDateUtils';
 import { useUI } from '../../../theme/ui';
 import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
 // arriba. Ahí no tiene sentido otro título + otro toggle Próximos/Pasados: el historial
@@ -291,15 +292,20 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
               <Ionicons name="time-outline" size={13} color={activeMuted} />
               <Text style={[styles.metaText, { color: activeMuted }]}>{item.departureTime}</Text>
             </View>
-            <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
-            <View style={styles.metaItem}>
-              <Ionicons name="people-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>
-                {item.fromTripRequest
-                  ? tripSeatsLabel(item)
-                  : freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
-              </Text>
-            </View>
+            {/* En el historial no mostramos disponibilidad: el viaje ya pasó, no tiene sentido. */}
+            {!historyMode && (
+              <>
+                <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="people-outline" size={13} color={activeMuted} />
+                  <Text style={[styles.metaText, { color: activeMuted }]}>
+                    {item.fromTripRequest
+                      ? tripSeatsLabel(item)
+                      : freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
+                  </Text>
+                </View>
+              </>
+            )}
             {activeTab === 'upcoming' && item.bookingsCount > 0 && (
               <>
                 <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
@@ -422,7 +428,7 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
           data={filteredTrips}
           renderItem={renderTripItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, historyMode && { paddingBottom: TAB_BAR_SPACE + 16 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}

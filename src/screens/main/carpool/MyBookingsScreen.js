@@ -22,6 +22,7 @@ import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
+import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { reportError } from '../../../utils/sentry';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
@@ -462,7 +463,7 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
           })}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, historyMode && { paddingBottom: TAB_BAR_SPACE + 16 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textSecondary} />
