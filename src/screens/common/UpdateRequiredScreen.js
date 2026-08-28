@@ -86,7 +86,8 @@ const styles = StyleSheet.create({
   haloOuter: { width: '85%', height: '85%', opacity: 0.5 },
   haloInner: { width: '62%', height: '62%', opacity: 0.9 },
   illustration: { width: '68%', height: '68%' },
-  btn: { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
+  // Pill, como el resto de los botones de la app.
+  btn: { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center' },
   btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
