@@ -79,12 +79,22 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
   const previewOriginCoords = request?.origin?.coordinates;
   const previewDestCoords   = request?.destination?.coordinates;
+  // Las paradas de la solicitud, ya filtradas a las que tienen coordenadas: sirven para el
+  // trazado (waypoints), para los pines y para el encuadre.
+  const previewStops = (request?.intermediateStops || [])
+    .filter((s) => s?.coordinates?.latitude != null && s?.coordinates?.longitude != null)
+    .map((s) => ({ latitude: s.coordinates.latitude, longitude: s.coordinates.longitude }));
+  // Serializado: como `previewStops` es un array nuevo en cada render, usarlo de dependencia
+  // directa volvería a pedir Directions en bucle.
+  const previewStopsKey = previewStops.map((s) => `${s.latitude},${s.longitude}`).join('|');
   useEffect(() => {
     if (!previewOriginCoords?.latitude || !previewDestCoords?.latitude) return;
     let vivo = true;
     const orig = `${previewOriginCoords.latitude},${previewOriginCoords.longitude}`;
     const dest = `${previewDestCoords.latitude},${previewDestCoords.longitude}`;
-    getDirections(orig, dest)
+    // Con las paradas adentro: sin ellas el trazado iba derecho de punta a punta y se
+    // saltaba el desvío, que es justo lo que la parada agrega al viaje.
+    getDirections(orig, dest, previewStopsKey || undefined)
       .then((data) => {
         if (!vivo) return;
         const points = puntosDeRuta(data?.routes?.[0]);
@@ -92,7 +102,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
       })
       .catch(() => {});
     return () => { vivo = false; };
-  }, [previewOriginCoords?.latitude, previewOriginCoords?.longitude, previewDestCoords?.latitude, previewDestCoords?.longitude]);
+  }, [previewOriginCoords?.latitude, previewOriginCoords?.longitude, previewDestCoords?.latitude, previewDestCoords?.longitude, previewStopsKey]);
 
   const isPassenger = request ? request.isPassenger : false;
   const isDriver    = request ? !request.isPassenger : false;
@@ -406,10 +416,29 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const originCoords = request.origin?.coordinates;
   const destCoords    = request.destination?.coordinates;
   const hasMapPreview = Boolean(originCoords?.latitude && destCoords?.latitude);
+  // El recorrido completo, con las paradas. Se arma una vez y lo consume la lista de abajo.
+  const puntosDeLaSolicitud = [
+    { tipo: 'origen', label: 'Origen', loc: request.origin },
+    ...(request.intermediateStops || []).map((stop, i) => ({
+      tipo: 'parada', label: `Parada ${i + 1}`, loc: stop,
+    })),
+    { tipo: 'destino', label: 'Destino', loc: request.destination },
+  ].map((p) => {
+    const ciudad = cityWithProvince(p.loc);
+    return {
+      ...p,
+      direccion: p.loc?.address || ciudad,
+      // La ciudad no se repite si ya es lo que se muestra arriba.
+      ciudad: ciudad && ciudad !== p.loc?.address ? ciudad : '',
+    };
+  });
+
   const previewRegion = hasMapPreview
     ? (() => {
-        const lats = [originCoords.latitude, destCoords.latitude];
-        const lngs = [originCoords.longitude, destCoords.longitude];
+        // Las paradas entran en el encuadre: una parada lejos de la recta origen→destino
+        // quedaba fuera de cuadro.
+        const lats = [originCoords.latitude, destCoords.latitude, ...previewStops.map((p) => p.latitude)];
+        const lngs = [originCoords.longitude, destCoords.longitude, ...previewStops.map((p) => p.longitude)];
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
         const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
         const latitudeDelta = Math.max((maxLat - minLat) * 1.5, 0.03);
@@ -460,6 +489,16 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               >
                 <View style={styles.previewDotOrigin} />
               </Marker>
+              {previewStops.map((stop, i) => (
+                <Marker
+                  key={`preview-stop-${i}-${mapPreviewReady}`}
+                  coordinate={stop}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={mapPreviewDotsVivos}
+                >
+                  <View style={styles.previewDotStop} />
+                </Marker>
+              ))}
               <Marker
                 key={`preview-dest-${mapPreviewReady}`}
                 coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
@@ -485,38 +524,30 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Route */}
         <View style={[styles.section, { borderBottomColor: divider }]}>
-          <View style={styles.routeRow}>
-            <View style={styles.routeDotsCol}>
-              <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
-              <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
-              <View style={[styles.routeDotDest, { backgroundColor: accent }]} />
-            </View>
-            <View style={styles.routeLabelsCol}>
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Origen</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.origin.address || cityWithProvince(request.origin)}</Text>
-                {cityWithProvince(request.origin) && cityWithProvince(request.origin) !== request.origin.address && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(request.origin)}</Text>
+          {/* Cada punto es UNA fila con su círculo al lado de su texto. Con la columna de
+              círculos aparte —dos puntos y una línea de alto fijo— la parada intermedia no
+              tenía punto propio y los de origen/destino no coincidían con su dirección. */}
+          {puntosDeLaSolicitud.map((punto, i) => (
+            <View key={`punto-${i}`} style={styles.routePoint}>
+              <View style={styles.routeRail}>
+                {punto.tipo === 'origen'
+                  ? <View style={[styles.routeDotOrigin, { borderColor: accent }]} />
+                  : punto.tipo === 'destino'
+                    ? <View style={[styles.routeDotDest, { backgroundColor: accent }]} />
+                    : <View style={[styles.routeDotParada, { backgroundColor: textMuted }]} />}
+                {i < puntosDeLaSolicitud.length - 1 && (
+                  <View style={[styles.routeLineV, { backgroundColor: dark ? '#333' : '#D0D0D0' }]} />
                 )}
               </View>
-              {(request.intermediateStops || []).map((stop, i) => (
-                <View key={i} style={styles.routeStop}>
-                  <Text style={[styles.routeStopLabel, { color: textMuted }]}>Parada {i + 1}</Text>
-                  <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{stop.address || cityWithProvince(stop)}</Text>
-                  {cityWithProvince(stop) && cityWithProvince(stop) !== stop.address && (
-                    <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(stop)}</Text>
-                  )}
-                </View>
-              ))}
-              <View style={styles.routeStop}>
-                <Text style={[styles.routeStopLabel, { color: textMuted }]}>Destino</Text>
-                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{request.destination.address || cityWithProvince(request.destination)}</Text>
-                {cityWithProvince(request.destination) && cityWithProvince(request.destination) !== request.destination.address && (
-                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{cityWithProvince(request.destination)}</Text>
+              <View style={[styles.routeBody, i < puntosDeLaSolicitud.length - 1 && styles.routeBodyGap]}>
+                <Text style={[styles.routeStopLabel, { color: textMuted }]}>{punto.label}</Text>
+                <Text style={[styles.routeStopAddress, { color: textPrimary }]}>{punto.direccion}</Text>
+                {!!punto.ciudad && (
+                  <Text style={[styles.routeStopCity, { color: textMuted }]} numberOfLines={2}>{punto.ciudad}</Text>
                 )}
               </View>
             </View>
-          </View>
+          ))}
         </View>
 
         {/* Meta: fecha · hora · km · precio */}
@@ -870,13 +901,15 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
 
   // Route
-  routeRow:       { flexDirection: 'row', gap: 16 },
-  routeDotsCol:   { width: 18, alignItems: 'center', paddingTop: 4 },
+  routePoint:     { flexDirection: 'row', gap: 16 },
+  routeRail:      { width: 18, alignItems: 'center', paddingTop: 4 },
+  routeBody:      { flex: 1 },
+  routeBodyGap:   { paddingBottom: 16 },
+  routeDotParada: { width: 7, height: 7, borderRadius: 4 },
   routeDotOrigin: { width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
-  routeLineV:     { width: 1.5, height: 44, marginVertical: 2 },
+  // flex, no alto fijo: cada fila mide distinto según cuántas líneas tenga su dirección.
+  routeLineV:     { width: 1.5, flex: 1, minHeight: 18, marginVertical: 2 },
   routeDotDest:   { width: 10, height: 10, borderRadius: 5 },
-  routeLabelsCol: { flex: 1 },
-  routeStop:      { paddingBottom: 16 },
   routeStopLabel:   { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   routeStopAddress: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   routeStopCity:    { fontSize: 13, marginTop: 1 },
@@ -915,9 +948,10 @@ const styles = StyleSheet.create({
   // Footer
   footer:           { padding: 16, paddingTop: 12, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 4, gap: 4 },
   footerRow:        { flexDirection: 'row', gap: 10 },
-  footerBtn:        { borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
+  // Pill, como el resto de los botones de la app.
+  footerBtn:        { borderRadius: 999, paddingVertical: 15, alignItems: 'center' },
   footerBtnText:    { fontSize: 15, fontFamily: 'Sora_700Bold' },
-  footerBtnOutline: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1 },
+  footerBtnOutline: { borderRadius: 999, paddingVertical: 14, alignItems: 'center', borderWidth: 1 },
   footerBtnOutlineText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   statusFooter:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12 },
   statusFooterText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
@@ -932,6 +966,11 @@ const styles = StyleSheet.create({
   },
   // Puntos sueltos del preview (contorno = origen, relleno = destino). Colores fijos, no del
   // tema: van sobre las baldosas del mapa, que no son ni claras ni oscuras según el tema de la app.
+  // Las paradas del medio, más chicas que las puntas: son escalas, no el viaje.
+  previewDotStop: {
+    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
   previewDotOrigin: {
     width: 14, height: 14, borderRadius: 7, borderWidth: 3,
     backgroundColor: '#FFFFFF', borderColor: '#000000',

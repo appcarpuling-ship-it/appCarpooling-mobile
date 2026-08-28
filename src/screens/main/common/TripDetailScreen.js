@@ -1332,7 +1332,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                       justamente eso. */}
                   <Text style={[styles.statusFooterText, { color: accentInverse }]}>
                     {trip?.sinPrecioFijo
-                      ? 'Reserva confirmada · gastos compartidos'
+                      ? 'Reserva confirmada'
                       : 'Reserva confirmada · le pagás al conductor'}
                   </Text>
                 </View>
@@ -1804,9 +1804,10 @@ const styles = StyleSheet.create({
   footerChatWrap: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  // Mismo alto y mismo pill que el resto de los botones (footerBtn).
   footerChatBtn: {
-    height: 50,
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
