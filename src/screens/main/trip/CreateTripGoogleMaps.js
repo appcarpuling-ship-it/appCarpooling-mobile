@@ -382,7 +382,14 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         if (points.length === 0 && route.overview_polyline?.points) points = decodePolyline(route.overview_polyline.points);
         if (points.length > 0) {
           setRouteCoordinates(points);
-          setRoutePolyline(encodePolyline(points));
+          // Se guarda el overview_polyline de Google, no los steps: los steps son varios
+          // miles de puntos y en un viaje largo (Concordia → Mendoza, 1.300 km) la string
+          // encodeada pasaba los 20.000 caracteres que acepta el backend, que la descartaba
+          // en silencio — el viaje quedaba guardado SIN trazado y el mapa del detalle
+          // mostraba sólo los dos puntos. El overview ronda los cientos de puntos y alcanza
+          // de sobra para el preview; el trazado fino de esta pantalla sigue saliendo de
+          // `points`, y el mapa del viaje pide Directions en vivo igual.
+          setRoutePolyline(route.overview_polyline?.points || encodePolyline(points));
           let totalDist = 0, totalDur = 0;
           route.legs?.forEach(leg => { totalDist += leg.distance?.value || 0; totalDur += leg.duration?.value || 0; });
           setDistance(totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)} km` : `${totalDist} m`);
