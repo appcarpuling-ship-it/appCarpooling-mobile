@@ -18,7 +18,8 @@ import { useAlert } from '../../context/AlertContext';
 import { appendFile } from '../../utils/formDataFile';
 import { useUI } from '../../theme/ui';
 import { useFormValidation, validationSchemas } from '../../hooks/useFormValidation';
-import FormInput from '../../components/forms/FormInput';
+import LineInput from '../../components/auth/LineInput';
+import AuthHero from '../../components/auth/AuthHero';
 import FormPicker from '../../components/forms/FormPicker';
 import LocationPickerField from '../../components/forms/LocationPickerField';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
@@ -199,23 +200,24 @@ const RegisterScreen = ({ navigation }) => {
       case 0:
         return (
           <>
-            <FormInput label="Nombre" placeholder="Ingresá tu nombre" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('firstName')} />
-            <FormInput label="Apellido" placeholder="Ingresá tu apellido" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('lastName')} />
+            <LineInput label="Nombre" placeholder="Ingresá tu nombre" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('firstName')} />
+            <LineInput label="Apellido" placeholder="Ingresá tu apellido" leftIcon="person-outline" autoCapitalize="words" required {...getFieldProps('lastName')} />
           </>
         );
       case 1:
         return (
           <>
-            <FormInput label="Email" placeholder="ejemplo@correo.com" leftIcon="mail-outline" keyboardType="email-address" autoCapitalize="none" autoComplete="email" required {...getFieldProps('email')} />
-            <FormInput label="Contraseña" placeholder="Mínimo 8 caracteres" leftIcon="lock-closed-outline" secureTextEntry showPasswordToggle helper="Incluye mayúscula, minúscula, número y carácter especial" required {...getFieldProps('password')} />
-            <FormInput label="Confirmar contraseña" placeholder="Repetí tu contraseña" leftIcon="lock-closed-outline" secureTextEntry showPasswordToggle required {...getFieldProps('confirmPassword')} />
+            <LineInput label="Email" placeholder="ejemplo@correo.com" leftIcon="mail-outline" keyboardType="email-address" autoCapitalize="none" autoComplete="email" required {...getFieldProps('email')} />
+            <LineInput label="Contraseña" placeholder="Mínimo 8 caracteres" leftIcon="lock-closed-outline" secureTextEntry showPasswordToggle helper="Incluye mayúscula, minúscula, número y carácter especial" required {...getFieldProps('password')} />
+            <LineInput label="Confirmar contraseña" placeholder="Repetí tu contraseña" leftIcon="lock-closed-outline" secureTextEntry showPasswordToggle required {...getFieldProps('confirmPassword')} />
           </>
         );
       case 2:
         return (
           <>
-            <FormInput label="Teléfono" placeholder="+54 11 1234-5678" leftIcon="call-outline" keyboardType="phone-pad" helper="Formato: +54 código de área número" required {...getFieldProps('phone')} />
+            <LineInput label="Teléfono" placeholder="+54 11 1234-5678" leftIcon="call-outline" keyboardType="phone-pad" helper="Formato: +54 código de área número" required {...getFieldProps('phone')} />
             <FormPicker
+              variant="line"
               label="Sexo"
               placeholder="Seleccioná una opción"
               leftIcon="person-outline"
@@ -231,7 +233,7 @@ const RegisterScreen = ({ navigation }) => {
             <Text style={{ fontSize: 12, color: textMuted, marginTop: -10, marginBottom: 8 }}>
               No podrás cambiar el sexo después del registro.
             </Text>
-            <FormInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
+            <LineInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
             <LocationPickerField
               province={values.province}
               city={values.city}
@@ -245,8 +247,8 @@ const RegisterScreen = ({ navigation }) => {
       case 3:
         return (
           <>
-            <FormInput label="Biografía" placeholder="Contanos sobre vos (opcional)" leftIcon="document-text-outline" multiline numberOfLines={3} maxLength={500} helper="Máximo 500 caracteres" {...getFieldProps('bio')} />
-            <FormInput label="Código promocional" placeholder="Ej: JP1234 (opcional)" leftIcon="gift-outline" value={values.referralCode} onChangeText={handleReferralCodeChange} autoCapitalize="characters" maxLength={6} helper="Si tenés un código de un amigo, ingresalo para obtener 20% de descuento" />
+            <LineInput label="Biografía" placeholder="Contanos sobre vos (opcional)" leftIcon="document-text-outline" multiline numberOfLines={3} maxLength={500} helper="Máximo 500 caracteres" {...getFieldProps('bio')} />
+            <LineInput label="Código promocional" placeholder="Ej: JP1234 (opcional)" leftIcon="gift-outline" value={values.referralCode} onChangeText={handleReferralCodeChange} autoCapitalize="characters" maxLength={6} helper="Si tenés un código de un amigo, ingresalo para obtener 20% de descuento" />
             {(validatingReferral || referralMessage) && (
               <View style={{ marginTop: -8, marginBottom: 16 }}>
                 {validatingReferral
@@ -306,23 +308,18 @@ const RegisterScreen = ({ navigation }) => {
           ScrollView) nunca recibia su onPress. */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
-        {/* Top nav */}
+        {/* Volver + barra segmentada. Es la misma que usa el alta de viaje: un solo lenguaje
+            de "vas por acá" en toda la app. El texto dice el paso Y su título, que los
+            puntitos solos no podían. */}
         <View style={styles.topNav}>
-          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={textPrimary} />
+          <TouchableOpacity
+            onPress={handleBack}
+            style={[styles.backBtn, { backgroundColor: ui.surface, borderColor: border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <Ionicons name="chevron-back" size={22} color={textPrimary} />
           </TouchableOpacity>
-          <View style={styles.dotsRow}>
-            {STEPS.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  { width: i === currentStep ? 24 : 8, backgroundColor: i <= currentStep ? textPrimary : border },
-                ]}
-              />
-            ))}
-          </View>
-          <Text style={[styles.stepCounter, { color: textMuted }]}>{currentStep + 1}/{STEPS.length}</Text>
         </View>
 
         {/* `automaticallyAdjustKeyboardInsets`: iOS ajusta el contentInset solo con el
@@ -337,6 +334,22 @@ const RegisterScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets
         >
+          <AuthHero height={132} />
+
+          <View style={styles.stepper}>
+            <View style={styles.stepperBarra}>
+              {STEPS.map((_, i) => (
+                <View
+                  key={i}
+                  style={[styles.stepperTramo, { backgroundColor: i <= currentStep ? textPrimary : border }]}
+                />
+              ))}
+            </View>
+            <Text style={[styles.stepperTexto, { color: textMuted }]}>
+              Paso {currentStep + 1} de {STEPS.length} · {STEPS[currentStep].title}
+            </Text>
+          </View>
+
           {currentStep === 0 ? (
             <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
               <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
@@ -410,21 +423,22 @@ const RegisterScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container:    { flex: 1 },
-  topNav:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  backBtn:      { width: 40, height: 40, justifyContent: 'center' },
-  dotsRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot:          { height: 8, borderRadius: 4 },
-  stepCounter:  { width: 40, textAlign: 'right', fontSize: 13, fontFamily: 'Sora_600SemiBold' },
-  scrollContent:{ paddingHorizontal: 24, paddingBottom: 16 },
+  topNav:       { paddingHorizontal: 26, paddingTop: 4, paddingBottom: 0 },
+  backBtn:      { width: 44, height: 44, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  stepper:      { gap: 9, marginTop: 4, marginBottom: 20 },
+  stepperBarra: { flexDirection: 'row', gap: 6 },
+  stepperTramo: { flex: 1, height: 3, borderRadius: 999 },
+  stepperTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
+  scrollContent:{ paddingHorizontal: 26, paddingBottom: 16 },
   avatarCenter:          { alignSelf: 'center', position: 'relative', marginBottom: 12 },
   avatarLarge:           { width: 130, height: 130, borderRadius: 65, borderWidth: 2 },
   avatarPlaceholderLarge: { width: 130, height: 130, borderRadius: 65, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
   cameraBadge:           { position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   avatarHint:            { textAlign: 'center', fontSize: 13, marginBottom: 28, fontFamily: 'Sora_500Medium' },
-  stepTitle:    { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 6 },
-  stepSubtitle: { fontSize: 14 },
-  btnContainer: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
-  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+  stepTitle:    { fontSize: 27, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 33, marginBottom: 8 },
+  stepSubtitle: { fontSize: 14.5, fontFamily: 'Sora_400Regular', lineHeight: 21 },
+  btnContainer: { paddingHorizontal: 26, paddingBottom: 16, paddingTop: 8 },
+  btn:          { borderRadius: 999, height: 56, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
   btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   loginText:    { fontSize: 14 },

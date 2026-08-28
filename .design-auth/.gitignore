@@ -1,0 +1,4 @@
+# La salida del canvas y los artboards se regeneran con gen.mjs; no hace falta versionarlos.
+carpuling-auth-screens.html
+*.dc.html
+canvas.json
