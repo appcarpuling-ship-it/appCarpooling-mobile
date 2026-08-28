@@ -510,56 +510,58 @@ const TripRequestsScreen = ({ route }) => {
           </Text>
         )}
 
-        {/* Dónde sube y dónde baja, como recorrido y no como dos filas sueltas: es la
-            decisión que el conductor está tomando, así que se lee de un vistazo. Cada punto
-            abre el mapa. */}
+        {/* Dónde sube y dónde baja, en su propia sub-tarjeta: se distingue del resto de la
+            card y el desvío queda pegado al lado, no suelto abajo. Cada punto abre el mapa
+            con su propio botón circular, no toda la fila. */}
         {(item.seatReservation?.pickupLocation?.address || item.seatReservation?.dropoffLocation?.address) && (
-          <View style={[styles.reqRuta, { borderTopColor: divider }]}>
-            {[
-              { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
-              { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
-            ].filter(({ punto }) => punto?.address).map(({ punto, rotulo, fin }, i, arr) => {
-              const hasCoords = punto.coordinates?.latitude != null;
-              return (
-                <TouchableOpacity
-                  key={rotulo}
-                  style={styles.reqRutaFila}
-                  onPress={hasCoords
-                    ? () => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo })
-                    : undefined}
-                  disabled={!hasCoords}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.reqRutaRail}>
-                    <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
-                    {i < arr.length - 1 && <View style={[styles.reqRutaLinea, { backgroundColor: textPrimary }]} />}
+          <View style={[styles.reqRutaWrap, { borderTopColor: divider }]}>
+            <View style={[styles.reqRutaCard, { backgroundColor: bg }]}>
+              {[
+                { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
+                { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
+              ].filter(({ punto }) => punto?.address).map(({ punto, rotulo, fin }, i, arr) => {
+                const hasCoords = punto.coordinates?.latitude != null;
+                return (
+                  <View key={rotulo}>
+                    <View style={styles.reqRutaFila}>
+                      <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.reqPuntoRotulo, { color: textMuted }]}>{rotulo}</Text>
+                        <Text style={[styles.reqPuntoDir, { color: textPrimary }]} numberOfLines={2}>
+                          {punto.address}
+                        </Text>
+                      </View>
+                      {hasCoords && (
+                        <TouchableOpacity
+                          style={[styles.reqMapBtn, { backgroundColor: cardBg, borderColor: divider }]}
+                          onPress={() => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo })}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="map-outline" size={15} color={textMuted} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {i < arr.length - 1 && <View style={[styles.reqRutaDivider, { backgroundColor: divider }]} />}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.reqPuntoRotulo, { color: textMuted }]}>{rotulo}</Text>
-                    <Text style={[styles.reqPuntoDir, { color: textPrimary }]} numberOfLines={2}>
-                      {punto.address}
-                    </Text>
-                  </View>
-                  {hasCoords && <Ionicons name="map-outline" size={15} color={textMuted} style={{ marginTop: 1 }} />}
-                </TouchableOpacity>
-              );
-            })}
+                );
+              })}
 
-            {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
-                conductor si no conoce el barrio: este número es lo que le permite decidir
-                en dos segundos en vez de abrir el mapa por cada solicitud. */}
-            {!!item.desvioEtiqueta && (
-              <View style={styles.reqDesvio}>
-                <Ionicons
-                  name={item.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
-                  size={14}
-                  color={item.desvioKm > 2 ? textMuted : '#10B981'}
-                />
-                <Text style={[styles.reqDesvioText, { color: item.desvioKm > 2 ? textMuted : '#10B981' }]}>
-                  {item.desvioEtiqueta}
-                </Text>
-              </View>
-            )}
+              {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
+                  conductor si no conoce el barrio: este número es lo que le permite decidir
+                  en dos segundos en vez de abrir el mapa por cada solicitud. */}
+              {!!item.desvioEtiqueta && (
+                <View style={[styles.reqDesvio, { borderTopColor: divider }]}>
+                  <Ionicons
+                    name={item.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
+                    size={14}
+                    color={item.desvioKm > 2 ? textMuted : '#10B981'}
+                  />
+                  <Text style={[styles.reqDesvioText, { color: item.desvioKm > 2 ? textMuted : '#10B981' }]}>
+                    {item.desvioEtiqueta}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
 
@@ -902,17 +904,18 @@ const styles = StyleSheet.create({
   reqSub:         { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
   reqEstadoWrap:  { paddingHorizontal: 16, paddingBottom: 14, marginTop: -4, alignItems: 'flex-start' },
 
-  // El recorrido de la solicitud: los dos puntos unidos, como en el resto de la app.
-  reqRuta: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, gap: 2 },
-  reqDesvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 2 },
+  // El recorrido de la solicitud, en su propia sub-tarjeta: se distingue del resto de la card.
+  reqRutaWrap: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  reqRutaCard: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
+  reqDesvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
   reqDesvioText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
-  reqRutaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 3 },
-  reqPuntoRotulo: { fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 15 },
+  reqRutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
+  reqPuntoRotulo: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.3 },
   reqPuntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
-  reqRutaRail: { alignItems: 'center', paddingTop: 4, alignSelf: 'stretch' },
-  reqDotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
-  reqDotFin: { width: 9, height: 9, borderRadius: 5 },
-  reqRutaLinea: { width: 1.5, flex: 1, minHeight: 16, marginVertical: 3 },
+  reqMapBtn: { width: 30, height: 30, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  reqDotIni: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, flexShrink: 0 },
+  reqDotFin: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  reqRutaDivider: { height: 1, marginLeft: 20 },
 
 
   messageText: {
