@@ -308,7 +308,11 @@ const HomeScreen = ({ navigation, route }) => {
       ]);
       const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
       const mine = myRes.status === 'fulfilled' && myRes.value?.success ? myRes.value.data : [];
-      const today = new Date(); today.setHours(0, 0, 0, 0);
+      // departureDate guarda el día de calendario como medianoche UTC: "hoy" hay que armarlo
+      // igual (medianoche UTC del día LOCAL) — setHours(0,0,0,0) da medianoche local, que cae
+      // 3hs después, y una solicitud propia de HOY se caía del merge.
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
       const activeMine = mine.filter(r => r.status === 'open' && new Date(r.departureDate) >= today);
       const merged = [...open];
       activeMine.forEach(r => { if (!merged.find(x => x._id === r._id)) merged.push(r); });

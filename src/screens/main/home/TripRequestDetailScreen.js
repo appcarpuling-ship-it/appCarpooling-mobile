@@ -402,8 +402,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // cuya fecha ya pasó puede seguir así hasta 24hs (mismo criterio de "pasada" que ya usa el
   // backend para bucketear en Próximas/Pasadas). Sin esto, quedaba mostrando "Abierta" y
   // dejando cancelar/postularse a un viaje que ya se hizo o nunca se hizo.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  //
+  // `departureDate` guarda el día de calendario como medianoche UTC (no un instante real), así
+  // que "hoy" hay que armarlo con el mismo criterio — medianoche UTC del día de calendario
+  // LOCAL — y no con `setHours(0,0,0,0)`, que da medianoche LOCAL. Medianoche UTC de hoy cae
+  // 3 horas ANTES que medianoche local (Argentina es UTC-3): con el cálculo viejo, cualquier
+  // solicitud para HOY quedaba "vencida" todo el día, incluso antes de su hora de salida.
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const effectivelyExpired = new Date(request.departureDate) < today
     && ['open', 'awaiting_payment'].includes(request.status);
   const statusCfg   = effectivelyExpired

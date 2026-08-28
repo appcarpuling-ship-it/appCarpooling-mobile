@@ -25,8 +25,11 @@ const STATUS_LABELS = {
 const isUpcoming = (req) => {
   const isPast = ['cancelled', 'expired'].includes(req.status);
   const depDate = new Date(req.departureDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // departureDate guarda el día de calendario como medianoche UTC: "hoy" hay que armarlo con
+  // el mismo criterio (medianoche UTC del día LOCAL), no con setHours(0,0,0,0) que da
+  // medianoche local — esa quedaba 3hs después y una solicitud de HOY caía como "pasada".
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   return !isPast && depDate >= today;
 };
 

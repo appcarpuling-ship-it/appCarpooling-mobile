@@ -103,7 +103,11 @@ const OpenTripRequestsScreen = ({ navigation }) => {
       ]);
       const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
       const mine = myRes.status  === 'fulfilled' && myRes.value?.success  ? myRes.value.data  : [];
-      const today = new Date(); today.setHours(0, 0, 0, 0);
+      // departureDate guarda el día de calendario como medianoche UTC: "hoy" hay que armarlo
+      // igual (medianoche UTC del día LOCAL) — setHours(0,0,0,0) da medianoche local, que cae
+      // 3hs después, y una solicitud propia de HOY se caía del merge.
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
       const activeMine = mine.filter(r =>
         r.status === 'open' && new Date(r.departureDate) >= today
       );
@@ -207,6 +211,22 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
     const totalPrice = (item.pricePerSeat || 0) * (item.seatsNeeded || 1);
 
+    // El recorrido completo, con las paradas — mismo armado que en el detalle de la solicitud.
+    const puntos = [
+      { tipo: 'origen', label: 'Origen', loc: item.origin },
+      ...(item.intermediateStops || []).map((stop, i) => ({
+        tipo: 'parada', label: `Parada ${i + 1}`, loc: stop,
+      })),
+      { tipo: 'destino', label: 'Destino', loc: item.destination },
+    ].map((p) => {
+      const ciudad = cityWithProvince(p.loc);
+      return {
+        ...p,
+        direccion: p.loc?.address || ciudad,
+        ciudad: ciudad && ciudad !== p.loc?.address ? ciudad : '',
+      };
+    });
+
     return (
       <TouchableOpacity
         style={[styles.card, { backgroundColor: cardBg }]}
@@ -241,29 +261,36 @@ const OpenTripRequestsScreen = ({ navigation }) => {
 
         <View style={[styles.innerDivider, { backgroundColor: divider }]} />
 
-        {/* Ruta */}
+        {/* Ruta — origen, cada parada intermedia y destino, mismo criterio que el detalle de
+            la solicitud: una fila por punto con su círculo al lado. */}
         <View style={styles.routeRow}>
           <View style={styles.routeCol}>
-            <View style={[styles.routeDot, { borderColor: accent }]} />
-            <View style={[styles.routeLine, { backgroundColor: tripRouteLine }]} />
-            <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
+            {puntos.map((punto, i) => (
+              <React.Fragment key={`punto-${i}`}>
+                {punto.tipo === 'origen'
+                  ? <View style={[styles.routeDot, { borderColor: accent }]} />
+                  : punto.tipo === 'destino'
+                    ? <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
+                    : <View style={[styles.routeDotParada, { backgroundColor: tripRouteLine }]} />}
+                {i < puntos.length - 1 && (
+                  <View style={[styles.routeLine, { backgroundColor: tripRouteLine }]} />
+                )}
+              </React.Fragment>
+            ))}
           </View>
           <View style={styles.routeInfo}>
-            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={1}>
-              {cityWithProvince(item.origin) || item.origin?.address}
-            </Text>
-            {!!item.origin?.address && item.origin.address !== item.origin?.city && (
-              <Text style={[styles.routeAddress, { color: tripRouteMuted }]} numberOfLines={1}>{item.origin.address}</Text>
-            )}
-            <View style={{ height: 14 }} />
-            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-            <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={1}>
-              {cityWithProvince(item.destination) || item.destination?.address}
-            </Text>
-            {!!item.destination?.address && item.destination.address !== item.destination?.city && (
-              <Text style={[styles.routeAddress, { color: tripRouteMuted }]} numberOfLines={1}>{item.destination.address}</Text>
-            )}
+            {puntos.map((punto, i) => (
+              <View key={`info-${i}`}>
+                <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>{punto.label}</Text>
+                <Text style={[styles.routeValue, { color: textPrimary }]} numberOfLines={1}>
+                  {punto.ciudad || punto.direccion}
+                </Text>
+                {!!punto.direccion && punto.direccion !== punto.ciudad && (
+                  <Text style={[styles.routeAddress, { color: tripRouteMuted }]} numberOfLines={1}>{punto.direccion}</Text>
+                )}
+                {i < puntos.length - 1 && <View style={{ height: 14 }} />}
+              </View>
+            ))}
           </View>
         </View>
 
@@ -450,6 +477,7 @@ const styles = StyleSheet.create({
   routeLabel:      { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   routeValue:      { fontSize: 14, fontFamily: 'Sora_500Medium' },
   routeAddress:    { fontSize: 12, marginTop: 1 },
+  routeDotParada:  { width: 7, height: 7, borderRadius: 4, marginVertical: 1 },
   footer:          { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth },
   footerItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerText:      { fontSize: 12 },
