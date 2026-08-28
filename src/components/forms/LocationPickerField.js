@@ -30,6 +30,8 @@ const ITEM_SIZE = (SCREEN_WIDTH * 0.96 - 32 - 12) / 2;
  *  - provinceError, cityError: mensajes de error
  */
 const LocationPickerField = ({
+  // 'line' = sin caja, sólo la línea de abajo, para el registro. Sin la prop queda igual.
+  variant,
   province,
   city,
   onProvinceChange,
@@ -84,11 +86,20 @@ const LocationPickerField = ({
       <TouchableOpacity
         style={[
           styles.fieldButton,
-          {
-            backgroundColor: fieldBg,
-            borderColor: error ? errorColor : fieldBorder,
-            borderWidth: error ? 2 : 1,
-          },
+          variant === 'line'
+            ? {
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                paddingHorizontal: 2,
+                minHeight: 50,
+                borderBottomColor: error ? errorColor : fieldBorder,
+                borderBottomWidth: 1.5,
+              }
+            : {
+                backgroundColor: fieldBg,
+                borderColor: error ? errorColor : fieldBorder,
+                borderWidth: error ? 2 : 1,
+              },
           disabled && { opacity: 0.55 },
         ]}
         onPress={() => !disabled && onPress()}
@@ -227,8 +238,8 @@ const LocationPickerField = ({
 };
 
 const styles = StyleSheet.create({
-  fieldWrap:   { marginBottom: 16 },
-  fieldLabel:  { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
+  fieldWrap:   {},
+  fieldLabel:  { fontSize: 12.5, fontFamily: 'Sora_600SemiBold', marginBottom: 6 },
   fieldButton: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, paddingHorizontal: 14, minHeight: 48 },
   fieldText:   { flex: 1, fontSize: 15 },
   errorRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 4 },

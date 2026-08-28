@@ -120,7 +120,10 @@ const LoginScreen = ({ navigation }) => {
         bounces={false}
         overScrollMode="never"
       >
-        <AuthHero height={240} extendToTop />
+        {/* 200 y no 240: con `extendToTop` se le suma el inset del notch (~47px en un iPhone
+            con muesca) y el contenido terminaba pasándose de la pantalla por unos pocos
+            píxeles — se podía scrollear un cachito, que es peor que no poder scrollear. */}
+        <AuthHero height={200} extendToTop />
 
         <View style={styles.cuerpo}>
           <View style={styles.titulo}>
@@ -232,8 +235,8 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll:    { flexGrow: 1, paddingBottom: 28 },
-  cuerpo:    { paddingHorizontal: 26, gap: 20, marginTop: 4 },
+  scroll:    { flexGrow: 1, paddingBottom: 20 },
+  cuerpo:    { paddingHorizontal: 26, gap: 18, marginTop: 4 },
 
   titulo: { gap: 8 },
   h1:     { fontSize: 32, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 38 },
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
   pieText: { fontSize: 13.5, fontFamily: 'Sora_400Regular' },
   pieLink: { fontSize: 13.5, fontFamily: 'Sora_700Bold' },
 
-  version: { textAlign: 'center', fontSize: 11.5, fontFamily: 'Sora_400Regular', marginTop: 4 },
+  version: { textAlign: 'center', fontSize: 11.5, fontFamily: 'Sora_400Regular', marginTop: 0 },
 });
 
 export default LoginScreen;

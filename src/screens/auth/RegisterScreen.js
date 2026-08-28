@@ -230,11 +230,12 @@ const RegisterScreen = ({ navigation }) => {
                 { value: 'male', label: 'Masculino' },
               ]}
             />
-            <Text style={{ fontSize: 12, color: textMuted, marginTop: -10, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, fontFamily: 'Sora_400Regular', color: textMuted, marginTop: -12 }}>
               No podrás cambiar el sexo después del registro.
             </Text>
             <LineInput label="Edad" placeholder="18" leftIcon="calendar-outline" keyboardType="numeric" helper="Debés ser mayor de 18 años" required {...getFieldProps('age')} />
             <LocationPickerField
+              variant="line"
               province={values.province}
               city={values.city}
               onProvinceChange={(value) => { setValue('province', value); setValue('city', ''); setFieldTouched('province', true); }}
@@ -352,7 +353,7 @@ const RegisterScreen = ({ navigation }) => {
 
           {currentStep === 0 ? (
             <Animated.View style={[{ opacity: stepAnim, marginBottom: 28 }]}>
-              <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[0].title}</Text>
+              <Text style={[styles.stepTitle, { color: textPrimary }]}>Creá tu cuenta</Text>
               <Text style={[styles.stepSubtitle, { color: textMuted, marginBottom: 28 }]}>{STEPS[0].subtitle}</Text>
               <TouchableOpacity onPress={pickImage} activeOpacity={0.85} style={styles.avatarCenter}>
                 {avatarUri
@@ -371,13 +372,15 @@ const RegisterScreen = ({ navigation }) => {
             </Animated.View>
           ) : (
             <Animated.View style={{ opacity: stepAnim, marginBottom: 28 }}>
-              <Text style={[styles.stepTitle, { color: textPrimary }]}>{STEPS[currentStep].title}</Text>
+              <Text style={[styles.stepTitle, { color: textPrimary }]}>Creá tu cuenta</Text>
               <Text style={[styles.stepSubtitle, { color: textMuted }]}>{STEPS[currentStep].subtitle}</Text>
             </Animated.View>
           )}
 
-          {/* Step content */}
-          <Animated.View style={{ opacity: stepAnim }}>
+          {/* `gap` en el contenedor y no un margen por campo: los componentes de formulario
+              traían el suyo propio y, al mezclarlos, el label de un campo quedaba pegado a la
+              línea del anterior. */}
+          <Animated.View style={[styles.campos, { opacity: stepAnim }]}>
             {renderStepContent()}
           </Animated.View>
         </ScrollView>
@@ -430,6 +433,7 @@ const styles = StyleSheet.create({
   stepperTramo: { flex: 1, height: 3, borderRadius: 999 },
   stepperTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
   scrollContent:{ paddingHorizontal: 26, paddingBottom: 16 },
+  campos:       { gap: 20 },
   avatarCenter:          { alignSelf: 'center', position: 'relative', marginBottom: 12 },
   avatarLarge:           { width: 130, height: 130, borderRadius: 65, borderWidth: 2 },
   avatarPlaceholderLarge: { width: 130, height: 130, borderRadius: 65, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },

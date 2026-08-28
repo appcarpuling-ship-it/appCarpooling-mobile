@@ -267,7 +267,6 @@ const FormPicker = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md,
   },
   label: {
     fontSize: fontSize.sm,
