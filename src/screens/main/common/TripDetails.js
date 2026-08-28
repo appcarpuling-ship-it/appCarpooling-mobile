@@ -280,6 +280,20 @@ const TripDetails = ({ navigation, route }) => {
 
     const selectedVehicle = vehicles?.find(v => v?._id === formData.vehicle);
 
+    // El recorrido completo, con las paradas que el conductor eligió en el mapa. Antes esta
+    // tarjeta mostraba sólo origen y destino: las paradas se mandaban igual al backend, pero
+    // acá no aparecían por ningún lado y parecía que se habían perdido.
+    const textoDelPunto = (p) => [p?.address, p?.city, p?.province].filter(Boolean).join(', ');
+    const puntosDelViaje = [
+        { tipo: 'origen', label: 'Origen', texto: textoDelPunto(origin) },
+        ...(waypoints || []).map((wp, i) => ({
+            tipo: 'parada',
+            label: `Parada ${i + 1}`,
+            texto: textoDelPunto(wp),
+        })),
+        { tipo: 'destino', label: 'Destino', texto: textoDelPunto(destination) },
+    ];
+
     const preferences = [
         { key: 'allowSmoking',        label: 'Permitir fumar',        icon: 'ban-outline' },
         { key: 'allowPets',           label: 'Permitir mascotas',     icon: 'paw-outline' },
@@ -293,17 +307,6 @@ const TripDetails = ({ navigation, route }) => {
                 KeyboardAvoidingView y con el teclado abierto dejaba una franja vacía DEBAJO
                 del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
-                <KeyboardAvoidingView
-                    // En Android `app.json` ya tiene softwareKeyboardLayoutMode: 'resize', o sea
-                    // que el sistema operativo achica la pantalla solo con el teclado. Sumarle acá
-                    // behavior="height" la achicaba UNA VEZ MÁS: el botón "Continuar" quedaba
-                    // flotando en un hueco de más, con la barra de accesorios del teclado (Samsung)
-                    // asomando en ese espacio de sobra — justo el precio, el último campo del paso.
-                    // undefined en Android = dejar que el sistema resuelva solo.
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    keyboardVerticalOffset={headerHeight}
-                    style={styles.flex}
-                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     {/* Antes: scrollToEnd manual al enfocar un input. Rompía si el campo no era
                         el último del paso (el precio dejó de serlo al sumarse "Gastos
@@ -338,22 +341,30 @@ const TripDetails = ({ navigation, route }) => {
 
                         {/* Ruta */}
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            <View style={styles.routeRow}>
-                                <View style={styles.routeDots}>
-                                    <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
-                                    <View style={[styles.line, { backgroundColor: border }]} />
-                                    <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
-                                </View>
-                                <View style={styles.routeLabels}>
-                                    <Text style={[styles.routeLabel, { color: textMuted }]}>Origen</Text>
-                                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
-                                        {[origin.address, origin.city, origin.province].filter(Boolean).join(', ')}
-                                    </Text>
-                                    <Text style={[styles.routeLabel, { color: textMuted, marginTop: 16 }]}>Destino</Text>
-                                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
-                                        {[destination.address, destination.city, destination.province].filter(Boolean).join(', ')}
-                                    </Text>
-                                </View>
+                            {/* Cada punto es UNA fila con su círculo al lado de su texto, igual que en
+                                el detalle del viaje. Con la columna de círculos aparte —alto fijo— las
+                                paradas intermedias desincronizaban el punto de su dirección. */}
+                            <View style={styles.routeList}>
+                                {puntosDelViaje.map((punto, i) => (
+                                    <View key={`punto-${i}`} style={styles.routePoint}>
+                                        <View style={styles.routeRail}>
+                                            {punto.tipo === 'origen'
+                                                ? <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
+                                                : punto.tipo === 'destino'
+                                                    ? <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
+                                                    : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
+                                            {i < puntosDelViaje.length - 1 && (
+                                                <View style={[styles.line, { backgroundColor: border }]} />
+                                            )}
+                                        </View>
+                                        <View style={[styles.routeBody, i < puntosDelViaje.length - 1 && styles.routeBodyGap]}>
+                                            <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
+                                            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
+                                                {punto.texto}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))}
                             </View>
                             {distance && duration && (
                                 <Text style={[styles.routeMeta, { color: textMuted, borderTopColor: divider }]}>
@@ -639,6 +650,20 @@ const TripDetails = ({ navigation, route }) => {
                     </KeyboardAwareScrollView>
                     </TouchableWithoutFeedback>
 
+                    {/* El KeyboardAvoidingView envuelve SÓLO el footer, no el scroll.
+                        Envolviendo los dos, en iOS el teclado se compensaba dos veces —el KAV
+                        achicaba el contenedor y KeyboardAwareScrollView volvía a subir el input
+                        encima— y el campo enfocado salía disparado al borde de arriba con un
+                        hueco enorme abajo. Cada uno hace lo suyo: KAS sube el input, el KAV
+                        levanta el botón.
+
+                        En Android `app.json` ya tiene softwareKeyboardLayoutMode: 'resize', o
+                        sea que el sistema achica la pantalla solo: ahí el KAV no hace falta
+                        (undefined = que lo resuelva el sistema). */}
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        keyboardVerticalOffset={headerHeight}
+                    >
                     {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
                         y bajaba según cuánto contenido tuviera cada paso. */}
                     <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
@@ -770,12 +795,15 @@ const styles = StyleSheet.create({
     },
 
     // Route
-    routeRow: {
-        flexDirection: 'row',
+    routeList: {
         padding: 16,
+    },
+    routePoint: {
+        flexDirection: 'row',
         gap: 12,
     },
-    routeDots: {
+    routeRail: {
+        width: 9,
         alignItems: 'center',
         paddingTop: 3,
     },
@@ -790,14 +818,23 @@ const styles = StyleSheet.create({
         height: 9,
         borderRadius: 5,
     },
+    dotParada: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginVertical: 1.5,
+    },
     line: {
         width: 1,
         flex: 1,
         marginVertical: 4,
-        minHeight: 24,
+        minHeight: 18,
     },
-    routeLabels: {
+    routeBody: {
         flex: 1,
+    },
+    routeBodyGap: {
+        paddingBottom: 14,
     },
     routeLabel: {
         fontSize: 11,
