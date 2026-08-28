@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 
 /**
@@ -23,11 +22,6 @@ import { useUI } from '../../theme/ui';
 const UpdateRequiredScreen = () => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-
-  const pasos = [
-    'Cerrá Carpuling deslizándola fuera de las apps abiertas.',
-    'Volvé a abrirla desde el ícono, como siempre.',
-  ];
 
   return (
     <View
@@ -53,25 +47,8 @@ const UpdateRequiredScreen = () => {
 
         <Text style={[styles.title, { color: ui.text }]}>Nueva actualización</Text>
         <Text style={[styles.message, { color: ui.textMuted }]}>
-          Ya descargamos la última versión de Carpuling. Para empezar a usarla:
+          Ya descargamos la última versión de Carpuling. Cerrá la app y abrila para actualizarla.
         </Text>
-      </View>
-
-      <View style={[styles.pasos, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-        {pasos.map((texto, i) => (
-          <View key={i} style={styles.paso}>
-            <View style={[styles.numero, { backgroundColor: ui.invertBg }]}>
-              <Text style={[styles.numeroText, { color: ui.invertText }]}>{i + 1}</Text>
-            </View>
-            <Text style={[styles.pasoText, { color: ui.text }]}>{texto}</Text>
-          </View>
-        ))}
-        <View style={styles.aviso}>
-          <Ionicons name="information-circle-outline" size={15} color={ui.textMuted} />
-          <Text style={[styles.avisoText, { color: ui.textMuted }]}>
-            Si volvés a ver esta pantalla, es que la app no llegó a cerrarse del todo.
-          </Text>
-        </View>
       </View>
     </View>
   );
@@ -87,14 +64,6 @@ const styles = StyleSheet.create({
   haloOuter: { width: '85%', height: '85%', opacity: 0.5 },
   haloInner: { width: '62%', height: '62%', opacity: 0.9 },
   illustration: { width: '68%', height: '68%' },
-
-  pasos: { borderRadius: 20, borderWidth: 1, padding: 18, gap: 14 },
-  paso: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  numero: { width: 22, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  numeroText: { fontSize: 12, fontFamily: 'Sora_700Bold' },
-  pasoText: { flex: 1, fontSize: 14.5, fontFamily: 'Sora_500Medium', lineHeight: 21 },
-  aviso: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingTop: 2 },
-  avisoText: { flex: 1, fontSize: 12.5, fontFamily: 'Sora_400Regular', lineHeight: 18 },
 });
 
 export default UpdateRequiredScreen;
