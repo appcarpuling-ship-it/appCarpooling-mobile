@@ -1,28 +1,37 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { post_public } from '../../services/apiService';
 import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
+import { useColors } from '../../hooks/useColors';
 import { useUI } from '../../theme/ui';
-import AuthHero from '../../components/auth/AuthHero';
-import LineInput from '../../components/auth/LineInput';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
+  const { isDarkMode } = useColors();
+
   const ui = useUI();
+
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const iconBg      = ui.bg;
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -47,59 +56,44 @@ const ForgotPasswordScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: ui.bg }]} edges={['top', 'bottom']}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        // Sin rebote: el dibujo arranca pegado arriba, y al tirar hacia abajo se despegaba
-        // del borde dejando una franja de fondo — se leía como si la pantalla se estirara.
-        bounces={false}
-        overScrollMode="never"
-      >
-        <View style={styles.volverWrap}>
-          <TouchableOpacity
-            style={[styles.volver, { backgroundColor: ui.surface, borderColor: ui.border }]}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-          >
-            <Ionicons name="chevron-back" size={22} color={ui.text} />
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+          {/* Back button */}
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={22} color={textPrimary} />
           </TouchableOpacity>
-        </View>
 
-        <AuthHero height={214} />
-
-        <View style={styles.cuerpo}>
-          <View style={styles.titulo}>
-            <Text style={[styles.h1, { color: ui.text }]}>¿Olvidaste tu{'\n'}contraseña?</Text>
-            <Text style={[styles.sub, { color: ui.textMuted }]}>
-              Poné tu email y te mandamos un código de 6 dígitos para que puedas crear una nueva.
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
+              <Ionicons name="key-outline" size={32} color={textPrimary} />
+            </View>
+            <Text style={[styles.title, { color: textPrimary }]}>Recuperar contraseña</Text>
+            <Text style={[styles.subtitle, { color: textMuted }]}>
+              Ingresá tu email y te enviaremos un código para restablecer tu contraseña
             </Text>
           </View>
 
-          <LineInput
-            label="Email"
-            icon="mail-outline"
-            placeholder="tu@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
+          {/* Form card */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={styles.inputRow}>
+              <Ionicons name="mail-outline" size={18} color={textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: textPrimary }]}
+                placeholder="Email"
+                placeholderTextColor={textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+          </View>
 
-        </View>
-      </ScrollView>
-
-      {/* El botón vive FUERA del scroll, siempre en el mismo lugar: adentro subía y bajaba
-          según cuánto contenido tuviera la pantalla. El KeyboardAvoidingView envuelve sólo
-          este pie —no el scroll— para que el teclado no se compense dos veces. */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.pieFijo, { backgroundColor: ui.bg, borderTopColor: ui.border }]}>
+          {/* Button */}
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleResetPassword}
@@ -108,41 +102,30 @@ const ForgotPasswordScreen = ({ navigation }) => {
           >
             {loading
               ? <ActivityIndicator color={ui.invertText} />
-              : <Text style={[styles.btnText, { color: ui.invertText }]}>Enviarme el código</Text>
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Enviar código</Text>
             }
           </TouchableOpacity>
 
-          <View style={styles.pie}>
-            <Text style={[styles.pieText, { color: ui.textMuted }]}>¿Te acordaste? </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={[styles.pieLink, { color: ui.text }]}>Volvé al inicio</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container:  { flex: 1 },
-  scroll:     { flexGrow: 1, paddingBottom: 8 },
-  volverWrap: { paddingHorizontal: 26, paddingTop: 4 },
-  volver:     { width: 44, height: 44, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-
-  // El hero pisa un poco al botón de volver: sin esto quedaba una franja muerta entre los dos.
-  cuerpo: { paddingHorizontal: 26, gap: 22, marginTop: 6 },
-  titulo: { gap: 8 },
-  h1:     { fontSize: 28, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 34 },
-  sub:    { fontSize: 14.5, fontFamily: 'Sora_400Regular', lineHeight: 21 },
-
-  btn:     { height: 56, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
-  btnText: { fontSize: 15.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.2 },
-
-  pieFijo: { paddingHorizontal: 26, paddingTop: 14, paddingBottom: 8, gap: 16, borderTopWidth: StyleSheet.hairlineWidth },
-  pie:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  pieText: { fontSize: 13.5, fontFamily: 'Sora_400Regular' },
-  pieLink: { fontSize: 13.5, fontFamily: 'Sora_700Bold' },
+  container:    { flex: 1 },
+  scrollContent:{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
+  backBtn:      { width: 44, height: 44, justifyContent: 'center', marginBottom: 24 },
+  header:       { alignItems: 'center', marginBottom: 32 },
+  iconCircle:   { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  title:        { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 10, textAlign: 'center' },
+  subtitle:     { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  card:         { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
+  inputRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
+  inputIcon:    { marginRight: 10 },
+  input:        { flex: 1, height: 52, fontSize: 15 },
+  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
+  btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 
 export default ForgotPasswordScreen;

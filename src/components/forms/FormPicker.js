@@ -50,9 +50,6 @@ const styleColors = themeColors || {
 const { height: screenHeight } = Dimensions.get('window');
 
 const FormPicker = ({
-  // 'line' = sin caja, sólo la línea de abajo. Lo usan las pantallas de acceso, para que
-  // el selector no desentone al lado de los campos de línea. Sin la prop, todo sigue igual.
-  variant,
   label,
   value,
   onSelect,
@@ -116,20 +113,11 @@ const FormPicker = ({
       <TouchableOpacity
         style={[
           styles.pickerButton,
-          variant === 'line'
-            ? {
-                backgroundColor: 'transparent',
-                borderRadius: 0,
-                paddingHorizontal: 2,
-                minHeight: 50,
-                borderBottomColor: getBorderColor(),
-                borderBottomWidth: 1.5,
-              }
-            : {
-                backgroundColor: isDarkMode ? '#292929' : '#F8F9FA',
-                borderColor: getBorderColor(),
-                borderWidth: error ? 2 : 1,
-              },
+          {
+            backgroundColor: isDarkMode ? '#292929' : '#F8F9FA',
+            borderColor: getBorderColor(),
+            borderWidth: error ? 2 : 1,
+          },
           disabled && styles.pickerDisabled,
         ]}
         onPress={() => !disabled && setModalVisible(true)}
@@ -267,6 +255,7 @@ const FormPicker = ({
 
 const styles = StyleSheet.create({
   container: {
+    marginBottom: spacing.md,
   },
   label: {
     fontSize: fontSize.sm,

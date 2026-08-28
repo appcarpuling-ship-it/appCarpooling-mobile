@@ -1,39 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
+import { useColors } from '../../hooks/useColors';
 import { useUI } from '../../theme/ui';
-import AuthHero from '../../components/auth/AuthHero';
-
-const LARGO = 6;
 
 const VerificationScreen = ({ route, navigation }) => {
   const { email, sendCodeOnMount } = route.params || {};
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [enfocado, setEnfocado] = useState(false);
   const { verifyEmail, resendVerification } = useAuth();
   const { showAlert } = useAlert();
+  const { isDarkMode } = useColors();
+
   const ui = useUI();
 
-  // Las seis casillas son sólo dibujo: el código vive en UN input invisible estirado por
-  // encima. Seis TextInput de verdad obligan a saltar el foco a mano y rompen el autocompletado
-  // del código que llega por SMS/mail (`one-time-code`), que es como la mayoría lo carga.
-  const inputRef = useRef(null);
+  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+  const iconBg      = ui.bg;
 
   const autoSendStarted = useRef(false);
   useEffect(() => {
@@ -69,7 +69,7 @@ const VerificationScreen = ({ route, navigation }) => {
   }, [sendCodeOnMount, email, resendVerification, showAlert]);
 
   const handleVerify = async () => {
-    if (!verificationCode || verificationCode.length !== LARGO) {
+    if (!verificationCode || verificationCode.length !== 6) {
       showAlert('Ocurrió algo', 'Por favor ingresá un código válido de 6 dígitos');
       return;
     }
@@ -116,119 +116,71 @@ const VerificationScreen = ({ route, navigation }) => {
     }
   };
 
-  const formatCode = (text) => text.replace(/[^0-9]/g, '').slice(0, LARGO);
-  const isReady = verificationCode.length === LARGO;
+  const formatCode = (text) => text.replace(/[^0-9]/g, '').slice(0, 6);
+
+  const isReady = verificationCode.length === 6;
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: ui.bg }, Platform.OS === 'web' && { minHeight: '100vh' }]}
-      edges={['top', 'bottom']}
-    >
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
-        // Sin rebote: el dibujo arranca pegado arriba, y al tirar hacia abajo se despegaba
-        // del borde dejando una franja de fondo — se leía como si la pantalla se estirara.
-        bounces={false}
-        overScrollMode="never"
-      >
-        <View style={styles.volverWrap}>
-          <TouchableOpacity
-            style={[styles.volver, { backgroundColor: ui.surface, borderColor: ui.border }]}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-          >
-            <Ionicons name="chevron-back" size={22} color={ui.text} />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }, Platform.OS === 'web' && { minHeight: '100vh' }]} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
 
-        <AuthHero height={196} />
-
-        <View style={styles.cuerpo}>
-          <View style={styles.titulo}>
-            <Text style={[styles.h1, { color: ui.text }]}>Verificá tu email</Text>
-            <Text style={[styles.sub, { color: ui.textMuted }]}>
-              Te mandamos un código de 6 dígitos a{' '}
-              <Text style={{ color: ui.text, fontFamily: 'Sora_600SemiBold' }}>{email}</Text>. Revisá también el spam.
-            </Text>
+          {/* Icon */}
+          <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
+              <Ionicons name="mail-outline" size={32} color={textPrimary} />
+            </View>
+            <Text style={[styles.title, { color: textPrimary }]}>Verificar Email</Text>
+            <Text style={[styles.subtitle, { color: textMuted }]}>Enviamos un código de verificación a</Text>
+            <Text style={[styles.email, { color: textPrimary }]}>{email}</Text>
           </View>
 
-          <Pressable
-            style={styles.casillas}
-            onPress={() => inputRef.current?.focus()}
-            accessibilityRole="none"
-          >
-            {Array.from({ length: LARGO }, (_, i) => {
-              const ch = verificationCode[i] || '';
-              // El cursor: la casilla que sigue a lo ya escrito se marca mientras hay foco.
-              const activa = enfocado && i === Math.min(verificationCode.length, LARGO - 1);
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.casilla,
-                    {
-                      backgroundColor: ch ? ui.surface : ui.bg,
-                      borderColor: ch || activa ? ui.text : ui.border,
-                      borderWidth: ch || activa ? 1.5 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.digito, { color: ch ? ui.text : ui.textMuted }]}>{ch}</Text>
-                </View>
-              );
-            })}
-
+          {/* Code input card */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
             <TextInput
-              ref={inputRef}
-              style={styles.inputInvisible}
+              style={[styles.codeInput, { color: textPrimary }]}
+              placeholder="000000"
+              placeholderTextColor={textMuted}
               value={verificationCode}
               onChangeText={(text) => setVerificationCode(formatCode(text))}
-              onFocus={() => setEnfocado(true)}
-              onBlur={() => setEnfocado(false)}
-              keyboardType="number-pad"
-              maxLength={LARGO}
+              keyboardType="numeric"
+              maxLength={6}
               autoComplete="one-time-code"
-              textContentType="oneTimeCode"
-              caretHidden
-              accessibilityLabel="Código de verificación de 6 dígitos"
             />
-          </Pressable>
+          </View>
 
-        </View>
-      </ScrollView>
-
-      {/* El botón vive FUERA del scroll, siempre en el mismo lugar. El KeyboardAvoidingView
-          envuelve sólo este pie —no el scroll— para que el teclado no se compense dos veces. */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.pieFijo, { backgroundColor: ui.bg, borderTopColor: ui.border }]}>
+          {/* Verify button */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: ui.invertBg }, !isReady && { opacity: 0.4 }]}
+            style={[
+              styles.btn,
+              { backgroundColor: ui.invertBg },
+              !isReady && { opacity: 0.4 },
+            ]}
             onPress={handleVerify}
             disabled={loading || !isReady}
             activeOpacity={0.85}
           >
             {loading
               ? <ActivityIndicator color={ui.invertText} />
-              : <Text style={[styles.btnText, { color: ui.invertText }]}>Verificar</Text>
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Verificar código</Text>
             }
           </TouchableOpacity>
 
-          <View style={styles.pie}>
-            <Text style={[styles.pieText, { color: ui.textMuted }]}>¿No te llegó? </Text>
+          {/* Resend */}
+          <View style={styles.resendRow}>
+            <Text style={[styles.resendText, { color: textMuted }]}>¿No recibiste el código? </Text>
             <TouchableOpacity onPress={handleResendCode} disabled={resending}>
               {resending
-                ? <ActivityIndicator size="small" color={ui.textMuted} />
-                : <Text style={[styles.pieLink, { color: ui.text }]}>Reenviar código</Text>
+                ? <ActivityIndicator size="small" color={textMuted} />
+                : <Text style={[styles.resendLink, { color: textPrimary }]}>Reenviar</Text>
               }
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -236,28 +188,19 @@ const VerificationScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container:  { flex: 1 },
-  scroll:     { flexGrow: 1, paddingBottom: 8 },
-  volverWrap: { paddingHorizontal: 26, paddingTop: 4 },
-  volver:     { width: 44, height: 44, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-
-  cuerpo: { paddingHorizontal: 26, gap: 24, marginTop: 8 },
-  titulo: { gap: 8 },
-  h1:     { fontSize: 28, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 34 },
-  sub:    { fontSize: 14.5, fontFamily: 'Sora_400Regular', lineHeight: 21 },
-
-  casillas: { flexDirection: 'row', justifyContent: 'space-between' },
-  casilla:  { width: 48, height: 60, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  digito:   { fontSize: 24, fontFamily: 'Sora_700Bold' },
-  // Estirado por encima de las seis casillas y transparente: recibe el toque y el teclado.
-  inputInvisible: { ...StyleSheet.absoluteFillObject, opacity: 0, color: 'transparent' },
-
-  btn:     { height: 56, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
-  btnText: { fontSize: 15.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.2 },
-
-  pieFijo: { paddingHorizontal: 26, paddingTop: 14, paddingBottom: 8, gap: 16, borderTopWidth: StyleSheet.hairlineWidth },
-  pie:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  pieText: { fontSize: 13.5, fontFamily: 'Sora_400Regular' },
-  pieLink: { fontSize: 13.5, fontFamily: 'Sora_700Bold' },
+  content:    { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  header:     { alignItems: 'center', marginBottom: 32 },
+  iconCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  title:      { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 8 },
+  subtitle:   { fontSize: 14, marginBottom: 4 },
+  email:      { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+  card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
+  codeInput:  { height: 72, fontSize: 32, fontFamily: 'Sora_700Bold', textAlign: 'center', letterSpacing: 12 },
+  btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  btnText:    { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  resendText: { fontSize: 14 },
+  resendLink: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default VerificationScreen;

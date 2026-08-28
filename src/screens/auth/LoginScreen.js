@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
@@ -17,10 +20,9 @@ import * as Updates from 'expo-updates';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
+import { useColors } from '../../hooks/useColors';
 import { API_CONFIG } from '../../config/api';
 import { useUI } from '../../theme/ui';
-import AuthHero from '../../components/auth/AuthHero';
-import LineInput from '../../components/auth/LineInput';
 
 // Derivado de la API configurada (EXPO_PUBLIC_API_BASE_URL / eas.json), no clavado:
 // antes apuntaba siempre a producción y el SSO de un build dev terminaba en el server equivocado.
@@ -31,10 +33,23 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(null); // 'google' | 'apple' | null
+  const [showPassword, setShowPassword] = useState(false);
   const { login, loginWithJwt, loginWithApple } = useAuth();
   const { showAlert } = useAlert();
+  // isDarkMode ya viene resuelto: getCurrentThemeMode() devuelve 'system' cuando
+  // el usuario sigue al sistema, y comparar contra 'dark' dejaba el login en
+  // claro aunque el sistema estuviera en oscuro.
+  const { isDarkMode } = useColors();
 
-  const ui = useUI();
+  const ui = useUI();  const bg          = ui.bg;
+  const cardBg      = ui.surface;
+  const border      = ui.border;
+  const textPrimary = ui.invertBg;
+  const textMuted   = ui.textMuted;
+
+  const LOGO_SOURCE = isDarkMode
+    ? require('../../../assets/logo/192x192-white.png')
+    : require('../../../assets/logo/192x192-black.png');
 
   useEffect(() => {
     ScreenCapture.preventScreenCaptureAsync();
@@ -102,65 +117,51 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  // En web no hay SSO nativo: el bloque entero (divisor incluido) no va.
-  const mostrarSSO = Platform.OS !== 'web';
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: ui.bg }]} edges={['bottom']}>
-      {/* `automaticallyAdjustKeyboardInsets` lo resuelve iOS del lado nativo; en Android
-          app.json ya tiene softwareKeyboardLayoutMode: 'resize'. Sin librerías de teclado. */}
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        // Sin rebote: el dibujo arranca pegado arriba, y al tirar hacia abajo se despegaba
-        // del borde dejando una franja de fondo — se leía como si la pantalla se estirara.
-        bounces={false}
-        overScrollMode="never"
-      >
-        {/* 200 y no 240: con `extendToTop` se le suma el inset del notch (~47px en un iPhone
-            con muesca) y el contenido terminaba pasándose de la pantalla por unos pocos
-            píxeles — se podía scrollear un cachito, que es peor que no poder scrollear. */}
-        <AuthHero height={200} extendToTop />
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-        <View style={styles.cuerpo}>
-          <View style={styles.titulo}>
-            <Text style={[styles.h1, { color: ui.text }]}>Carpuling</Text>
-            <Text style={[styles.sub, { color: ui.textMuted }]}>Viajá inteligente, ahorrá más</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <Image source={LOGO_SOURCE} style={styles.logo} />
+            <Text style={[styles.title, { color: textPrimary }]}>Carpuling</Text>
+            <Text style={[styles.subtitle, { color: textMuted }]}>Viajá inteligente, ahorrá más</Text>
           </View>
 
-          <View style={styles.campos}>
-            <LineInput
-              label="Email"
-              icon="mail-outline"
-              placeholder="tu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
-            <LineInput
-              label="Contraseña"
-              icon="lock-closed-outline"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              showPasswordToggle
-              autoComplete="password"
-            />
-            <TouchableOpacity
-              style={styles.olvide}
-              onPress={() => navigation.navigate('ForgotPassword')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={[styles.olvideText, { color: ui.text }]}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
+          {/* Form card */}
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[styles.inputRow, { borderBottomColor: border }]}>
+              <Ionicons name="mail-outline" size={18} color={textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: textPrimary }]}
+                placeholder="Email"
+                placeholderTextColor={textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+            <View style={[styles.inputRow, { borderBottomWidth: 0 }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: textPrimary }]}
+                placeholder="Contraseña"
+                placeholderTextColor={textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color={textMuted} />
+              </TouchableOpacity>
+            </View>
           </View>
 
+          {/* Login button */}
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleLogin}
@@ -173,95 +174,96 @@ const LoginScreen = ({ navigation }) => {
             }
           </TouchableOpacity>
 
-          {mostrarSSO && (
-            <>
-              <View style={styles.divisor}>
-                <View style={[styles.linea, { backgroundColor: ui.border }]} />
-                <Text style={[styles.divisorText, { color: ui.textMuted }]}>o continuá con</Text>
-                <View style={[styles.linea, { backgroundColor: ui.border }]} />
-              </View>
+          {/* Divider SSO */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+            <Text style={[styles.dividerLabel, { color: textMuted }]}>o continuá con</Text>
+            <View style={[styles.dividerLine, { backgroundColor: border }]} />
+          </View>
 
-              <View style={styles.sso}>
-                {Platform.OS !== 'web' && (
-                  <TouchableOpacity
-                    style={[styles.ssoBtn, { backgroundColor: ui.surface, borderColor: ui.border }, ssoLoading === 'google' && { opacity: 0.6 }]}
-                    onPress={handleGoogleLogin}
-                    disabled={!!ssoLoading}
-                    activeOpacity={0.85}
-                  >
-                    {ssoLoading === 'google'
-                      ? <ActivityIndicator color={ui.textMuted} size="small" />
-                      : <>
-                          <FontAwesome name="google" size={18} color="#DB4437" />
-                          <Text style={[styles.ssoText, { color: ui.text }]}>Continuar con Google</Text>
-                        </>
-                    }
-                  </TouchableOpacity>
-                )}
+          {/* SSO */}
+          <View style={styles.ssoRow}>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[styles.ssoBtn, { backgroundColor: cardBg, borderColor: border }, ssoLoading === 'google' && { opacity: 0.6 }]}
+                onPress={handleGoogleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'google'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <>
+                      <FontAwesome name="google" size={18} color="#DB4437" />
+                      <Text style={[styles.ssoText, { color: textPrimary }]}>Continuar con Google</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
 
-                {Platform.OS === 'ios' && (
-                  <TouchableOpacity
-                    style={[styles.ssoBtn, { backgroundColor: ui.surface, borderColor: ui.border }, ssoLoading === 'apple' && { opacity: 0.6 }]}
-                    onPress={handleAppleLogin}
-                    disabled={!!ssoLoading}
-                    activeOpacity={0.85}
-                  >
-                    {ssoLoading === 'apple'
-                      ? <ActivityIndicator color={ui.textMuted} size="small" />
-                      : <>
-                          <FontAwesome name="apple" size={19} color={ui.text} />
-                          <Text style={[styles.ssoText, { color: ui.text }]}>Continuar con Apple</Text>
-                        </>
-                    }
-                  </TouchableOpacity>
-                )}
-              </View>
-            </>
-          )}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.ssoBtn, { backgroundColor: cardBg, borderColor: border }, ssoLoading === 'apple' && { opacity: 0.6 }]}
+                onPress={handleAppleLogin}
+                disabled={!!ssoLoading}
+                activeOpacity={0.85}
+              >
+                {ssoLoading === 'apple'
+                  ? <ActivityIndicator color={textMuted} size="small" />
+                  : <>
+                      <FontAwesome name="apple" size={19} color={textPrimary} />
+                      <Text style={[styles.ssoText, { color: textPrimary }]}>Continuar con Apple</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
+          </View>
 
-          <View style={styles.pie}>
-            <Text style={[styles.pieText, { color: ui.textMuted }]}>¿No tenés cuenta? </Text>
+          {/* Forgot password */}
+          <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={[styles.linkText, { color: textMuted }]}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
+          {/* Register */}
+          <View style={styles.registerRow}>
+            <Text style={[styles.registerText, { color: textMuted }]}>¿No tenés cuenta? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={[styles.pieLink, { color: ui.text }]}>Registrate</Text>
+              <Text style={[styles.registerLink, { color: textPrimary }]}>Registrate</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.version, { color: ui.textMuted }]}>{versionLabel}</Text>
-        </View>
-      </ScrollView>
+          <Text style={[styles.version, { color: textMuted }]}>{versionLabel}</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll:    { flexGrow: 1, paddingBottom: 20 },
-  cuerpo:    { paddingHorizontal: 26, gap: 18, marginTop: 4 },
-
-  titulo: { gap: 8 },
-  h1:     { fontSize: 32, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 38 },
-  sub:    { fontSize: 14.5, fontFamily: 'Sora_400Regular', lineHeight: 21 },
-
-  campos:     { gap: 13 },
-  olvide:     { alignSelf: 'flex-end', paddingTop: 2 },
-  olvideText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
-
-  btn:     { height: 56, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
-  btnText: { fontSize: 15.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.2 },
-
-  divisor:     { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  linea:       { flex: 1, height: 1 },
-  divisorText: { fontSize: 12.5, fontFamily: 'Sora_400Regular' },
-
-  sso:     { gap: 11 },
-  ssoBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 999, borderWidth: 1 },
-  ssoText: { fontSize: 14.5, fontFamily: 'Sora_600SemiBold' },
-
-  pie:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  pieText: { fontSize: 13.5, fontFamily: 'Sora_400Regular' },
-  pieLink: { fontSize: 13.5, fontFamily: 'Sora_700Bold' },
-
-  version: { textAlign: 'center', fontSize: 11.5, fontFamily: 'Sora_400Regular', marginTop: 0 },
+  container:     { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+  header:        { alignItems: 'center', marginBottom: 40 },
+  logo:          { width: 64, height: 64, resizeMode: 'contain', marginBottom: 16 },
+  title:         { fontSize: 28, fontFamily: 'Sora_700Bold', letterSpacing: 0.5, marginBottom: 6 },
+  subtitle:      { fontSize: 15 },
+  card:          { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
+  inputRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  inputIcon:     { marginRight: 10 },
+  input:         { flex: 1, height: 52, fontSize: 15 },
+  eyeBtn:        { padding: 8 },
+  btn:           { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  btnText:       { fontSize: 16, fontFamily: 'Sora_700Bold' },
+  linkBtn:       { alignItems: 'center', paddingVertical: 12 },
+  linkText:      { fontSize: 14 },
+  registerRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  registerText:  { fontSize: 14 },
+  registerLink:  { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  version:       { textAlign: 'center', fontSize: 12, marginTop: 32 },
+  divider:       { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine:   { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerLabel:  { fontSize: 13, marginHorizontal: 12 },
+  ssoRow:        { gap: 11, marginBottom: 12 },
+  ssoBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 999, borderWidth: 1 },
+  ssoText:       { fontSize: 14.5, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default LoginScreen;
