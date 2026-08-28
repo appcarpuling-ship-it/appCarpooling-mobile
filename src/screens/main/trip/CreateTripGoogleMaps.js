@@ -793,7 +793,13 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
     // Mismo orden que VehiclePicker y DriverRoutePicker, los otros pasos de este flujo.
     if (isApplyMode) {
       navigation.goBack();
-      navRoute.params?.onDone?.({ origin: formData.origin, destination: formData.destination });
+      // Las paradas también: el conductor puede cargarlas en este mismo mapa y antes se
+      // descartaban acá, así que de 3 direcciones sólo llegaban las 2 puntas.
+      navRoute.params?.onDone?.({
+        origin: formData.origin,
+        destination: formData.destination,
+        waypoints: formData.waypoints.filter((wp) => wp.coordinates !== null),
+      });
       return;
     }
     if (isRequestMode) {

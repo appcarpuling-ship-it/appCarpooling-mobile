@@ -28,6 +28,9 @@ const armarRecorrido = (app, tramo) => {
     .map((stop, i) => ({ etiqueta: `Parada ${i + 1}`, texto: dir(stop) }));
   return [
     app.driverOrigin && { etiqueta: 'Sale desde', texto: dir(app.driverOrigin), delConductor: true },
+    // Paradas del recorrido del conductor: van antes de que suba el pasajero sólo como
+    // orden de lectura; en el mapa la posición real la resuelve la geografía.
+    ...(app.driverStops || []).map((p) => ({ etiqueta: 'Pasa por', texto: dir(p), delConductor: true })),
     { etiqueta: 'Te subís en', texto: dir(tramo.origin) },
     ...paradas,
     { etiqueta: 'Te deja en', texto: dir(tramo.destination) },
@@ -44,7 +47,7 @@ const armarRecorrido = (app, tramo) => {
  * responder.
  */
 const recorridoElegido = (app) =>
-  app.driverOrigin || app.driverDestination
+  app.driverOrigin || app.driverDestination || (app.driverStops || []).length > 0
     ? { texto: 'Viene de más lejos o sigue más allá', icono: 'git-branch-outline' }
     : { texto: 'Hace tu mismo tramo', icono: 'swap-horizontal-outline' };
 
@@ -65,6 +68,10 @@ const armarTripParaMapa = (app, tramo, driver, vehicle) => {
   if (app.driverDestination) {
     intermediateStops.push({ ...tramo.destination, kind: 'dropoff', order: 1 + (tramo.intermediateStops || []).length });
   }
+  // Las paradas propias del conductor. Sin `passenger`: son escalas de su recorrido.
+  (app.driverStops || []).forEach((stop, i) => {
+    intermediateStops.push({ ...stop, kind: 'stop', order: 100 + i });
+  });
   return {
     origin: app.driverOrigin || tramo.origin,
     destination: app.driverDestination || tramo.destination,

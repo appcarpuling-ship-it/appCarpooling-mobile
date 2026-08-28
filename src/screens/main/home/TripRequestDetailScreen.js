@@ -254,9 +254,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         if (opcion === 'mismo') return pedirPrecio(vehicleId);
         navigation.navigate('PickDriverRoute', {
           mode: 'apply',
-          onDone: ({ origin, destination }) => pedirPrecio(vehicleId, {
+          onDone: ({ origin, destination, waypoints }) => pedirPrecio(vehicleId, {
             driverOrigin: origin,
             driverDestination: destination,
+            // Las paradas propias del conductor, entre sus dos puntas.
+            driverStops: waypoints || [],
           }),
         });
       },
