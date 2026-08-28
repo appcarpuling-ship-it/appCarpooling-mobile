@@ -49,6 +49,11 @@ const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
  * genérica. Un auto de verdad se lee más rápido de un vistazo en un mapa lleno de otras cosas. */
 const CAR_ICON = require('../../../../assets/icons/icon-carr.png');
 
+// Marca las paradas que nacieron de la reserva de un pasajero. Dos archivos y no un tint:
+// el PNG es opaco, así que teñirlo no alcanza — en modo oscuro va el blanco y en claro el negro.
+const ICONO_PASAJERO_CLARO = require('../../../../assets/icons/icon-passenger-black.png');
+const ICONO_PASAJERO_OSCURO = require('../../../../assets/icons/icon-passenger-white.png');
+
 /**
  * Con el mapa alejado (por ejemplo encuadrando un viaje de un pueblo a otro), dos paradas de
  * la misma ciudad quedan a pocos píxeles y sus etiquetas de calle se pisan. En vez de calcular
@@ -450,6 +455,7 @@ const TripMapScreen = ({ route, navigation }) => {
         // un viaje largo la parada puede estar a 800 km del origen.
         ciudad: [st.city, st.province].filter(Boolean).join(', '),
         quien: quienLabel(st.kind, st.passenger),
+        esDePasajero: Boolean(st.passenger),
         // kind y pasajero se guardan para el aviso de cobro al dejar a alguien: sin ellos no se
         // sabe si esta parada es una bajada ni a quién hay que cobrarle.
         kind: st.kind,
@@ -1122,9 +1128,20 @@ const TripMapScreen = ({ route, navigation }) => {
                   <Text style={styles.sheetTimelineDotNum}>{i + 2}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
-                    {t.address}
-                  </Text>
+                  <View style={styles.sheetAddressRow}>
+                    {/* Sólo las paradas de un pasajero: son las direcciones que pidió al
+                        reservar, y así se distinguen de una parada del recorrido. */}
+                    {t.esDePasajero && (
+                      <Image
+                        source={isDark ? ICONO_PASAJERO_OSCURO : ICONO_PASAJERO_CLARO}
+                        style={styles.sheetPassengerIcon}
+                        resizeMode="contain"
+                      />
+                    )}
+                    <Text style={[styles.sheetTimelineAddress, { color: textPrimary, flex: 1 }]} numberOfLines={1}>
+                      {t.address}
+                    </Text>
+                  </View>
                   {!!(t.ciudad || t.quien) && (
                     <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
                       {[t.ciudad, t.quien].filter(Boolean).join(' · ')}
@@ -1248,6 +1265,8 @@ const styles = StyleSheet.create({
   sheetTimelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 6 },
   sheetTimelineDot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   sheetTimelineDotNum: { fontSize: 11, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
+  sheetAddressRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sheetPassengerIcon: { width: 14, height: 14 },
   sheetTimelineAddress: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   sheetTimelineQuien: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
 

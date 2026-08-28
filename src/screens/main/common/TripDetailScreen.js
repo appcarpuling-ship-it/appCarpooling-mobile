@@ -48,6 +48,11 @@ import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
 
 const BANNER_SCROLL_SPEED = 30;
 
+// Marca las paradas que nacieron de la reserva de un pasajero. Dos archivos y no un tint:
+// el PNG es opaco, así que teñirlo no alcanza — en modo oscuro va el blanco y en claro el negro.
+const ICONO_PASAJERO_CLARO = require('../../../../assets/icons/icon-passenger-black.png');
+const ICONO_PASAJERO_OSCURO = require('../../../../assets/icons/icon-passenger-white.png');
+
 const BannerCarousel = ({ banners, onPress }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const totalWidth = banners.length * BANNER_ITEM_WIDTH;
@@ -1003,9 +1008,20 @@ const TripDetailScreen = ({ route, navigation }) => {
                 {!!point.label && (
                   <Text style={[styles.routeStopLabel, { color: textPrimary }]}>{point.label}</Text>
                 )}
-                <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary }]}>
-                  {formatAddress(point.location)}
-                </Text>
+                <View style={styles.routeAddressRow}>
+                  {/* Sólo en las paradas de un pasajero (recogida/bajada): son las direcciones
+                      que pidió al reservar, y así se distinguen de una parada del recorrido. */}
+                  {!point.isEnd && !!point.passenger && (
+                    <Image
+                      source={dark ? ICONO_PASAJERO_OSCURO : ICONO_PASAJERO_CLARO}
+                      style={styles.routePassengerIcon}
+                      resizeMode="contain"
+                    />
+                  )}
+                  <Text style={[styles.routeStopAddress, { color: point.isEnd ? textPrimary : textSecondary, flex: 1 }]}>
+                    {formatAddress(point.location)}
+                  </Text>
+                </View>
                 {!!formatCity(point.location) && (
                   <Text style={[styles.routeStopCity, { color: textMuted }]}>{formatCity(point.location)}</Text>
                 )}
@@ -1571,6 +1587,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 2,
   },
+  routeAddressRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  routePassengerIcon: { width: 15, height: 15 },
   routeStopAddress: { fontSize: 15, fontFamily: 'Sora_500Medium' },
   routeStopCity: { fontSize: 13, marginTop: 1 },
 
