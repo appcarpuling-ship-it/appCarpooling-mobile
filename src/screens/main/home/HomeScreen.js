@@ -820,9 +820,7 @@ const HomeScreen = ({ navigation, route }) => {
             onPress={() => navigation.navigate('CreateTripRequest')}
             activeOpacity={0.8}
           >
-            <View style={[styles.hubIcon, { backgroundColor: accent }]}>
-              <Ionicons name="add" size={22} color={accentInverse} />
-            </View>
+            <Image source={require('../../../../assets/tabsIcons/publica-solicitud.png')} style={styles.hubIcon} resizeMode="contain" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Publicar solicitud</Text>
               <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Indicá a dónde querés ir y recibí postulaciones de conductores</Text>
@@ -835,9 +833,7 @@ const HomeScreen = ({ navigation, route }) => {
             onPress={() => navigation.navigate('MyTripRequests')}
             activeOpacity={0.8}
           >
-            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
-              <Ionicons name="list" size={22} color={textPrimary} />
-            </View>
+            <Image source={require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis solicitudes</Text>
               <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes que publicaste y elegí a tu conductor</Text>
@@ -850,9 +846,7 @@ const HomeScreen = ({ navigation, route }) => {
             onPress={() => navigation.navigate('OpenTripRequests')}
             activeOpacity={0.8}
           >
-            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
-              <Ionicons name="search" size={22} color={textPrimary} />
-            </View>
+            <Image source={require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Ver solicitudes abiertas</Text>
               <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Explorá pedidos de pasajeros y postulate como conductor</Text>
@@ -865,9 +859,7 @@ const HomeScreen = ({ navigation, route }) => {
             onPress={() => navigation.navigate('MyApplications')}
             activeOpacity={0.8}
           >
-            <View style={[styles.hubIcon, { backgroundColor: inputBg }]}>
-              <Ionicons name="car-outline" size={22} color={textPrimary} />
-            </View>
+            <Image source={require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
             <View style={{ flex: 1 }}>
               <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Viajes que ofrecí</Text>
               <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes donde te postulaste como conductor</Text>
@@ -1275,9 +1267,6 @@ const styles = StyleSheet.create({
   hubIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   hubCardTitle: {
     fontSize: 14,

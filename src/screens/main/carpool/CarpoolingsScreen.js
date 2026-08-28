@@ -42,6 +42,7 @@ const menuItems = [
     title: 'Crear Viaje',
     description: 'Publicá un nuevo viaje y ofrecé lugares libres',
     icon: 'add-circle-outline',
+    image: require('../../../../assets/tabsIcons/crear-viaje.png'),
     screen: 'CreateTrip',
   },
   {
@@ -49,6 +50,7 @@ const menuItems = [
     title: 'Mis Viajes',
     description: 'Mirá los viajes que publicaste como conductor',
     icon: 'car-outline',
+    image: require('../../../../assets/tabsIcons/mis-viajes.png'),
     screen: 'MyTrips',
   },
   {
@@ -56,6 +58,7 @@ const menuItems = [
     title: 'Mis Reservas',
     description: 'Mirá los viajes que reservaste como pasajero',
     icon: 'list-outline',
+    image: require('../../../../assets/tabsIcons/mis-reservas.png'),
     screen: 'MyBookings',
   },
   {
@@ -65,6 +68,7 @@ const menuItems = [
     // de línea fuerza el mismo alto visual sin depender del ancho de pantalla.
     description: 'Revisá quién quiere\nsumarse a tus viajes',
     icon: 'people-outline',
+    image: require('../../../../assets/tabsIcons/reservas-recibidas.png'),
     screen: 'TripRequests',
   },
 ];
@@ -243,9 +247,7 @@ const CarpoolingsScreen = ({ navigation }) => {
               onPress={() => navigation.navigate(item.screen)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconBox, { backgroundColor: ui.bg }]}>
-                <Ionicons name={item.icon} size={24} color={textPrimary} />
-              </View>
+              <Image source={item.image} style={styles.iconBox} resizeMode="contain" />
               <View style={styles.menuText}>
                 <Text style={[styles.menuTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.menuDesc, { color: textSecondary }]} numberOfLines={2}>{item.description}</Text>
@@ -362,9 +364,6 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 48,
     height: 48,
-    borderRadius: 999,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
   menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, lineHeight: 20, marginBottom: 3 },
