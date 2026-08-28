@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   inputRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   inputIcon:    { marginRight: 10 },
   input:        { flex: 1, height: 52, fontSize: 15 },
-  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center' },
+  btn:          { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center' },
   btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });
 

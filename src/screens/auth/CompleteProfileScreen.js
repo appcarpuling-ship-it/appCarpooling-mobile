@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   stepTitle:       { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 6 },
   stepSubtitle:    { fontSize: 14 },
   btnContainer:    { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
-  btn:             { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+  btn:             { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
   btnText:         { fontSize: 16, fontFamily: 'Sora_700Bold' },
   dniTitle:        { fontSize: 15, fontFamily: 'Sora_700Bold', marginTop: 8, marginBottom: 6 },
   dniHint:         { fontSize: 13, lineHeight: 18, marginBottom: 14 },

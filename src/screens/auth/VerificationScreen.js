@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   email:      { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   card:       { borderRadius: 16, borderWidth: 1.5, marginBottom: 16, overflow: 'hidden', paddingHorizontal: 20 },
   codeInput:  { height: 72, fontSize: 32, fontFamily: 'Sora_700Bold', textAlign: 'center', letterSpacing: 12 },
-  btn:        { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  btn:        { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   btnText:    { fontSize: 16, fontFamily: 'Sora_700Bold' },
   resendRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   resendText: { fontSize: 14 },

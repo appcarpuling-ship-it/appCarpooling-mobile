@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   stepTitle:    { fontSize: 26, fontFamily: 'Sora_700Bold', marginBottom: 6 },
   stepSubtitle: { fontSize: 14 },
   btnContainer: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
-  btn:          { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+  btn:          { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
   btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   loginText:    { fontSize: 14 },

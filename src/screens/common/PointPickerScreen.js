@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   addressText: { flex: 1, fontSize: 15, fontFamily: 'Sora_500Medium' },
   sheetActions: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
-  confirmBtn: { borderRadius: 12, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  confirmBtn: { borderRadius: 999, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
   confirmBtnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   // Sin zIndex, igual que en CreateTripGoogleMaps: React Native reordena las subvistas
   // NATIVAS cuando hay hermanos con zIndex, y mover el GMSMapView de índice le rompe la

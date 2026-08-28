@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   button: {
-    borderRadius: borderRadius.md,
+    borderRadius: 999,
     padding: spacing.md + 2,
     alignItems: 'center',
     marginTop: spacing.sm,

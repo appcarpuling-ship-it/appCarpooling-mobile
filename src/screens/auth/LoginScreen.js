@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   inputIcon:     { marginRight: 10 },
   input:         { flex: 1, height: 52, fontSize: 15 },
   eyeBtn:        { padding: 8 },
-  btn:           { borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  btn:           { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   btnText:       { fontSize: 16, fontFamily: 'Sora_700Bold' },
   linkBtn:       { alignItems: 'center', paddingVertical: 12 },
   linkText:      { fontSize: 14 },
