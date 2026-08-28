@@ -446,6 +446,9 @@ const TripMapScreen = ({ route, navigation }) => {
         id: `stop-${i}`,
         coordinate: { latitude: st.coordinates.latitude, longitude: st.coordinates.longitude },
         address: st.address || st.city || 'Parada',
+        // Ciudad y provincia aparte de la calle: "Calle 9 136" sola no ubica a nadie, y en
+        // un viaje largo la parada puede estar a 800 km del origen.
+        ciudad: [st.city, st.province].filter(Boolean).join(', '),
         quien: quienLabel(st.kind, st.passenger),
         // kind y pasajero se guardan para el aviso de cobro al dejar a alguien: sin ellos no se
         // sabe si esta parada es una bajada ni a quién hay que cobrarle.
@@ -462,6 +465,7 @@ const TripMapScreen = ({ route, navigation }) => {
         id: 'destino',
         coordinate: { latitude: destCoords.latitude, longitude: destCoords.longitude },
         address: trip?.destination?.address || trip?.destination?.city || 'Destino',
+        ciudad: [trip?.destination?.city, trip?.destination?.province].filter(Boolean).join(', '),
         quien: 'A finalizar el viaje',
       },
     ].filter(Boolean);
@@ -1101,36 +1105,34 @@ const TripMapScreen = ({ route, navigation }) => {
               <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
                 {trip?.origin?.address || trip?.origin?.city || 'Origen'}
               </Text>
-              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]}>
-                {origenExtra ? `Salida · ${origenExtra}` : 'Salida'}
+              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
+                {[
+                  [trip?.origin?.city, trip?.origin?.province].filter(Boolean).join(', '),
+                  origenExtra ? `Salida · ${origenExtra}` : 'Salida',
+                ].filter(Boolean).join(' · ')}
               </Text>
             </View>
           </View>
-          {sheetItems.map((t, i) => {
-            const hecha = paradasHechas.includes(t.id);
-            return (
+          {/* Todas las paradas se leen igual, hayan pasado o no: antes la parada ya hecha
+              cambiaba el número por un tilde y apagaba la dirección a gris, y el recorrido
+              quedaba con la mitad de las direcciones en un tono más débil que el resto. */}
+          {sheetItems.map((t, i) => (
               <View key={t.id} style={styles.sheetTimelineRow}>
-                <View style={[
-                  styles.sheetTimelineDot,
-                  { backgroundColor: hecha ? ui.bg : textPrimary, borderWidth: hecha ? 1 : 0, borderColor: ui.border },
-                ]}>
-                  {hecha
-                    ? <Ionicons name="checkmark" size={13} color={ui.textMuted} />
-                    : <Text style={styles.sheetTimelineDotNum}>{i + 2}</Text>}
+                <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
+                  <Text style={styles.sheetTimelineDotNum}>{i + 2}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.sheetTimelineAddress, { color: hecha ? ui.textMuted : textPrimary }]} numberOfLines={1}>
+                  <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
                     {t.address}
                   </Text>
-                  {!!t.quien && (
+                  {!!(t.ciudad || t.quien) && (
                     <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
-                      {t.quien}
+                      {[t.ciudad, t.quien].filter(Boolean).join(' · ')}
                     </Text>
                   )}
                 </View>
               </View>
-            );
-          })}
+          ))}
         </View>
 
         {/* Pasajeros a bordo: sólo el conductor los ve acá — al pasajero ya se lo dice el
