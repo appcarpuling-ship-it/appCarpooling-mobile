@@ -685,10 +685,23 @@ const TripDetailScreen = ({ route, navigation }) => {
   const decodedPolyline = trip.routePolyline ? decodePolyline(trip.routePolyline) : [];
   const hasRealRoute = decodedPolyline.length >= 2;
   const previewCoordinates = hasRealRoute ? decodedPolyline : straightLine;
+  // Las paradas del medio también van marcadas: sin ellas el preview de un viaje con
+  // paradas era indistinguible de uno directo. Sale de `routePoints` (buildRoutePoints),
+  // el mismo que numera la lista de abajo, así que ya viene sin las paradas que caen
+  // encima del origen o el destino — dos pines en el mismo lugar sólo se tapan.
+  const previewStops = routePoints
+    .filter((p) => !p.isEnd && p.location?.coordinates?.latitude != null)
+    .map((p) => ({
+      latitude: p.location.coordinates.latitude,
+      longitude: p.location.coordinates.longitude,
+    }));
   const previewRegion = hasMapPreview
     ? (() => {
-        const lats = previewCoordinates.map((p) => p.latitude);
-        const lngs = previewCoordinates.map((p) => p.longitude);
+        // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la
+        // recta origen→destino quedaba fuera de cuadro.
+        const puntosDelEncuadre = [...previewCoordinates, ...previewStops];
+        const lats = puntosDelEncuadre.map((p) => p.latitude);
+        const lngs = puntosDelEncuadre.map((p) => p.longitude);
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
         const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
         // Piso de zoom para que dos puntos casi pegados (mismo barrio) no queden con
@@ -763,6 +776,16 @@ const TripDetailScreen = ({ route, navigation }) => {
               >
                 <View style={styles.previewDotOrigin} />
               </Marker>
+              {previewStops.map((stop, i) => (
+                <Marker
+                  key={`preview-stop-${i}-${mapPreviewReady}`}
+                  coordinate={stop}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={mapPreviewDotsVivos}
+                >
+                  <View style={styles.previewDotStop} />
+                </Marker>
+              ))}
               <Marker
                 key={`preview-dest-${mapPreviewReady}`}
                 coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
@@ -1695,6 +1718,11 @@ const styles = StyleSheet.create({
   // baldosas del mapa, que no son ni claras ni oscuras según el tema de la app.
   previewDotOrigin: {
     width: 14, height: 14, borderRadius: 7, borderWidth: 3,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
+  // Las paradas del medio, más chicas que las puntas: son escalas, no el viaje.
+  previewDotStop: {
+    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
     backgroundColor: '#FFFFFF', borderColor: '#000000',
   },
   previewDotDest: {

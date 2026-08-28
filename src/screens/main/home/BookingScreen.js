@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
-import { decodePolyline } from '../../../utils/routePoints';
+import { decodePolyline, buildRoutePoints } from '../../../utils/routePoints';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
 import { tripRemainingSeats, tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import useColors from '../../../hooks/useColors';
@@ -118,10 +118,22 @@ const BookingScreen = ({ route, navigation }) => {
   const bookingDecodedPolyline = trip?.routePolyline ? decodePolyline(trip.routePolyline) : [];
   const hasBookingRealRoute = bookingDecodedPolyline.length >= 2;
   const bookingPreviewCoordinates = hasBookingRealRoute ? bookingDecodedPolyline : bookingStraightLine;
+  // Las paradas del medio también van marcadas: sin ellas el preview de un viaje con
+  // paradas era indistinguible de uno directo. buildRoutePoints ya descarta las que caen
+  // encima del origen o el destino, que sólo taparían esos pines.
+  const bookingPreviewStops = buildRoutePoints(trip)
+    .filter((p) => !p.isEnd && p.location?.coordinates?.latitude != null)
+    .map((p) => ({
+      latitude: p.location.coordinates.latitude,
+      longitude: p.location.coordinates.longitude,
+    }));
   const bookingPreviewRegion = hasBookingMapPreview
     ? (() => {
-        const lats = bookingPreviewCoordinates.map((p) => p.latitude);
-        const lngs = bookingPreviewCoordinates.map((p) => p.longitude);
+        // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la
+        // recta origen→destino quedaba fuera de cuadro.
+        const puntosDelEncuadre = [...bookingPreviewCoordinates, ...bookingPreviewStops];
+        const lats = puntosDelEncuadre.map((p) => p.latitude);
+        const lngs = puntosDelEncuadre.map((p) => p.longitude);
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
         const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
         const latitudeDelta = Math.max((maxLat - minLat) * 1.5, 0.03);
@@ -424,6 +436,16 @@ const BookingScreen = ({ route, navigation }) => {
                 >
                   <View style={styles.bookingDotOrigin} />
                 </Marker>
+                {bookingPreviewStops.map((stop, i) => (
+                  <Marker
+                    key={`booking-stop-${i}-${bookingMapReady}`}
+                    coordinate={stop}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    tracksViewChanges={bookingDotsVivos}
+                  >
+                    <View style={styles.bookingDotStop} />
+                  </Marker>
+                ))}
                 <Marker
                   key={`booking-dest-${bookingMapReady}`}
                   coordinate={{ latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude }}
@@ -976,6 +998,11 @@ const styles = StyleSheet.create({
   pasoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginBottom: 14 },
   bookingMapWrap: { height: 140, borderRadius: 20, overflow: 'hidden', marginBottom: 12 },
   bookingMapPreview: { ...StyleSheet.absoluteFillObject },
+  // Las paradas del medio, más chicas que las puntas: son escalas, no el viaje.
+  bookingDotStop: {
+    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
+    backgroundColor: '#FFFFFF', borderColor: '#000000',
+  },
   bookingDotOrigin: {
     width: 14, height: 14, borderRadius: 7, borderWidth: 3,
     backgroundColor: '#FFFFFF', borderColor: '#000000',
