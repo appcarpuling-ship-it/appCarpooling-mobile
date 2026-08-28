@@ -1032,7 +1032,7 @@ const TripMapScreen = ({ route, navigation }) => {
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sheetTitle, { color: textPrimary }]} numberOfLines={1}>
-                    {[trip?.driver?.firstName, trip?.driver?.lastName].filter(Boolean).join(' ') || 'Tu conductor'}
+                    {[trip?.driver?.firstName, trip?.driver?.lastName].filter(Boolean).join(' ') || 'Conductor'}
                   </Text>
                   <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
                     {trip?.vehicle ? `${trip.vehicle.brand} ${trip.vehicle.model}${trip.vehicle.licensePlate ? ` · ${trip.vehicle.licensePlate}` : ''}` : 'En camino'}
