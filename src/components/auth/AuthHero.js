@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUI } from '../../theme/ui';
 
 const MAPA_CLARO = require('../../../assets/illustrations/auth-map-light.png');
@@ -17,11 +18,17 @@ const MAPA_OSCURO = require('../../../assets/illustrations/auth-map-dark.png');
  * `cover` y no `contain`: la imagen está armada con el recorrido centrado y los bordes
  * desvaneciéndose contra el fondo, así que recortarla a cualquier alto no corta el trazado.
  * Por eso cada pantalla puede pedir el alto que le sobre sin deformar nada.
+ *
+ * `extendToTop`: la pantalla no reserva el área segura de arriba y el dibujo llega hasta el
+ * borde. Se le suma el inset al alto para que el recorrido no quede debajo del reloj ni del
+ * notch — el fondo sí pasa por atrás, que es la idea, pero nada importante queda tapado.
  */
-const AuthHero = ({ height = 240 }) => {
+const AuthHero = ({ height = 240, extendToTop = false }) => {
   const ui = useUI();
+  const insets = useSafeAreaInsets();
+  const alto = height + (extendToTop ? insets.top : 0);
   return (
-    <View style={[styles.wrap, { height, backgroundColor: ui.bg }]} pointerEvents="none">
+    <View style={[styles.wrap, { height: alto, backgroundColor: ui.bg }]} pointerEvents="none">
       <Image
         source={ui.isDarkMode ? MAPA_OSCURO : MAPA_CLARO}
         style={styles.img}

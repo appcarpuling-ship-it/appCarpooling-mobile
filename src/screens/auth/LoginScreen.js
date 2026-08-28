@@ -115,8 +115,12 @@ const LoginScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
+        // Sin rebote: el dibujo arranca pegado arriba, y al tirar hacia abajo se despegaba
+        // del borde dejando una franja de fondo — se leía como si la pantalla se estirara.
+        bounces={false}
+        overScrollMode="never"
       >
-        <AuthHero height={240} />
+        <AuthHero height={240} extendToTop />
 
         <View style={styles.cuerpo}>
           <View style={styles.titulo}>
