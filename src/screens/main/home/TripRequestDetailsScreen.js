@@ -104,8 +104,8 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       await createTripRequest({
-        origin:      { address: origin.address, city: origin.city, coordinates: origin.coordinates },
-        destination: { address: destination.address, city: destination.city, coordinates: destination.coordinates },
+        origin:      { address: origin.address, city: origin.city, province: origin.province || '', coordinates: origin.coordinates },
+        destination: { address: destination.address, city: destination.city, province: destination.province || '', coordinates: destination.coordinates },
         intermediateStops: (waypoints || []).map((wp, i) => ({
           address: wp.address,
           city: wp.city || wp.province || '',

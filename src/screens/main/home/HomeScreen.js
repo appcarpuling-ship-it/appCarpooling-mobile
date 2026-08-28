@@ -207,7 +207,13 @@ const HomeScreen = ({ navigation, route }) => {
       setLoading(true);
     }
     try {
-      const response = await get_public(ENDPOINTS.GET_TRIPS, { limit: 40 });
+      // nearCity/nearProvince: prioriza lo cercano al usuario (ciudad, y si no alcanza
+      // provincia) antes de filtrar/ordenar/recortar a los 3 que se muestran.
+      const response = await get_public(ENDPOINTS.GET_TRIPS, {
+        limit: 40,
+        nearCity: user?.city || undefined,
+        nearProvince: user?.province || undefined,
+      });
       if (response.success && Array.isArray(response.data)) {
         const userId = user?._id || user?.id;
         const upcoming = response.data.filter(t => {
@@ -293,7 +299,11 @@ const HomeScreen = ({ navigation, route }) => {
     setLoadingRequests(true);
     try {
       const [openRes, myRes] = await Promise.allSettled([
-        getOpenTripRequests(),
+        getOpenTripRequests({
+          limit: 40,
+          nearCity: user?.city || undefined,
+          nearProvince: user?.province || undefined,
+        }),
         isAuthenticated ? getMyTripRequests() : Promise.resolve({ success: false }),
       ]);
       const open = openRes.status === 'fulfilled' && openRes.value?.success ? openRes.value.data : [];
