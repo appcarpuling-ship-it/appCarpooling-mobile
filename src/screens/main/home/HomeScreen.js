@@ -445,12 +445,12 @@ const HomeScreen = ({ navigation, route }) => {
         </View>
         {trip.sinPrecioFijo ? (
           <Text style={[styles.priceCompartido, { color: textPrimary }]}>Gastos compartidos</Text>
-        ) : (
+        ) : trip.driverPrice > 0 ? (
           <View style={styles.priceBox}>
-            <Text style={[styles.priceValue, { color: textPrimary }]}>${trip.pricePerSeat?.toLocaleString('es-AR')}</Text>
+            <Text style={[styles.priceValue, { color: textPrimary }]}>${Number(trip.driverPrice).toLocaleString('es-AR')}</Text>
             <Text style={[styles.priceLabel, { color: tripRouteMuted }]}>por asiento</Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       {hasStops && (
