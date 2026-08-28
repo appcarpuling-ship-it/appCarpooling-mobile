@@ -182,7 +182,9 @@ const styles = StyleSheet.create({
 
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16 },
   cardLabel: { fontFamily: 'Sora_600SemiBold', fontSize: 12, letterSpacing: 0.3 },
-  input: { fontFamily: 'Sora_800ExtraBold', fontSize: 38, letterSpacing: -1.2, paddingVertical: 4, marginTop: 2 },
+  // lineHeight explícito: sin esto Sora_800ExtraBold a 38px se recortaba arriba y abajo
+  // dentro del TextInput (el "$0" se veía cortado/superpuesto).
+  input: { fontFamily: 'Sora_800ExtraBold', fontSize: 38, lineHeight: 46, letterSpacing: -1.2, paddingVertical: 6, marginTop: 2 },
 
   error: { color: '#EF4444', fontSize: 13, fontFamily: 'Sora_400Regular', paddingHorizontal: 4 },
   total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
