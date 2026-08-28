@@ -20,7 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { get_public, get_withauth, buildImageUri } from '../../../services/apiService';
+import { get_public, get_withauth } from '../../../services/apiService';
 import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
 import { useNotifications } from '../../../context/NotificationContext';
@@ -375,11 +375,6 @@ const HomeScreen = ({ navigation, route }) => {
     setSelectedSeats('');
   };
 
-  const getDriverInitials = (driver) => {
-    if (!driver) return '?';
-    return `${driver.firstName?.[0] || ''}${driver.lastName?.[0] || ''}`;
-  };
-
   const formatAddress = (location) => {
     if (!location) return '';
     let raw = location.address || location.street || '';
@@ -411,93 +406,65 @@ const HomeScreen = ({ navigation, route }) => {
   const searchFieldLabel = dark ? textMuted : '#000000';
   const searchFieldEmpty = dark ? textMuted : '#000000';
 
+  // Ícono placeholder del cuadrado de la izquierda: mientras no haya set de íconos propios,
+  // uno para viajes y otro para solicitudes. Pensado para reemplazarse fácil más adelante.
+  const TRIP_ICON = 'car-outline';
+  const REQUEST_ICON = 'time-outline';
+
   const renderTripCard = (trip) => {
     const freeSeats = tripDisplaySeats(trip);
+    const hasStops = trip.intermediateStops?.length > 0;
+    const originCity = trip.origin?.city || formatAddress(trip.origin);
+    const destCity = trip.destination?.city || formatAddress(trip.destination);
     return (
     <TouchableOpacity
       key={trip._id}
-      style={[
-        styles.tripCard,
-        { backgroundColor: cardBg },
-      ]}
+      style={[styles.tripCard, { backgroundColor: cardBg }]}
       onPress={() => navigation.navigate('TripDetail', { tripId: trip._id })}
       activeOpacity={0.7}
     >
-      {/* Driver row */}
-      <View style={styles.tripDriverRow}>
-        {trip.driver?.avatar ? (
-          <Image
-            source={{ uri: buildImageUri(trip.driver.avatar) }}
-            style={styles.driverAvatar}
-          />
-        ) : (
-          <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
-            <Text style={[styles.driverInitials, { color: textSecondary }]}>
-              {getDriverInitials(trip.driver)}
-            </Text>
-          </View>
-        )}
-        <View style={styles.driverInfo}>
-          <Text style={[styles.driverName, { color: textPrimary }]}>
-            {trip.driver?.firstName} {trip.driver?.lastName}
-          </Text>
-          <Text style={[styles.tripDateTime, { color: textMuted }]}>
-            {new Date(trip.departureDate).toLocaleDateString('es-ES', {
-              weekday: 'short', day: 'numeric', month: 'short',
-            })}{'  '}{trip.departureTime}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
-      </View>
-
-      {/* Divider */}
-      <View style={[styles.tripInnerDivider, { backgroundColor: divider }]} />
-
-      {/* Route */}
-      <View style={styles.tripRouteRow}>
-        <View style={styles.routeColumn}>
-          <View style={[styles.routeDot, { borderColor: accent }]} />
-          <View style={[styles.routeLineVertical, { backgroundColor: tripRouteLine }]} />
-          <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
+      <View style={styles.tripHeaderRow}>
+        <View style={[styles.tripIconBox, { backgroundColor: ui.invertBg }]}>
+          <Ionicons name={TRIP_ICON} size={22} color={ui.invertText} />
         </View>
         <View style={styles.tripInfoColumn}>
-          <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-            {formatAddress(trip.origin) || trip.origin?.city}
-          </Text>
-          <View style={{ height: 14 }} />
-          <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-          <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-            {formatAddress(trip.destination) || trip.destination?.city}
-          </Text>
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
-        <View style={styles.tripFooterItem}>
-          <Ionicons name="person-outline" size={13} color={tripRouteMuted} />
-          <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
-            {freeSeats === 0
-              ? 'Completo'
-              : `${freeSeats} disponible${freeSeats !== 1 ? 's' : ''}`}
+          <View style={styles.routeLine}>
+            <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{originCity}</Text>
+            <Text style={[styles.routeConnector, { color: tripRouteMuted }]}>{hasStops ? '···' : '→'}</Text>
+            <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{destCity}</Text>
+          </View>
+          <Text style={[styles.tripMeta, { color: tripRouteMuted }]} numberOfLines={1}>
+            {new Date(trip.departureDate).toLocaleDateString('es-ES', {
+              weekday: 'short', day: 'numeric', month: 'short',
+            })} · {trip.departureTime} · {freeSeats === 0 ? 'Completo' : `${freeSeats} disponible${freeSeats !== 1 ? 's' : ''}`}
           </Text>
         </View>
-        {trip.intermediateStops?.length > 0 && (
-          <View style={styles.tripFooterItem}>
-            <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
-            <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
-              {trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
-            </Text>
+        {trip.sinPrecioFijo ? (
+          <Text style={[styles.priceCompartido, { color: textPrimary }]}>Gastos compartidos</Text>
+        ) : (
+          <View style={styles.priceBox}>
+            <Text style={[styles.priceValue, { color: textPrimary }]}>${trip.pricePerSeat?.toLocaleString('es-AR')}</Text>
+            <Text style={[styles.priceLabel, { color: tripRouteMuted }]}>por asiento</Text>
           </View>
         )}
       </View>
+
+      {hasStops && (
+        <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider }]}>
+          <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
+          <Text style={[styles.stopChipText, { color: tripRouteMuted }]}>
+            {trip.intermediateStops.length} parada{trip.intermediateStops.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
     );
   };
 
   const renderRequestCard = (req) => {
     const totalApps = req.applicationCount ?? req.applications?.length ?? 0;
+    const cupos = Math.max(0, 5 - totalApps);
+    const hasStops = req.intermediateStops?.length > 0;
     return (
       <TouchableOpacity
         key={req._id}
@@ -505,68 +472,34 @@ const HomeScreen = ({ navigation, route }) => {
         onPress={() => navigation.getParent('AppStack')?.navigate('TripRequestDetail', { requestId: req._id })}
         activeOpacity={0.7}
       >
-        {/* Header row */}
-        <View style={styles.tripDriverRow}>
-          {req.passenger?.avatar ? (
-            <Image source={{ uri: buildImageUri(req.passenger.avatar) }} style={styles.driverAvatar} />
-          ) : (
-            <View style={[styles.driverAvatarPlaceholder, { backgroundColor: ui.bg }]}>
-              <Ionicons name="person-outline" size={18} color={textMuted} />
+        <View style={styles.tripHeaderRow}>
+          <View style={[styles.tripIconBox, { backgroundColor: cardBg, borderColor: divider, borderWidth: 1 }]}>
+            <Ionicons name={REQUEST_ICON} size={20} color={textPrimary} />
+          </View>
+          <View style={styles.tripInfoColumn}>
+            <View style={styles.routeLine}>
+              <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{req.origin?.city}</Text>
+              <Text style={[styles.routeConnector, { color: tripRouteMuted }]}>{hasStops ? '···' : '→'}</Text>
+              <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{req.destination?.city}</Text>
             </View>
-          )}
-          <View style={styles.driverInfo}>
-            <Text style={[styles.driverName, { color: textPrimary }]}>
-              {req.origin?.city} → {req.destination?.city}
-            </Text>
-            <Text style={[styles.tripDateTime, { color: textMuted }]}>
+            <Text style={[styles.tripMeta, { color: tripRouteMuted }]} numberOfLines={1}>
               {/* timeZone UTC: es un dia de calendario, sin esto en UTC-3 muestra el dia anterior.
                   Ojo: la card de VIAJES (arriba) NO lleva esto, ahi departureDate es un instante real. */}
               {new Date(req.departureDate).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}
-              {'  '}{req.departureTime || ''}
+              {' · '}{req.departureTime || ''} · {cupos} cupo{cupos !== 1 ? 's' : ''} para postularte
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
         </View>
 
-        <View style={[styles.tripInnerDivider, { backgroundColor: divider }]} />
-
-        {/* Route */}
-        <View style={styles.tripRouteRow}>
-          <View style={styles.routeColumn}>
-            <View style={[styles.routeDot, { borderColor: accent }]} />
-            <View style={[styles.routeLineVertical, { backgroundColor: tripRouteLine }]} />
-            <View style={[styles.routeDotFilled, { backgroundColor: accent }]} />
-          </View>
-          <View style={styles.tripInfoColumn}>
-            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Origen</Text>
-            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-              {req.origin?.address || req.origin?.city}
-            </Text>
-            <View style={{ height: 14 }} />
-            <Text style={[styles.routeLabel, { color: tripRouteMuted }]}>Destino</Text>
-            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-              {req.destination?.address || req.destination?.city}
+        {hasStops && (
+          <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider }]}>
+            <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
+            <Text style={[styles.stopChipText, { color: tripRouteMuted }]}>
+              {req.intermediateStops.length} parada{req.intermediateStops.length !== 1 ? 's' : ''}
             </Text>
           </View>
-        </View>
-
-        {/* Footer */}
-        <View style={[styles.tripFooterRow, { borderTopColor: divider }]}>
-          {/* <View style={styles.tripFooterItem}>
-            <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
-            <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
-              ${req.pricePerSeat?.toLocaleString('es-AR')} por asiento
-            </Text>
-          </View> */}
-          {totalApps > 0 && (
-            <View style={styles.tripFooterItem}>
-              <Ionicons name="people-outline" size={13} color={tripRouteMuted} />
-              <Text style={[styles.tripFooterText, { color: tripRouteMuted }]}>
-                {totalApps} postulacion{totalApps !== 1 ? 'es' : ''}
-              </Text>
-            </View>
-          )}
-        </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -1462,108 +1395,84 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Trip Card
+  // Trip Card — ícono + ruta en una línea + precio (o "gastos compartidos"), sin botones de
+  // gestión: estas cards muestran viajes/solicitudes de OTROS usuarios en el feed de Inicio.
   tripCard: {
-    borderRadius: 24,
+    borderRadius: 18,
     marginBottom: 12,
+    padding: 16,
+    gap: 10,
   },
-  tripDriverRow: {
+  tripHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    gap: 12,
+    gap: 14,
   },
-  driverAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  driverAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  tripIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  driverInitials: {
-    fontSize: 14,
-    fontFamily: 'Sora_600SemiBold',
-  },
-  driverInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  driverName: {
-    fontSize: 15,
-    fontFamily: 'Sora_600SemiBold',
-  },
-  tripDateTime: {
-    fontSize: 12,
-  },
-  tripInnerDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-  },
-  tripRouteRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
-  },
-  routeColumn: {
-    width: 22,
-    alignItems: 'center',
-    paddingTop: 4,
-    marginRight: 14,
-  },
-  routeDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    borderWidth: 2,
-  },
-  routeLineVertical: {
-    width: 1.5,
-    height: 28,
-    marginVertical: 3,
-  },
-  routeDotFilled: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-  },
   tripInfoColumn: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    gap: 4,
   },
-  routeLabel: {
-    fontSize: 11,
-    fontFamily: 'Sora_500Medium',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 2,
-  },
-  routeText: {
-    fontSize: 14,
-    fontFamily: 'Sora_500Medium',
-  },
-  tripFooterRow: {
+  routeLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 7,
+    minWidth: 0,
   },
-  tripFooterItem: {
+  routeCity: {
+    fontSize: 15,
+    fontFamily: 'Sora_700Bold',
+    flexShrink: 1,
+  },
+  routeConnector: {
+    fontSize: 15,
+    fontFamily: 'Sora_700Bold',
+  },
+  tripMeta: {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+  },
+  priceBox: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    alignItems: 'flex-end',
+  },
+  priceValue: {
+    fontSize: 15,
+    fontFamily: 'Sora_800ExtraBold',
+  },
+  priceLabel: {
+    fontSize: 10,
+    fontFamily: 'Sora_600SemiBold',
+  },
+  priceCompartido: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    maxWidth: 104,
+    fontSize: 13,
+    fontFamily: 'Sora_800ExtraBold',
+    textAlign: 'right',
+  },
+  stopChip: {
     flexDirection: 'row',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     gap: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
-  tripFooterText: {
-    fontSize: 12,
+  stopChipText: {
+    fontSize: 11,
+    fontFamily: 'Sora_600SemiBold',
   },
 
   // Loading & Empty
