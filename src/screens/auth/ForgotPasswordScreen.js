@@ -6,6 +6,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,6 +92,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
             autoComplete="email"
           />
 
+        </View>
+      </ScrollView>
+
+      {/* El botón vive FUERA del scroll, siempre en el mismo lugar: adentro subía y bajaba
+          según cuánto contenido tuviera la pantalla. El KeyboardAvoidingView envuelve sólo
+          este pie —no el scroll— para que el teclado no se compense dos veces. */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={[styles.pieFijo, { backgroundColor: ui.bg, borderTopColor: ui.border }]}>
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
             onPress={handleResetPassword}
@@ -109,14 +119,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container:  { flex: 1 },
-  scroll:     { flexGrow: 1, paddingBottom: 28 },
+  scroll:     { flexGrow: 1, paddingBottom: 8 },
   volverWrap: { paddingHorizontal: 26, paddingTop: 4 },
   volver:     { width: 44, height: 44, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -129,6 +139,7 @@ const styles = StyleSheet.create({
   btn:     { height: 56, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
   btnText: { fontSize: 15.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.2 },
 
+  pieFijo: { paddingHorizontal: 26, paddingTop: 14, paddingBottom: 8, gap: 16, borderTopWidth: StyleSheet.hairlineWidth },
   pie:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   pieText: { fontSize: 13.5, fontFamily: 'Sora_400Regular' },
   pieLink: { fontSize: 13.5, fontFamily: 'Sora_700Bold' },
