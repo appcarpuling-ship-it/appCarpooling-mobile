@@ -22,9 +22,14 @@ import Rating from '../../../components/ui/Rating';
 const armarRecorrido = (app, tramo) => {
   if (!tramo?.origin || !tramo?.destination) return [];
   const dir = (p) => p?.address || p?.city;
+  // Las paradas que puso el pasajero al publicar la solicitud van entre sus dos puntas.
+  // Antes se ignoraban y su viaje se mostraba como si fuera directo.
+  const paradas = (tramo.intermediateStops || [])
+    .map((stop, i) => ({ etiqueta: `Parada ${i + 1}`, texto: dir(stop) }));
   return [
     app.driverOrigin && { etiqueta: 'Sale desde', texto: dir(app.driverOrigin), delConductor: true },
     { etiqueta: 'Te subís en', texto: dir(tramo.origin) },
+    ...paradas,
     { etiqueta: 'Te deja en', texto: dir(tramo.destination) },
     app.driverDestination && { etiqueta: 'Sigue hasta', texto: dir(app.driverDestination), delConductor: true },
   ].filter((p) => p && p.texto);
@@ -46,13 +51,20 @@ const recorridoElegido = (app) =>
 /**
  * Mismo recorrido que `armarRecorrido`, pero con la forma de `trip` que espera TripMapScreen:
  * origen/destino son las puntas más lejanas (las del conductor, si declaró recorrido propio) y
- * el tramo del pasajero queda como parada intermedia para que se vean las 4 paradas en el mapa.
+ * el tramo del pasajero —y las paradas que él haya puesto— quedan como paradas intermedias.
  */
 const armarTripParaMapa = (app, tramo, driver, vehicle) => {
   if (!tramo?.origin || !tramo?.destination) return null;
   const intermediateStops = [];
   if (app.driverOrigin) intermediateStops.push({ ...tramo.origin, kind: 'pickup', order: 0 });
-  if (app.driverDestination) intermediateStops.push({ ...tramo.destination, kind: 'dropoff', order: 1 });
+  // Las paradas propias del pasajero también son puntos del recorrido: sin ellas el mapa
+  // trazaba derecho entre sus dos puntas y se salteaba el desvío que él mismo pidió.
+  (tramo.intermediateStops || []).forEach((stop, i) => {
+    intermediateStops.push({ ...stop, kind: 'stop', order: 1 + i });
+  });
+  if (app.driverDestination) {
+    intermediateStops.push({ ...tramo.destination, kind: 'dropoff', order: 1 + (tramo.intermediateStops || []).length });
+  }
   return {
     origin: app.driverOrigin || tramo.origin,
     destination: app.driverDestination || tramo.destination,

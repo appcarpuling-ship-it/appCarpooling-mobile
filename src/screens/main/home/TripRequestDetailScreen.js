@@ -645,7 +645,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     requestId,
                     // Para poder mostrar el recorrido completo: dónde sube y baja el pasajero
                     // entre las puntas del conductor.
-                    tramoPasajero: { origin: request.origin, destination: request.destination },
+                    // Con las paradas: sin ellas, la postulación mostraba el tramo del
+                    // pasajero como si fuera directo y se perdían las direcciones del medio.
+                    tramoPasajero: {
+                      origin: request.origin,
+                      destination: request.destination,
+                      intermediateStops: request.intermediateStops || [],
+                    },
                   })}
                   activeOpacity={0.75}
                 >
