@@ -248,29 +248,34 @@ const AllTripsScreen = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <View style={styles.cardGradient}>
-            <View style={styles.tripHeader}>
-              <View style={styles.routeRow}>
-                <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{originAddress}</Text>
-                <Ionicons name="arrow-forward" size={18} color={ui.textMuted} style={styles.arrowIcon} />
-                <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{destAddress}</Text>
+            <View style={styles.tripHeaderRowIcon}>
+              <Image source={require('../../../../assets/tabsIcons/mis-viajes.png')} style={styles.tripIconBox} resizeMode="contain" />
+              <View style={{ flex: 1 }}>
+                <View style={styles.tripHeader}>
+                  <View style={styles.routeRow}>
+                    <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{originAddress}</Text>
+                    <Ionicons name="arrow-forward" size={18} color={ui.textMuted} style={styles.arrowIcon} />
+                    <Text style={[styles.addressText, { color: ui.text }]} numberOfLines={2}>{destAddress}</Text>
+                  </View>
+                </View>
+
+                {/* El precio del conductor, que es fijo del viaje (a diferencia del de la conexión,
+                    que depende de dónde suba cada pasajero) y es con lo que se compara un viaje
+                    contra otro. Por eso vuelve al listado, donde antes estaba comentado. */}
+                {item.driverPrice > 0 ? (
+                  <Text style={[styles.addressText, { color: ui.text, marginTop: 4 }]}>
+                    ${Number(item.driverPrice).toLocaleString('es-AR')}
+                    <Text style={{ color: ui.textMuted, fontSize: 12 }}> por asiento</Text>
+                  </Text>
+                ) : item.sinPrecioFijo ? (
+                  // Sin esto quedaba un hueco vacío donde va el precio, como si el viaje
+                  // costara $0 en vez de ser carpooling real sin costo fijo.
+                  <Text style={[styles.addressText, { color: ui.textMuted, marginTop: 4, fontSize: 13 }]}>
+                    Gastos compartidos
+                  </Text>
+                ) : null}
               </View>
             </View>
-
-            {/* El precio del conductor, que es fijo del viaje (a diferencia del de la conexión,
-                que depende de dónde suba cada pasajero) y es con lo que se compara un viaje
-                contra otro. Por eso vuelve al listado, donde antes estaba comentado. */}
-            {item.driverPrice > 0 ? (
-              <Text style={[styles.addressText, { color: ui.text, marginTop: 4 }]}>
-                ${Number(item.driverPrice).toLocaleString('es-AR')}
-                <Text style={{ color: ui.textMuted, fontSize: 12 }}> por asiento</Text>
-              </Text>
-            ) : item.sinPrecioFijo ? (
-              // Sin esto quedaba un hueco vacío donde va el precio, como si el viaje
-              // costara $0 en vez de ser carpooling real sin costo fijo.
-              <Text style={[styles.addressText, { color: ui.textMuted, marginTop: 4, fontSize: 13 }]}>
-                Gastos compartidos
-              </Text>
-            ) : null}
 
             <View style={styles.driverRow}>
               <View style={styles.avatarContainer}>
@@ -794,11 +799,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.lg,
   },
+  tripHeaderRowIcon: { flexDirection: 'row', gap: 12, marginBottom: spacing.sm },
+  tripIconBox: { width: 44, height: 44, flexShrink: 0 },
   tripHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
   },
   routeRow: {
     flexDirection: 'row',

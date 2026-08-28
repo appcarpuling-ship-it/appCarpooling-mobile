@@ -264,6 +264,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         {/* Ruta — origen, cada parada intermedia y destino, mismo criterio que el detalle de
             la solicitud: una fila por punto con su círculo al lado. */}
         <View style={styles.routeRow}>
+          <Image source={require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png')} style={styles.routeIconBox} resizeMode="contain" />
           <View style={styles.routeCol}>
             {puntos.map((punto, i) => (
               <React.Fragment key={`punto-${i}`}>
@@ -469,6 +470,7 @@ const styles = StyleSheet.create({
   dateText:        { fontSize: 12 },
   innerDivider:    { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   routeRow:        { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, gap: 14 },
+  routeIconBox:    { width: 40, height: 40, flexShrink: 0 },
   routeCol:        { width: 22, alignItems: 'center', paddingTop: 4 },
   routeDot:        { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
   routeLine:       { width: 1.5, height: 28, marginVertical: 3 },

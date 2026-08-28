@@ -410,10 +410,9 @@ const HomeScreen = ({ navigation, route }) => {
   const searchFieldLabel = dark ? textMuted : '#000000';
   const searchFieldEmpty = dark ? textMuted : '#000000';
 
-  // Ícono placeholder del cuadrado de la izquierda: mientras no haya set de íconos propios,
-  // uno para viajes y otro para solicitudes. Pensado para reemplazarse fácil más adelante.
-  const TRIP_ICON = 'car-outline';
-  const REQUEST_ICON = 'time-outline';
+  // Ícono del cuadrado de la izquierda: mismo set que los hubs de Crear Viaje/Solicitudes.
+  const TRIP_ICON = require('../../../../assets/tabsIcons/mis-viajes.png');
+  const REQUEST_ICON = require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png');
 
   const renderTripCard = (trip) => {
     const freeSeats = tripDisplaySeats(trip);
@@ -428,9 +427,7 @@ const HomeScreen = ({ navigation, route }) => {
       activeOpacity={0.7}
     >
       <View style={styles.tripHeaderRow}>
-        <View style={[styles.tripIconBox, { backgroundColor: ui.invertBg }]}>
-          <Ionicons name={TRIP_ICON} size={22} color={ui.invertText} />
-        </View>
+        <Image source={TRIP_ICON} style={styles.tripIconBox} resizeMode="contain" />
         <View style={styles.tripInfoColumn}>
           <View style={styles.routeLine}>
             <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{originCity}</Text>
@@ -477,9 +474,7 @@ const HomeScreen = ({ navigation, route }) => {
         activeOpacity={0.7}
       >
         <View style={styles.tripHeaderRow}>
-          <View style={[styles.tripIconBox, { backgroundColor: cardBg, borderColor: divider, borderWidth: 1 }]}>
-            <Ionicons name={REQUEST_ICON} size={20} color={textPrimary} />
-          </View>
+          <Image source={REQUEST_ICON} style={styles.tripIconBox} resizeMode="contain" />
           <View style={styles.tripInfoColumn}>
             <View style={styles.routeLine}>
               <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{req.origin?.city}</Text>
@@ -1252,8 +1247,11 @@ const styles = StyleSheet.create({
   },
 
   // Solicitudes hub
+  // paddingHorizontal 24, no 16: tiene que alinear con el resto de las secciones de la
+  // pantalla (sectionHeader, tripCard, etc.) o las cards de acá quedaban más angostas.
   solicitudesCards: {
-    padding: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     gap: 12,
   },
   hubCard: {
@@ -1403,9 +1401,6 @@ const styles = StyleSheet.create({
   tripIconBox: {
     width: 52,
     height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   tripInfoColumn: {
     flex: 1,
