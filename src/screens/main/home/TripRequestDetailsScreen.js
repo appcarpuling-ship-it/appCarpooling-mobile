@@ -18,11 +18,26 @@ const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const fechaLarga = (d) =>
   d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' }).replace('.', '');
 
-const lugar = (p) => [p?.address, p?.city, p?.province].filter(Boolean).join(', ') || 'Sin especificar';
+const ciudadDe = (p) => [p?.city, p?.province].filter(Boolean).join(', ');
+
+/** Origen, paradas y destino en una sola lista, lista para numerar y renderizar. */
+const armarPuntos = (origin, destination, waypoints) => [
+  { tipo: 'origen', label: 'Origen', loc: origin },
+  ...(waypoints || []).map((wp, i) => ({ tipo: 'parada', label: `Parada ${i + 1}`, loc: wp })),
+  { tipo: 'destino', label: 'Destino', loc: destination },
+].map((p) => {
+  const ciudad = ciudadDe(p.loc);
+  return {
+    ...p,
+    direccion: p.loc?.address || ciudad || 'Sin especificar',
+    // No se repite la ciudad si es lo mismo que ya se muestra arriba.
+    ciudad: ciudad && ciudad !== p.loc?.address ? ciudad : '',
+  };
+});
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { origin, destination, waypoints } = route.params || {};
-  const paradas = (waypoints || []).length;
+  const puntos = armarPuntos(origin, destination, waypoints);
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -124,29 +139,37 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* La ruta que venís de elegir en el mapa. No estaba, así que publicabas a ciegas:
-              la pantalla anterior es un mapa y acá no quedaba ni rastro de qué viaje pedías. */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={styles.routeRow}>
-              <View style={styles.routeRail}>
-                <View style={[styles.dot, { borderColor: textPrimary }]} />
-                <View style={[styles.railLine, { backgroundColor: textPrimary }]} />
-                <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
+          {/* La ruta que venís de elegir en el mapa. Antes eran dos líneas sueltas —origen y
+              destino, sin rótulo— y las paradas ni figuraban: sólo un "N paradas en el camino"
+              al pie, así que no había forma de ver DÓNDE eran. Ahora cada punto es una fila
+              con su círculo al lado de su texto, igual que en el resto de la app. */}
+          <Text style={[styles.label, { color: textMuted, marginTop: 4 }]}>Tu recorrido</Text>
+          <View style={[styles.card, styles.routeCard, { backgroundColor: cardBg, borderColor: border }]}>
+            {puntos.map((punto, i) => (
+              <View key={`punto-${i}`} style={styles.routePoint}>
+                <View style={styles.routeRail}>
+                  {punto.tipo === 'origen'
+                    ? <View style={[styles.dot, { borderColor: textPrimary }]} />
+                    : punto.tipo === 'destino'
+                      ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
+                      : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
+                  {i < puntos.length - 1 && (
+                    <View style={[styles.railLine, { backgroundColor: border }]} />
+                  )}
+                </View>
+                <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
+                  <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
+                  <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+                    {punto.direccion}
+                  </Text>
+                  {!!punto.ciudad && (
+                    <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
+                      {punto.ciudad}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-                  {lugar(origin)}
-                </Text>
-                <Text style={[styles.routeText, { color: textPrimary, marginTop: 22 }]} numberOfLines={2}>
-                  {lugar(destination)}
-                </Text>
-              </View>
-            </View>
-            {paradas > 0 && (
-              <Text style={[styles.routeMeta, { color: textMuted, borderTopColor: border }]}>
-                {paradas} parada{paradas !== 1 ? 's' : ''} en el camino
-              </Text>
-            )}
+            ))}
           </View>
 
           {/* Fecha y hora juntas: son una sola decisión y separadas en dos tarjetas sueltas
@@ -311,20 +334,25 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   card: {
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
-  routeRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 16, gap: 12 },
-  routeRail: { alignItems: 'center', paddingTop: 5 },
+  routeCard: { paddingHorizontal: 16, paddingVertical: 16 },
+  routePoint: { flexDirection: 'row', gap: 12 },
+  routeRail: { width: 9, alignItems: 'center', paddingTop: 5 },
   dot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
   dotFilled: { width: 9, height: 9, borderRadius: 5 },
+  dotParada: { width: 7, height: 7, borderRadius: 4, marginVertical: 1 },
   railLine: { width: 1.5, flex: 1, minHeight: 18, marginVertical: 4 },
-  routeText: { fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
-  routeMeta: {
-    fontSize: 12, textAlign: 'center', paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  routeBody: { flex: 1 },
+  routeBodyGap: { paddingBottom: 16 },
+  routeLabel: {
+    fontSize: 11, fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2,
   },
+  routeText: { fontSize: 15, fontFamily: 'Sora_600SemiBold', lineHeight: 20 },
+  routeCity: { fontSize: 13, marginTop: 1 },
   pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   pickLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', letterSpacing: 0.3, textTransform: 'uppercase' },
   pickValue: { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
