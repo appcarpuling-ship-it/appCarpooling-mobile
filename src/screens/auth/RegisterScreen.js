@@ -334,6 +334,12 @@ const RegisterScreen = ({ navigation }) => {
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets
+          // Sin rebote, igual que el resto de las pantallas de acceso: el dibujo arranca
+          // pegado arriba y al tirar hacia abajo se despegaba dejando una franja de fondo.
+          // Acá el scroll sí hace falta —los pasos tienen varios campos—, lo que se apaga
+          // es sólo el rebote de los extremos.
+          bounces={false}
+          overScrollMode="never"
         >
           <AuthHero height={132} />
 
