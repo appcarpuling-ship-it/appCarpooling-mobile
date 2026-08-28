@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    ScrollView,
     KeyboardAvoidingView,
     Platform,
     Modal,
@@ -14,7 +15,6 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -308,18 +308,24 @@ const TripDetails = ({ navigation, route }) => {
                 del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    {/* Antes: scrollToEnd manual al enfocar un input. Rompía si el campo no era
-                        el último del paso (el precio dejó de serlo al sumarse "Gastos
-                        compartidos" después) — scrollToEnd se pasaba de largo y tapaba el campo
-                        real. KeyboardAwareScrollView sube exactamente hasta el input enfocado. */}
-                    <KeyboardAwareScrollView
+                    {/* `automaticallyAdjustKeyboardInsets` en vez de KeyboardAwareScrollView.
+                        Esa librería (0.9.5, sin mantenimiento desde 2021) llama a APIs del
+                        renderer viejo —UIManager.viewIsDescendantOf, measureInWindow sobre un
+                        findNodeHandle— que en la New Architecture de Expo SDK 54 no existen, y
+                        justo se disparan al enfocar un input: es la causa más probable de que
+                        la app se cerrara sola en esta pantalla.
+
+                        Esto lo resuelve el propio ScrollView de RN: iOS ajusta el contentInset
+                        solo con el teclado y sube el campo enfocado, sin JS de por medio. En
+                        Android la prop no aplica, pero `app.json` ya tiene
+                        softwareKeyboardLayoutMode: 'resize' y el sistema achica la pantalla. */}
+                    <ScrollView
                         ref={scrollRef}
                         style={styles.flex}
                         contentContainerStyle={styles.scroll}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        enableOnAndroid
-                        extraScrollHeight={20}
+                        automaticallyAdjustKeyboardInsets
                     >
 
                         {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
@@ -647,7 +653,7 @@ const TripDetails = ({ navigation, route }) => {
                         )}
 
 
-                    </KeyboardAwareScrollView>
+                    </ScrollView>
                     </TouchableWithoutFeedback>
 
                     {/* El KeyboardAvoidingView envuelve SÓLO el footer, no el scroll.
