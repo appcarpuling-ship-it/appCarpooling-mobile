@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,28 +13,37 @@ import { confirmFromCallback } from '../../../services/seatReservationService';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { useUI } from '../../../theme/ui';
 import Rating from '../../../components/ui/Rating';
+import PillButton from '../../../components/ui/PillButton';
 
 /**
  * El recorrido completo del viaje, como lo va a hacer el conductor: sus puntas afuera y el
  * tramo del pasajero en el medio. Los puntos del conductor son opcionales —si no declaró
  * recorrido propio hace el mismo tramo—, y en ese caso se muestran sólo los dos del pasajero.
  */
+// Dirección (línea principal) + ciudad/provincia (línea chica), cuando no son lo mismo.
+// Antes era sólo `address || city`: las puntas del conductor tienen una dirección de calle
+// sin ciudad al lado, y quedaban sin poder saber en qué ciudad caían.
+const dir = (p) => {
+  const principal = p?.address || p?.city || '';
+  const ciudad = [p?.city, p?.province].filter(Boolean).join(', ');
+  return { texto: principal, ciudad: ciudad && ciudad !== principal ? ciudad : '' };
+};
+
 const armarRecorrido = (app, tramo) => {
   if (!tramo?.origin || !tramo?.destination) return [];
-  const dir = (p) => p?.address || p?.city;
   // Las paradas que puso el pasajero al publicar la solicitud van entre sus dos puntas.
   // Antes se ignoraban y su viaje se mostraba como si fuera directo.
   const paradas = (tramo.intermediateStops || [])
-    .map((stop, i) => ({ etiqueta: `Parada ${i + 1}`, texto: dir(stop) }));
+    .map((stop, i) => ({ etiqueta: `Parada ${i + 1}`, ...dir(stop) }));
   return [
-    app.driverOrigin && { etiqueta: 'Sale desde', texto: dir(app.driverOrigin), delConductor: true },
+    app.driverOrigin && { etiqueta: 'Sale desde', ...dir(app.driverOrigin), delConductor: true },
     // Paradas del recorrido del conductor: van antes de que suba el pasajero sólo como
     // orden de lectura; en el mapa la posición real la resuelve la geografía.
-    ...(app.driverStops || []).map((p) => ({ etiqueta: 'Pasa por', texto: dir(p), delConductor: true })),
-    { etiqueta: 'Te subís en', texto: dir(tramo.origin) },
+    ...(app.driverStops || []).map((p) => ({ etiqueta: 'Pasa por', ...dir(p), delConductor: true })),
+    { etiqueta: 'Te subís en', ...dir(tramo.origin) },
     ...paradas,
-    { etiqueta: 'Te deja en', texto: dir(tramo.destination) },
-    app.driverDestination && { etiqueta: 'Sigue hasta', texto: dir(app.driverDestination), delConductor: true },
+    { etiqueta: 'Te deja en', ...dir(tramo.destination) },
+    app.driverDestination && { etiqueta: 'Sigue hasta', ...dir(app.driverDestination), delConductor: true },
   ].filter((p) => p && p.texto);
 };
 
@@ -94,7 +103,6 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
   const divider     = ui.bg;  const accent      = ui.invertBg;
-  const accentInverse = ui.invertText;
 
   const [accepting, setAccepting] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
@@ -239,6 +247,9 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 <View style={styles.recorridoTexto}>
                   <Text style={[styles.recorridoEtiqueta, { color: textMuted }]}>{punto.etiqueta}</Text>
                   <Text style={[styles.recorridoDireccion, { color: textPrimary }]}>{punto.texto}</Text>
+                  {!!punto.ciudad && (
+                    <Text style={[styles.recorridoCiudad, { color: textMuted }]}>{punto.ciudad}</Text>
+                  )}
                 </View>
               </View>
             ))}
@@ -357,16 +368,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
       {/* Footer CTA */}
       {app.status === 'pending' && (
         <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
-          <TouchableOpacity
-            style={[styles.acceptBtn, { backgroundColor: accent }, accepting && { opacity: 0.6 }]}
-            onPress={handleAccept}
-            disabled={accepting}
-          >
-            {accepting
-              ? <ActivityIndicator color={accentInverse} />
-              : <Text style={[styles.acceptBtnText, { color: accentInverse }]}>Elegir este conductor</Text>
-            }
-          </TouchableOpacity>
+          <PillButton label="Elegir este conductor" onPress={handleAccept} loading={accepting} />
         </View>
       )}
 
@@ -427,9 +429,8 @@ const styles = StyleSheet.create({
   recorridoTexto: { flex: 1, paddingBottom: 14 },
   recorridoEtiqueta: { fontSize: 11, fontFamily: 'Sora_500Medium', marginBottom: 2 },
   recorridoDireccion: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19 },
+  recorridoCiudad: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
   footer: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
-  acceptBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  acceptBtnText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
   acceptedBadge: { borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
 });
 
