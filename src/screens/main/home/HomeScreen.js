@@ -453,12 +453,12 @@ const HomeScreen = ({ navigation, route }) => {
         ) : null}
       </View>
 
-      {/* Siempre se renderiza, sólo se le apaga la opacidad sin paradas: así ocupa el mismo
-          espacio y las cards no quedan de alturas distintas según el viaje tenga o no paradas. */}
-      <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider, opacity: hasStops ? 1 : 0 }]}>
+      {/* Siempre se renderiza (con o sin paradas): así todas las cards quedan de la misma
+          altura, en vez de la de sin paradas quedando más baja o con un hueco vacío. */}
+      <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider }]}>
         <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
         <Text style={[styles.stopChipText, { color: tripRouteMuted }]}>
-          {trip.intermediateStops?.length || 0} parada{trip.intermediateStops?.length !== 1 ? 's' : ''}
+          {hasStops ? `${trip.intermediateStops.length} parada${trip.intermediateStops.length !== 1 ? 's' : ''}` : 'Sin paradas'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -494,10 +494,10 @@ const HomeScreen = ({ navigation, route }) => {
           <Ionicons name="chevron-forward" size={16} color={tripCardChevron} />
         </View>
 
-        <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider, opacity: hasStops ? 1 : 0 }]}>
+        <View style={[styles.stopChip, { backgroundColor: ui.bg, borderColor: divider }]}>
           <Ionicons name="git-branch-outline" size={13} color={tripRouteMuted} />
           <Text style={[styles.stopChipText, { color: tripRouteMuted }]}>
-            {req.intermediateStops?.length || 0} parada{req.intermediateStops?.length !== 1 ? 's' : ''}
+            {hasStops ? `${req.intermediateStops.length} parada${req.intermediateStops.length !== 1 ? 's' : ''}` : 'Sin paradas'}
           </Text>
         </View>
       </TouchableOpacity>
