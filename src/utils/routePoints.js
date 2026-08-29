@@ -50,21 +50,6 @@ const decodePolyline = (encoded) => {
 
 
 /**
- * Sin trazado: cuánto avanzó la parada sobre el eje origen→destino. No es la ruta real, pero
- * ordena bien lo que importa —primero todo lo de la ciudad de salida, después lo del camino,
- * al final lo de la ciudad de llegada— que es justo lo que se rompía.
- */
-const avanceSobreElEje = (origen, destino, punto) => {
-  const dx = (destino?.longitude ?? 0) - (origen?.longitude ?? 0);
-  const dy = (destino?.latitude ?? 0) - (origen?.latitude ?? 0);
-  const largo2 = dx * dx + dy * dy;
-  if (!largo2) return 0;
-  const px = (punto?.longitude ?? 0) - (origen?.longitude ?? 0);
-  const py = (punto?.latitude ?? 0) - (origen?.latitude ?? 0);
-  return (px * dx + py * dy) / largo2;
-};
-
-/**
  * Ordena las paradas por el CAMINO, no por `order`.
  *
  * `order` es el orden en que se pagaron las reservas: con dos pasajeros de la misma ciudad
@@ -72,37 +57,48 @@ const avanceSobreElEje = (origen, destino, punto) => {
  * bajada B. Una ruta imposible, y es lo que ve tanto el pasajero en el detalle como el
  * conductor cuando maneja.
  *
- * Se ordena por la proyección sobre el eje origen→destino. NO se usa el trazado guardado
- * del viaje: ese se calculó antes de que existiera ninguna reserva, así que no pasa por los
- * puntos de recogida ni de bajada, y medir "qué tan avanzada" está una parada contra una
- * ruta que no la contempla da un orden poco confiable.
+ * Vecino más cercano: desde el origen, la próxima parada es la que está más cerca en línea
+ * recta; desde ahí, la siguiente más cerca; así hasta terminarlas. Antes se ordenaba
+ * proyectando cada parada sobre la línea recta origen→destino, y eso confundía "está atrás
+ * del origen" con "está al costado": una parada de la MISMA ciudad de salida y otra a 60km en
+ * una ciudad fuera del camino proyectaban casi al mismo punto, y por una diferencia mínima el
+ * conductor terminaba mandado al desvío antes que a levantar al pasajero de la vuelta de la
+ * esquina. No se usa el trazado guardado del viaje: ese se calculó antes de que existiera
+ * ninguna reserva, así que no pasa por los puntos de recogida ni de bajada.
  *
- * Las paradas sin coordenadas quedan al final, en su orden original.
+ * Las paradas sin coordenadas no se pueden ubicar en el camino: quedan al final, en su orden
+ * original.
  */
-const comparadorDeRuta = (trip) => {
-  const origen = trip?.origin?.coordinates;
-  const destino = trip?.destination?.coordinates;
-
-  const avance = (stop) => {
-    const c = stop?.coordinates;
-    if (c?.latitude == null || c?.longitude == null) return Number.MAX_SAFE_INTEGER;
-    return avanceSobreElEje(origen, destino, c);
-  };
-
-  return (a, b) => {
-    const da = avance(a);
-    const db = avance(b);
-    if (da !== db) return da - db;
-    return (a?.order || 0) - (b?.order || 0); // empate: se respeta el orden original
-  };
-};
-
 /**
  * @param {Object} trip
  * @returns {Array<{location, isEnd, kind, passenger}>} en orden, listo para numerar por índice
  */
 /** Las paradas del viaje en el orden del camino. Exportada para el mapa del conductor. */
-const ordenarStops = (trip) => [...(trip?.intermediateStops || [])].sort(comparadorDeRuta(trip));
+const ordenarStops = (trip) => {
+  const conCoords = [];
+  const sinCoords = [];
+  (trip?.intermediateStops || []).forEach((s) => {
+    (s?.coordinates?.latitude == null || s?.coordinates?.longitude == null ? sinCoords : conCoords).push(s);
+  });
+  sinCoords.sort((a, b) => (a?.order || 0) - (b?.order || 0));
+
+  const restantes = [...conCoords];
+  const ordenadas = [];
+  let desde = trip?.origin?.coordinates;
+  while (restantes.length) {
+    let iMasCerca = 0;
+    let distMasCerca = Infinity;
+    restantes.forEach((s, i) => {
+      const d = metersBetween(desde, s.coordinates);
+      if (d < distMasCerca) { distMasCerca = d; iMasCerca = i; }
+    });
+    const [elegida] = restantes.splice(iMasCerca, 1);
+    ordenadas.push(elegida);
+    desde = elegida.coordinates;
+  }
+
+  return [...ordenadas, ...sinCoords];
+};
 
 const buildRoutePoints = (trip) => {
   const origen = trip?.origin;
