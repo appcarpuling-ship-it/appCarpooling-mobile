@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../utils/mapProvider';
@@ -8,10 +8,9 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 
-// Dos archivos y no un tint: el PNG es opaco, así que teñirlo no alcanza — en modo oscuro
-// va el blanco y en claro el negro (mismo par que usa TripDetailScreen).
-const ICONO_PASAJERO_CLARO = require('../../../assets/icons/icon-passenger-black.png');
-const ICONO_PASAJERO_OSCURO = require('../../../assets/icons/icon-passenger-white.png');
+// El marcador va siempre sobre una placa blanca (ver pinBadge), así que no hace falta la
+// variante clara/oscura del ícono: el negro sobre blanco se ve igual en los dos modos.
+const ICONO_PASAJERO = require('../../../assets/icons/icon-passenger-black.png');
 
 // Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
 // Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
@@ -56,15 +55,14 @@ const PickupMapScreen = ({ route, navigation }) => {
         showsPointsOfInterest={false}
         showsMyLocationButton={false}
       >
+        {/* El ícono de pasajero va ACÁ, en el marcador: esta pantalla es siempre el punto de
+            recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
-          Platform.OS === 'android'
-            ? <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../assets/marker-origin.png')} />
-            // Sin hijos, react-native-maps dibuja el pin rojo por defecto de Google, que
-            // no se parece a nada del resto de la app. Este es el mismo marcador que usa
-            // "Ver trayecto en el mapa" para el origen (TripMapScreen).
-            : <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.pinHalo}><View style={styles.pinCore} /></View>
-              </Marker>
+          <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.pinBadge}>
+              <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
+            </View>
+          </Marker>
         )}
       </MapView>}
 
@@ -76,14 +74,7 @@ const PickupMapScreen = ({ route, navigation }) => {
 
       <View style={[styles.addressCard, { backgroundColor: ui.card, paddingBottom: insets.bottom + 16 }]}>
         <Text style={[styles.addressLabel, { color: ui.textMuted }]}>{(label || 'Punto de recogida').toUpperCase()}</Text>
-        <View style={styles.addressRow}>
-          <Image
-            source={ui.isDarkMode ? ICONO_PASAJERO_OSCURO : ICONO_PASAJERO_CLARO}
-            style={styles.addressPassengerIcon}
-            resizeMode="contain"
-          />
-          <Text style={[styles.addressText, { color: ui.text, flex: 1 }]}>{address || 'Sin dirección'}</Text>
-        </View>
+        <Text style={[styles.addressText, { color: ui.text }]}>{address || 'Sin dirección'}</Text>
       </View>
     </View>
   );
@@ -91,12 +82,14 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  pinHalo: { width: 22, height: 22, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.15)', justifyContent: 'center', alignItems: 'center' },
-  // Sin el anillo blanco, un punto negro se funde con un mapa oscuro (MapKit lo dibuja así de
-  // noche o con el modo oscuro del sistema) y no se ve. Los demás marcadores de la app ya
-  // llevan este mismo borde blanco (ver markerInner en CreateTripGoogleMaps, driverMarker en
-  // TripMapScreen); a éste, al ser el único punto suelto sin recorrido, se le había pasado.
-  pinCore: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#010101', borderWidth: 2, borderColor: '#FFFFFF' },
+  // Placa blanca con borde: sobre un mapa oscuro un ícono negro solo se funde con el fondo,
+  // igual que le pasaba al punto sin el anillo blanco antes de este cambio.
+  pinBadge: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 4,
+  },
+  pinIcon: { width: 20, height: 20 },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',
@@ -108,8 +101,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8,
   },
   addressLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, marginBottom: 6 },
-  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  addressPassengerIcon: { width: 16, height: 16 },
   addressText: { fontSize: 16, fontFamily: 'Sora_600SemiBold', lineHeight: 22 },
 });
 
