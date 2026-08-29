@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../utils/mapProvider';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
+
+// Dos archivos y no un tint: el PNG es opaco, así que teñirlo no alcanza — en modo oscuro
+// va el blanco y en claro el negro (mismo par que usa TripDetailScreen).
+const ICONO_PASAJERO_CLARO = require('../../../assets/icons/icon-passenger-black.png');
+const ICONO_PASAJERO_OSCURO = require('../../../assets/icons/icon-passenger-white.png');
 
 // Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
 // Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
@@ -71,7 +76,14 @@ const PickupMapScreen = ({ route, navigation }) => {
 
       <View style={[styles.addressCard, { backgroundColor: ui.card, paddingBottom: insets.bottom + 16 }]}>
         <Text style={[styles.addressLabel, { color: ui.textMuted }]}>{(label || 'Punto de recogida').toUpperCase()}</Text>
-        <Text style={[styles.addressText, { color: ui.text }]}>{address || 'Sin dirección'}</Text>
+        <View style={styles.addressRow}>
+          <Image
+            source={ui.isDarkMode ? ICONO_PASAJERO_OSCURO : ICONO_PASAJERO_CLARO}
+            style={styles.addressPassengerIcon}
+            resizeMode="contain"
+          />
+          <Text style={[styles.addressText, { color: ui.text, flex: 1 }]}>{address || 'Sin dirección'}</Text>
+        </View>
       </View>
     </View>
   );
@@ -96,6 +108,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8,
   },
   addressLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, marginBottom: 6 },
+  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addressPassengerIcon: { width: 16, height: 16 },
   addressText: { fontSize: 16, fontFamily: 'Sora_600SemiBold', lineHeight: 22 },
 });
 

@@ -515,7 +515,7 @@ const TripRequestsScreen = ({ route }) => {
             con su propio botón circular, no toda la fila. */}
         {(item.seatReservation?.pickupLocation?.address || item.seatReservation?.dropoffLocation?.address) && (
           <View style={[styles.reqRutaWrap, { borderTopColor: divider }]}>
-            <View style={[styles.reqRutaCard, { backgroundColor: bg }]}>
+            <View style={[styles.reqRutaCard, { backgroundColor: ui.card }]}>
               {[
                 { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
                 { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
