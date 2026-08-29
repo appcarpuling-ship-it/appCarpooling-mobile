@@ -11,7 +11,7 @@ import { useUI } from '../../../theme/ui';
  *
  * Los plazos de retención salen de los TTL que existen en la base, no de una estimación.
  */
-const ULTIMA_ACTUALIZACION = '12 de agosto de 2026';
+const ULTIMA_ACTUALIZACION = '29 de agosto de 2026';
 
 const PrivacyScreen = () => {
   const ui = useUI();
@@ -36,7 +36,7 @@ const PrivacyScreen = () => {
     },
     {
       title: '4. Para qué usamos tus datos',
-      text: '• Mostrar tu perfil y tus viajes a los demás usuarios\n• Conectar conductores con pasajeros y calcular recorridos\n• Procesar las reservas y sus pagos\n• Avisarte de reservas, mensajes y viajes que puedan interesarte\n• Sostener el sistema de calificaciones\n• Prevenir fraudes y hacer cumplir los Términos\n• Cumplir obligaciones legales',
+      text: '• Mostrar tu perfil y tus viajes a los demás usuarios\n• Conectar conductores con pasajeros y calcular recorridos\n• Procesar las reservas y, si sos conductor, el pago de tu comisión con Carpuling\n• Avisarte de reservas, mensajes y viajes que puedan interesarte\n• Sostener el sistema de calificaciones\n• Prevenir fraudes y hacer cumplir los Términos\n• Cumplir obligaciones legales',
     },
     {
       title: '5. Qué ven los demás usuarios',
@@ -44,7 +44,7 @@ const PrivacyScreen = () => {
     },
     {
       title: '6. Con qué proveedores compartimos datos',
-      text: 'No vendemos tus datos. Los compartimos solo con los servicios que hacen funcionar la app:\n\n• Google Maps: direcciones y recorridos\n• Cloudinary: almacenamiento de las imágenes que subís\n• Brevo: envío de correos, como el código de verificación\n• Expo: envío de notificaciones al teléfono\n• Pasarela de pagos: cobro de las reservas. Los datos de tu tarjeta los procesa ella, nosotros no los recibimos ni los guardamos\n• Sentry: informes de errores, para detectar fallas\n\nTambién podemos compartirlos si nos lo exige una autoridad competente.',
+      text: 'No vendemos tus datos. Los compartimos solo con los servicios que hacen funcionar la app:\n\n• Google Maps: direcciones y recorridos\n• Cloudinary: almacenamiento de las imágenes que subís\n• Brevo: envío de correos, como el código de verificación\n• Expo: envío de notificaciones al teléfono\n• Pasarela de pagos (Rebill): si sos conductor, el pago de tu comisión con Carpuling. No participa del pago que le hacés al conductor por el viaje, que es directo entre ustedes. Los datos de tu tarjeta los procesa ella, nosotros no los recibimos ni los guardamos\n• Sentry: informes de errores, para detectar fallas\n\nTambién podemos compartirlos si nos lo exige una autoridad competente.',
     },
     {
       title: '7. Cuánto tiempo los guardamos',

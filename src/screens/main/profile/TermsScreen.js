@@ -14,7 +14,7 @@ import { useUI } from '../../../theme/ui';
  * solo mujeres), este archivo cambia con ella. Y también web/src/pages/legal/Terms.jsx, que
  * dice lo mismo para la web.
  */
-const ULTIMA_ACTUALIZACION = '12 de agosto de 2026';
+const ULTIMA_ACTUALIZACION = '29 de agosto de 2026';
 
 const TermsScreen = () => {
   const ui = useUI();
@@ -34,12 +34,12 @@ const TermsScreen = () => {
       text: 'Tenés que ser mayor de 18 años y usar datos reales. Una persona, una cuenta.\n\nPara publicar viajes como conductor necesitás además cargar tu licencia de conducir y la documentación del vehículo.',
     },
     {
-      title: '3. El dinero: se comparten gastos, no se cobra por llevar',
-      text: 'Al terminar el viaje el conductor carga lo que se gastó (combustible, peajes y demás) y ese total se divide entre TODOS los que viajaron, el conductor incluido. El conductor paga su parte como cualquiera.\n\nEsto no es una tarifa ni una ganancia. Si existiera un monto adicional para el conductor, tiene un tope máximo sobre los gastos que define la plataforma y que se valida al completar el viaje.\n\nEl precio que ves antes de viajar es una estimación calculada sobre la distancia. El monto final sale de los gastos reales que se carguen al terminar.',
+      title: '3. El dinero: le pagás directo al conductor',
+      text: 'La plata del viaje nunca pasa por Carpuling. Vos le pagás directo al conductor —en efectivo, transferencia o lo que arreglen entre ustedes— y nosotros no somos parte de ese pago.\n\nCada conductor elige cómo publica su viaje: con un precio fijo por asiento, que ves antes de reservar, o como gastos compartidos, donde no hay precio fijo y arreglan entre todos cuánto pone cada uno.\n\nPor separado, Carpuling le cobra al conductor una comisión fija por cada asiento que se ocupó, una vez que el viaje termina. Esa comisión no te la cobramos a vos como pasajero, y el conductor la salda desde su perfil.',
     },
     {
-      title: '4. Reservas y pagos',
-      text: 'Al reservar un asiento se toma un pago a través de una pasarela de pagos externa. Nosotros no almacenamos los datos de tu tarjeta: los procesa la pasarela.\n\nEl conductor puede aceptar o rechazar cada solicitud. Si la rechaza, o si el viaje se cancela, la devolución se rige por las condiciones de la pasarela y por la política que se te informa al reservar.',
+      title: '4. Reservas',
+      text: 'Reservar un asiento no implica ningún pago a través de la app: es pedirle lugar al conductor. El conductor puede aceptar o rechazar cada solicitud.\n\nSi el conductor no llega a pagar su comisión pendiente, la app puede bloquearle publicar viajes nuevos hasta que la salde. Eso no afecta los viajes que ya tenés reservados.',
     },
     {
       title: '5. Cancelaciones',
