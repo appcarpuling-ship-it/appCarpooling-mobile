@@ -58,7 +58,15 @@ const PickupMapScreen = ({ route, navigation }) => {
         {/* El ícono de pasajero va ACÁ, en el marcador: esta pantalla es siempre el punto de
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
-          <Marker coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+          // Sin tracksViewChanges={false} el mapa re-renderiza y re-decodifica el ícono en
+          // cada actualización (por ejemplo al moverse el punto azul de "mi ubicación"),
+          // y esta pantalla ya tenía historial de RAM por apilar mapas (ver comentario
+          // arriba de estaEnfoco). El punto es fijo, no necesita volver a trackearse.
+          <Marker
+            coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
             <View style={styles.pinBadge}>
               <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
             </View>
