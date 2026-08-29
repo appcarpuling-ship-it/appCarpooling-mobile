@@ -441,7 +441,10 @@ const HomeScreen = ({ navigation, route }) => {
           </Text>
         </View>
         {trip.sinPrecioFijo ? (
-          <Text style={[styles.priceCompartido, { color: textPrimary }]}>Gastos compartidos</Text>
+          <View style={styles.priceBox}>
+            <Text style={[styles.priceValue, { color: textPrimary }]}>Gastos</Text>
+            <Text style={[styles.priceLabel, { color: tripRouteMuted }]}>compartidos</Text>
+          </View>
         ) : trip.driverPrice > 0 ? (
           <View style={styles.priceBox}>
             <Text style={[styles.priceValue, { color: textPrimary }]}>${Number(trip.driverPrice).toLocaleString('es-AR')}</Text>
@@ -1439,14 +1442,6 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 10,
     fontFamily: 'Sora_600SemiBold',
-  },
-  priceCompartido: {
-    flexShrink: 0,
-    alignSelf: 'center',
-    maxWidth: 104,
-    fontSize: 13,
-    fontFamily: 'Sora_800ExtraBold',
-    textAlign: 'right',
   },
   stopChip: {
     flexDirection: 'row',
