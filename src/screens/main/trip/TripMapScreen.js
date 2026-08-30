@@ -986,9 +986,11 @@ const TripMapScreen = ({ route, navigation }) => {
                   <Text style={[styles.sheetSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
                     {/* A quién va a buscar/dejar, si el viaje está en curso — es la misma info
                         que antes vivía en el cartel "Yendo a" flotante, que se sacó porque
-                        duplicaba esto. */}
-                    {isTripStarted && proximaParada?.quien
-                      ? proximaParada.quien
+                        duplicaba esto. Si la próxima parada es del conductor (sin pasajero
+                        asociado), cae a la ciudad y no al total de pasajeros del viaje: ese
+                        número no dice nada de ESTA parada puntual y confundía. */}
+                    {isTripStarted
+                      ? (proximaParada?.quien || proximaParada?.ciudad || 'Parada del recorrido')
                       : asientosOcupados > 0 ? `${asientosOcupados} pasajero(s)` : 'Sin pasajeros todavía'}
                   </Text>
                 </View>
