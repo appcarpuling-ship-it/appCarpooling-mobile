@@ -920,19 +920,29 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         showsTraffic={false}
         onPress={handleMapPress}
       >
-        {/* Misma vista en las dos plataformas. Android usaba dos PNG fijos (un cuadrado y un
-            círculo gruesos) que desentonaban con el resto del mapa; las paradas intermedias de
-            acá abajo ya venían con vista custom en Android sin problema, así que el PNG no
-            estaba tapando ninguna limitación de la plataforma. */}
+        {/* En Android van como PNG y NO como vista propia, y no es por estética.
+            Un Marker con vista custom llega con `tracksViewChanges` en true, y ahí Android
+            redibuja esa vista en CADA FRAME (ver el mismo comentario en TripMapScreen). En esta
+            pantalla eso no es un parpadeo: el mapa nunca termina de quedarse quieto, así que el
+            temporizador de `scheduleMapSelectionIdleCommit` se reinicia sin parar y elegir un
+            punto arrastrando el mapa deja de funcionar — se suelta el pin y la dirección no se
+            marca nunca.
+            Se intentó unificar con iOS el 2026-08-30 y rompió justamente eso.
+            Las paradas intermedias de acá abajo sí usan vista custom: se agregan una vez y
+            quietas, no mientras el usuario está arrastrando para elegir. */}
         {originMarker && (
-          <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
-          </Marker>
+          Platform.OS === 'android'
+            ? <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
+            : <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
+              </Marker>
         )}
         {destinationMarker && (
-          <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
-          </Marker>
+          Platform.OS === 'android'
+            ? <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-dest.png')} />
+            : <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
+              </Marker>
         )}
         {waypointMarkers.map((m, i) => (
           <Marker key={`wp-${i}`} coordinate={m} anchor={{ x: 0.5, y: 0.5 }}>
