@@ -73,12 +73,34 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [previewRoutePoints, setPreviewRoutePoints] = useState([]);
 
   const previewMapRef = useRef(null);
+  /**
+   * Los puntos del encuadre. Se calculan bien abajo (necesitan `request`, que recién ahí está
+   * garantizado) y se depositan acá durante el render, que corre antes que los efectos. El ref
+   * existe para que el efecto del encuadre pueda vivir ACÁ ARRIBA: esta pantalla tiene dos
+   * early returns (`loading` y `!request`), y un hook declarado después de ellos se saltea en
+   * el primer render y se ejecuta en el segundo. React cuenta los hooks y esa diferencia
+   * crashea la pantalla al abrirla.
+   */
+  const puntosEncuadreRef = useRef([]);
 
   useEffect(() => {
     if (!mapPreviewReady) return undefined;
     const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
     return () => clearTimeout(t);
   }, [mapPreviewReady]);
+
+  // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
+  // lista y queda ignorada. Las dependencias son las fuentes de los puntos (la solicitud y el
+  // trazado que llega de Directions), no el array, que se arma nuevo en cada render.
+  useEffect(() => {
+    if (!mapPreviewReady) return;
+    const puntos = puntosEncuadreRef.current;
+    if (puntos.length < 2) return;
+    previewMapRef.current?.fitToCoordinates(puntos, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: false,
+    });
+  }, [mapPreviewReady, request, previewRoutePoints]);
 
   const previewOriginCoords = request?.origin?.coordinates;
   const previewDestCoords   = request?.destination?.coordinates;
@@ -460,6 +482,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const puntosDelEncuadre = hasMapPreview
     ? [originCoords, destCoords, ...previewStops, ...previewRoutePoints].filter((p) => p?.latitude != null)
     : [];
+  // Se los deja al efecto del encuadre, que vive arriba de los early returns (ver
+  // puntosEncuadreRef).
+  puntosEncuadreRef.current = puntosDelEncuadre;
   const previewRegion = hasMapPreview
     ? (() => {
         const lats = [originCoords.latitude, destCoords.latitude, ...previewStops.map((p) => p.latitude)];
@@ -476,17 +501,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         };
       })()
     : null;
-
-  // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
-  // lista y queda ignorada. Mismo encuadre que TripDetailScreen/BookingScreen. La cantidad de
-  // puntos va en las dependencias y no el array, que se arma nuevo en cada render.
-  useEffect(() => {
-    if (!mapPreviewReady || puntosDelEncuadre.length < 2) return;
-    previewMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: false,
-    });
-  }, [mapPreviewReady, puntosDelEncuadre.length]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>

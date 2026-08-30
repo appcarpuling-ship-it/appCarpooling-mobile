@@ -148,6 +148,15 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   const previewMapRef = useRef(null);
+  /**
+   * Los puntos que tiene que entrar el encuadre. Se calculan bien abajo (necesitan `trip`, que
+   * recién ahí está garantizado) y se depositan acá durante el render, que corre antes que los
+   * efectos. El ref existe para que el efecto de abajo pueda vivir ACÁ ARRIBA: esta pantalla
+   * tiene dos early returns (`loading` y `!trip`), y un hook declarado después de ellos se
+   * saltea en el primer render y se ejecuta en el segundo. React cuenta los hooks y esa
+   * diferencia es un crash duro al entrar al detalle — que es exactamente lo que pasó.
+   */
+  const puntosEncuadreRef = useRef([]);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
   const [cancellingReservation, setCancellingReservation] = useState(false);
@@ -229,6 +238,30 @@ const TripDetailScreen = ({ route, navigation }) => {
   // de mapa donde normalmente se calcula el routePolyline). Con uno guardado, enabled:false
   // no pide nada — pedirlo igual sería una llamada a Directions de más en el caso común.
   const { coordinates: liveRouteCoords } = useTripRoute(trip, { enabled: !trip?.routePolyline });
+
+  /**
+   * El encuadre de verdad. `initialRegion` sola no alcanza: en Android se aplica antes de que
+   * la vista nativa esté lista y queda ignorada (mapa con zoom en cualquier lado, sin el
+   * trazado ni los puntos a la vista), y además el trazado en vivo llega DESPUÉS de que la
+   * región ya se fijó, así que ni con buen timing entraría entero.
+   *
+   * Va acá arriba y no al lado del cálculo de los puntos porque más abajo hay dos early
+   * returns: un hook declarado después de ellos no corre en el primer render y sí en el
+   * segundo, y esa diferencia hace crashear la pantalla al abrirla. Los puntos llegan por
+   * `puntosEncuadreRef`, que el render deposita antes de que corran los efectos.
+   *
+   * Las dependencias son las fuentes de esos puntos (`trip` y el trazado en vivo), no el array
+   * en sí: se arma nuevo en cada render y comparar la referencia reencuadraría siempre.
+   */
+  useEffect(() => {
+    if (!mapPreviewReady) return;
+    const puntos = puntosEncuadreRef.current;
+    if (puntos.length < 2) return;
+    previewMapRef.current?.fitToCoordinates(puntos, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: false,
+    });
+  }, [mapPreviewReady, trip, liveRouteCoords]);
 
   // Apiladas por defecto: en un viaje con paradas, la lista completa empujaba el precio, el
   // conductor y el botón de reservar fuera de la primera pantalla.
@@ -710,6 +743,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la recta
   // origen→destino quedaba fuera de cuadro.
   const puntosDelEncuadre = hasMapPreview ? [...previewCoordinates, ...previewStops] : [];
+  // Se los deja al efecto del encuadre, que vive arriba de los early returns (ver
+  // puntosEncuadreRef). El render corre antes que los efectos, así que cuando el efecto los
+  // lee ya son los de este render.
+  puntosEncuadreRef.current = puntosDelEncuadre;
   const previewRegion = hasMapPreview
     ? (() => {
         const lats = puntosDelEncuadre.map((p) => p.latitude);
@@ -728,24 +765,6 @@ const TripDetailScreen = ({ route, navigation }) => {
         };
       })()
     : null;
-
-  /**
-   * El encuadre de verdad. `initialRegion` sola no alcanza: en Android se aplica antes de que
-   * la vista nativa esté lista y queda ignorada (mapa con zoom en cualquier lado, sin el
-   * trazado ni los puntos a la vista), y además el trazado en vivo llega DESPUÉS de que la
-   * región ya se fijó, así que ni con buen timing entraría entero. fitToCoordinates se puede
-   * llamar cuando los datos ya están, que es lo que hace falta acá.
-   *
-   * La cantidad de puntos va en las dependencias y no el array: se arma nuevo en cada render,
-   * y comparar la referencia volvería a encuadrar en cada uno.
-   */
-  useEffect(() => {
-    if (!mapPreviewReady || puntosDelEncuadre.length < 2) return;
-    previewMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: false,
-    });
-  }, [mapPreviewReady, puntosDelEncuadre.length]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
