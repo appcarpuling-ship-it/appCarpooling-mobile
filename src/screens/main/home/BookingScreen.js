@@ -127,11 +127,13 @@ const BookingScreen = ({ route, navigation }) => {
       latitude: p.location.coordinates.latitude,
       longitude: p.location.coordinates.longitude,
     }));
+  // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la recta
+  // origen→destino quedaba fuera de cuadro.
+  const puntosDelEncuadre = hasBookingMapPreview
+    ? [...bookingPreviewCoordinates, ...bookingPreviewStops]
+    : [];
   const bookingPreviewRegion = hasBookingMapPreview
     ? (() => {
-        // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la
-        // recta origen→destino quedaba fuera de cuadro.
-        const puntosDelEncuadre = [...bookingPreviewCoordinates, ...bookingPreviewStops];
         const lats = puntosDelEncuadre.map((p) => p.latitude);
         const lngs = puntosDelEncuadre.map((p) => p.longitude);
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -150,11 +152,23 @@ const BookingScreen = ({ route, navigation }) => {
   // render se dibuja invisible (mismo bug ya resuelto en TripMapScreen/TripDetailScreen).
   const [bookingMapReady, setBookingMapReady] = useState(false);
   const [bookingDotsVivos, setBookingDotsVivos] = useState(true);
+  const bookingMapRef = useRef(null);
   useEffect(() => {
     if (!bookingMapReady) return undefined;
     const t = setTimeout(() => setBookingDotsVivos(false), 900);
     return () => clearTimeout(t);
   }, [bookingMapReady]);
+  // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
+  // lista y queda ignorada, y el mapa arranca con un zoom que no es el del recorrido. Mismo
+  // encuadre que TripDetailScreen. La cantidad de puntos va en las dependencias y no el array,
+  // que se arma nuevo en cada render.
+  useEffect(() => {
+    if (!bookingMapReady || puntosDelEncuadre.length < 2) return;
+    bookingMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: false,
+    });
+  }, [bookingMapReady, puntosDelEncuadre.length]);
 
   const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
@@ -415,6 +429,7 @@ const BookingScreen = ({ route, navigation }) => {
           {hasBookingMapPreview && (
             <View style={styles.bookingMapWrap}>
               <MapView
+                ref={bookingMapRef}
                 provider={MAP_PROVIDER}
                 style={styles.bookingMapPreview}
                 initialRegion={bookingPreviewRegion}

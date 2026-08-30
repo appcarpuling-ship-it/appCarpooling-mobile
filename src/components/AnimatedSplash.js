@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { StyleSheet, Animated, Easing } from 'react-native';
 
-const LOGO = require('../../assets/logo/192x192-white.png');
+/**
+ * El nombre, no el isotipo. Es una IMAGEN y no un <Text> a propósito: ver el comentario del
+ * componente. Se genera desde el mismo Sora_700Bold que usa la app (el .ttf de
+ * @expo-google-fonts/sora), con el interletrado del logotipo ya aplicado y aire alrededor, así
+ * que es el mismo tipo que el resto de la interfaz — sólo que rasterizado.
+ */
+const WORDMARK = require('../../assets/logo/wordmark-carpuling-white.png');
 
 // El mismo negro que el splash nativo (`splash` en app.json: logo blanco sobre
 // #000000). Antes esto salía del tema, o sea blanco sobre blanco en tema claro:
@@ -12,15 +18,15 @@ const LOGO = require('../../assets/logo/192x192-white.png');
 const SPLASH_BG = '#000000';
 
 /**
- * Solo el logo, al estilo del arranque de Uber: entra, respira un momento y se
- * abre sobre la app.
+ * El nombre "Carpuling", al estilo del arranque de Uber: entra desde abajo, respira un
+ * momento y se abre sobre la app.
  *
- * No hay texto a propósito. Las versiones anteriores animaban la palabra
- * "Carpuling" y en Android salía con las puntas comidas: Android recorta el
- * glifo contra su caja de layout, y un peso grueso con interletrado negativo se
- * sale de esa caja. Se parcheó tres veces (padding con márgenes negativos,
- * left/right negativos, y después un solo peso) — con una imagen el problema no
- * existe, porque no hay glifo que recortar.
+ * El texto va como IMAGEN, nunca como <Text>. Las versiones anteriores animaban la palabra
+ * con la fuente y en Android salía con las puntas comidas: Android recorta el glifo contra su
+ * caja de layout, y un peso grueso con interletrado negativo se sale de esa caja. Se parcheó
+ * tres veces (padding con márgenes negativos, left/right negativos, y después un solo peso)
+ * antes de pasar al isotipo. La imagen es el nombre de vuelta sin volver a ese bug: está
+ * rasterizada desde el mismo Sora, así que no hay glifo que Android pueda recortar.
  *
  * Todo con opacity y transform, que es lo que el driver nativo puede animar sin
  * cruzar al hilo de JS.
@@ -76,19 +82,23 @@ const AnimatedSplash = ({ onComplete, fontsLoaded }) => {
     return () => sequence.stop();
   }, [fontsLoaded]);
 
-  // El asset mide 141x150 y se dibuja a 128, así que hasta 1.35x sigue por debajo
-  // de su tamaño nativo y no se pixela al agrandarse.
+  // El asset mide 725px de ancho y se dibuja a 232, así que ni siquiera a 1.2x se acerca a su
+  // tamaño nativo: no se pixela al agrandarse.
   const scale = Animated.multiply(
-    enter.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }),
-    exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] })
+    enter.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }),
+    exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] })
   );
+
+  // Sube unos pocos píxeles al entrar. Es lo que separa un fundido plano de algo que "llega":
+  // corto (12px) para que se lea como un asentamiento y no como un deslizamiento.
+  const translateY = enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
 
   return (
     <Animated.View style={[styles.root, { backgroundColor: SPLASH_BG, opacity: curtain }]}>
       <Animated.Image
-        source={LOGO}
+        source={WORDMARK}
         resizeMode="contain"
-        style={[styles.logo, { opacity: enter, transform: [{ scale }] }]}
+        style={[styles.wordmark, { opacity: enter, transform: [{ scale }, { translateY }] }]}
       />
     </Animated.View>
   );
@@ -101,9 +111,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 128,
-    height: 128,
+  // Proporción del asset (725x197). El alto sale de ahí: forzar otro ratio lo deformaría, y
+  // resizeMode contain dejaría aire raro a los costados.
+  wordmark: {
+    width: 232,
+    height: 63,
   },
 });
 

@@ -274,10 +274,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
       // Limpiar conversación activa al salir
       clearActiveConversation();
 
-      // Salir de la conversación y limpiar listeners
+      // Salir de la conversación. Los listeners NO se tocan acá: este efecto tiene `typing`
+      // entre sus dependencias, así que se limpia cada vez que el otro empieza o deja de
+      // escribir — y al desregistrar `message:received` acá, el chat dejaba de recibir
+      // mensajes justo después de ver "Escribiendo...". El efecto que los registra (más
+      // abajo) no se volvía a ejecutar porque sus dependencias no habían cambiado, así que
+      // no había forma de recuperarlos sin salir y volver a entrar. Cada efecto limpia lo
+      // suyo: los listeners los da de baja el que los dio de alta.
       socketService.leaveConversation(conversationId);
-      socketService.removeListener('message:received');
-      socketService.removeListener('typing:user');
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
@@ -340,9 +344,11 @@ const ChatDetailScreen = ({ route, navigation }) => {
     socketService.onConversationClosed(handleConversationClosed);
 
     return () => {
-      socketService.removeListener('message:received');
-      socketService.removeListener('typing:user');
-      socketService.removeListener('conversation:closed');
+      // Con el callback: el contador global de no leídos (useUnreadMessages) escucha el mismo
+      // `message:received`, y sin identificar cuál sacar se llevaba puesto el suyo también.
+      socketService.removeListener('message:received', handleMessageReceived);
+      socketService.removeListener('typing:user', handleTyping);
+      socketService.removeListener('conversation:closed', handleConversationClosed);
     };
   }, [conversationId, user?._id, user?.id, navigation]);
 

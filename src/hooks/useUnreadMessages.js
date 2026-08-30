@@ -98,11 +98,13 @@ export const useUnreadMessages = () => {
 
     loadUnreadCountRef.current();
 
-    // Limpiar listeners existentes antes de configurar nuevos
+    // Limpiar los listeners PROPIOS antes de configurar nuevos. Con el callback: sin él se
+    // daban de baja todos los de ese evento, incluido el de ChatDetailScreen si había un chat
+    // abierto (registerListener ya ignora los duplicados, así que re-registrar es inofensivo).
     if (socketService.socket) {
-      socketService.removeListener('message:received');
-      socketService.removeListener('conversation:updated');
-      socketService.removeListener('messages:read');
+      socketService.removeListener('message:received', handleNewMessage.current);
+      socketService.removeListener('conversation:updated', handleConversationUpdate.current);
+      socketService.removeListener('messages:read', handleMessagesRead.current);
       socketService.socket.off('connect', handleSocketConnect.current);
     }
 
@@ -131,9 +133,9 @@ export const useUnreadMessages = () => {
 
       if (socketService.socket) {
         socketService.socket.off('connect', handleSocketConnect.current);
-        socketService.removeListener('message:received');
-        socketService.removeListener('conversation:updated');
-        socketService.removeListener('messages:read');
+        socketService.removeListener('message:received', handleNewMessage.current);
+        socketService.removeListener('conversation:updated', handleConversationUpdate.current);
+        socketService.removeListener('messages:read', handleMessagesRead.current);
       }
     };
   }, [isAuthenticated, authUserId]);

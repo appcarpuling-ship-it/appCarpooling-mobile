@@ -14,7 +14,7 @@ import CheckoutWebView from '../../../components/payment/CheckoutWebView';
 import { useUI } from '../../../theme/ui';
 import Rating from '../../../components/ui/Rating';
 import PillButton from '../../../components/ui/PillButton';
-import { armarRecorrido, recorridoElegido, armarTripParaMapa } from '../../../utils/postulacionTrip';
+import { armarRecorrido, recorridoElegido, armarTripParaMapa, ofertaDelConductor } from '../../../utils/postulacionTrip';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId, tramoPasajero } = route.params;
@@ -37,6 +37,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const vehicle = app.vehicleSnapshot || {};
   const recorrido = armarRecorrido(app, tramoPasajero);
   const eleccion = recorridoElegido(app);
+  const oferta = ofertaDelConductor(app);
   const tripParaMapa = armarTripParaMapa(app, tramoPasajero, driver, vehicle);
 
   // Las fotos: la principal es `photo`, y `photos` puede repetirla. Se deduplica para no
@@ -135,14 +136,27 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         {/* Su precio: es lo que el pasajero está comparando entre las propuestas, así que va
             arriba de todo lo demás. Se le paga al conductor al llegar, aparte de la conexión
             que cobra la app. */}
-        {app.driverPrice > 0 && (
+        {/* Con gastos compartidos esta card no se mostraba (pedía driverPrice > 0), así que una
+            postulación aparecía en la lista con su modalidad y al abrirla no decía nada: el
+            pasajero no tenía forma de saber qué le habían ofrecido. */}
+        {oferta && (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
             {/* "por asiento" pasa al rótulo al sacar la aclaración de abajo: sin eso, $30.000
                 puede leerse como el total de la reserva y no como el precio de cada lugar. */}
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Su precio por asiento</Text>
-            <Text style={{ color: textPrimary, fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
-              ${Number(app.driverPrice).toLocaleString('es-AR')}
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>{oferta.etiqueta}</Text>
+            <Text style={{
+              color: textPrimary,
+              fontSize: oferta.esPrecio ? 30 : 20,
+              fontFamily: 'Sora_800ExtraBold',
+              letterSpacing: -1,
+            }}>
+              {oferta.texto}
             </Text>
+            {!oferta.esPrecio && (
+              <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
+                {oferta.detalle}
+              </Text>
+            )}
           </View>
         )}
 

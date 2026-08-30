@@ -920,19 +920,19 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         showsTraffic={false}
         onPress={handleMapPress}
       >
+        {/* Misma vista en las dos plataformas. Android usaba dos PNG fijos (un cuadrado y un
+            círculo gruesos) que desentonaban con el resto del mapa; las paradas intermedias de
+            acá abajo ya venían con vista custom en Android sin problema, así que el PNG no
+            estaba tapando ninguna limitación de la plataforma. */}
         {originMarker && (
-          Platform.OS === 'android'
-            ? <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-origin.png')} />
-            : <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
-              </Marker>
+          <Marker coordinate={originMarker} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.originMarkerOuter}><View style={styles.markerInner} /></View>
+          </Marker>
         )}
         {destinationMarker && (
-          Platform.OS === 'android'
-            ? <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }} image={require('../../../../assets/marker-dest.png')} />
-            : <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
-              </Marker>
+          <Marker coordinate={destinationMarker} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.destMarkerOuter}><View style={styles.markerInner} /></View>
+          </Marker>
         )}
         {waypointMarkers.map((m, i) => (
           <Marker key={`wp-${i}`} coordinate={m} anchor={{ x: 0.5, y: 0.5 }}>

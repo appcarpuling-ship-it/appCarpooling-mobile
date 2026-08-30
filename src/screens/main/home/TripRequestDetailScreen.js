@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, Image, RefreshControl
@@ -22,7 +22,7 @@ import Rating from '../../../components/ui/Rating';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
-import { recorridoElegido, armarTripParaMapa } from '../../../utils/postulacionTrip';
+import { recorridoElegido, armarTripParaMapa, ofertaDelConductor } from '../../../utils/postulacionTrip';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -71,6 +71,8 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // o no hay coordenadas) no va línea — una recta cruza terreno y ríos en diagonal, y se lee
   // como un error más que como una estimación.
   const [previewRoutePoints, setPreviewRoutePoints] = useState([]);
+
+  const previewMapRef = useRef(null);
 
   useEffect(() => {
     if (!mapPreviewReady) return undefined;
@@ -424,6 +426,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     ? STATUS_MAP.expired
     : STATUS_MAP[request.status] || { label: request.status, color: textMuted };
   const acceptedApp = request.applications?.find(a => a.status === 'accepted');
+  const ofertaAceptada = acceptedApp ? ofertaDelConductor(acceptedApp) : null;
   const passenger   = request.passenger;
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
@@ -449,10 +452,16 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     };
   });
 
+  // Las paradas entran en el encuadre: una parada lejos de la recta origen→destino quedaba
+  // fuera de cuadro.
+  // El trazado va incluido cuando ya llegó: es lo que hace que el fit muestre el recorrido
+  // entero y no sólo la caja entre las puntas (una ruta que se abre para esquivar un río se
+  // salía de cuadro). Llega async de Directions, así que el encuadre se rehace al recibirlo.
+  const puntosDelEncuadre = hasMapPreview
+    ? [originCoords, destCoords, ...previewStops, ...previewRoutePoints].filter((p) => p?.latitude != null)
+    : [];
   const previewRegion = hasMapPreview
     ? (() => {
-        // Las paradas entran en el encuadre: una parada lejos de la recta origen→destino
-        // quedaba fuera de cuadro.
         const lats = [originCoords.latitude, destCoords.latitude, ...previewStops.map((p) => p.latitude)];
         const lngs = [originCoords.longitude, destCoords.longitude, ...previewStops.map((p) => p.longitude)];
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -467,6 +476,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         };
       })()
     : null;
+
+  // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
+  // lista y queda ignorada. Mismo encuadre que TripDetailScreen/BookingScreen. La cantidad de
+  // puntos va en las dependencias y no el array, que se arma nuevo en cada render.
+  useEffect(() => {
+    if (!mapPreviewReady || puntosDelEncuadre.length < 2) return;
+    previewMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: false,
+    });
+  }, [mapPreviewReady, puntosDelEncuadre.length]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
@@ -483,6 +503,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             activeOpacity={0.9}
           >
             <MapView
+              ref={previewMapRef}
               provider={MAP_PROVIDER}
               style={styles.mapPreview}
               initialRegion={previewRegion}
@@ -635,6 +656,17 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     {acceptedApp.vehicleSnapshot.brand} {acceptedApp.vehicleSnapshot.model} · {acceptedApp.vehicleSnapshot.licensePlate}
                   </Text>
                 )}
+                {/* Qué se acordó con este conductor. Estaba en la lista de postulaciones pero
+                    no acá, así que apenas se aceptaba una propuesta de gastos compartidos
+                    desaparecía de la vista: el pasajero quedaba sin saber qué había aceptado.
+                    Misma fuente que la lista (ofertaDelConductor), no una segunda lógica. */}
+                {ofertaAceptada && (
+                  <Text style={[styles.driverPhotoHint, { color: textMuted, marginTop: 2 }]}>
+                    {ofertaAceptada.esPrecio
+                      ? `${ofertaAceptada.texto} por asiento`
+                      : ofertaAceptada.texto}
+                  </Text>
+                )}
               </View>
               <Ionicons name="checkmark-circle" size={20} color={textPrimary} />
             </View>
@@ -704,20 +736,25 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     /* El precio al lado del chevron: es lo que el pasajero está comparando entre
                        las hasta 5 propuestas, así que tiene que leerse sin entrar a cada una. */
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      {app.driverPrice > 0 ? (
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_700Bold' }}>
-                            ${Number(app.driverPrice).toLocaleString('es-AR')}
+                      {/* Misma fuente que el detalle y que el conductor aprobado. Sin precio ni
+                          modalidad no va nada: un hueco vacío se lee como si esta postulación
+                          no tuviera nada que ofrecer, pero "$0" mentiría. */}
+                      {(() => {
+                        const oferta = ofertaDelConductor(app);
+                        if (!oferta) return null;
+                        return oferta.esPrecio ? (
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_700Bold' }}>
+                              {oferta.texto}
+                            </Text>
+                            <Text style={{ color: textMuted, fontSize: 10 }}>{oferta.detalle}</Text>
+                          </View>
+                        ) : (
+                          <Text style={{ color: textMuted, fontSize: 11, fontFamily: 'Sora_600SemiBold' }}>
+                            {oferta.texto}
                           </Text>
-                          <Text style={{ color: textMuted, fontSize: 10 }}>por asiento</Text>
-                        </View>
-                      ) : app.sinPrecioFijo ? (
-                        // Sin esto quedaba un hueco vacío donde va el precio, como si esta
-                        // postulación no tuviera nada que ofrecer.
-                        <Text style={{ color: textMuted, fontSize: 11, fontFamily: 'Sora_600SemiBold' }}>
-                          Gastos compartidos
-                        </Text>
-                      ) : null}
+                        );
+                      })()}
                       <Ionicons name="chevron-forward" size={16} color={textMuted} />
                     </View>
                   )}

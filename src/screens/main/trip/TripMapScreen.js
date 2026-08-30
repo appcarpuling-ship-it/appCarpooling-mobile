@@ -166,8 +166,12 @@ const TripMapScreen = ({ route, navigation }) => {
       },
       address: p.location.address || p.location.city
         || (p.kind === 'origin' ? 'Origen' : p.kind === 'destination' ? 'Destino' : 'Parada'),
-      kindLabel: kindLabel(p.kind),
-      quien: quienLabel(p.kind, p.passenger),
+      kindLabel: kindLabel(p.kindFusionado || p.kind),
+      // `kindFusionado` en las puntas: cuando el conductor hace el mismo recorrido, la
+      // recogida y la bajada del pasajero SON las puntas del viaje y se fusionan en ellas
+      // (ver buildRoutePoints). Sin esto el destino diría "A recoger a" en vez de "A dejar a",
+      // porque su kind propio es 'destination'.
+      quien: quienLabel(p.kindFusionado || p.kind, p.passenger),
       isEnd: p.isEnd,
     }));
 

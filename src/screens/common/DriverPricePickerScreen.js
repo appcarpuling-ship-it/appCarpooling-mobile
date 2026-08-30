@@ -45,8 +45,12 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
     onDone?.({ driverPrice: sinPrecioFijo ? 0 : valor, sinPrecioFijo, aceptaEfectivo });
   };
 
+  // Mismo criterio que TripDetails: en Android `app.json` ya trae softwareKeyboardLayoutMode
+  // 'resize', o sea que el sistema achica la ventana solo. Con behavior 'height' el teclado se
+  // compensaba dos veces y el footer con "Enviar propuesta" quedaba flotando en el medio en vez
+  // de abajo del todo (y con autoFocus se veía siempre). undefined = que lo resuelva el sistema.
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.header}>
           <TouchableOpacity

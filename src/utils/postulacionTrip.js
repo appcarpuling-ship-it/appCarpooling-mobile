@@ -78,4 +78,36 @@ const armarTripParaMapa = (app, tramo, driver, vehicle) => {
   };
 };
 
-module.exports = { armarRecorrido, recorridoElegido, armarTripParaMapa };
+/**
+ * Qué ofreció el conductor por asiento: un precio, o gastos compartidos.
+ *
+ * Una sola fuente de verdad para las tres pantallas que lo muestran (la lista de
+ * postulaciones, el detalle de una postulación y el conductor ya aprobado). La decisión estaba
+ * copiada en cada una y no decían lo mismo: la lista contemplaba `sinPrecioFijo` pero el
+ * detalle sólo mostraba algo si había precio > 0, así que una postulación con gastos
+ * compartidos aparecía en la lista y desaparecía al abrirla.
+ *
+ * `null` cuando la postulación es vieja y no declaró ninguna de las dos cosas: ahí no hay nada
+ * que decir, y es distinto de decir "$0".
+ */
+const ofertaDelConductor = (app) => {
+  if (Number(app?.driverPrice) > 0) {
+    return {
+      esPrecio: true,
+      etiqueta: 'Su precio por asiento',
+      texto: `$${Number(app.driverPrice).toLocaleString('es-AR')}`,
+      detalle: 'por asiento',
+    };
+  }
+  if (app?.sinPrecioFijo) {
+    return {
+      esPrecio: false,
+      etiqueta: 'Su propuesta',
+      texto: 'Gastos compartidos',
+      detalle: 'Arreglás los gastos del viaje directo con el conductor',
+    };
+  }
+  return null;
+};
+
+module.exports = { armarRecorrido, recorridoElegido, armarTripParaMapa, ofertaDelConductor };

@@ -13,7 +13,6 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     BackHandler,
-    Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -63,9 +62,13 @@ const TripDetails = ({ navigation, route }) => {
     // measure() es el método de instancia del ref, no el UIManager.measureLayout +
     // findNodeHandle estático que crasheaba con la New Architecture (ver comentario del
     // ScrollView más abajo) — por eso esto no revive ese bug.
-    const medirYSubir = (inputRef, alturaTeclado) => {
+    // `keyboardTop` llega ya calculado (endCoordinates.screenY). Antes se derivaba de
+    // Dimensions.get('window').height - altura del teclado, y en Android eso descuenta el
+    // teclado DOS veces: con softwareKeyboardLayoutMode 'resize' la ventana ya viene achicada.
+    // El borde quedaba mucho más arriba del real, el overlap salía inflado y el scroll pasaba
+    // de largo — por eso el campo de precio seguía tapado.
+    const medirYSubir = (inputRef, keyboardTop) => {
         inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-            const keyboardTop = Dimensions.get('window').height - alturaTeclado;
             const overlap = (pageY + height) - keyboardTop;
             if (overlap > 0) {
                 scrollRef.current?.scrollTo({ y: scrollYRef.current + overlap + 24, animated: true });
@@ -77,13 +80,14 @@ const TripDetails = ({ navigation, route }) => {
         // Saltar de un input a otro con el teclado ya arriba no dispara keyboardDidShow de
         // nuevo (la ventana ya está resizeada) — sin esto, el segundo input se medía contra
         // un teclado de altura 0 y el cálculo daba cualquier cosa.
-        if (Keyboard.isVisible()) {
-            medirYSubir(inputRef, Keyboard.metrics()?.height || 0);
+        const yaArriba = Keyboard.metrics()?.screenY;
+        if (Keyboard.isVisible() && yaArriba) {
+            medirYSubir(inputRef, yaArriba);
             return;
         }
         const sub = Keyboard.addListener('keyboardDidShow', (e) => {
             sub.remove();
-            medirYSubir(inputRef, e.endCoordinates.height);
+            medirYSubir(inputRef, e.endCoordinates.screenY);
         });
     };
     const [loading, setLoading] = useState(false);

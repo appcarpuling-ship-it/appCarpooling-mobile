@@ -147,6 +147,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   // el mapa avisa que está listo.
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
+  const previewMapRef = useRef(null);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
   const [cancellingReservation, setCancellingReservation] = useState(false);
@@ -706,11 +707,11 @@ const TripDetailScreen = ({ route, navigation }) => {
       latitude: p.location.coordinates.latitude,
       longitude: p.location.coordinates.longitude,
     }));
+  // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la recta
+  // origen→destino quedaba fuera de cuadro.
+  const puntosDelEncuadre = hasMapPreview ? [...previewCoordinates, ...previewStops] : [];
   const previewRegion = hasMapPreview
     ? (() => {
-        // Las paradas entran en el encuadre: sin trazado real, una parada lejos de la
-        // recta origen→destino quedaba fuera de cuadro.
-        const puntosDelEncuadre = [...previewCoordinates, ...previewStops];
         const lats = puntosDelEncuadre.map((p) => p.latitude);
         const lngs = puntosDelEncuadre.map((p) => p.longitude);
         const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -727,6 +728,24 @@ const TripDetailScreen = ({ route, navigation }) => {
         };
       })()
     : null;
+
+  /**
+   * El encuadre de verdad. `initialRegion` sola no alcanza: en Android se aplica antes de que
+   * la vista nativa esté lista y queda ignorada (mapa con zoom en cualquier lado, sin el
+   * trazado ni los puntos a la vista), y además el trazado en vivo llega DESPUÉS de que la
+   * región ya se fijó, así que ni con buen timing entraría entero. fitToCoordinates se puede
+   * llamar cuando los datos ya están, que es lo que hace falta acá.
+   *
+   * La cantidad de puntos va en las dependencias y no el array: se arma nuevo en cada render,
+   * y comparar la referencia volvería a encuadrar en cada uno.
+   */
+  useEffect(() => {
+    if (!mapPreviewReady || puntosDelEncuadre.length < 2) return;
+    previewMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: false,
+    });
+  }, [mapPreviewReady, puntosDelEncuadre.length]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -760,6 +779,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             activeOpacity={0.9}
           >
             <MapView
+              ref={previewMapRef}
               provider={MAP_PROVIDER}
               style={styles.mapPreview}
               initialRegion={previewRegion}

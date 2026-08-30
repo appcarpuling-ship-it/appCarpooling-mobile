@@ -38,6 +38,21 @@ const PickupMapScreen = ({ route, navigation }) => {
     ? { latitude: coordinates.latitude, longitude: coordinates.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
     : { latitude: -34.6037, longitude: -58.3816, latitudeDelta: 0.5, longitudeDelta: 0.5 };
 
+  /**
+   * En Android un marcador con vista propia y `tracksViewChanges` en false DESDE EL PRIMER
+   * render se dibuja en blanco: nunca llega a pintarse una primera vez. Estaban los dos
+   * hardcodeados en false, así que en Android no se veía ni el pin ni la dirección (en iOS
+   * sí, porque ahí el marcador se pinta igual). Mismo arreglo que TripMapScreen: nace en true
+   * y se apaga apenas terminó de dibujarse, que es lo que evita el re-render por frame.
+   */
+  const [marcadoresVivos, setMarcadoresVivos] = useState(true);
+  useEffect(() => {
+    if (!estaEnfoco || !coordinates?.latitude) return undefined;
+    setMarcadoresVivos(true);
+    const t = setTimeout(() => setMarcadoresVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [estaEnfoco, coordinates?.latitude, coordinates?.longitude]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={ui.isDarkMode ? 'light-content' : 'dark-content'} />
@@ -59,14 +74,14 @@ const PickupMapScreen = ({ route, navigation }) => {
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
           <>
-            {/* Sin tracksViewChanges={false} el mapa re-renderiza y re-decodifica el ícono en
-                cada actualización (por ejemplo al moverse el punto azul de "mi ubicación"),
-                y esta pantalla ya tenía historial de RAM por apilar mapas (ver comentario
-                arriba de estaEnfoco). El punto es fijo, no necesita volver a trackearse. */}
+            {/* El tracking se apaga a los 900ms (ver marcadoresVivos): apagado ya evita que el
+                mapa re-renderice y re-decodifique el ícono en cada actualización —esta pantalla
+                tiene historial de RAM por apilar mapas, ver el comentario de estaEnfoco— pero
+                arrancar apagado dejaba el marcador en blanco en Android. */}
             <Marker
               coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+              tracksViewChanges={marcadoresVivos}
             >
               <View style={styles.pinBadge}>
                 <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
@@ -80,7 +95,7 @@ const PickupMapScreen = ({ route, navigation }) => {
                 coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
                 anchor={{ x: 0.5, y: 1 }}
                 zIndex={2}
-                tracksViewChanges={false}
+                tracksViewChanges={marcadoresVivos}
               >
                 <View style={styles.addressLabelWrap}>
                   <View style={styles.addressLabelBubble}>

@@ -96,6 +96,15 @@ const ordenarStops = (trip) => {
   return [...ordenadas, ...sinCoords];
 };
 
+/**
+ * Cuándo una parada no es un punto aparte sino LA MISMA punta del viaje.
+ *
+ * 15 metros: es el margen de redondeo de unas coordenadas copiadas, no "cerca". Una parada a
+ * media cuadra sigue siendo su propio punto y se muestra como tal — ese filtro por cercanía
+ * (150m) se sacó a propósito, ver el comentario de arriba.
+ */
+const MISMO_PUNTO_M = 15;
+
 const buildRoutePoints = (trip) => {
   const origen = trip?.origin;
   const destino = trip?.destination;
@@ -106,16 +115,54 @@ const buildRoutePoints = (trip) => {
   // ver) y no cumplirlo. Se muestran todas, sin filtrar por distancia.
   const stops = ordenarStops(trip);
 
+  /**
+   * El viaje que nace de una solicitud SIEMPRE trae una parada de recogida en el origen del
+   * pasajero y una de bajada en su destino (tripRequestController). Cuando el conductor dijo
+   * que hacía el mismo recorrido, esas dos son el mismo punto que las puntas del viaje, y la
+   * dirección aparecía repetida: "Mariano Moreno 1071" como origen y otra vez como recogida.
+   *
+   * Se fusiona en vez de descartar: el punto no se duplica, pero el "acá sube Juan" no se
+   * pierde — pasa a la punta, que es donde efectivamente sube. Descartar la parada a secas
+   * dejaba al conductor sin saber quién subía ahí.
+   */
+  const fusionadas = new Set();
+  const fusionarEnPunta = (punta) => {
+    const encima = stops.find(
+      (s) => !fusionadas.has(s) && metersBetween(punta?.coordinates, s?.coordinates) <= MISMO_PUNTO_M,
+    );
+    if (encima) fusionadas.add(encima);
+    return encima;
+  };
+  const enOrigen = fusionarEnPunta(origen);
+  const enDestino = fusionarEnPunta(destino);
+
   return [
-    { location: origen, label: 'Origen', isEnd: true, kind: 'origin' },
-    ...stops.map((stop) => ({
-      location: stop,
-      label: '',
-      isEnd: false,
-      kind: stop?.kind || 'stop',
-      passenger: stop?.passenger,
-    })),
-    { location: destino, label: 'Destino', isEnd: true, kind: 'destination' },
+    {
+      location: origen,
+      label: 'Origen',
+      isEnd: true,
+      kind: 'origin',
+      // De la parada fusionada sólo se hereda de quién es: el kind sigue siendo la punta.
+      passenger: enOrigen?.passenger,
+      kindFusionado: enOrigen?.kind,
+    },
+    ...stops
+      .filter((stop) => !fusionadas.has(stop))
+      .map((stop) => ({
+        location: stop,
+        label: '',
+        isEnd: false,
+        kind: stop?.kind || 'stop',
+        passenger: stop?.passenger,
+      })),
+    {
+      location: destino,
+      label: 'Destino',
+      isEnd: true,
+      kind: 'destination',
+      passenger: enDestino?.passenger,
+      kindFusionado: enDestino?.kind,
+    },
   ];
 };
 

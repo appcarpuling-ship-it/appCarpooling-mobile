@@ -65,9 +65,11 @@ class SocketService {
       // Aplicar listeners pendientes garantizando que no se registren dos veces.
       // socket.io reutiliza la misma instancia si la URL es la misma, por lo que
       // es necesario quitar el listener previo antes de volver a añadirlo.
-      this.listeners.forEach((callback, event) => {
-        this.socket.off(event, callback);
-        this.socket.on(event, callback);
+      this.listeners.forEach((callbacks, event) => {
+        callbacks.forEach((callback) => {
+          this.socket.off(event, callback);
+          this.socket.on(event, callback);
+        });
       });
 
       // Eventos de conexión
@@ -189,10 +191,10 @@ class SocketService {
    * pegado para siempre en vez de reemplazar el de la vez anterior.
    */
   registerListener(event, callback) {
-    if (this.socket && this.listeners.has(event)) {
-      this.socket.off(event, this.listeners.get(event));
-    }
-    this.listeners.set(event, callback);
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    const paraEsteEvento = this.listeners.get(event);
+    if (paraEsteEvento.has(callback)) return;
+    paraEsteEvento.add(callback);
     if (this.socket) {
       this.socket.on(event, callback);
     }
@@ -284,13 +286,18 @@ class SocketService {
   }
 
   /**
-   * Remover listener específico
+   * Da de baja un listener. SIEMPRE pasar el mismo callback que se registró: sin él se dan
+   * de baja TODOS los de ese evento, incluidos los de otra pantalla.
    */
-  removeListener(event) {
-    if (this.socket && this.listeners.has(event)) {
-      this.socket.off(event, this.listeners.get(event));
-      this.listeners.delete(event);
-    }
+  removeListener(event, callback) {
+    const paraEsteEvento = this.listeners.get(event);
+    if (!paraEsteEvento) return;
+    const aSacar = callback ? [callback] : Array.from(paraEsteEvento);
+    aSacar.forEach((cb) => {
+      if (this.socket) this.socket.off(event, cb);
+      paraEsteEvento.delete(cb);
+    });
+    if (paraEsteEvento.size === 0) this.listeners.delete(event);
   }
 
   /**
@@ -298,11 +305,11 @@ class SocketService {
    */
   removeAllListeners() {
     if (this.socket) {
-      this.listeners.forEach((callback, event) => {
-        this.socket.off(event, callback);
+      this.listeners.forEach((callbacks, event) => {
+        callbacks.forEach((cb) => this.socket.off(event, cb));
       });
-      this.listeners.clear();
     }
+    this.listeners.clear();
   }
 }
 

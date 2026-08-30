@@ -225,10 +225,13 @@ const ChatsScreen = ({ navigation }) => {
     socketService.onConversationClosed(handleConversationClosed);
 
     return () => {
-      socketService.removeListener('message:received');
-      socketService.removeListener('conversation:updated');
-      socketService.removeListener('messages:read');
-      socketService.removeListener('conversation:closed');
+      // Con el callback: estos mismos eventos los escuchan también el contador global de no
+      // leídos y la pantalla del chat abierto, y sin identificar cuál sacar se los llevaba
+      // puestos a los tres.
+      socketService.removeListener('message:received', handleMessageReceived);
+      socketService.removeListener('conversation:updated', handleConversationUpdated);
+      socketService.removeListener('messages:read', handleMessagesRead);
+      socketService.removeListener('conversation:closed', handleConversationClosed);
     };
   }, []);
 

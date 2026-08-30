@@ -153,7 +153,10 @@ const styles = StyleSheet.create({
   // no hay nada que recortar (la bajadita y el FAB viven fuera de la barra).
   bar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: 70, borderRadius: 999, paddingHorizontal: 8 },
   tab:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabPill:   { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
+  // overflow hidden: en Android el borderRadius solo no alcanza para recortar el fondo del
+  // tab activo y la pastilla salía cuadrada (en iOS ya se veía bien). Acá no hay nada que
+  // se dibuje fuera del pill, así que recortar no tapa nada.
+  tabPill:   { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, overflow: 'hidden' },
   // Solo posiciona el ícono y le da lugar al badge; ya no pinta nada.
   iconSlot:  { width: 32, height: 22, alignItems: 'center', justifyContent: 'center' },
   tabLabel:  { fontFamily: 'Sora_500Medium', fontSize: 10, marginTop: 2 },

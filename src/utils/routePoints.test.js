@@ -113,4 +113,42 @@ const conHuerfana = buildRoutePoints({
 });
 assert.deepStrictEqual(conHuerfana.map((p) => p.location.address), ['A', 'media', 'sin coords', 'Z']);
 
+// El caso "hago tu mismo recorrido": el viaje nace de una solicitud, y tripRequestController
+// agrega SIEMPRE la recogida y la bajada del pasajero. Sin recorrido propio del conductor, esas
+// dos son el mismo punto que las puntas del viaje y la dirección salía repetida.
+const mismoRecorrido = buildRoutePoints({
+  origin: { address: 'Mariano Moreno 1071', coordinates: concordia },
+  destination: { address: 'Av. Santa Fe 900', coordinates: caba },
+  intermediateStops: [
+    { address: 'Mariano Moreno 1071', kind: 'pickup', order: 1, coordinates: concordia, passenger: { firstName: 'Benjamín' } },
+    { address: 'Av. Santa Fe 900', kind: 'dropoff', order: 2, coordinates: caba, passenger: { firstName: 'Benjamín' } },
+  ],
+});
+assert.deepStrictEqual(
+  mismoRecorrido.map((p) => p.location.address),
+  ['Mariano Moreno 1071', 'Av. Santa Fe 900'],
+  `no debería repetir direcciones: ${mismoRecorrido.map((p) => p.location.address).join(' | ')}`
+);
+// Fusionar no puede perder de quién es la parada: el conductor tiene que seguir sabiendo
+// quién sube y quién baja en cada punta.
+assert.strictEqual(mismoRecorrido[0].passenger?.firstName, 'Benjamín');
+assert.strictEqual(mismoRecorrido[0].kindFusionado, 'pickup');
+assert.strictEqual(mismoRecorrido[1].passenger?.firstName, 'Benjamín');
+assert.strictEqual(mismoRecorrido[1].kindFusionado, 'dropoff');
+
+// Pero una parada que el usuario cargó a media cuadra NO se fusiona: es su dirección, y
+// ocultarla es el bug que el filtro de 150m causaba antes.
+const aMediaCuadra = buildRoutePoints({
+  origin: { address: 'Mariano Moreno 1071', coordinates: concordia },
+  destination: { address: 'Av. Santa Fe 900', coordinates: caba },
+  intermediateStops: [
+    // ~110 m al norte
+    { address: 'Mariano Moreno 1150', kind: 'pickup', order: 1, coordinates: { latitude: concordia.latitude + 0.001, longitude: concordia.longitude } },
+  ],
+});
+assert.deepStrictEqual(
+  aMediaCuadra.map((p) => p.location.address),
+  ['Mariano Moreno 1071', 'Mariano Moreno 1150', 'Av. Santa Fe 900']
+);
+
 console.log('✅ routePoints: todos los checks pasaron');
