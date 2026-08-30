@@ -30,8 +30,22 @@ const SearchResultsScreen = ({ route, navigation }) => {
 
   const { origin, originCity, destination, destinationCity } = route.params || {};
 
-  const originLabel = originCity || origin || '?';
-  const destinationLabel = destinationCity || destination || '?';
+  // Buscar sin origen o sin destino es válido (p. ej. "cualquier viaje que salga de acá"),
+  // pero mostrar un "?" pelado ahí se lee como un dato que se perdió, no como una búsqueda
+  // abierta a propósito.
+  const originLabel = originCity || origin || 'Cualquier origen';
+  const destinationLabel = destinationCity || destination || 'Cualquier destino';
+  // "No hay viajes de Cualquier origen a X" suena a error de tipeo más que a búsqueda
+  // abierta. Con una sola punta puesta, la frase se arma alrededor de esa nomás.
+  const hasOrigin = !!(originCity || origin);
+  const hasDestination = !!(destinationCity || destination);
+  const sinResultadosTexto = hasOrigin && hasDestination
+    ? `No hay viajes de ${originLabel} a ${destinationLabel}`
+    : hasOrigin
+    ? `No hay viajes que salgan de ${originLabel}`
+    : hasDestination
+    ? `No hay viajes hacia ${destinationLabel}`
+    : 'No hay viajes que coincidan con tu búsqueda';
 
   const [trips, setTrips] = useState([]);
   const [page, setPage] = useState(1);
@@ -235,7 +249,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
           />
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin resultados</Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            No hay viajes de {originLabel} a {destinationLabel}
+            {sinResultadosTexto}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
