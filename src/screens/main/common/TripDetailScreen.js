@@ -45,6 +45,7 @@ import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 import Rating from '../../../components/ui/Rating';
 import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
+import { useTripRoute } from '../../../hooks/useTripRoute';
 
 const BANNER_SCROLL_SPEED = 30;
 
@@ -221,6 +222,12 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Numeración y descarte de paradas encimadas en utils/routePoints, compartido con el mapa:
   // si cada pantalla arma su lista, el "3" de una deja de ser el "3" de la otra.
   const routePoints = useMemo(() => buildRoutePoints(trip), [trip]);
+
+  // Trazado en vivo, sólo para los viajes que no tienen uno guardado (los que salen de
+  // aceptar una solicitud: processTripRequestPayment arma el Trip sin pasar por la pantalla
+  // de mapa donde normalmente se calcula el routePolyline). Con uno guardado, enabled:false
+  // no pide nada — pedirlo igual sería una llamada a Directions de más en el caso común.
+  const { coordinates: liveRouteCoords } = useTripRoute(trip, { enabled: !trip?.routePolyline });
 
   // Apiladas por defecto: en un viaje con paradas, la lista completa empujaba el precio, el
   // conductor y el botón de reservar fuera de la primera pantalla.
@@ -683,8 +690,12 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Si el polyline guardado viniera vacío o corrupto, mejor la línea recta que
   // reventar el cálculo de región de más abajo con un min/max de un array vacío.
   const decodedPolyline = trip.routePolyline ? decodePolyline(trip.routePolyline) : [];
-  const hasRealRoute = decodedPolyline.length >= 2;
-  const previewCoordinates = hasRealRoute ? decodedPolyline : straightLine;
+  const hasStoredRoute = decodedPolyline.length >= 2;
+  // El fallback del propio hook (cuando Directions no devuelve nada) es la recta entre las
+  // puntas: mismo caso que "sin trazado guardado", así que tampoco cuenta como ruta real acá.
+  const hasLiveRoute = !hasStoredRoute && liveRouteCoords.length > 2;
+  const hasRealRoute = hasStoredRoute || hasLiveRoute;
+  const previewCoordinates = hasStoredRoute ? decodedPolyline : hasLiveRoute ? liveRouteCoords : straightLine;
   // Las paradas del medio también van marcadas: sin ellas el preview de un viaje con
   // paradas era indistinguible de uno directo. Sale de `routePoints` (buildRoutePoints),
   // el mismo que numera la lista de abajo, así que ya viene sin las paradas que caen

@@ -17,8 +17,12 @@ import { ordenarStops, puntosDeRuta } from '../utils/routePoints';
  *
  * ponytail: TripMapScreen todavía tiene su propia copia de esta lógica, entrelazada con el
  * encuadre del mapa y los marcadores. Vale unificarlas cuando haya que tocar las dos.
+ *
+ * @param {Object} trip
+ * @param {{ enabled?: boolean }} [opts] `enabled: false` no pide nada — para cuando el que
+ *   llama ya tiene un trazado guardado y este hook sería una llamada a Directions de más.
  */
-export const useTripRoute = (trip) => {
+export const useTripRoute = (trip, { enabled = true } = {}) => {
   const [coordinates, setCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +32,7 @@ export const useTripRoute = (trip) => {
   useEffect(() => {
     let cancelado = false;
 
-    if (origen?.latitude == null || destino?.latitude == null) {
+    if (!enabled || origen?.latitude == null || destino?.latitude == null) {
       setLoading(false);
       return undefined;
     }
@@ -67,7 +71,7 @@ export const useTripRoute = (trip) => {
     })();
 
     return () => { cancelado = true; };
-  }, [trip?._id]);
+  }, [trip?._id, enabled]);
 
   return { coordinates, loading };
 };
