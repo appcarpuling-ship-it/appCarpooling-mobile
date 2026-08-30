@@ -83,23 +83,29 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
    */
   const puntosEncuadreRef = useRef([]);
 
-  useEffect(() => {
-    if (!mapPreviewReady) return undefined;
-    const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
-    return () => clearTimeout(t);
-  }, [mapPreviewReady]);
+  // El apagado del tracking vive en el efecto del encuadre, para que ocurra DESPUÉS de mover
+  // la cámara y no en paralelo (ver el comentario allá).
 
   // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
   // lista y queda ignorada. Las dependencias son las fuentes de los puntos (la solicitud y el
   // trazado que llega de Directions), no el array, que se arma nuevo en cada render.
   useEffect(() => {
-    if (!mapPreviewReady) return;
+    if (!mapPreviewReady) return undefined;
     const puntos = puntosEncuadreRef.current;
-    if (puntos.length < 2) return;
-    previewMapRef.current?.fitToCoordinates(puntos, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: false,
-    });
+    if (puntos.length >= 2) {
+      previewMapRef.current?.fitToCoordinates(puntos, {
+        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+        animated: false,
+      });
+    }
+    // El tracking de los puntos se apaga ACÁ, después de encuadrar, y no en un efecto aparte
+    // que arrancaba con onMapReady. En Android un marcador con `tracksViewChanges` ya apagado
+    // no se reubica bien cuando la cámara se mueve por código, y su vista puede quedar sin
+    // medir: el anchor {0.5, 0.5} deja de caer donde corresponde y los puntos aparecen corridos
+    // del trazado. Se los deja vivos mientras el mapa se acomoda y recién después se apagan.
+    setMapPreviewDotsVivos(true);
+    const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
+    return () => clearTimeout(t);
   }, [mapPreviewReady, request, previewRoutePoints]);
 
   const previewOriginCoords = request?.origin?.coordinates;

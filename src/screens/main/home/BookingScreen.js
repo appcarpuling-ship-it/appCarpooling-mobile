@@ -153,21 +153,28 @@ const BookingScreen = ({ route, navigation }) => {
   const [bookingMapReady, setBookingMapReady] = useState(false);
   const [bookingDotsVivos, setBookingDotsVivos] = useState(true);
   const bookingMapRef = useRef(null);
-  useEffect(() => {
-    if (!bookingMapReady) return undefined;
-    const t = setTimeout(() => setBookingDotsVivos(false), 900);
-    return () => clearTimeout(t);
-  }, [bookingMapReady]);
+  // El apagado del tracking vive en el efecto del encuadre, para que ocurra DESPUÉS de mover
+  // la cámara y no en paralelo (ver el comentario allá).
   // `initialRegion` sola no alcanza: en Android se aplica antes de que la vista nativa esté
   // lista y queda ignorada, y el mapa arranca con un zoom que no es el del recorrido. Mismo
   // encuadre que TripDetailScreen. La cantidad de puntos va en las dependencias y no el array,
   // que se arma nuevo en cada render.
   useEffect(() => {
-    if (!bookingMapReady || puntosDelEncuadre.length < 2) return;
-    bookingMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: false,
-    });
+    if (!bookingMapReady) return undefined;
+    if (puntosDelEncuadre.length >= 2) {
+      bookingMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
+        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+        animated: false,
+      });
+    }
+    // El tracking de los puntos se apaga ACÁ, después de encuadrar, y no en un efecto aparte
+    // que arrancaba con onMapReady. En Android un marcador con `tracksViewChanges` ya apagado
+    // no se reubica bien cuando la cámara se mueve por código, y su vista puede quedar sin
+    // medir: el anchor {0.5, 0.5} deja de caer donde corresponde y los puntos aparecen corridos
+    // del trazado. Se los deja vivos mientras el mapa se acomoda y recién después se apagan.
+    setBookingDotsVivos(true);
+    const t = setTimeout(() => setBookingDotsVivos(false), 900);
+    return () => clearTimeout(t);
   }, [bookingMapReady, puntosDelEncuadre.length]);
 
   const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
