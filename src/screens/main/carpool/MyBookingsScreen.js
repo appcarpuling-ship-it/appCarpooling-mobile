@@ -194,11 +194,14 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const rs = item.seatReservation?.reservationStatus;
     if (rs === 'pending_approval') return { color: ui.textMuted, label: 'Pendiente' };
     if (rs === 'pending_payment')  return { color: ui.textMuted, label: 'Pendiente de pago' };
-    if (rs === 'reserved')         return { color: ui.text, label: 'Reserva paga' };
+    // "Aprobada" y no "paga": con el modelo actual el pasajero no le paga nada a la app, le
+    // paga directo al conductor el dia del viaje. Lo que este estado significa es que el
+    // conductor la acepto. Mismo criterio que ya usaba el footer del detalle del viaje.
+    if (rs === 'reserved')         return { color: ui.text, label: 'Reserva aprobada' };
     if (rs === 'cancelled')        return { color: ui.textMuted, label: 'Cancelado' };
     switch (item.status) {
       case 'pending':   return { color: ui.textMuted, label: 'Pendiente' };
-      case 'confirmed': return { color: ui.text, label: 'Reserva paga' };
+      case 'confirmed': return { color: ui.text, label: 'Reserva aprobada' };
       case 'cancelled': return { color: ui.textMuted, label: 'Cancelado' };
       case 'completed': return { color: ui.text, label: 'Completado' };
       default:          return { color: textSecondary, label: item.status };

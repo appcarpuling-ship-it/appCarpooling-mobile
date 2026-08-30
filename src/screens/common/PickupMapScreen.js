@@ -42,16 +42,25 @@ const PickupMapScreen = ({ route, navigation }) => {
    * En Android un marcador con vista propia y `tracksViewChanges` en false DESDE EL PRIMER
    * render se dibuja en blanco: nunca llega a pintarse una primera vez. Estaban los dos
    * hardcodeados en false, así que en Android no se veía ni el pin ni la dirección (en iOS
-   * sí, porque ahí el marcador se pinta igual). Mismo arreglo que TripMapScreen: nace en true
-   * y se apaga apenas terminó de dibujarse, que es lo que evita el re-render por frame.
+   * sí, porque ahí el marcador se pinta igual).
+   *
+   * El patrón que funciona en TripMapScreen y en los tres previews tiene TRES partes, y hay que
+   * copiarlo entero:
+   *   1. el tracking arranca en true y se apaga solo;
+   *   2. el temporizador cuenta desde `onMapReady`, NO desde que se monta la pantalla;
+   *   3. los marcadores llevan `mapaListo` en su `key`, para remontarse cuando el mapa avisa.
+   * Acá estaba sólo la primera: los 900ms corrían mientras el mapa todavía se inicializaba, el
+   * tracking se apagaba antes de que el marcador llegara a dibujarse una vez, y quedaba una
+   * miniatura sin la placa ni la etiqueta.
    */
+  const [mapaListo, setMapaListo] = useState(false);
   const [marcadoresVivos, setMarcadoresVivos] = useState(true);
   useEffect(() => {
-    if (!estaEnfoco || !coordinates?.latitude) return undefined;
+    if (!mapaListo || !coordinates?.latitude) return undefined;
     setMarcadoresVivos(true);
     const t = setTimeout(() => setMarcadoresVivos(false), 900);
     return () => clearTimeout(t);
-  }, [estaEnfoco, coordinates?.latitude, coordinates?.longitude]);
+  }, [mapaListo, coordinates?.latitude, coordinates?.longitude]);
 
   return (
     <View style={styles.container}>
@@ -69,6 +78,7 @@ const PickupMapScreen = ({ route, navigation }) => {
         showsIndoors={false}
         showsPointsOfInterest={false}
         showsMyLocationButton={false}
+        onMapReady={() => setMapaListo(true)}
       >
         {/* El ícono de pasajero va ACÁ, en el marcador: esta pantalla es siempre el punto de
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
@@ -79,6 +89,7 @@ const PickupMapScreen = ({ route, navigation }) => {
                 tiene historial de RAM por apilar mapas, ver el comentario de estaEnfoco— pero
                 arrancar apagado dejaba el marcador en blanco en Android. */}
             <Marker
+              key={`pin-${mapaListo}`}
               coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
               tracksViewChanges={marcadoresVivos}
@@ -92,6 +103,7 @@ const PickupMapScreen = ({ route, navigation }) => {
                 no se corra de su lugar exacto por el ancho de la etiqueta. */}
             {!!address && (
               <Marker
+                key={`lbl-${mapaListo}`}
                 coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
                 anchor={{ x: 0.5, y: 1 }}
                 zIndex={2}
