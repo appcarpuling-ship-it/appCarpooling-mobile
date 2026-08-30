@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -66,7 +66,24 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
           <View style={styles.headerBtn} />
         </View>
 
-        <View style={styles.body}>
+        {/* Tocar fuera del campo cierra el teclado, como en TripDetails. El campo entra con
+            autoFocus, así que sin esto el teclado se quedaba arriba sin forma de bajarlo salvo
+            con el botón del sistema. Envuelve sólo el cuerpo y no el footer: así el botón de
+            enviar sigue respondiendo al primer toque. `accessible={false}` para que el envoltorio
+            no se anuncie como un elemento más; los toggles de adentro siguen siendo táctiles. */}
+        {/* Scrolleable y no una View fija: con el teclado abierto la ventana se achica, las dos
+            tarjetas y el campo no entran, y el footer con "Enviar propuesta" quedaba empujado
+            fuera de pantalla. `keyboardShouldPersistTaps` deja que los toggles respondan con el
+            teclado arriba, y `keyboardDismissMode` lo baja al arrastrar. */}
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.bodyContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.bodyInner}>
           {/* Mismo toggle que en TripDetails: con precio fijo no hay nada que "compartir", y
               con gastos compartidos no hay precio que fijar. El campo de abajo desaparece
               cuando esto se prende, en vez de quedar pidiendo un número que no se usa. */}
@@ -157,6 +174,8 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         </View>
+        </TouchableWithoutFeedback>
+        </ScrollView>
 
         <View style={styles.footer}>
           <PillButton label="Enviar propuesta" onPress={confirmar} />
@@ -172,7 +191,9 @@ const styles = StyleSheet.create({
   headerBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
 
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 16, gap: 12 },
+  body: { flex: 1 },
+  bodyContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
+  bodyInner: { gap: 12 },
   intro: { fontFamily: 'Sora_400Regular', fontSize: 14, lineHeight: 20, marginBottom: 4 },
 
   row: {
