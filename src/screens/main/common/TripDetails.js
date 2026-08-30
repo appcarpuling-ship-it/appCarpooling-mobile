@@ -59,17 +59,31 @@ const TripDetails = ({ navigation, route }) => {
     const scrollYRef = useRef(0);
     const seatsInputRef = useRef(null);
     const priceInputRef = useRef(null);
+    /**
+     * Dónde termina el área visible del scroll, en coordenadas de la VENTANA. Lo publica el
+     * propio ScrollView por onLayout, y con softwareKeyboardLayoutMode 'resize' vuelve a
+     * dispararse solo cuando el teclado achica la ventana: o sea que ya trae el alto sin el
+     * teclado, sin tener que restarlo a mano.
+     *
+     * Este dato reemplaza dos intentos anteriores que fallaron por mezclar sistemas de
+     * coordenadas, que es el error fácil acá:
+     *  - `Dimensions.get('window').height - alturaTeclado` descontaba el teclado dos veces.
+     *  - `endCoordinates.screenY` está en coordenadas de PANTALLA, mientras que el `pageY` de
+     *    measure() está en coordenadas de la ventana ya achicada. Comparar uno con otro da un
+     *    overlap corto —justo la altura de la barra de estado— y el input queda tapado igual.
+     * Midiendo las dos cosas con la misma vara el problema desaparece.
+     */
+    const areaScrollRef = useRef({ top: 0, height: 0 });
+
     // measure() es el método de instancia del ref, no el UIManager.measureLayout +
     // findNodeHandle estático que crasheaba con la New Architecture (ver comentario del
     // ScrollView más abajo) — por eso esto no revive ese bug.
-    // `keyboardTop` llega ya calculado (endCoordinates.screenY). Antes se derivaba de
-    // Dimensions.get('window').height - altura del teclado, y en Android eso descuenta el
-    // teclado DOS veces: con softwareKeyboardLayoutMode 'resize' la ventana ya viene achicada.
-    // El borde quedaba mucho más arriba del real, el overlap salía inflado y el scroll pasaba
-    // de largo — por eso el campo de precio seguía tapado.
-    const medirYSubir = (inputRef, keyboardTop) => {
+    const medirYSubir = (inputRef) => {
+        const { top, height: alto } = areaScrollRef.current;
+        if (!alto) return;
+        const bordeVisible = top + alto;
         inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-            const overlap = (pageY + height) - keyboardTop;
+            const overlap = (pageY + height) - bordeVisible;
             if (overlap > 0) {
                 scrollRef.current?.scrollTo({ y: scrollYRef.current + overlap + 24, animated: true });
             }
@@ -78,16 +92,17 @@ const TripDetails = ({ navigation, route }) => {
     const scrollFieldAboveKeyboard = (inputRef) => {
         if (Platform.OS !== 'android') return; // iOS ya lo resuelve con automaticallyAdjustKeyboardInsets
         // Saltar de un input a otro con el teclado ya arriba no dispara keyboardDidShow de
-        // nuevo (la ventana ya está resizeada) — sin esto, el segundo input se medía contra
-        // un teclado de altura 0 y el cálculo daba cualquier cosa.
-        const yaArriba = Keyboard.metrics()?.screenY;
-        if (Keyboard.isVisible() && yaArriba) {
-            medirYSubir(inputRef, yaArriba);
+        // nuevo (la ventana ya está resizeada), así que ahí se mide en el momento.
+        if (Keyboard.isVisible()) {
+            medirYSubir(inputRef);
             return;
         }
-        const sub = Keyboard.addListener('keyboardDidShow', (e) => {
+        const sub = Keyboard.addListener('keyboardDidShow', () => {
             sub.remove();
-            medirYSubir(inputRef, e.endCoordinates.screenY);
+            // Un frame de aire: keyboardDidShow puede llegar ANTES de que el ScrollView reciba
+            // su onLayout nuevo, y sin esperarlo se mide contra el área de pantalla completa
+            // —como si el teclado no estuviera— y el scroll no se mueve.
+            requestAnimationFrame(() => medirYSubir(inputRef));
         });
     };
     const [loading, setLoading] = useState(false);
@@ -366,6 +381,15 @@ const TripDetails = ({ navigation, route }) => {
                         automaticallyAdjustKeyboardInsets
                         onScroll={e => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
                         scrollEventThrottle={16}
+                        // De acá sale el área visible con la que se compara el input (ver
+                        // areaScrollRef). `y` es relativo al SafeAreaView, que arranca en el
+                        // tope de la ventana, así que queda en la misma referencia que el
+                        // pageY de measure(). Con el teclado abierto vuelve a dispararse con
+                        // el alto ya reducido.
+                        onLayout={e => {
+                            const { y, height } = e.nativeEvent.layout;
+                            areaScrollRef.current = { top: y, height };
+                        }}
                     >
 
                         {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
