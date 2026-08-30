@@ -14,6 +14,7 @@ import {
   Animated,
   DeviceEventEmitter,
   Dimensions,
+  AppState,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -157,6 +158,24 @@ const ChatDetailScreen = ({ route, navigation }) => {
       navigation.goBack();
     }
   }, [conversationId, navigation]);
+
+  // El server no manda push de mensajes nuevos si el socket del destinatario sigue
+  // adentro de la room de la conversación (asume que la está viendo). Minimizar la
+  // app no desmonta esta pantalla, así que sin esto la room se quedaba "ocupada" con
+  // el chat abierto de fondo y los mensajes que llegaban mientras tanto no avisaban
+  // nada — más marcado en Android, donde el socket no se cae tan rápido como en iOS
+  // al pasar a segundo plano.
+  useEffect(() => {
+    if (!conversationId) return undefined;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        socketService.joinConversation(conversationId);
+      } else {
+        socketService.leaveConversation(conversationId);
+      }
+    });
+    return () => sub.remove();
+  }, [conversationId]);
 
   useEffect(() => {
     if (!conversationId) return;
