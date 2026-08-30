@@ -22,6 +22,7 @@ import Rating from '../../../components/ui/Rating';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
+import { recorridoElegido, armarTripParaMapa } from '../../../utils/postulacionTrip';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -113,6 +114,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const miPostulacion = request?.applications?.find(
     (a) => String(a.driver?._id || a.driver) === String(user?._id || user?.id),
   );
+  // Detalle de la propia oferta: mismo tramo o recorrido propio, y el mapa para verlo.
+  // Antes, una vez postulado, sólo quedaba el precio — el conductor no tenía forma de
+  // volver a ver por dónde había dicho que iba a pasar.
+  const miEleccion = miPostulacion ? recorridoElegido(miPostulacion) : null;
+  const miTripParaMapa = miPostulacion
+    ? armarTripParaMapa(miPostulacion, request, user, miPostulacion.vehicleSnapshot)
+    : null;
 
   const loadVehicles = async () => {
     try {
@@ -810,6 +818,27 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                       : 'Ya te postulaste a este viaje'}
                   </Text>
                 </View>
+
+                {/* Qué recorrido ofreciste: mismo tramo o propio. Antes, una vez postulado,
+                    sólo quedaba el precio a la vista — para ver el recorrido que declaraste
+                    había que acordarse de memoria. */}
+                {miEleccion && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                    <Ionicons name={miEleccion.icono} size={14} color={ui.textMuted} />
+                    <Text style={{ fontSize: 12, fontFamily: 'Sora_500Medium', color: ui.textMuted }}>
+                      {miEleccion.texto}
+                    </Text>
+                  </View>
+                )}
+                {miTripParaMapa && (
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: ui.border, marginTop: 10 }]}
+                    onPress={() => navigation.navigate('TripMap', { trip: miTripParaMapa })}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: ui.text }]}>Ver mi recorrido en el mapa</Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Retirar: hasta acá, una postulación era irreversible desde la app.
                     Rojo sólido y no el mismo outline que "Ofrecer viaje": es destructivo, y
