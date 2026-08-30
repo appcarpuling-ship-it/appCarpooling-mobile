@@ -58,19 +58,38 @@ const PickupMapScreen = ({ route, navigation }) => {
         {/* El ícono de pasajero va ACÁ, en el marcador: esta pantalla es siempre el punto de
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
-          // Sin tracksViewChanges={false} el mapa re-renderiza y re-decodifica el ícono en
-          // cada actualización (por ejemplo al moverse el punto azul de "mi ubicación"),
-          // y esta pantalla ya tenía historial de RAM por apilar mapas (ver comentario
-          // arriba de estaEnfoco). El punto es fijo, no necesita volver a trackearse.
-          <Marker
-            coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
-          >
-            <View style={styles.pinBadge}>
-              <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
-            </View>
-          </Marker>
+          <>
+            {/* Sin tracksViewChanges={false} el mapa re-renderiza y re-decodifica el ícono en
+                cada actualización (por ejemplo al moverse el punto azul de "mi ubicación"),
+                y esta pantalla ya tenía historial de RAM por apilar mapas (ver comentario
+                arriba de estaEnfoco). El punto es fijo, no necesita volver a trackearse. */}
+            <Marker
+              coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+            >
+              <View style={styles.pinBadge}>
+                <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
+              </View>
+            </Marker>
+            {/* La dirección arriba del pin, mismo patrón que "Ver trayecto en el mapa"
+                (TripMapScreen): un marcador aparte del pin, anclado abajo, para que el pin
+                no se corra de su lugar exacto por el ancho de la etiqueta. */}
+            {!!address && (
+              <Marker
+                coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+                anchor={{ x: 0.5, y: 1 }}
+                zIndex={2}
+                tracksViewChanges={false}
+              >
+                <View style={styles.addressLabelWrap}>
+                  <View style={styles.addressLabelBubble}>
+                    <Text style={styles.addressLabelBubbleText} numberOfLines={2}>{address}</Text>
+                  </View>
+                </View>
+              </Marker>
+            )}
+          </>
         )}
       </MapView>}
 
@@ -98,6 +117,17 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
   },
   pinIcon: { width: 14, height: 14 },
+  // marginBottom despega la etiqueta del pin (26px de badge + margen) sin que el pin se
+  // mueva de su coordenada real, sea cual sea el largo del texto.
+  addressLabelWrap: { alignItems: 'center', marginBottom: 22 },
+  // Blanco fijo y no del tema: sobre un mapa oscuro o claro el contraste tiene que ser
+  // siempre el mismo.
+  addressLabelBubble: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, maxWidth: 180,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.25, shadowRadius: 3, elevation: 3,
+  },
+  addressLabelBubbleText: { fontSize: 11, fontFamily: 'Sora_600SemiBold', color: '#1A1A1A' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',
