@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carpuling",
     "slug": "carpuling",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/logo/1024x1024.jpg",
