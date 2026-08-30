@@ -19,6 +19,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { useUI } from '../../../theme/ui';
+import EmptyState from '../../../components/ui/EmptyState';
 
 const SORT_OPTIONS = ['price', 'time'];
 
@@ -242,23 +243,15 @@ const SearchResultsScreen = ({ route, navigation }) => {
         </View>
       ) : trips.length === 0 ? (
         <View style={styles.centered}>
-          <Image
-            source={require('../../../../assets/illustrations/empty-search.png')}
-            style={styles.emptyIllustration}
-            resizeMode="contain"
+          {/* Mismo bloque reutilizable que usan Mis Reservas/Mis Viajes — antes esta
+              pantalla tenía el suyo armado a mano, con otra tipografía y otro botón. */}
+          <EmptyState
+            image={require('../../../../assets/illustrations/empty-search.png')}
+            title="Sin resultados"
+            subtitle={sinResultadosTexto}
+            actionLabel="Modificar búsqueda"
+            onAction={() => navigation.goBack()}
           />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>Sin resultados</Text>
-          <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            {sinResultadosTexto}
-          </Text>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={[styles.tryAgainBtn, { backgroundColor: textPrimary }]}
-          >
-            <Text style={[styles.tryAgainText, { color: ui.bg }]}>
-              Modificar búsqueda
-            </Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -410,16 +403,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   loadingText: { fontSize: 14, marginTop: 8 },
-  emptyIllustration: { width: 200, height: 200 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Sora_600SemiBold', marginTop: 4 },
-  emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  tryAgainBtn: {
-    marginTop: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  tryAgainText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default SearchResultsScreen;
