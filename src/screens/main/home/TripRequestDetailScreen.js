@@ -567,7 +567,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
             <Ionicons name="time-outline" size={16} color={textPrimary} />
-            <Text style={[styles.metaText, { color: textPrimary }]}>{request.departureTime}</Text>
+            <Text style={[styles.metaText, { color: textPrimary }]}>{request.departureTime} hs</Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: divider }]} />
           <View style={styles.metaItem}>
