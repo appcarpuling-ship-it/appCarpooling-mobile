@@ -1133,7 +1133,6 @@ const TripMapScreen = ({ route, navigation }) => {
                   {[p?.firstName, p?.lastName].filter(Boolean).join(' ') || 'Pasajero'}
                   {p.asientos > 1 ? ` · ${p.asientos} asientos` : ''}
                 </Text>
-                {p?.rating > 0 && <Rating rating={p.rating} count={p.ratingCount} size={12} />}
               </View>
             ))}
           </>
