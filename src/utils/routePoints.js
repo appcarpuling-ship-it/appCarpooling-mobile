@@ -5,11 +5,11 @@
  * Vive acá porque la arman DOS pantallas —el detalle del viaje y el mapa— y tienen que
  * numerar igual: si se contradicen, el "3" del mapa no es el "3" de la lista de direcciones.
  *
- * Descarta las paradas que caen encima del origen o del destino. Pasa de verdad: el punto de
- * recogida que pide el pasajero suele SER la dirección de salida del viaje, y al confirmar el
- * pago se guarda igual como parada. En el mapa quedaban dos marcadores en el mismo lugar y el
- * de la parada tapaba al del origen, así que el número 1 no se veía; en la lista salía la
- * misma dirección dos veces.
+ * Muestra TODAS las paradas, aunque caigan cerca del origen o del destino. Antes se
+ * descartaban las que quedaban a menos de 150m de una punta del viaje (dos marcadores
+ * pegados en el mapa), pero cada usuario carga la dirección que quiere: ocultarla —aunque
+ * sea por unos metros de un punto vecino— es no cumplir lo que se le prometió que iba a
+ * pasar con su dirección.
  */
 
 /** Metros entre dos puntos (haversine). Infinity si a alguno le faltan coordenadas. */
@@ -26,10 +26,6 @@ const metersBetween = (a, b) => {
     Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 };
-
-// 150m: un marcador ocupa bastante más que eso en pantalla salvo con mucho zoom, y a esa
-// distancia el conductor no da una vuelta extra — es la misma esquina.
-const MISMO_PUNTO_M = 150;
 
 /** Polyline codificada de Google -> lista de puntos. */
 const decodePolyline = (encoded) => {
@@ -104,15 +100,11 @@ const buildRoutePoints = (trip) => {
   const origen = trip?.origin;
   const destino = trip?.destination;
 
-  const stops = ordenarStops(trip)
-    .filter((s) => {
-      const c = s?.coordinates;
-      if (c?.latitude == null) return true; // sin coordenadas no se puede comparar: se muestra
-      return (
-        metersBetween(c, origen?.coordinates) >= MISMO_PUNTO_M &&
-        metersBetween(c, destino?.coordinates) >= MISMO_PUNTO_M
-      );
-    });
+  // Antes se ocultaba cualquier parada a menos de 150m del origen o destino, para no
+  // mostrar dos marcadores pegados. Pero cada usuario carga la dirección que quiere, y
+  // esconderla —aunque caiga cerca de otra— es prometerle algo (que su punto se iba a
+  // ver) y no cumplirlo. Se muestran todas, sin filtrar por distancia.
+  const stops = ordenarStops(trip);
 
   return [
     { location: origen, label: 'Origen', isEnd: true, kind: 'origin' },
@@ -165,4 +157,4 @@ const puntosDeRuta = (ruta) => {
   return decodePolyline(ruta.overview_polyline?.points);
 };
 
-module.exports = { buildRoutePoints, ordenarStops, puntosDeRuta, metersBetween, kindLabel, quienLabel, decodePolyline, MISMO_PUNTO_M };
+module.exports = { buildRoutePoints, ordenarStops, puntosDeRuta, metersBetween, kindLabel, quienLabel, decodePolyline };
