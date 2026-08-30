@@ -180,6 +180,20 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   const [originMarker, setOriginMarker] = useState(null);
   const [destinationMarker, setDestinationMarker] = useState(null);
   const [waypointMarkers, setWaypointMarkers] = useState([]);
+  /**
+   * Las paradas se dibujan con vista propia (llevan el número adentro, así que no pueden ser un
+   * PNG fijo como el origen y el destino). En Android eso obliga a manejar `tracksViewChanges`
+   * a mano: dejarlo en true —el default— hace que Android redibuje la vista en cada frame, el
+   * mapa nunca se queda quieto, y el temporizador de scheduleMapSelectionIdleCommit se reinicia
+   * sin parar. Con una parada ya puesta, elegir la siguiente arrastrando el mapa no marcaba
+   * nunca la dirección. Ponerlo en false desde el arranque tampoco sirve: ahí Android dibuja el
+   * marcador en blanco. Se prende para que se dibuje y se apaga sola.
+   *
+   * La dependencia es la CANTIDAD y no el array: se arma nuevo en cada render, y además al
+   * borrar una parada del medio cambian los números de las que siguen, que es justo cuando hay
+   * que volver a dibujarlas.
+   */
+  const [waypointsVivos, setWaypointsVivos] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   // Se guarda con el viaje para que ver el mapa después no vuelva a pegarle a Directions.
@@ -280,6 +294,15 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
   useEffect(() => {
     if (originMarker && destinationMarker && isMounted.current) getDirections();
   }, [originMarker, destinationMarker, waypointMarkers]);
+
+  // Ver `waypointsVivos`: el tiempo justo para que la parada se dibuje, y después apagado para
+  // no dejar el mapa redibujando mientras se elige el punto siguiente arrastrando.
+  useEffect(() => {
+    if (!waypointMarkers.length) return undefined;
+    setWaypointsVivos(true);
+    const t = setTimeout(() => setWaypointsVivos(false), 900);
+    return () => clearTimeout(t);
+  }, [waypointMarkers.length]);
 
   const screenWasBlurred = useRef(false);
   useFocusEffect(
@@ -945,7 +968,12 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
               </Marker>
         )}
         {waypointMarkers.map((m, i) => (
-          <Marker key={`wp-${i}`} coordinate={m} anchor={{ x: 0.5, y: 0.5 }}>
+          <Marker
+            key={`wp-${i}`}
+            coordinate={m}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={waypointsVivos}
+          >
             <View style={styles.waypointMarker}><Text style={styles.waypointMarkerText}>{i + 1}</Text></View>
           </Marker>
         ))}
