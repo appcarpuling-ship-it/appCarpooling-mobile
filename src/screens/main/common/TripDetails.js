@@ -13,6 +13,7 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     BackHandler,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -52,6 +53,39 @@ const TripDetails = ({ navigation, route }) => {
 
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
+    // adjustResize achica la ventana cuando se abre el teclado, pero no mueve el scroll:
+    // un input pegado abajo del todo (asientos, precio) quedaba tapado por el teclado sin
+    // forma de verlo mientras se escribe. scrollYRef guarda dónde está el scroll para poder
+    // sumarle el offset — scrollTo necesita una posición absoluta, no relativa.
+    const scrollYRef = useRef(0);
+    const seatsInputRef = useRef(null);
+    const priceInputRef = useRef(null);
+    // measure() es el método de instancia del ref, no el UIManager.measureLayout +
+    // findNodeHandle estático que crasheaba con la New Architecture (ver comentario del
+    // ScrollView más abajo) — por eso esto no revive ese bug.
+    const medirYSubir = (inputRef, alturaTeclado) => {
+        inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+            const keyboardTop = Dimensions.get('window').height - alturaTeclado;
+            const overlap = (pageY + height) - keyboardTop;
+            if (overlap > 0) {
+                scrollRef.current?.scrollTo({ y: scrollYRef.current + overlap + 24, animated: true });
+            }
+        });
+    };
+    const scrollFieldAboveKeyboard = (inputRef) => {
+        if (Platform.OS !== 'android') return; // iOS ya lo resuelve con automaticallyAdjustKeyboardInsets
+        // Saltar de un input a otro con el teclado ya arriba no dispara keyboardDidShow de
+        // nuevo (la ventana ya está resizeada) — sin esto, el segundo input se medía contra
+        // un teclado de altura 0 y el cálculo daba cualquier cosa.
+        if (Keyboard.isVisible()) {
+            medirYSubir(inputRef, Keyboard.metrics()?.height || 0);
+            return;
+        }
+        const sub = Keyboard.addListener('keyboardDidShow', (e) => {
+            sub.remove();
+            medirYSubir(inputRef, e.endCoordinates.height);
+        });
+    };
     const [loading, setLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -326,6 +360,8 @@ const TripDetails = ({ navigation, route }) => {
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         automaticallyAdjustKeyboardInsets
+                        onScroll={e => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+                        scrollEventThrottle={16}
                     >
 
                         {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
@@ -444,11 +480,13 @@ const TripDetails = ({ navigation, route }) => {
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
+                                    ref={seatsInputRef}
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder={selectedVehicle ? 'Asientos disponibles *' : 'Primero elegí un vehículo'}
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
                                     editable={!!selectedVehicle}
+                                    onFocus={() => scrollFieldAboveKeyboard(seatsInputRef)}
                                     onChangeText={v => {
                                         const num = parseInt(v);
                                         const cap = selectedVehicle?.capacity;
@@ -516,10 +554,12 @@ const TripDetails = ({ navigation, route }) => {
                             <View style={styles.inputRow}>
                                 <Ionicons name="cash-outline" size={19} color={textPrimary} />
                                 <TextInput
+                                    ref={priceInputRef}
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder="Precio por pasajero *"
                                     placeholderTextColor={textMuted}
                                     value={formData.driverPrice ? `$${formData.driverPrice}` : ''}
+                                    onFocus={() => scrollFieldAboveKeyboard(priceInputRef)}
                                     onChangeText={v => {
                                         const digits = v.replace(/\D/g, '');
                                         handleChange('driverPrice', digits
