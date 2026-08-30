@@ -50,13 +50,13 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
       },
-      "buildNumber": "30"
+      "buildNumber": "31"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.carpuling.app.ar",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 50,
+      "versionCode": 51,
       "permissions": [
         "INTERNET",
         "RECEIVE_BOOT_COMPLETED",
