@@ -4,12 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
-import VehicleOptionCard from '../../components/vehicle/VehicleOptionCard';
+import VehicleShowcase from '../../components/vehicle/VehicleShowcase';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-// Selección de vehículo como pantalla: carrusel con la foto del auto arriba,
-// se pasa de auto con swipe o flechas. Devuelve el _id elegido por onSelect.
+// Selección de vehículo como pantalla: carrusel con la foto del auto arriba y el detalle
+// scrolleando abajo, se pasa de auto con swipe o flechas. Devuelve el _id elegido por
+// onSelect. Es la misma pantalla que "Mis vehículos" (VehiclesScreen) sin los botones de
+// editar y borrar: acá sólo se elige, no se administra.
 const VehiclePickerScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -42,11 +44,7 @@ const VehiclePickerScreen = ({ route, navigation }) => {
     if (v) onSelect?.(v._id);
   };
 
-  const renderItem = ({ item }) => (
-    <View style={[styles.page, { width: SCREEN_W }]}>
-      <VehicleOptionCard vehicle={item} />
-    </View>
-  );
+  const renderItem = ({ item }) => <VehicleShowcase vehicle={item} width={SCREEN_W} />;
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
@@ -60,7 +58,7 @@ const VehiclePickerScreen = ({ route, navigation }) => {
 
       <View style={styles.carousel}>
         {vehicles.length > 1 && index > 0 && (
-          <TouchableOpacity style={[styles.arrow, styles.arrowLeft, { backgroundColor: ui.surface }]} onPress={() => goTo(index - 1)} hitSlop={8}>
+          <TouchableOpacity style={[styles.arrow, styles.arrowLeft, { backgroundColor: ui.bg }]} onPress={() => goTo(index - 1)} hitSlop={8}>
             <Ionicons name="chevron-back" size={22} color={ui.text} />
           </TouchableOpacity>
         )}
@@ -77,7 +75,7 @@ const VehiclePickerScreen = ({ route, navigation }) => {
           onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W))}
         />
         {vehicles.length > 1 && index < vehicles.length - 1 && (
-          <TouchableOpacity style={[styles.arrow, styles.arrowRight, { backgroundColor: ui.surface }]} onPress={() => goTo(index + 1)} hitSlop={8}>
+          <TouchableOpacity style={[styles.arrow, styles.arrowRight, { backgroundColor: ui.bg }]} onPress={() => goTo(index + 1)} hitSlop={8}>
             <Ionicons name="chevron-forward" size={22} color={ui.text} />
           </TouchableOpacity>
         )}
@@ -104,12 +102,12 @@ const styles = StyleSheet.create({
   headerBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
 
-  carousel: { flex: 1, justifyContent: 'center' },
-  page: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-
-  arrow: { position: 'absolute', zIndex: 2, top: '38%', width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  arrowLeft: { left: 12 },
-  arrowRight: { right: 12 },
+  carousel: { flex: 1, paddingTop: 4 },
+  // Sobre la foto, no sobre el detalle: es la altura donde el dedo espera encontrarlas y no
+  // tapan texto. HERO_H del showcase es ~36% de la pantalla, así que 18% cae en su medio.
+  arrow: { position: 'absolute', zIndex: 2, top: '18%', width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  arrowLeft: { left: 24 },
+  arrowRight: { right: 24 },
 
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginVertical: 16 },
   dot: { width: 6, height: 6, borderRadius: 999 },

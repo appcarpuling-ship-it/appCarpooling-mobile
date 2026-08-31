@@ -1,5 +1,6 @@
-// Una imagen por tipo de vehículo. Compartido entre VehiclePickerScreen y
-// VehicleOptionCard para que ambos flujos de selección se vean igual.
+// Una imagen por tipo de vehículo. Es el reemplazo cuando el auto no tiene fotos cargadas:
+// sin esto, una camioneta y un sedán sin fotos se veían idénticos. Lo usa VehicleShowcase,
+// la página de vehículo que comparten "Mis vehículos" y el selector para un viaje.
 const VEHICLE_IMAGES = {
   sedan: require('../../assets/icons/pngwing.com (4).png'),
   hatchback: require('../../assets/icons/pngwing.com (4).png'),
