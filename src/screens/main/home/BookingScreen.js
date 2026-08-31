@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -42,6 +43,9 @@ function formatNumber(num) {
 }
 
 const BookingScreen = ({ route, navigation }) => {
+  // El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco es lo que evita que
+  // apilar pantallas de mapa lleve la RAM al limite (iOS mata la app a ~3.5 GB).
+  const pantallaEnfocada = useIsFocused();
   const insets = useSafeAreaInsets();
   const { colors, isDarkMode } = useColors();
   const { user } = useAuth();
@@ -439,7 +443,7 @@ const BookingScreen = ({ route, navigation }) => {
 
           {/* Mini mapa: contexto visual del recorrido antes del resumen en texto. No
               interactivo (sin scroll/zoom) — es una foto, no algo para explorar acá. */}
-          {hasBookingMapPreview && (
+          {hasBookingMapPreview && pantallaEnfocada && (
             <View style={styles.bookingMapWrap}>
               <MapView
                 ref={bookingMapRef}

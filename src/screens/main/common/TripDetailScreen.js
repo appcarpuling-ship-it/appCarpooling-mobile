@@ -21,7 +21,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
 const BANNER_HEIGHT = 150;
 const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
@@ -120,6 +120,9 @@ const bannerStyles = StyleSheet.create({
 });
 
 const TripDetailScreen = ({ route, navigation }) => {
+  // El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco es lo que evita que
+  // apilar pantallas de mapa lleve la RAM al limite (iOS mata la app a ~3.5 GB).
+  const pantallaEnfocada = useIsFocused();
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
@@ -804,7 +807,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {/* Mapa arriba de todo: contexto visual inmediato en vez de un botón perdido en el
             medio de la pantalla. No interactivo (sin scroll/zoom) — es una foto del trazado,
             tocarla lleva al mapa de verdad. El estado y "abrir en Google Maps" flotan encima. */}
-        {hasMapPreview && (
+        {hasMapPreview && pantallaEnfocada && (
           <TouchableOpacity
             style={styles.mapPreviewWrap}
             onPress={() => navigation.navigate('TripMap', { trip })}

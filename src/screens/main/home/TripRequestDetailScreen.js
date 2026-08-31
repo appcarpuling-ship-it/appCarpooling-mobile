@@ -16,7 +16,7 @@ const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
 const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
 import { puntosDeRuta } from '../../../utils/routePoints';
 import { getDirections } from '../../../services/mapsService';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -40,6 +40,9 @@ const STATUS_MAP = {
 };
 
 const TripRequestDetailScreen = ({ route, navigation }) => {
+  // El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco es lo que evita que
+  // apilar pantallas de mapa lleve la RAM al limite (iOS mata la app a ~3.5 GB).
+  const pantallaEnfocada = useIsFocused();
   const { requestId, canApply: canApplyParam, alreadyApplied: alreadyAppliedParam } = route.params || {};
 
   const { isDarkMode } = useTheme();
@@ -522,7 +525,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
       >
 
         {/* Mini mapa arriba de todo, con el estado superpuesto. Tocarlo lleva al mapa real. */}
-        {hasMapPreview ? (
+        {hasMapPreview && pantallaEnfocada ? (
           <TouchableOpacity
             style={styles.mapPreviewWrap}
             onPress={handleOpenMap}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -63,6 +64,9 @@ const LABEL_ZOOM_THRESHOLD = 0.05;
 const zoomAlcanzaParaEtiquetas = (region) => (region?.latitudeDelta ?? 0) <= LABEL_ZOOM_THRESHOLD;
 
 const TripMapScreen = ({ route, navigation }) => {
+  // El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco es lo que evita que
+  // apilar pantallas de mapa lleve la RAM al limite (iOS mata la app a ~3.5 GB).
+  const pantallaEnfocada = useIsFocused();
   // `route.params.trip` es una foto fija de cuando se navegó acá. Si el conductor inició el
   // viaje DESPUÉS de que esa pantalla lo cargara (el caso típico: el pasajero ya tenía el
   // detalle abierto), `status` seguía en "active" para siempre y el efecto de abajo, que
@@ -809,6 +813,9 @@ const TripMapScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
+      {/* El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco evita que apilar
+          pantallas de mapa lleve la RAM al limite (iOS mata la app cerca de 3.5 GB). */}
+      {pantallaEnfocada && (
       <MapView
         ref={mapRef}
         provider={MAP_PROVIDER}
@@ -928,6 +935,7 @@ const TripMapScreen = ({ route, navigation }) => {
           </Marker>
         )}
       </MapView>
+      )}
 
 
       {/* Back button */}
