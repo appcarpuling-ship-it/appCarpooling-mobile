@@ -52,24 +52,41 @@ const ChatDetailScreen = ({ route, navigation }) => {
   // y la cabecera quedaba en "Usuario" / "?". Se resuelve acá y no en el emisor del
   // push para que valga igual para deep links y para notificaciones ya enviadas.
   const [fetchedOtherUser, setFetchedOtherUser] = useState(null);
+  // El viaje de la conversación, para el subtítulo del header ("Concordia → Córdoba"). Puede
+  // venir en los params (si se abrió desde el detalle del viaje) o resolverse por el fetch de
+  // abajo (si se llegó desde una notificación push, que solo trae el conversationId).
+  const [fetchedTrip, setFetchedTrip] = useState(null);
+  const conversationTrip =
+    (rawConversation && typeof rawConversation === 'object' && rawConversation.trip) || fetchedTrip;
+  const recorridoViaje = (() => {
+    const o = conversationTrip?.origin?.city;
+    const d = conversationTrip?.destination?.city;
+    return o && d ? `${o} → ${d}` : '';
+  })();
   const otherUser = otherUserFromParams?.firstName
     ? otherUserFromParams
     : fetchedOtherUser ?? otherUserFromParams;
 
   useEffect(() => {
-    if (otherUserFromParams?.firstName || !conversationId) return;
+    // Se busca si falta el otro usuario O el viaje (subtítulo del header). Desde una
+    // notificación push llegan los dos vacíos; desde el detalle del viaje llegan ambos.
+    const faltaOtro = !otherUserFromParams?.firstName;
+    const faltaViaje = !(rawConversation && typeof rawConversation === 'object' && rawConversation.trip);
+    if ((!faltaOtro && !faltaViaje) || !conversationId) return;
     let cancelled = false;
     (async () => {
       try {
-        // ponytail: se reusa /chat/conversations (ya popula participants con
-        // firstName/lastName/avatar) en vez de agregar un endpoint por id.
+        // ponytail: se reusa /chat/conversations (ya popula participants y trip) en vez de
+        // agregar un endpoint por id.
         const response = await apiService.get('/chat/conversations');
         const body = response.data;
         if (!body?.success || !Array.isArray(body.data)) return;
         const conv = body.data.find((c) => String(c._id) === String(conversationId));
+        if (cancelled || !conv) return;
         const myId = String(user?._id ?? user?.id ?? '');
-        const other = conv?.participants?.find((p) => String(p._id) !== myId);
-        if (!cancelled && other) setFetchedOtherUser(other);
+        const other = conv.participants?.find((p) => String(p._id) !== myId);
+        if (other) setFetchedOtherUser(other);
+        if (conv.trip) setFetchedTrip(conv.trip);
       } catch (error) {
         reportError(error);
       }
@@ -77,7 +94,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
     return () => {
       cancelled = true;
     };
-  }, [conversationId, otherUserFromParams?.firstName, user?._id, user?.id]);
+  }, [conversationId, otherUserFromParams?.firstName, rawConversation, user?._id, user?.id]);
 
   const displayName = [otherUser?.firstName, otherUser?.lastName].filter(Boolean).join(' ') || 'Usuario';
   const displayInitials =
@@ -255,9 +272,14 @@ const ChatDetailScreen = ({ route, navigation }) => {
                 <Text style={[styles.headerTitle, { color: ui.text }]}>
                   {displayName}
                 </Text>
-                <Text style={[styles.headerSubtitle, { color: ui.textMuted }]}>
-                  {typing ? 'Escribiendo...' : 'En linea'}
-                </Text>
+                {/* "Escribiendo..." mientras el otro tipea; el resto del tiempo, el recorrido
+                    del viaje. Antes decía "En línea" fijo, que era falso: no hay tracking de
+                    presencia. Sin recorrido resuelto todavía, no se muestra segunda línea. */}
+                {(typing || recorridoViaje) ? (
+                  <Text style={[styles.headerSubtitle, { color: ui.textMuted }]} numberOfLines={1}>
+                    {typing ? 'Escribiendo...' : recorridoViaje}
+                  </Text>
+                ) : null}
               </View>
             </View>
           </TouchableOpacity>
@@ -291,7 +313,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
         loadUnreadCount();
       }, 300);
     };
-  }, [conversationId, navigation, otherUser, typing, ui.bg, ui.text, ui.textMuted, ui.invertBg, ui.invertText]);
+  }, [conversationId, navigation, otherUser, typing, recorridoViaje, ui.bg, ui.text, ui.textMuted, ui.invertBg, ui.invertText]);
 
   // Separar en un useEffect para los listeners del socket
   useEffect(() => {
