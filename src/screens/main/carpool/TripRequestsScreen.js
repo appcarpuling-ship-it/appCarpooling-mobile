@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { get_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
@@ -27,6 +28,7 @@ import { reportError } from '../../../utils/sentry';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
   const { tripId } = route.params || {};
@@ -91,6 +93,12 @@ const TripRequestsScreen = ({ route }) => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [pendingCounts, setPendingCounts] = useState({});
+  /**
+   * La solicitud abierta en la ficha. Se guarda el id y no el objeto: así, cuando la lista
+   * se recarga después de aceptar o rechazar, la ficha muestra el estado nuevo y no una foto
+   * vieja de la solicitud.
+   */
+  const [fichaId, setFichaId] = useState(null);
 
   const enrichPendingForTrips = async (tripList) => {
     const active = tripList.filter(t => t.status === 'active' || t.status === 'started');
@@ -218,6 +226,10 @@ const TripRequestsScreen = ({ route }) => {
     loadUserTrips(tripsPage + 1, { append: true });
   };
 
+  /** Las dos claves con las que el backend dice "todavía no respondiste". */
+  const esperandoRespuesta = (rs) => rs === 'pending_approval' || rs === 'pending';
+  const estadoDe = (item) => item.seatReservation?.reservationStatus || item.status;
+
   const seatsLabelEs = (n) => {
     const s = Math.max(1, Number(n) || 1);
     return s === 1 ? '1 asiento' : `${s} asientos`;
@@ -312,6 +324,30 @@ const TripRequestsScreen = ({ route }) => {
   const fmtDate = (d) =>
     new Date(d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
+  /**
+   * Cuándo pidió, contado como lo cuenta una persona. En una bandeja lo que importa es hace
+   * cuánto que está esperando, no la fecha exacta: "hoy" pesa distinto que "mar, 26 ago".
+   */
+  const fmtCuando = (d) => {
+    const t = d ? new Date(d) : null;
+    if (!t || isNaN(t)) return '';
+    const dias = Math.floor((Date.now() - t.getTime()) / 86400000);
+    if (dias <= 0) return 'hoy';
+    if (dias === 1) return 'ayer';
+    if (dias < 7) return `hace ${dias} días`;
+    return fmtDate(d);
+  };
+
+  /**
+   * El desvío partido en dos para la fila: el número manda y la aclaración va abajo, chica.
+   * `desvioEtiqueta` viene armada del backend y es "+2,1 km de desvío" o "Te queda de paso".
+   */
+  const partirDesvio = (etiqueta) => {
+    if (!etiqueta) return null;
+    if (!etiqueta.startsWith('+')) return { fuerte: 'De paso', pie: null };
+    return { fuerte: etiqueta.replace(' de desvío', ''), pie: 'de desvío' };
+  };
+
   const fmtAddress = (address, city) => {
     if (!address) return city || '';
     let s = address
@@ -325,6 +361,20 @@ const TripRequestsScreen = ({ route }) => {
 
   const activeTrips = trips.filter((t) => t.status === 'active' || t.status === 'started');
 
+  const pendientes = useMemo(
+    () => requests.filter((r) => esperandoRespuesta(estadoDe(r))),
+    [requests],
+  );
+  const resueltas = useMemo(
+    () => requests.filter((r) => !esperandoRespuesta(estadoDe(r))),
+    [requests],
+  );
+  /** La solicitud abierta, releída de la lista para que refleje el estado más nuevo. */
+  const fichaActual = useMemo(
+    () => (fichaId ? requests.find((r) => String(r._id || r.id) === String(fichaId)) : null),
+    [requests, fichaId],
+  );
+
   /** Viaje actualmente seleccionado (origen / destino para el encabezado de solicitudes) */
   const selectedTrip = useMemo(
     () => trips.find((t) => String(t._id) === String(selectedTripId)),
@@ -337,7 +387,7 @@ const TripRequestsScreen = ({ route }) => {
 
     if (!selectedTrip) {
       return (
-        <View style={styles.tripContextEmbedded}>
+        <View style={[styles.tripContextEmbedded, { borderBottomColor: divider }]}>
           <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
           <Text style={[styles.tripContextLine, { color: textPrimary }]}>
             Cargando ruta del viaje…
@@ -370,7 +420,7 @@ const TripRequestsScreen = ({ route }) => {
     const o = fmtFull(selectedTrip.origin);
     const d = fmtFull(selectedTrip.destination);
     return (
-      <View style={styles.tripContextEmbedded}>
+      <View style={[styles.tripContextEmbedded, { borderBottomColor: divider }]}>
         <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
         <Text style={[styles.tripContextLine, { color: textPrimary }]} numberOfLines={2}>
           {o || 'Origen'}{' '}
@@ -444,82 +494,152 @@ const TripRequestsScreen = ({ route }) => {
     );
   };
 
-  // ─── Solicitud (contenido sin tarjeta propia: va dentro de tarjeta unificada con el viaje) ─
-  const renderRequestSection = (item) => {
+  // ─── Una fila de la bandeja ───────────────────────────────────────────────
+  /**
+   * Lo mínimo para saber si le podés decir que sí: quién es, cuánto ocupa, hace cuánto que
+   * espera y cuánto te saca del camino. Todo lo demás —el mensaje, las direcciones enteras,
+   * el mapa y los botones— vive en la ficha, que se abre tocando la fila.
+   */
+  const renderRequestRow = (item, esUltima) => {
+    const id = item._id || item.id;
     if (!item.passenger?._id) {
       return (
-        <View style={styles.reqSectionPad}>
+        <View key={id} style={styles.fila}>
           <Text style={{ color: textMuted }}>Usuario no disponible</Text>
         </View>
       );
     }
-    const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
-    const resStatus = item.seatReservation?.reservationStatus || item.status;
-    const status = getStatus(resStatus);
-    const isPending = resStatus === 'pending_approval' || resStatus === 'pending';
+    const rs = estadoDe(item);
+    const pendiente = esperandoRespuesta(rs);
+    const status = getStatus(rs);
     const seats = item.seatsBooked || item.seatsRequested;
+    const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
+    const desvio = pendiente ? partirDesvio(item.desvioEtiqueta) : null;
 
     return (
-      <View>
-        {/* Cabecera: quién, cuántos asientos y cuánto. El precio va con el rótulo y en la
-            misma fila que el nombre; suelto arriba a la derecha no se sabía de qué era. */}
-        <TouchableOpacity
-          style={styles.passengerRow}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate('UserProfile', { userId: item.passenger._id, tripId: selectedTripId })}
-        >
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
-              <Text style={[styles.avatarInitials, { color: textMuted }]}>
-                {item.passenger?.firstName?.[0]}
-                {item.passenger?.lastName?.[0]}
-              </Text>
-            </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.passengerName, { color: textPrimary }]} numberOfLines={1}>
-              {item.passenger?.firstName} {item.passenger?.lastName}
-            </Text>
-            <Text style={[styles.reqSub, { color: textMuted }]} numberOfLines={1}>
-              {seats} asiento{seats === 1 ? '' : 's'} · pidió el {fmtDate(item.createdAt)}
+      <TouchableOpacity
+        key={id}
+        style={[styles.fila, !esUltima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
+        onPress={() => setFichaId(id)}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel={`Solicitud de ${item.passenger?.firstName || 'un pasajero'}`}
+      >
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatarFila} />
+        ) : (
+          <View style={[styles.avatarPlaceholder, styles.avatarFila, { backgroundColor: bg }]}>
+            <Text style={[styles.avatarInitials, { color: textMuted }]}>
+              {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
             </Text>
           </View>
-          {/* Acá iba el monto de la reserva. Se sacó: ese número es la CONEXIÓN que el pasajero
-              le paga a la plataforma, no plata del conductor, y mostrárselo hacía creer que era
-              lo que iba a cobrar. Lo que cobra él es su `driverPrice`, que ya fijó al publicar. */}
-        </TouchableOpacity>
+        )}
 
-        {/* El estado sólo cuando NO es "esperando": en una pantalla que se llama Solicitudes
-            de Reserva y que muestra Aceptar y Rechazar, ese cartel no informaba nada y era lo
-            más pesado de la tarjeta. */}
-        {!isPending && (
-          <View style={styles.reqEstadoWrap}>
-            <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : bg }]}>
-              <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : textMuted }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.filaNombre, { color: textPrimary }]} numberOfLines={1}>
+            {item.passenger?.firstName} {item.passenger?.lastName}
+          </Text>
+          <Text style={[styles.filaSub, { color: textMuted }]} numberOfLines={1}>
+            {seatsLabelEs(seats)} · {fmtCuando(item.createdAt)}
+          </Text>
+        </View>
+
+        {desvio ? (
+          <View style={styles.filaDesvio}>
+            <Text style={[styles.filaDesvioFuerte, { color: textPrimary }]}>{desvio.fuerte}</Text>
+            {!!desvio.pie && <Text style={[styles.filaDesvioPie, { color: textMuted }]}>{desvio.pie}</Text>}
+          </View>
+        ) : (
+          <View style={[styles.statusPill, { backgroundColor: status.solid ? accent : bg }]}>
+            <Text style={[styles.statusPillText, { color: status.solid ? accentInv : textMuted }]}>
+              {status.label}
+            </Text>
+          </View>
+        )}
+
+        <Ionicons name="chevron-forward" size={16} color={textMuted} />
+      </TouchableOpacity>
+    );
+  };
+
+  // ─── La ficha: la solicitud entera, con todo lo que hace falta para decidir ──
+  const renderFicha = (item) => {
+    const id = item._id || item.id;
+    const rs = estadoDe(item);
+    const pendiente = esperandoRespuesta(rs);
+    const status = getStatus(rs);
+    const seats = item.seatsBooked || item.seatsRequested;
+    const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
+    const puntos = [
+      { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
+      { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
+    ].filter(({ punto }) => punto?.address);
+
+    return (
+      <View style={[styles.fichaWrap, { backgroundColor: bg, paddingTop: insets.top + 6 }]}>
+        <View style={[styles.fichaHeader, { borderBottomColor: divider }]}>
+          <TouchableOpacity
+            onPress={() => setFichaId(null)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar la solicitud"
+          >
+            <Ionicons name="chevron-down" size={24} color={textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.fichaTitulo, { color: textPrimary }]}>Solicitud</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={[styles.fichaBody, { paddingBottom: insets.bottom + 24 }]}>
+          {/* Quién pide. Toca y vas a su perfil, igual que antes. */}
+          <TouchableOpacity
+            style={styles.passengerRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              setFichaId(null);
+              navigation.navigate('UserProfile', { userId: item.passenger._id, tripId: selectedTripId });
+            }}
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, styles.avatar, { backgroundColor: cardBg }]}>
+                <Text style={[styles.avatarInitials, { color: textMuted }]}>
+                  {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.passengerName, { color: textPrimary }]} numberOfLines={1}>
+                {item.passenger?.firstName} {item.passenger?.lastName}
+              </Text>
+              <Text style={[styles.reqSub, { color: textMuted }]} numberOfLines={1}>
+                {seatsLabelEs(seats)} · pidió {fmtCuando(item.createdAt)}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+          </TouchableOpacity>
+
+          {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
+              abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
+          {!pendiente && (
+            <View style={[styles.statusPill, styles.fichaStatus, { backgroundColor: status.solid ? accent : cardBg }]}>
+              <Text style={[styles.statusPillText, { color: status.solid ? accentInv : textMuted }]}>
                 {status.label}
               </Text>
             </View>
-          </View>
-        )}
+          )}
 
-        {item.message && (
-          <Text style={[styles.messageText, { color: textMuted, borderTopColor: divider }]} numberOfLines={3}>
-            "{item.message}"
-          </Text>
-        )}
+          {!!item.message && (
+            <Text style={[styles.fichaMensaje, { color: textMuted, borderColor: border }]}>
+              "{item.message}"
+            </Text>
+          )}
 
-        {/* Dónde sube y dónde baja, en su propia sub-tarjeta: se distingue del resto de la
-            card y el desvío queda pegado al lado, no suelto abajo. Cada punto abre el mapa
-            con su propio botón circular, no toda la fila. */}
-        {(item.seatReservation?.pickupLocation?.address || item.seatReservation?.dropoffLocation?.address) && (
-          <View style={[styles.reqRutaWrap, { borderTopColor: divider }]}>
-            <View style={[styles.reqRutaCard, { backgroundColor: ui.card }]}>
-              {[
-                { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
-                { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
-              ].filter(({ punto }) => punto?.address).map(({ punto, rotulo, fin }, i, arr) => {
+          {/* Dónde sube y dónde baja. Cada punto abre el mapa con su propio botón. */}
+          {puntos.length > 0 && (
+            <View style={[styles.reqRutaCard, { backgroundColor: cardBg }]}>
+              {puntos.map(({ punto, rotulo, fin }, i) => {
                 const hasCoords = punto.coordinates?.latitude != null;
                 return (
                   <View key={rotulo}>
@@ -527,28 +647,30 @@ const TripRequestsScreen = ({ route }) => {
                       <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.reqPuntoRotulo, { color: textMuted }]}>{rotulo}</Text>
-                        <Text style={[styles.reqPuntoDir, { color: textPrimary }]} numberOfLines={2}>
-                          {punto.address}
-                        </Text>
+                        <Text style={[styles.reqPuntoDir, { color: textPrimary }]}>{punto.address}</Text>
                       </View>
                       {hasCoords && (
                         <TouchableOpacity
-                          style={[styles.reqMapBtn, { backgroundColor: cardBg, borderColor: divider }]}
-                          onPress={() => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo })}
+                          style={[styles.reqMapBtn, { backgroundColor: bg, borderColor: divider }]}
+                          onPress={() => {
+                            setFichaId(null);
+                            navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo });
+                          }}
                           activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Ver ${rotulo} en el mapa`}
                         >
                           <Ionicons name="map-outline" size={18} color={textMuted} />
                         </TouchableOpacity>
                       )}
                     </View>
-                    {i < arr.length - 1 && <View style={[styles.reqRutaDivider, { backgroundColor: divider }]} />}
+                    {i < puntos.length - 1 && <View style={[styles.reqRutaDivider, { backgroundColor: divider }]} />}
                   </View>
                 );
               })}
 
               {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
-                  conductor si no conoce el barrio: este número es lo que le permite decidir
-                  en dos segundos en vez de abrir el mapa por cada solicitud. */}
+                  conductor si no conoce el barrio: este número es lo que le permite decidir. */}
               {!!item.desvioEtiqueta && (
                 <View style={[styles.reqDesvio, { borderTopColor: divider }]}>
                   <Ionicons
@@ -562,41 +684,45 @@ const TripRequestsScreen = ({ route }) => {
                 </View>
               )}
             </View>
-          </View>
-        )}
+          )}
 
-        {item.status === 'rejected' && item.rejectionReason && (
-          <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
-            Razón: {item.rejectionReason}
-          </Text>
-        )}
+          {item.status === 'rejected' && item.rejectionReason && (
+            <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
+              Razón: {item.rejectionReason}
+            </Text>
+          )}
 
-        {isPending && (
-          <View style={[styles.actionsRow, { borderTopColor: divider }]}>
-            <TouchableOpacity
-              style={[styles.btnReject, { borderColor: ui.border }]}
-              onPress={() => {
-                setSelectedRequest(item._id);
-                setRejectModalVisible(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.btnRejectText, { color: textPrimary }]}>Rechazar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btnAccept, { backgroundColor: accent }]}
-              onPress={() => handleAccept(item)}
-              disabled={acceptingRequestId === (item._id || item.id)}
-              activeOpacity={0.8}
-            >
-              {acceptingRequestId === (item._id || item.id) ? (
-                <ActivityIndicator size="small" color={accentInv} />
-              ) : (
-                <Text style={[styles.btnAcceptText, { color: accentInv }]}>Aceptar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+          {/* Los botones cierran la ficha ANTES de seguir: tanto el diálogo de confirmar como
+              el de rechazar se abren encima, y con la ficha abierta quedarían tapados por
+              ella —el Modal de React Native vive por arriba de la navegación—. */}
+          {pendiente && (
+            <View style={styles.fichaAcciones}>
+              <TouchableOpacity
+                style={[styles.btnReject, { borderColor: border }]}
+                onPress={() => {
+                  setFichaId(null);
+                  setSelectedRequest(id);
+                  setRejectModalVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.btnRejectText, { color: textPrimary }]}>Rechazar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnAccept, { backgroundColor: accent }]}
+                onPress={() => { setFichaId(null); handleAccept(item); }}
+                disabled={acceptingRequestId === id}
+                activeOpacity={0.8}
+              >
+                {acceptingRequestId === id ? (
+                  <ActivityIndicator size="small" color={accentInv} />
+                ) : (
+                  <Text style={[styles.btnAcceptText, { color: accentInv }]}>Aceptar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
       </View>
     );
   };
@@ -680,32 +806,39 @@ const TripRequestsScreen = ({ route }) => {
           onScroll={handleRequestsScroll}
           scrollEventThrottle={400}
         >
-          <View style={[styles.unifiedCard, { backgroundColor: cardBg }]}>
-            {renderTripContextBlock()}
-            {requests.length > 0 && (
-              <View style={[styles.inCardFullBleedLine, { backgroundColor: divider }]} />
-            )}
-            {requests.length === 0 ? (
-              <EmptyState
-                image={require('../../../../assets/icons/pngwing.com (20).png')}
-                title="Sin solicitudes"
-                subtitle="Cuando alguien quiera sumarse a este viaje, la solicitud va a aparecer acá."
-              />
-            ) : (
-              requests.map((item, index) => (
-                <View
-                  key={item._id || item.id || String(index)}
-                  style={
-                    index > 0
-                      ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: divider }
-                      : undefined
-                  }
-                >
-                  {renderRequestSection(item)}
+          {renderTripContextBlock()}
+
+          {requests.length === 0 ? (
+            <EmptyState
+              image={require('../../../../assets/icons/pngwing.com (20).png')}
+              title="Sin solicitudes"
+              subtitle="Cuando alguien quiera sumarse a este viaje, la solicitud va a aparecer acá."
+            />
+          ) : (
+            /* Dos grupos, y el que te está esperando va primero: en una bandeja lo único
+               urgente es lo que todavía no respondiste. Las resueltas quedan abajo, como
+               historial, sin desaparecer. */
+            [
+              { clave: 'pendientes', titulo: 'Te están esperando', filas: pendientes },
+              { clave: 'resueltas', titulo: 'Ya resueltas', filas: resueltas },
+            ]
+              .filter((g) => g.filas.length > 0)
+              .map((g) => (
+                <View key={g.clave} style={styles.grupo}>
+                  <View style={styles.grupoHead}>
+                    <Text style={[styles.grupoTitulo, { color: textMuted }]}>{g.titulo}</Text>
+                    {g.clave === 'pendientes' && (
+                      <View style={[styles.grupoCuenta, { backgroundColor: accent }]}>
+                        <Text style={[styles.grupoCuentaText, { color: accentInv }]}>{g.filas.length}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={[styles.lista, { backgroundColor: cardBg, borderColor: border }]}>
+                    {g.filas.map((item, i) => renderRequestRow(item, i === g.filas.length - 1))}
+                  </View>
                 </View>
               ))
-            )}
-          </View>
+          )}
           {listFooter(loadingMoreRequests)}
         </ScrollView>
       ) : (
@@ -720,6 +853,16 @@ const TripRequestsScreen = ({ route }) => {
           />
         </ScrollView>
       )}
+
+      {/* Ficha de una solicitud */}
+      <Modal
+        animationType="slide"
+        visible={!!fichaActual}
+        onRequestClose={() => setFichaId(null)}
+        presentationStyle="overFullScreen"
+      >
+        {fichaActual ? renderFicha(fichaActual) : null}
+      </Modal>
 
       {/* Reject Modal */}
       <Modal animationType="fade" transparent visible={rejectModalVisible} onRequestClose={() => setRejectModalVisible(false)}>
@@ -777,15 +920,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
   },
-  unifiedCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+  // Bandeja: un grupo por estado, y dentro una lista de filas separadas por un pelo.
+  grupo: { marginBottom: 22 },
+  grupoHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, paddingHorizontal: 4 },
+  grupoTitulo: { fontFamily: 'Sora_600SemiBold', fontSize: 11, letterSpacing: 0.7, textTransform: 'uppercase' },
+  grupoCuenta: { minWidth: 20, height: 20, borderRadius: 999, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
+  grupoCuentaText: { fontFamily: 'Sora_700Bold', fontSize: 11 },
+  lista: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+
+  fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  avatarFila: { width: 38, height: 38, borderRadius: 999 },
+  filaNombre: { fontFamily: 'Sora_600SemiBold', fontSize: 14.5 },
+  filaSub: { fontFamily: 'Sora_400Regular', fontSize: 11.5, marginTop: 2 },
+  // El número del desvío alineado a la derecha y en negrita, con la aclaración abajo: es el
+  // dato que decide, y suelto en una línea de texto chico se perdía.
+  filaDesvio: { alignItems: 'flex-end' },
+  filaDesvioFuerte: { fontFamily: 'Sora_600SemiBold', fontSize: 12.5 },
+  filaDesvioPie: { fontFamily: 'Sora_400Regular', fontSize: 10, marginTop: 1 },
+
+  // Ficha
+  fichaWrap: { flex: 1 },
+  fichaHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  fichaTitulo: { flex: 1, textAlign: 'center', fontFamily: 'Sora_700Bold', fontSize: 17 },
+  fichaBody: { padding: 20, gap: 16 },
+  fichaStatus: { alignSelf: 'flex-start' },
+  fichaMensaje: {
+    fontFamily: 'Sora_400Regular', fontSize: 13.5, lineHeight: 20, fontStyle: 'italic',
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
+  },
+  fichaAcciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -797,14 +964,14 @@ const styles = StyleSheet.create({
   centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 24 },
 
   // Header
+  // Encabezado del viaje: ya no vive dentro de una tarjeta, es la cabecera de la bandeja.
+  // La línea de abajo lo separa de los grupos sin necesidad de encerrarlo en otra caja.
   tripContextEmbedded: {
-    padding: 14,
+    paddingHorizontal: 4,
+    paddingBottom: 16,
+    marginBottom: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  inCardFullBleedLine: {
-    height: StyleSheet.hairlineWidth,
-    width: '100%',
-  },
-
   tripContextLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
@@ -872,11 +1039,6 @@ const styles = StyleSheet.create({
   },
   pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
-  reqSectionPad: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-
   passengerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -902,10 +1064,8 @@ const styles = StyleSheet.create({
   statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   reqSub:         { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
-  reqEstadoWrap:  { paddingHorizontal: 16, paddingBottom: 14, marginTop: -4, alignItems: 'flex-start' },
 
   // El recorrido de la solicitud, en su propia sub-tarjeta: se distingue del resto de la card.
-  reqRutaWrap: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
   reqRutaCard: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
   reqDesvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
   reqDesvioText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
@@ -918,14 +1078,6 @@ const styles = StyleSheet.create({
   reqRutaDivider: { height: 1, marginLeft: 20 },
 
 
-  messageText: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    lineHeight: 19,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   rejectionText: {
     fontSize: 13,
     color: '#8A8A8E',
@@ -934,13 +1086,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
   btnReject: {
     flex: 1,
