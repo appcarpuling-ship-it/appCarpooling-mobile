@@ -52,57 +52,33 @@ const TripDetails = ({ navigation, route }) => {
 
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
-    // adjustResize achica la ventana cuando se abre el teclado, pero no mueve el scroll:
-    // un input pegado abajo del todo (asientos, precio) quedaba tapado por el teclado sin
-    // forma de verlo mientras se escribe. scrollYRef guarda dónde está el scroll para poder
-    // sumarle el offset — scrollTo necesita una posición absoluta, no relativa.
-    const scrollYRef = useRef(0);
-    const seatsInputRef = useRef(null);
-    const priceInputRef = useRef(null);
-    /**
-     * Dónde termina el área visible del scroll, en coordenadas de la VENTANA. Lo publica el
-     * propio ScrollView por onLayout, y con softwareKeyboardLayoutMode 'resize' vuelve a
-     * dispararse solo cuando el teclado achica la ventana: o sea que ya trae el alto sin el
-     * teclado, sin tener que restarlo a mano.
-     *
-     * Este dato reemplaza dos intentos anteriores que fallaron por mezclar sistemas de
-     * coordenadas, que es el error fácil acá:
-     *  - `Dimensions.get('window').height - alturaTeclado` descontaba el teclado dos veces.
-     *  - `endCoordinates.screenY` está en coordenadas de PANTALLA, mientras que el `pageY` de
-     *    measure() está en coordenadas de la ventana ya achicada. Comparar uno con otro da un
-     *    overlap corto —justo la altura de la barra de estado— y el input queda tapado igual.
-     * Midiendo las dos cosas con la misma vara el problema desaparece.
-     */
-    const areaScrollRef = useRef({ top: 0, height: 0 });
 
-    // measure() es el método de instancia del ref, no el UIManager.measureLayout +
-    // findNodeHandle estático que crasheaba con la New Architecture (ver comentario del
-    // ScrollView más abajo) — por eso esto no revive ese bug.
-    const medirYSubir = (inputRef) => {
-        const { top, height: alto } = areaScrollRef.current;
-        if (!alto) return;
-        const bordeVisible = top + alto;
-        inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-            const overlap = (pageY + height) - bordeVisible;
-            if (overlap > 0) {
-                scrollRef.current?.scrollTo({ y: scrollYRef.current + overlap + 24, animated: true });
-            }
-        });
-    };
-    const scrollFieldAboveKeyboard = (inputRef) => {
-        if (Platform.OS !== 'android') return; // iOS ya lo resuelve con automaticallyAdjustKeyboardInsets
-        // Saltar de un input a otro con el teclado ya arriba no dispara keyboardDidShow de
-        // nuevo (la ventana ya está resizeada), así que ahí se mide en el momento.
-        if (Keyboard.isVisible()) {
-            medirYSubir(inputRef);
-            return;
-        }
-        const sub = Keyboard.addListener('keyboardDidShow', () => {
-            sub.remove();
-            // Un frame de aire: keyboardDidShow puede llegar ANTES de que el ScrollView reciba
-            // su onLayout nuevo, y sin esperarlo se mide contra el área de pantalla completa
-            // —como si el teclado no estuviera— y el scroll no se mueve.
-            requestAnimationFrame(() => medirYSubir(inputRef));
+    /**
+     * Alto del teclado, sólo en Android. Se usa como `paddingBottom` extra del scroll: mientras
+     * el teclado está abierto, el final de la lista puede pasar por encima de él, así que
+     * scrollToEnd deja los últimos campos (asientos, precio) enteros a la vista. Cuando el
+     * teclado se cierra vuelve a 0 y no queda hueco.
+     *
+     * Reemplaza TRES intentos con measure() que fallaron por mezclar sistemas de coordenadas
+     * (window vs pantalla, teclado descontado dos veces). scrollToEnd no calcula nada: es el
+     * método de scroll más probado de RN y el padding garantiza que haya a dónde scrollear.
+     */
+    const [alturaTeclado, setAlturaTeclado] = useState(0);
+    useEffect(() => {
+        if (Platform.OS !== 'android') return undefined;
+        const show = Keyboard.addListener('keyboardDidShow', (e) => setAlturaTeclado(e.endCoordinates?.height || 0));
+        const hide = Keyboard.addListener('keyboardDidHide', () => setAlturaTeclado(0));
+        return () => { show.remove(); hide.remove(); };
+    }, []);
+
+    // iOS ya sube el campo enfocado solo con `automaticallyAdjustKeyboardInsets`. En Android,
+    // un frame de espera para que el scroll tenga el padding nuevo, y scrollToEnd. Los inputs
+    // (asientos y precio) están en la última tarjeta del paso, así que llevar el final a la
+    // vista los muestra enteros.
+    const scrollFieldAboveKeyboard = () => {
+        if (Platform.OS !== 'android') return;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
         });
     };
     const [loading, setLoading] = useState(false);
@@ -375,21 +351,13 @@ const TripDetails = ({ navigation, route }) => {
                     <ScrollView
                         ref={scrollRef}
                         style={styles.flex}
-                        contentContainerStyle={styles.scroll}
+                        // El padding de abajo crece con el teclado (sólo Android): así el final
+                        // de la lista puede pasar por encima de él y scrollToEnd deja el campo
+                        // enfocado entero a la vista. Sin teclado vuelve a `styles.scroll`.
+                        contentContainerStyle={[styles.scroll, alturaTeclado > 0 && { paddingBottom: alturaTeclado + 40 }]}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         automaticallyAdjustKeyboardInsets
-                        onScroll={e => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
-                        scrollEventThrottle={16}
-                        // De acá sale el área visible con la que se compara el input (ver
-                        // areaScrollRef). `y` es relativo al SafeAreaView, que arranca en el
-                        // tope de la ventana, así que queda en la misma referencia que el
-                        // pageY de measure(). Con el teclado abierto vuelve a dispararse con
-                        // el alto ya reducido.
-                        onLayout={e => {
-                            const { y, height } = e.nativeEvent.layout;
-                            areaScrollRef.current = { top: y, height };
-                        }}
                     >
 
                         {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
@@ -508,13 +476,12 @@ const TripDetails = ({ navigation, route }) => {
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
-                                    ref={seatsInputRef}
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder={selectedVehicle ? 'Asientos disponibles *' : 'Primero elegí un vehículo'}
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
                                     editable={!!selectedVehicle}
-                                    onFocus={() => scrollFieldAboveKeyboard(seatsInputRef)}
+                                    onFocus={scrollFieldAboveKeyboard}
                                     onChangeText={v => {
                                         const num = parseInt(v);
                                         const cap = selectedVehicle?.capacity;
@@ -582,12 +549,11 @@ const TripDetails = ({ navigation, route }) => {
                             <View style={styles.inputRow}>
                                 <Ionicons name="cash-outline" size={19} color={textPrimary} />
                                 <TextInput
-                                    ref={priceInputRef}
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder="Precio por pasajero *"
                                     placeholderTextColor={textMuted}
                                     value={formData.driverPrice ? `$${formData.driverPrice}` : ''}
-                                    onFocus={() => scrollFieldAboveKeyboard(priceInputRef)}
+                                    onFocus={scrollFieldAboveKeyboard}
                                     onChangeText={v => {
                                         const digits = v.replace(/\D/g, '');
                                         handleChange('driverPrice', digits
