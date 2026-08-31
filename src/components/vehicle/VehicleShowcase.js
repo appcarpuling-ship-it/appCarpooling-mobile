@@ -55,10 +55,13 @@ const estadoDoc = (url, vence) => {
  * borrar en la lista propia, ninguno cuando sólo se está eligiendo—.
  *
  * @param {Object} vehicle
- * @param {number} width     ancho de la página; lo fija el carrusel que la contiene
- * @param {Array}  acciones  [{ icon, onPress, label }], arriba a la derecha de la foto
+ * @param {number} width        ancho de la página; lo fija el carrusel que la contiene
+ * @param {Array}  acciones     [{ icon, onPress, label }], arriba a la derecha de la foto
+ * @param {number} aireAbajo    espacio extra al final del scroll, para lo que flote encima
+ *                              de la pantalla (el botón de nuevo vehículo tapaba la última
+ *                              fila de documentación al llegar al fondo)
  */
-const VehicleShowcase = ({ vehicle, width, acciones = [] }) => {
+const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
   const ui = useUI();
   const [fotoIndex, setFotoIndex] = useState(0);
 
@@ -78,6 +81,14 @@ const VehicleShowcase = ({ vehicle, width, acciones = [] }) => {
     { label: 'VTV / RTO', ...estadoDoc(vehicle.inspectionUrl, vehicle.inspectionExpiry) },
     { label: 'Cédula verde', ...estadoDoc(vehicle.registrationCardUrl, null) },
   ];
+
+  // Hasta 4 fotos entran repartidas a lo ancho de la pantalla, que se ven mejor que
+  // amontonadas a la izquierda. De 5 para arriba no entrarían sin achicarse a nada: ahí pasa
+  // a carrusel horizontal, con las miniaturas a tamaño fijo.
+  const enCarrusel = galeria.length > 4;
+  const anchoMini = enCarrusel
+    ? 104
+    : Math.floor((width - 40 - 8 * (galeria.length - 1)) / Math.max(galeria.length, 1));
 
   const carga = [
     vehicle.cargoSpaceLiters ? `${vehicle.cargoSpaceLiters} L de baúl` : null,
@@ -116,7 +127,7 @@ const VehicleShowcase = ({ vehicle, width, acciones = [] }) => {
 
       <ScrollView
         style={styles.detalle}
-        contentContainerStyle={styles.detalleContent}
+        contentContainerStyle={[styles.detalleContent, { paddingBottom: 24 + aireAbajo }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={2}>
@@ -138,22 +149,28 @@ const VehicleShowcase = ({ vehicle, width, acciones = [] }) => {
         </View>
 
         {/* Miniaturas: tocarlas cambia la foto grande, en vez de ser una fila decorativa. */}
-        {galeria.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.miniaturas}>
-            {galeria.map((foto, i) => (
-              <TouchableOpacity key={`${foto}-${i}`} onPress={() => setFotoIndex(i)} activeOpacity={0.8}>
-                <Image
-                  source={{ uri: buildImageUri(foto) }}
-                  style={[
-                    styles.miniatura,
-                    { backgroundColor: ui.surface, borderColor: i === fotoIndex ? ui.text : 'transparent' },
-                  ]}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+        {galeria.length > 1 && (() => {
+          const minis = galeria.map((foto, i) => (
+            <TouchableOpacity key={`${foto}-${i}`} onPress={() => setFotoIndex(i)} activeOpacity={0.8}>
+              <Image
+                source={{ uri: buildImageUri(foto) }}
+                style={[
+                  styles.miniatura,
+                  { width: anchoMini },
+                  { backgroundColor: ui.surface, borderColor: i === fotoIndex ? ui.text : 'transparent' },
+                ]}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ));
+          return enCarrusel ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.miniaturas}>
+              {minis}
+            </ScrollView>
+          ) : (
+            <View style={styles.miniaturas}>{minis}</View>
+          );
+        })()}
 
         {activas.length > 0 && (
           <View style={styles.bloque}>
@@ -192,7 +209,9 @@ const VehicleShowcase = ({ vehicle, width, acciones = [] }) => {
 };
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: 24, overflow: 'hidden', marginHorizontal: 16 },
+  // A todo el ancho de la pantalla: es la foto del auto, lo primero que se mira. Redondeada
+  // sólo abajo — arriba pega contra el header y un radio ahí deja dos muescas de fondo.
+  hero: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
   heroImg: { width: '100%', height: '100%' },
   heroFallback: { width: '100%', height: '100%', padding: 24 },
   acciones: { position: 'absolute', top: 12, right: 12, gap: 10 },
@@ -208,8 +227,11 @@ const styles = StyleSheet.create({
   chipIcono: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   chipText: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
 
-  miniaturas: { gap: 8, paddingTop: 14, paddingRight: 4 },
-  miniatura: { width: 68, height: 68, borderRadius: 14, borderWidth: 2 },
+  miniaturas: { flexDirection: 'row', gap: 8, paddingTop: 14 },
+  // Alto fijo y ancho variable: repartidas a lo ancho quedan apaisadas, que es la forma de
+  // una foto de auto. Cuadradas y grandes (dos fotos = dos cuadrados enormes) se comían la
+  // pantalla.
+  miniatura: { height: 80, borderRadius: 14, borderWidth: 2 },
 
   bloque: { marginTop: 22 },
   bloqueTitulo: { fontFamily: 'Sora_600SemiBold', fontSize: 11, letterSpacing: 0.6 },

@@ -124,6 +124,9 @@ const VehiclesScreen = () => {
     <VehicleShowcase
       vehicle={item}
       width={SCREEN_W}
+      // El FAB de nuevo vehículo flota sobre el scroll: sin este aire, al llegar al fondo
+      // tapaba la última fila de documentación. 56 del botón + los 20 que lo separan del piso.
+      aireAbajo={insets.bottom + 76}
       acciones={[
         { icon: 'create-outline', label: 'Editar vehículo', onPress: () => navigation.navigate('VehicleForm', { vehicle: item }) },
         { icon: 'trash-outline', label: 'Eliminar vehículo', onPress: () => handleDelete(item._id) },
