@@ -346,8 +346,16 @@ const TripDetails = ({ navigation, route }) => {
                     va undefined para no interferir con automaticallyAdjustKeyboardInsets. */}
                 <KeyboardAvoidingView
                     style={styles.flex}
-                    behavior={Platform.OS === 'android' ? 'height' : undefined}
-                    keyboardVerticalOffset={headerHeight}
+                    // 'padding' y no 'height': con 'height' el KAV fija una altura al contenedor
+                    // y el footer quedaba "flotando" con aire arriba y abajo. Con 'padding' suma
+                    // el alto del teclado como paddingBottom, el ScrollView (flex:1) absorbe esa
+                    // reducción y el footer queda pegado al borde del teclado, en el mismo lugar
+                    // que sin teclado. En iOS va undefined para no pisar
+                    // automaticallyAdjustKeyboardInsets del ScrollView.
+                    behavior={Platform.OS === 'android' ? 'padding' : undefined}
+                    // Sin keyboardVerticalOffset: este KAV envuelve el contenido de la screen,
+                    // que React Navigation ya posiciona DEBAJO del header, así que el alto del
+                    // teclado se mide bien tal cual. Pasarle headerHeight descontaba de más.
                 >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     {/* `automaticallyAdjustKeyboardInsets` en vez de KeyboardAwareScrollView.
