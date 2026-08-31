@@ -615,7 +615,17 @@ const TripMapScreen = ({ route, navigation }) => {
     }
   };
 
+  /**
+   * Completar tarda: hay una llamada al backend y después hay que apagar el seguimiento en
+   * segundo plano, que es lo más lento de los dos. Sin nada que lo muestre, el conductor se
+   * quedaba mirando el mapa quieto varios segundos hasta que aparecía la pantalla de "viaje
+   * completado", y parecía que la app se había colgado. El botón avisa que está trabajando y
+   * de paso deja de aceptar toques, que si no mandaba la petición dos veces.
+   */
+  const [completando, setCompletando] = useState(false);
   const submitCompleteTrip = async () => {
+    if (completando) return;
+    setCompletando(true);
     try {
       const response = await put_withauth(ENDPOINTS.COMPLETE_TRIP(trip._id), {});
       if (response.success) {
@@ -646,6 +656,8 @@ const TripMapScreen = ({ route, navigation }) => {
         message: error.message || 'Error al completar el viaje',
         error,
       });
+    } finally {
+      setCompletando(false);
     }
   };
 
@@ -1151,10 +1163,19 @@ const TripMapScreen = ({ route, navigation }) => {
                 style={styles.navContinuar}
                 onPress={avanzar}
                 activeOpacity={0.85}
+                disabled={completando}
                 accessibilityRole="button"
+                accessibilityState={{ busy: completando }}
                 accessibilityLabel={enElDestino ? 'Completar el viaje' : textoBoton}
               >
-                <Text style={styles.navContinuarText}>{textoBoton}</Text>
+                {completando ? (
+                  <View style={styles.navContinuarCargando}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.navContinuarText}>Completando…</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.navContinuarText}>{textoBoton}</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -1418,6 +1439,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   navContinuarText: { fontSize: 16, fontFamily: 'Sora_700Bold', color: '#FFFFFF' },
+  navContinuarCargando: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 });
 
 export default TripMapScreen;
