@@ -472,9 +472,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const effectivelyExpired = new Date(request.departureDate) < today
     && ['open', 'awaiting_payment'].includes(request.status);
-  const statusCfg   = effectivelyExpired
+  const statusBase  = effectivelyExpired
     ? STATUS_MAP.expired
     : STATUS_MAP[request.status] || { label: request.status, color: textMuted };
+  // "Pago pendiente" es el pago del PASAJERO. Del lado del conductor no hay ningún pago
+  // pendiente —el pasajero le paga a él directo—, así que ve el mismo estado por lo que es
+  // para él: la solicitud todavía no está cerrada.
+  const statusCfg   = isDriver && statusBase === STATUS_MAP.awaiting_payment
+    ? { ...statusBase, label: 'Sin confirmar' }
+    : statusBase;
   const acceptedApp = request.applications?.find(a => a.status === 'accepted');
   const ofertaAceptada = acceptedApp ? ofertaDelConductor(acceptedApp) : null;
   const passenger   = request.passenger;
@@ -852,12 +858,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Esperando pago (driver) */}
+          {/* Esperando que el pasajero confirme (driver). No se nombra ningún pago: el
+              conductor no paga nada acá y lo que cobra se lo paga el pasajero directo. */}
           {isAcceptedDriver && request.status === 'awaiting_payment' && (
             <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
               <Ionicons name="hourglass-outline" size={17} color={ui.invertText} />
               <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                ¡Te eligieron! El pasajero está completando el pago.
+                ¡Te eligieron! Falta que el pasajero confirme el viaje.
               </Text>
             </View>
           )}
@@ -867,7 +874,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
               <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
               <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Pago confirmado. El viaje está en "Mis viajes".'}
+                {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Viaje confirmado. Aparece en "Mis viajes".'}
               </Text>
             </View>
           )}

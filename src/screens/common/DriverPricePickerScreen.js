@@ -182,7 +182,9 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
 
   body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, flexGrow: 1 },
+  // Sin paddingBottom: abajo del boton queda solo el del contenedor (insets.bottom + 16),
+  // el mismo aire que el resto de los botones de la app. Con los 24 de acá quedaba más arriba.
+  bodyContent: { paddingHorizontal: 24, paddingTop: 16, flexGrow: 1 },
   // flexGrow: la cadena tiene que llenar el contentContainer entero para que el `marginTop:
   // 'auto'` del footer lo empuje al fondo cuando el contenido es corto.
   bodyInner: { gap: 12, flexGrow: 1 },

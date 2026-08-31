@@ -161,6 +161,11 @@ const BookingScreen = ({ route, navigation }) => {
   // En Android, un marker con vista propia y tracksViewChanges en false desde el primer
   // render se dibuja invisible (mismo bug ya resuelto en TripMapScreen/TripDetailScreen).
   const [bookingMapReady, setBookingMapReady] = useState(false);
+  // onMapReady no alcanza: en Android llega antes del layout, con la vista nativa todavía en
+  // 0x0. Ahí react-native-maps ignora el encuadre y deja su fallback —el centro del recorrido
+  // en zoom 10—, que es justo lo que se veía: el mapa cerrado en el medio del viaje. El ancho
+  // del onLayout es la señal de que la vista ya mide algo y el fit se puede aplicar.
+  const [bookingMapAncho, setBookingMapAncho] = useState(0);
   const [bookingDotsVivos, setBookingDotsVivos] = useState(true);
   const bookingMapRef = useRef(null);
   // El apagado del tracking vive en el efecto del encuadre, para que ocurra DESPUÉS de mover
@@ -170,7 +175,7 @@ const BookingScreen = ({ route, navigation }) => {
   // encuadre que TripDetailScreen. La cantidad de puntos va en las dependencias y no el array,
   // que se arma nuevo en cada render.
   useEffect(() => {
-    if (!bookingMapReady) return undefined;
+    if (!bookingMapReady || !bookingMapAncho) return undefined;
     if (puntosDelEncuadre.length >= 2) {
       bookingMapRef.current?.fitToCoordinates(puntosDelEncuadre, {
         edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
@@ -185,7 +190,17 @@ const BookingScreen = ({ route, navigation }) => {
     setBookingDotsVivos(true);
     const t = setTimeout(() => setBookingDotsVivos(false), 900);
     return () => clearTimeout(t);
-  }, [bookingMapReady, puntosDelEncuadre.length]);
+  }, [bookingMapReady, bookingMapAncho, puntosDelEncuadre.length]);
+
+  // Al volver del PointPicker el MapView se remonta (pantallaEnfocada lo desmonta al salir) y
+  // nace de nuevo sin encuadrar. Si las señales quedaran en true no cambiarían de valor y el
+  // efecto de arriba no volvería a correr: se reinician al perder el foco.
+  useEffect(() => {
+    if (!pantallaEnfocada) {
+      setBookingMapReady(false);
+      setBookingMapAncho(0);
+    }
+  }, [pantallaEnfocada]);
 
   const tripFreeNow = useMemo(() => tripRemainingSeats(trip), [trip]); // guard: incluye holds pendientes
   const tripShownSeats = useMemo(() => tripDisplaySeats(trip), [trip]); // display: sin holds
@@ -456,6 +471,7 @@ const BookingScreen = ({ route, navigation }) => {
                 pitchEnabled={false}
                 pointerEvents="none"
                 onMapReady={() => setBookingMapReady(true)}
+                onLayout={(e) => setBookingMapAncho(e.nativeEvent.layout.width)}
               >
                 {hasBookingRealRoute && (
                   <RutaPolyline coordinates={bookingPreviewCoordinates} width={4} color="#000000" />
