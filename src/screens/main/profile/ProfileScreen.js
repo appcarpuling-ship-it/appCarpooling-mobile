@@ -12,9 +12,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// El contador de no leídos que alimenta el acceso a Mensajes. Montarlo acá es seguro desde
-// que socketService admite varios listeners por evento: antes, dos consumidores se pisaban.
-import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
@@ -121,7 +118,6 @@ const ProfileScreen = () => {
   // Badge con lo que debe: sin esto, el conductor solo se enteraba de la deuda por la
   // notificación al completar el viaje (que puede perderse o descartarse) o entrando a
   // "Mi saldo" por las suyas. Acá queda a la vista cada vez que abre el Perfil.
-  const { unreadCount } = useUnreadMessages();
   const deuda = user?.deudaEfectivo || 0;
   const quickAccessItems = [
     { id: 1, title: 'Editar perfil', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
@@ -310,40 +306,6 @@ const ProfileScreen = () => {
           ))}
         </View>
 
-        {/* Mensajes va aparte del grid y a lo ancho, no como quinto elemento: con cinco, la
-            cuadrícula de 2x2 queda con un hueco. Y es de otra naturaleza — los otros cuatro son
-            ajustes de la cuenta, esto es contenido que te está esperando, así que lleva el
-            contador y una flecha.
-            La bandeja se sacó de la barra de tabs y quedó sin ninguna entrada: el contador de no
-            leídos seguía funcionando pero no había forma de llegar a los mensajes. */}
-        <TouchableOpacity
-          style={[styles.mensajes, { backgroundColor: cardBg }]}
-          onPress={() => navigation.navigate('Chats')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={
-            unreadCount > 0 ? `Mensajes, ${unreadCount} sin leer` : 'Mensajes'
-          }
-        >
-          <Ionicons name="chatbubble-ellipses-outline" size={21} color={textPrimary} />
-          <View style={styles.mensajesTexto}>
-            <Text style={[styles.mensajesTitulo, { color: textPrimary }]}>Mensajes</Text>
-            <Text style={[styles.mensajesSub, { color: textMuted }]} numberOfLines={1}>
-              {unreadCount > 0
-                ? `Tenés ${unreadCount} sin leer`
-                : 'Coordiná los detalles de tus viajes'}
-            </Text>
-          </View>
-          {unreadCount > 0 && (
-            <View style={[styles.mensajesBadge, { backgroundColor: ui.invertBg }]}>
-              <Text style={[styles.mensajesBadgeText, { color: ui.invertText }]}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Text>
-            </View>
-          )}
-          <Ionicons name="chevron-forward" size={18} color={textMuted} />
-        </TouchableOpacity>
-
         {/* Menu: lista plana, sin tarjeta con borde alrededor — solo separadores
             finitos entre filas, como el resto de las opciones de cuenta en Uber. */}
         <View style={styles.menuContent}>
@@ -486,25 +448,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 28,
   },
-  // Ancho completo y algo más alto que las tarjetas del grid: es una fila propia, no un quinto
-  // elemento de la cuadrícula. Mismo padding horizontal que quickGrid para que los bordes
-  // queden alineados con las tarjetas de arriba.
-  mensajes: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    marginHorizontal: 24,
-    marginTop: -18,
-    marginBottom: 28,
-  },
-  mensajesTexto:  { flex: 1, gap: 2 },
-  mensajesTitulo: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-  mensajesSub:    { fontSize: 12, fontFamily: 'Sora_400Regular' },
-  mensajesBadge:  { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
-  mensajesBadgeText: { fontSize: 11, fontFamily: 'Sora_700Bold' },
   quickItem: {
     flexBasis: '47%',
     flexGrow: 1,
