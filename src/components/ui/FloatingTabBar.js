@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUI } from '../../theme/ui';
+import { tabBarHidden } from './tabBarScroll';
 
 // El logo va al revés que el relleno del botón: relleno negro -> logo blanco.
 const RUMBO_WHITE = require('../../../assets/agent/rumbo_128.png');
@@ -62,10 +63,20 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
     if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
   };
 
+  // La barra completa (incluido el aire de abajo) baja ~120px al scrollear hacia abajo y
+  // desaparece con un fade; vuelve al scrollear hacia arriba. Lo maneja tabBarScroll.
+  const traslado = tabBarHidden.interpolate({ inputRange: [0, 1], outputRange: [0, 120] });
+  const opacidad = tabBarHidden.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
   return (
     // Sin fondo propio: se ve el de la pantalla. Pintarlo agregaba una banda
     // blanca cuando la pantalla de atrás no era blanca.
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <Animated.View
+      style={[
+        styles.wrap,
+        { paddingBottom: Math.max(insets.bottom, 12), transform: [{ translateY: traslado }], opacity: opacidad },
+      ]}
+    >
       {/* paddingTop = lo que sobresale el botón, para que quede dentro de este
           contenedor: en Android lo que se dibuja fuera del padre no recibe toques. */}
       <View style={styles.barWrap}>
@@ -137,7 +148,7 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
           </View>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

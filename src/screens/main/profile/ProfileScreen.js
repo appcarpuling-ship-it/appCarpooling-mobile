@@ -27,11 +27,13 @@ import { useTutorial } from '../../../context/TutorialContext';
 import Rating from '../../../components/ui/Rating';
 import Skeleton from '../../../components/ui/Skeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
+import { useTabBarScroll } from '../../../components/ui/tabBarScroll';
 
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
 
 const ProfileScreen = () => {
+  const onTabBarScroll = useTabBarScroll();
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
@@ -210,6 +212,8 @@ const ProfileScreen = () => {
       </Modal>
 
       <ScrollView
+        onScroll={onTabBarScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} colors={[textPrimary]} />}

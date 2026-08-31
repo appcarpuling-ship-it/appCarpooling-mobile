@@ -38,6 +38,7 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
 import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
+import { useTabBarScroll } from '../../../components/ui/tabBarScroll';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -125,6 +126,7 @@ const BannerCarousel = ({ banners, onBannerPress }) => {
 };
 
 const HomeScreen = ({ navigation, route }) => {
+  const onTabBarScroll = useTabBarScroll();
   const { isAuthenticated, user } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   useTheme();
@@ -566,6 +568,8 @@ const HomeScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onScroll={onTabBarScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -781,6 +785,8 @@ const HomeScreen = ({ navigation, route }) => {
           // tapaba los ultimos banners al llegar al final.
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          onScroll={onTabBarScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textMuted} />
           }

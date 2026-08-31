@@ -24,11 +24,13 @@ import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { reportError } from '../../../utils/sentry';
+import { useTabBarScroll } from '../../../components/ui/tabBarScroll';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
 // arriba. Ahí no tiene sentido otro título + otro toggle Próximas/Pasadas: el historial
 // es, por definición, solo lo pasado.
 const MyBookingsScreen = ({ navigation, historyMode = false }) => {
+  const onTabBarScroll = useTabBarScroll();
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -466,6 +468,8 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
           })}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
+          onScroll={onTabBarScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={[styles.list, historyMode && { paddingBottom: TAB_BAR_SPACE + 16 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={

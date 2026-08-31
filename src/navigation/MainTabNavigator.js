@@ -15,6 +15,7 @@ import AssistantStackNavigator from './stacks/AssistantStackNavigator';
 import UnreadNewsModalLayer from '../components/modals/UnreadNewsModalLayer';
 import AppTutorialOverlay from '../components/tutorial/AppTutorialOverlay';
 import { useTutorial } from '../context/TutorialContext';
+import { mostrarTabBar } from '../components/ui/tabBarScroll';
 
 const Tab = createBottomTabNavigator();
 
@@ -36,7 +37,12 @@ const MainTabNavigator = () => {
     if (Platform.OS !== 'android') return;
 
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+      // Si la barra quedó escondida por scroll y en el medio se abrió el teclado (que la
+      // oculta por completo), al cerrarlo tiene que volver visible, no traslada 120px.
+      mostrarTabBar();
+    });
 
     return () => {
       showSub.remove();
