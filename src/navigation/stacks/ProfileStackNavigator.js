@@ -18,6 +18,10 @@ import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import ReferralScreen from '../../screens/main/profile/ReferralScreen';
 import CouponsScreen from '../../screens/main/profile/CouponsScreen';
+// La bandeja de mensajes se saco de la barra de tabs, asi que su unica entrada es el acceso
+// de Perfil. Sin registrarlas aca, ese boton no tendria a donde navegar.
+import ChatsScreen from '../../screens/main/chat/ChatsScreen';
+import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
 import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 import DeleteAccountScreen from '../../screens/main/profile/DeleteAccountScreen';
 import SaldoScreen from '../../screens/main/profile/SaldoScreen';
@@ -118,6 +122,16 @@ const ProfileStackNavigator = () => {
         name="Help"
         component={HelpScreen}
         options={{ title: 'Ayuda' }}
+      />
+      <Stack.Screen
+        name="Chats"
+        component={ChatsScreen}
+        options={{ title: 'Mensajes' }}
+      />
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
+        options={{ headerBackTitleVisible: false }}
       />
       <Stack.Screen
         name="UserReviews"
