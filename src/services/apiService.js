@@ -7,6 +7,23 @@ import { sanitizeImageUrl } from '../utils/imageUtils';
 import { notifySessionInvalid, notifyAccountDisabled } from './authSession';
 import { reportError } from '../utils/sentry';
 
+/**
+ * UN mensaje para todo lo que falla del lado de la red, y no dice nada de cómo está hecha la
+ * app por dentro.
+ *
+ * Antes había un texto por entorno: el de producción decía "No se pudo conectar el
+ * servidor(producción)" —el usuario no sabe ni tiene por qué saber qué es "producción"— y los
+ * de desarrollo llegaban a imprimir el dominio de ngrok y los comandos de la terminal en un
+ * cartel de la app. Cualquiera de esos textos es un mapa de la infraestructura para quien no
+ * debería tenerlo.
+ *
+ * Tampoco distingue entre "no hay internet", "tardó demasiado" y "el envío falló": para quien
+ * está mirando la pantalla las tres son lo mismo —no pasó nada y hay que reintentar—, y cada
+ * variante de más es una pista de qué falló adentro. El detalle real va a Sentry, y la pista
+ * para desarrollar a la consola.
+ */
+const ERROR_GENERICO = 'Ocurrió algo y no pudimos completar la acción. Probá de nuevo en un momento.';
+
 const NATIVE_APP_VERSION =
   Constants.expoConfig?.version ??
   Constants.manifest?.version ??
@@ -252,7 +269,7 @@ const sendMultipart = async (method, endpoint, formData) => {
     if (!response.ok) {
       // Forma de error igual a la de axios para que handleError y las pantallas
       // que leen error.response.data sigan funcionando igual.
-      const error = new Error(body?.message || 'No pudimos completar la operación.');
+      const error = new Error(body?.message || ERROR_GENERICO);
       error.response = { status: response.status, data: body };
       throw handleError(error);
     }
@@ -262,11 +279,11 @@ const sendMultipart = async (method, endpoint, formData) => {
     if (error.response) throw error; // ya paso por handleError arriba
     reportError(error, { helper: 'sendMultipart', method, endpoint });
     if (error.name === 'AbortError') {
-      throw new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
+      throw new Error(ERROR_GENERICO);
     }
     // Sin pegarle `error.message`: el error crudo de una petición fallida puede traer el
     // host o la ruta entera. El detalle ya se fue a Sentry en el reportError de arriba.
-    throw new Error('No pudimos subir los archivos. Revisá tu conexión e intentá de nuevo.');
+    throw new Error(ERROR_GENERICO);
   } finally {
     clearTimeout(timer);
   }
@@ -300,7 +317,7 @@ const sendMultipartPublic = async (endpoint, formData) => {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const error = new Error(body?.message || 'No pudimos completar la operación.');
+      const error = new Error(body?.message || ERROR_GENERICO);
       error.response = { status: response.status, data: body };
       throw handleError(error);
     }
@@ -310,10 +327,10 @@ const sendMultipartPublic = async (endpoint, formData) => {
     if (error.response) throw error;
     reportError(error, { helper: 'sendMultipartPublic', endpoint });
     if (error.name === 'AbortError') {
-      throw new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
+      throw new Error(ERROR_GENERICO);
     }
     // Mismo motivo que arriba: el mensaje crudo puede traer la URL del backend.
-    throw new Error('No pudimos completar el registro. Revisá tu conexión e intentá de nuevo.');
+    throw new Error(ERROR_GENERICO);
   } finally {
     clearTimeout(timer);
   }
@@ -327,18 +344,6 @@ export const post_public_formdata = (endpoint, formData) =>
  * @param {object} error - Error de axios
  * @returns {Error} - Error formateado con informaci?n completa
  */
-/**
- * Lo que ve el usuario cuando no se llegó al servidor. UNO solo, y sin nombrar la infra.
- *
- * Antes había un texto por entorno: el de producción decía "No se pudo conectar el
- * servidor(producción)" —el usuario no sabe ni tiene por qué saber qué es "producción"— y los
- * de desarrollo llegaban a imprimir el dominio de ngrok y los comandos de la terminal en un
- * cartel de la app. Nada de eso le sirve a quien está esperando que cargue una pantalla, y
- * cualquiera de esos textos es un mapa de la infraestructura para quien no debería tenerlo.
- *
- * La pista para desarrollar no se perdió: se movió a la consola, donde corresponde.
- */
-const SIN_CONEXION = 'No pudimos conectarnos. Revisá tu conexión a internet y volvé a intentarlo.';
 
 /** La pista para desarrollar, en la consola: la URL sola ya dice si es el túnel, la red
  *  local o producción, así que no hace falta ramificar por entorno. */
@@ -361,7 +366,7 @@ const handleError = (error) => {
 
   if (error.response) {
     // El servidor respondi? con un c?digo de estado fuera del rango 2xx
-    const message = error.response.data?.message || 'No pudimos completar la operación.';
+    const message = error.response.data?.message || ERROR_GENERICO;
     const enhancedError = new Error(message);
     // Preservar toda la informaci?n del error del backend
     enhancedError.response = {
@@ -376,10 +381,10 @@ const handleError = (error) => {
   } else if (error.request) {
     if (error.code === 'ECONNABORTED') {
       avisarEnConsolaSiEsDev(baseUrl);
-      return new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
+      return new Error(ERROR_GENERICO);
     }
     avisarEnConsolaSiEsDev(baseUrl);
-    return new Error(SIN_CONEXION);
+    return new Error(ERROR_GENERICO);
   } else {
     // Algo pas? al configurar la petici?n
     return new Error(error.message || 'Error desconocido');
