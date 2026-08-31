@@ -53,6 +53,18 @@ const TripDetails = ({ navigation, route }) => {
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
 
+    // Con el teclado abierto en Android, el footer queda pegado a su borde superior (lo sube el
+    // KAV externo). Ahí `insets.bottom` —la barra de gestos— queda TAPADA por el teclado, así
+    // que sumarla como respiro deja un hueco muerto debajo de "Continuar". Se descuenta mientras
+    // el teclado está arriba.
+    const [tecladoVisible, setTecladoVisible] = useState(false);
+    useEffect(() => {
+        if (Platform.OS !== 'android') return undefined;
+        const show = Keyboard.addListener('keyboardDidShow', () => setTecladoVisible(true));
+        const hide = Keyboard.addListener('keyboardDidHide', () => setTecladoVisible(false));
+        return () => { show.remove(); hide.remove(); };
+    }, []);
+
     /**
      * El campo enfocado se sube distinto por plataforma:
      *  - iOS: `automaticallyAdjustKeyboardInsets` del ScrollView, sin JS.
@@ -695,7 +707,7 @@ const TripDetails = ({ navigation, route }) => {
                     >
                     {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
                         y bajaba según cuánto contenido tuviera cada paso. */}
-                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: (tecladoVisible ? 16 : Math.max(insets.bottom, 16)) + 8 }]}>
                     {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último.
                         El texto se renderiza siempre (vacío si no hay nada que avisar) para que
                         reserve la misma altura y el botón no salte de lugar entre pasos. */}
