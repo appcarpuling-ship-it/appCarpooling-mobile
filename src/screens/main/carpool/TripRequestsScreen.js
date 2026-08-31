@@ -537,7 +537,7 @@ const TripRequestsScreen = ({ route }) => {
                           onPress={() => navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo })}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="map-outline" size={15} color={textMuted} />
+                          <Ionicons name="map-outline" size={18} color={textMuted} />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   reqRutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   reqPuntoRotulo: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.3 },
   reqPuntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
-  reqMapBtn: { width: 30, height: 30, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  reqMapBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
   reqDotIni: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, flexShrink: 0 },
   reqDotFin: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   reqRutaDivider: { height: 1, marginLeft: 20 },
