@@ -46,8 +46,11 @@ const DRIVER_LOCATION_DISTANCE_M = 25;
 const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
 
 /** Lo que ve el PASAJERO en el lugar del conductor: un pin con un auto de frente. Se lee más
- * rápido de un vistazo en un mapa lleno de otras cosas que el círculo con flechita de antes. */
-const CAR_ICON = require('../../../../assets/icons/icon-driver.png');
+ * rápido de un vistazo en un mapa lleno de otras cosas que el círculo con flechita de antes.
+ * Va como `<Marker image=>` (PNG nativo) y NO como vista propia: una vista custom se ancla a un
+ * punto de pantalla fijo y se corre de su coordenada al hacer zoom out (el conductor "se iba a
+ * Uruguay"). Este PNG ya viene al tamaño de dibujo (~66x100 en el mapa). */
+const CAR_ICON = require('../../../../assets/map/driver-pin.png');
 
 /**
  * Con el mapa alejado (por ejemplo encuadrando un viaje de un pueblo a otro), dos paradas de
@@ -834,16 +837,13 @@ const TripMapScreen = ({ route, navigation }) => {
         }}
       >
         {!isDriver && isTripStarted && driverLocation?.latitude && (
+          // Sin rotation: el ícono es un pin con un auto de frente, no un auto cenital.
+          // anchor y:1 = la punta del pin marca la posición.
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
             anchor={{ x: 0.5, y: 1 }}
-            tracksViewChanges={autoMarkerVivo}
-          >
-            {/* Sin `rotation`/`flat`: el ícono es un pin con un auto de frente, no un auto
-                cenital — rotándolo según el rumbo quedaba de costado o boca abajo. Anchor en
-                y:1 porque la punta del pin es la que marca la posición. */}
-            <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
-          </Marker>
+            image={CAR_ICON}
+          />
         )}
 
         {/* Un solo recorrido para los tres tipos de punto: la numeración es la misma
@@ -1279,9 +1279,6 @@ const styles = StyleSheet.create({
   // color dice si es una punta del viaje o una parada del camino.
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
-  // El asset es alto (pin, ~0.66 de ancho/alto). 64 de ancho ≈ 96 de alto: bien visible en el
-  // mapa sin tapar media pantalla. Antes eran 42×42, que además deformaba el pin.
-  driverCarIcon: { width: 64, height: 96 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   // marginBottom = radio del pin (13) + separación (19): deja el pin completo (número
   // incluido) a la vista debajo de la etiqueta, sin importar cuánto texto tenga (el
