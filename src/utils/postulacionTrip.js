@@ -8,6 +8,8 @@
  * (TripRequestDetailScreen). Antes sólo existía en la primera.
  */
 
+const { metersBetween } = require('./routePoints');
+
 // Dirección (línea principal) + ciudad/provincia (línea chica), cuando no son lo mismo.
 // Antes era sólo `address || city`: las puntas del conductor tienen una dirección de calle
 // sin ciudad al lado, y quedaban sin poder saber en qué ciudad caían.
@@ -17,20 +19,56 @@ const dir = (p) => {
   return { texto: principal, ciudad: ciudad && ciudad !== principal ? ciudad : '' };
 };
 
+/**
+ * El recorrido como una sola lista ordenada POR EL CAMINO, no por tipo de punto.
+ *
+ * Antes se apilaban primero todas las paradas del conductor, después el tramo del pasajero y
+ * sus paradas, en ese orden fijo. Quedaba un recorrido imposible: "Sale desde Concordia → Pasa
+ * por Santa Fe → Te subís en Concordia" (ida a Santa Fe y vuelta). El mapa lo reordenaba solo
+ * (buildRoutePoints/ordenarStops), pero la lista no.
+ *
+ * Se ordena con vecino más cercano desde la primera punta del conductor, igual que ordenarStops
+ * en routePoints. Las puntas ("Sale desde" / "Sigue hasta") quedan fijas en los extremos; todo
+ * lo del medio —dónde sube el pasajero, sus paradas, las escalas del conductor— se intercala
+ * por geografía. Las "Parada N" se renumeran según el orden final.
+ */
 const armarRecorrido = (app, tramo) => {
   if (!tramo?.origin || !tramo?.destination) return [];
-  // Las paradas que puso el pasajero al publicar la solicitud van entre sus dos puntas.
-  // Antes se ignoraban y su viaje se mostraba como si fuera directo.
-  const paradas = (tramo.intermediateStops || [])
-    .map((stop, i) => ({ etiqueta: `Parada ${i + 1}`, ...dir(stop) }));
+
+  const medio = [
+    ...(app.driverStops || []).map((p) => ({ tipo: 'driverStop', punto: p })),
+    { tipo: 'pickup', punto: tramo.origin },
+    ...((tramo.intermediateStops || []).map((p) => ({ tipo: 'pasajeroStop', punto: p }))),
+    { tipo: 'dropoff', punto: tramo.destination },
+  ];
+
+  const restantes = [...medio];
+  const ordenado = [];
+  let desde = app.driverOrigin?.coordinates || tramo.origin?.coordinates;
+  while (restantes.length) {
+    let iMin = 0;
+    let dMin = Infinity;
+    restantes.forEach((m, i) => {
+      const d = metersBetween(desde, m.punto?.coordinates);
+      if (d < dMin) { dMin = d; iMin = i; }
+    });
+    const [elegido] = restantes.splice(iMin, 1);
+    ordenado.push(elegido);
+    desde = elegido.punto?.coordinates || desde;
+  }
+
+  let nParada = 0;
+  const filasMedio = ordenado.map((m) => {
+    if (m.tipo === 'pickup') return { etiqueta: 'Te subís en', ...dir(m.punto) };
+    if (m.tipo === 'dropoff') return { etiqueta: 'Te deja en', ...dir(m.punto) };
+    if (m.tipo === 'driverStop') return { etiqueta: 'Pasa por', ...dir(m.punto), delConductor: true };
+    nParada += 1;
+    return { etiqueta: `Parada ${nParada}`, ...dir(m.punto) };
+  });
+
   return [
     app.driverOrigin && { etiqueta: 'Sale desde', ...dir(app.driverOrigin), delConductor: true },
-    // Paradas del recorrido del conductor: van antes de que suba el pasajero sólo como
-    // orden de lectura; en el mapa la posición real la resuelve la geografía.
-    ...(app.driverStops || []).map((p) => ({ etiqueta: 'Pasa por', ...dir(p), delConductor: true })),
-    { etiqueta: 'Te subís en', ...dir(tramo.origin) },
-    ...paradas,
-    { etiqueta: 'Te deja en', ...dir(tramo.destination) },
+    ...filasMedio,
     app.driverDestination && { etiqueta: 'Sigue hasta', ...dir(app.driverDestination), delConductor: true },
   ].filter((p) => p && p.texto);
 };
