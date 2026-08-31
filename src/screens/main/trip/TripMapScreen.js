@@ -52,6 +52,9 @@ const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
  * punto de pantalla fijo y se corre de su coordenada al hacer zoom out (el conductor "se iba a
  * Uruguay"). Este PNG ya viene al tamaño de dibujo (~66x100 en el mapa). */
 const CAR_ICON = require('../../../../assets/map/driver-pin.png');
+// El alto se usa dos veces: para dibujarlo y para subirlo medio pin en iOS (ver el marcador).
+const CAR_W = 42;
+const CAR_H = 58;
 
 /**
  * Con el mapa alejado (por ejemplo encuadrando un viaje de un pueblo a otro), dos paradas de
@@ -923,11 +926,17 @@ const TripMapScreen = ({ route, navigation }) => {
             // El PNG va en 42x58 / @2x / @3x: un marcador nativo se dibuja al tamaño del
             // recurso —el `style` no lo toca— y esas tres medidas dan 42x58 en cualquier
             // densidad.
-            {...(Platform.OS === 'android' ? { image: CAR_ICON } : null)}
+            // En iOS el mapa es Apple, y ahí `anchor` NO EXISTE: AIRMapMarkerManager sólo
+            // exporta `centerOffset`, así que el anchor se ignora en silencio y MapKit centra
+            // el ícono en la coordenada — el pin queda medio alto más abajo de donde va y la
+            // punta cae en cualquier lado. centerOffset -alto/2 lo sube para que el borde de
+            // abajo, o sea la punta, sea el punto. (En Android sí manda `anchor`.)
+            {...(Platform.OS === 'android'
+              ? { image: CAR_ICON }
+              : { centerOffset: { x: 0, y: -CAR_H / 2 } })}
             tracksViewChanges={Platform.OS === 'android' ? false : autoMarkerVivo}
           >
-            {/* iOS dibuja bien las vistas custom y ahí no hay nada que arreglar. Sin rotation:
-                el ícono es un pin con auto de frente, no cenital. */}
+            {/* Sin rotation: el ícono es un pin con auto de frente, no cenital. */}
             {Platform.OS !== 'android' && (
               <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
             )}
@@ -1355,7 +1364,7 @@ const styles = StyleSheet.create({
   // color dice si es una punta del viaje o una parada del camino.
   // Ratio del PNG (180x247). 58pt de alto: tamaño de pin de mapa normal. A 96 tapaba media
   // provincia cuando el mapa está alejado.
-  driverCarIcon: { width: 42, height: 58 },
+  driverCarIcon: { width: CAR_W, height: CAR_H },
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },

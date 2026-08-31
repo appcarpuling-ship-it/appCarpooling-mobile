@@ -12,6 +12,11 @@ import { useUI } from '../../theme/ui';
 // custom de un Marker no se llega a dibujar acá (queda en blanco). En iOS va como <Image>
 // dentro del Marker para poder darle un tamaño en puntos (el PNG nativo saldría enorme).
 const PIN_PASAJERO = require('../../../assets/map/pin-pasajero.png');
+// Más grande que los 32x46 que tenía, que se pidió verlo mejor. NO más de esto: a 64 de
+// alto ya se probó y tapaba media ciudad al alejar el zoom. Va también en @2x y @3x, si no
+// el marcador nativo de Android sale del PNG chico estirado y se ve borroso.
+const PIN_W = 40;
+const PIN_H = 58;
 
 // Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
 // Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
@@ -98,7 +103,13 @@ const PickupMapScreen = ({ route, navigation }) => {
             <Marker
               key={`pin-${mapaListo}`}
               coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+              // En iOS el mapa es Apple y ahí `anchor` NO EXISTE: AIRMapMarkerManager sólo
+              // exporta `centerOffset`, así que el anchor se ignora en silencio y MapKit
+              // centra el ícono en la coordenada. El pin quedaba medio alto más abajo de donde
+              // va. centerOffset -alto/2 lo sube para que el borde de abajo —la punta— sea el
+              // punto. En Android sí manda `anchor`, por eso va sólo acá.
               anchor={{ x: 0.5, y: 1 }}
+              centerOffset={{ x: 0, y: -PIN_H / 2 }}
               tracksViewChanges={marcadoresVivos}
             >
               <Image source={PIN_PASAJERO} style={styles.pinPasajero} resizeMode="contain" />
@@ -123,9 +134,9 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // Ratio del PNG (33x48). Alto 46pt: tamaño de pin de mapa normal — a 64 tapaba media
-  // ciudad al alejar el zoom.
-  pinPasajero: { width: 32, height: 46 },
+  // El PNG ya viene en esta medida (y en @2x/@3x), así que en Android el marcador nativo
+  // se dibuja igual que acá sin estirarse.
+  pinPasajero: { width: PIN_W, height: PIN_H },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',
