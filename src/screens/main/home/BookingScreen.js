@@ -15,6 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+
+// Puntos del preview del mapa en Android (mismo motivo que TripDetailScreen: la vista custom
+// no sigue a la cámara). Réplica de los estilos *DotOrigin/Stop/Dest; iOS los sigue dibujando.
+const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
+const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
+const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
 import { decodePolyline, buildRoutePoints } from '../../../utils/routePoints';
 import { calculateReservationPrice, createSeatReservation } from '../../../services/seatReservationService';
 import { tripRemainingSeats, tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
@@ -450,32 +456,46 @@ const BookingScreen = ({ route, navigation }) => {
                 {hasBookingRealRoute && (
                   <RutaPolyline coordinates={bookingPreviewCoordinates} width={4} color="#000000" />
                 )}
-                <Marker
-                  key={`booking-origin-${bookingMapReady}`}
-                  coordinate={{ latitude: bookingOriginCoords.latitude, longitude: bookingOriginCoords.longitude }}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  tracksViewChanges={bookingDotsVivos}
-                >
-                  <View style={styles.bookingDotOrigin} />
-                </Marker>
-                {bookingPreviewStops.map((stop, i) => (
-                  <Marker
-                    key={`booking-stop-${i}-${bookingMapReady}`}
-                    coordinate={stop}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                    tracksViewChanges={bookingDotsVivos}
-                  >
-                    <View style={styles.bookingDotStop} />
-                  </Marker>
-                ))}
-                <Marker
-                  key={`booking-dest-${bookingMapReady}`}
-                  coordinate={{ latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude }}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  tracksViewChanges={bookingDotsVivos}
-                >
-                  <View style={styles.bookingDotDest} />
-                </Marker>
+                {/* PNG en Android: la vista custom no sigue a la cámara cuando fitToCoordinates
+                    la mueve y el punto queda corrido del trazado. iOS se deja como estaba. */}
+                {Platform.OS === 'android' ? (
+                  <>
+                    <Marker coordinate={{ latitude: bookingOriginCoords.latitude, longitude: bookingOriginCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_ORIGIN} />
+                    {bookingPreviewStops.map((stop, i) => (
+                      <Marker key={`booking-stop-${i}`} coordinate={stop} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_STOP} />
+                    ))}
+                    <Marker coordinate={{ latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_DEST} />
+                  </>
+                ) : (
+                  <>
+                    <Marker
+                      key={`booking-origin-${bookingMapReady}`}
+                      coordinate={{ latitude: bookingOriginCoords.latitude, longitude: bookingOriginCoords.longitude }}
+                      anchor={{ x: 0.5, y: 0.5 }}
+                      tracksViewChanges={bookingDotsVivos}
+                    >
+                      <View style={styles.bookingDotOrigin} />
+                    </Marker>
+                    {bookingPreviewStops.map((stop, i) => (
+                      <Marker
+                        key={`booking-stop-${i}-${bookingMapReady}`}
+                        coordinate={stop}
+                        anchor={{ x: 0.5, y: 0.5 }}
+                        tracksViewChanges={bookingDotsVivos}
+                      >
+                        <View style={styles.bookingDotStop} />
+                      </Marker>
+                    ))}
+                    <Marker
+                      key={`booking-dest-${bookingMapReady}`}
+                      coordinate={{ latitude: bookingDestCoords.latitude, longitude: bookingDestCoords.longitude }}
+                      anchor={{ x: 0.5, y: 0.5 }}
+                      tracksViewChanges={bookingDotsVivos}
+                    >
+                      <View style={styles.bookingDotDest} />
+                    </Marker>
+                  </>
+                )}
               </MapView>
             </View>
           )}

@@ -1,13 +1,19 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Image, RefreshControl
+  ActivityIndicator, Image, RefreshControl, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+
+// Puntos del preview del mapa en Android (mismo motivo que TripDetailScreen: la vista custom
+// no sigue a la cámara). Réplica de los estilos *DotOrigin/Stop/Dest; iOS los sigue dibujando.
+const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
+const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
+const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
 import { puntosDeRuta } from '../../../utils/routePoints';
 import { getDirections } from '../../../services/mapsService';
 import { useFocusEffect } from '@react-navigation/native';
@@ -538,32 +544,46 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 // Fijo en negro, no del tema: va sobre las baldosas del mapa, no sobre la app.
                 <RutaPolyline coordinates={previewRoutePoints} width={4} color="#000000" />
               )}
-              <Marker
-                key={`preview-origin-${mapPreviewReady}`}
-                coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }}
-                anchor={{ x: 0.5, y: 0.5 }}
-                tracksViewChanges={mapPreviewDotsVivos}
-              >
-                <View style={styles.previewDotOrigin} />
-              </Marker>
-              {previewStops.map((stop, i) => (
-                <Marker
-                  key={`preview-stop-${i}-${mapPreviewReady}`}
-                  coordinate={stop}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  tracksViewChanges={mapPreviewDotsVivos}
-                >
-                  <View style={styles.previewDotStop} />
-                </Marker>
-              ))}
-              <Marker
-                key={`preview-dest-${mapPreviewReady}`}
-                coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
-                anchor={{ x: 0.5, y: 0.5 }}
-                tracksViewChanges={mapPreviewDotsVivos}
-              >
-                <View style={styles.previewDotDest} />
-              </Marker>
+              {/* PNG en Android: la vista custom no sigue a la cámara cuando fitToCoordinates
+                  la mueve y el punto queda corrido del trazado. iOS se deja como estaba. */}
+              {Platform.OS === 'android' ? (
+                <>
+                  <Marker coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_ORIGIN} />
+                  {previewStops.map((stop, i) => (
+                    <Marker key={`preview-stop-${i}`} coordinate={stop} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_STOP} />
+                  ))}
+                  <Marker coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }} anchor={{ x: 0.5, y: 0.5 }} image={PREVIEW_DOT_DEST} />
+                </>
+              ) : (
+                <>
+                  <Marker
+                    key={`preview-origin-${mapPreviewReady}`}
+                    coordinate={{ latitude: originCoords.latitude, longitude: originCoords.longitude }}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    tracksViewChanges={mapPreviewDotsVivos}
+                  >
+                    <View style={styles.previewDotOrigin} />
+                  </Marker>
+                  {previewStops.map((stop, i) => (
+                    <Marker
+                      key={`preview-stop-${i}-${mapPreviewReady}`}
+                      coordinate={stop}
+                      anchor={{ x: 0.5, y: 0.5 }}
+                      tracksViewChanges={mapPreviewDotsVivos}
+                    >
+                      <View style={styles.previewDotStop} />
+                    </Marker>
+                  ))}
+                  <Marker
+                    key={`preview-dest-${mapPreviewReady}`}
+                    coordinate={{ latitude: destCoords.latitude, longitude: destCoords.longitude }}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    tracksViewChanges={mapPreviewDotsVivos}
+                  >
+                    <View style={styles.previewDotDest} />
+                  </Marker>
+                </>
+              )}
             </MapView>
             <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
               <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
