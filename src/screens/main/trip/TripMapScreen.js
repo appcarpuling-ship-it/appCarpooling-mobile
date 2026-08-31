@@ -909,14 +909,28 @@ const TripMapScreen = ({ route, navigation }) => {
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
             anchor={{ x: 0.5, y: 1 }}
-            tracksViewChanges={autoMarkerVivo}
+            // anchor y:1 = la punta marca la posición (el PNG no trae aire transparente
+            // abajo: el dibujo llega hasta la última fila de píxeles).
+            //
+            // Android va con el PNG nativo y el Marker VACÍO, igual que los pines de los mapas
+            // de preview: una vista custom se congela al apagar `tracksViewChanges` y deja de
+            // re-anclarse cuando la cámara se mueve — con el país en pantalla ese desvío son
+            // decenas de km. El crash que antes lo impedía (Marker con `image` reventando al
+            // cambiar la coordenada, cada ~8s) sale de MapMarker.getIcon(): esa rama combina el
+            // bitmap del `image` con el de la vista, y sólo corre si hay `image` Y UN HIJO a la
+            // vez. Sin hijo devuelve el descriptor directo y no hay nada que pueda ser null.
+            //
+            // El PNG va en 42x58 / @2x / @3x: un marcador nativo se dibuja al tamaño del
+            // recurso —el `style` no lo toca— y esas tres medidas dan 42x58 en cualquier
+            // densidad.
+            {...(Platform.OS === 'android' ? { image: CAR_ICON } : null)}
+            tracksViewChanges={Platform.OS === 'android' ? false : autoMarkerVivo}
           >
-            {/* Vista custom y NO `<Marker image=>`: en Android, un Marker con `image` de un
-                recurso local CRASHEA cuando la coordenada cambia (el conductor emite posición
-                cada ~8s). Sin rotation: el ícono es un pin con auto de frente, no cenital.
-                anchor y:1 = la punta marca la posición, y el PNG no trae aire transparente
-                abajo (medido: el dibujo llega hasta la última fila de píxeles). */}
-            <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
+            {/* iOS dibuja bien las vistas custom y ahí no hay nada que arreglar. Sin rotation:
+                el ícono es un pin con auto de frente, no cenital. */}
+            {Platform.OS !== 'android' && (
+              <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
+            )}
           </Marker>
         )}
 
