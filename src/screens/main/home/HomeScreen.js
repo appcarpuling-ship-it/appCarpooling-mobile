@@ -270,12 +270,15 @@ const HomeScreen = ({ navigation, route }) => {
       setActiveTrip(found || null);
       setActiveTripRole(found ? role : null);
 
-      // El conductor está manejando: si cierra la app y la vuelve a abrir, no puede tener que
-      // hacer Home → viaje → detalle → mapa. Con un viaje EN CURSO (nunca con uno publicado
-      // para más adelante, que lo dejaría encerrado) va derecho al mapa.
-      // Una sola vez por arranque: loadActiveTrip corre en cada focus del Home, así que sin el
-      // ref lo rebotaría al mapa cada vez que vuelve y no podría usar el resto de la app.
-      if (found && role === 'driver' && !autoOpenedMapRef.current) {
+      // Viaje EN CURSO: al abrir la app va derecho al mapa, sin Home → viaje → detalle → mapa.
+      // Vale para los dos roles. El conductor está manejando; el pasajero está esperando o ya
+      // arriba, y el mapa es justo lo que quiere ver —dónde viene el auto— (TripMapScreen ya
+      // dibuja la posición del conductor y el "te está esperando" para el que no maneja).
+      // Solo con un viaje EN CURSO, nunca con uno publicado para más adelante, que lo dejaría
+      // encerrado. Una sola vez por arranque: loadActiveTrip corre en cada focus del Home, así
+      // que sin el ref lo rebotaría al mapa cada vez que vuelve y no podría usar el resto de
+      // la app.
+      if (found && !autoOpenedMapRef.current) {
         autoOpenedMapRef.current = true;
         navigation.navigate('TripMap', { trip: found });
       }
