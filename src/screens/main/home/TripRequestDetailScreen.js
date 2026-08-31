@@ -925,13 +925,19 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
-            alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) ? (
-              <>
-                {/* Tu propuesta, en UNA tarjeta. Antes eran cuatro bloques sueltos apilados con
-                    margen —una barra negra, una fila de texto huérfana y dos botones— y no se
-                    leía como una sola cosa. Lo que importa es el número que ofreciste, así que
-                    manda la jerarquía: precio grande, el resto alrededor.
-                    El backend le manda al conductor SÓLO su propia postulación. */}
+            <>
+              {/* Tu propuesta, en UNA tarjeta. Antes eran cuatro bloques sueltos apilados con
+                  margen —una barra negra, una fila de texto huérfana y dos botones— y no se
+                  leía como una sola cosa. Lo que importa es el número que ofreciste, así que
+                  manda la jerarquía: precio grande, el resto alrededor.
+                  El backend le manda al conductor SÓLO su propia postulación.
+
+                  Se muestra SIEMPRE que exista la postulación, sin mirar el estado de la
+                  solicitud. Antes estaba atada a la misma condición que "Retirar postulación",
+                  así que en cuanto el pasajero te elegía (awaiting_payment / paid) la tarjeta
+                  desaparecía entera: justo cuando el viaje ya es tuyo, dejabas de poder ver qué
+                  precio ofreciste y por dónde dijiste que ibas a pasar. */}
+              {!!miPostulacion && (
                 <View style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}>
                   <View style={styles.miPropuestaTop}>
                     <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
@@ -978,11 +984,16 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     </TouchableOpacity>
                   )}
                 </View>
+              )}
 
-                {/* Retirar: hasta acá, una postulación era irreversible desde la app. Sigue
-                    siendo la única acción en rojo —es destructiva y no se deshace— pero como
-                    texto y no como botón sólido: al lado de la tarjeta, un bloque rojo lleno
-                    pesaba más que la propuesta misma, que es lo que se vino a mirar. */}
+              {/* Retirar: hasta acá, una postulación era irreversible desde la app. Sigue
+                  siendo la única acción en rojo —es destructiva y no se deshace— pero como
+                  texto y no como botón sólido: al lado de la tarjeta, un bloque rojo lleno
+                  pesaba más que la propuesta misma, que es lo que se vino a mirar.
+
+                  Sólo mientras se pueda retirar de verdad: con el pasajero ya pagando o pago,
+                  el compromiso está tomado y se cancela desde el viaje, no desde acá. */}
+              {alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) && (
                 <TouchableOpacity
                   style={[styles.retirar, retirando && { opacity: 0.6 }]}
                   onPress={handleRetirarPostulacion}
@@ -994,19 +1005,21 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     : <Text style={styles.retirarText}>Retirar postulación</Text>
                   }
                 </TouchableOpacity>
-              </>
-            ) : canApply && !effectivelyExpired ? (
-              <TouchableOpacity
-                style={[styles.footerBtn, { backgroundColor: accent }, applying && { opacity: 0.6 }]}
-                onPress={handleApplyPress}
-                disabled={applying}
-              >
-                {applying
-                  ? <ActivityIndicator color={accentInverse} />
-                  : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Ofrecer viaje</Text>
-                }
-              </TouchableOpacity>
-            ) : null
+              )}
+
+              {!alreadyApplied && canApply && !effectivelyExpired && (
+                <TouchableOpacity
+                  style={[styles.footerBtn, { backgroundColor: accent }, applying && { opacity: 0.6 }]}
+                  onPress={handleApplyPress}
+                  disabled={applying}
+                >
+                  {applying
+                    ? <ActivityIndicator color={accentInverse} />
+                    : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Ofrecer viaje</Text>
+                  }
+                </TouchableOpacity>
+              )}
+            </>
           )}
 
           {/* Cancelar (passenger) */}
