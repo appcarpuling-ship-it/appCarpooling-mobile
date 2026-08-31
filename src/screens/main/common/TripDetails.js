@@ -54,27 +54,18 @@ const TripDetails = ({ navigation, route }) => {
     const scrollRef = useRef(null);
 
     /**
-     * Alto del teclado, sólo en Android. Se usa como `paddingBottom` extra del scroll: mientras
-     * el teclado está abierto, el final de la lista puede pasar por encima de él, así que
-     * scrollToEnd deja los últimos campos (asientos, precio) enteros a la vista. Cuando el
-     * teclado se cierra vuelve a 0 y no queda hueco.
+     * El campo enfocado se sube distinto por plataforma:
+     *  - iOS: `automaticallyAdjustKeyboardInsets` del ScrollView, sin JS.
+     *  - Android: el KeyboardAvoidingView externo con behavior 'height' (ver el return). En
+     *    Expo SDK 54 el `adjustResize` del manifiesto YA NO achica la ventana —edge-to-edge
+     *    forzado hace que el teclado sea un inset que se dibuja encima— así que el layout no se
+     *    mueve solo y hay que compensarlo con el KAV, que en 54 sí lee ese inset. Con el
+     *    contenedor ya achicado, este scrollToEnd lleva a la vista los últimos campos (asientos
+     *    y precio, que viven en la última tarjeta del paso).
      *
-     * Reemplaza TRES intentos con measure() que fallaron por mezclar sistemas de coordenadas
-     * (window vs pantalla, teclado descontado dos veces). scrollToEnd no calcula nada: es el
-     * método de scroll más probado de RN y el padding garantiza que haya a dónde scrollear.
+     * Reemplaza CUATRO intentos con measure()/scroll que fallaban porque todos asumían que la
+     * ventana se achicaba sola.
      */
-    const [alturaTeclado, setAlturaTeclado] = useState(0);
-    useEffect(() => {
-        if (Platform.OS !== 'android') return undefined;
-        const show = Keyboard.addListener('keyboardDidShow', (e) => setAlturaTeclado(e.endCoordinates?.height || 0));
-        const hide = Keyboard.addListener('keyboardDidHide', () => setAlturaTeclado(0));
-        return () => { show.remove(); hide.remove(); };
-    }, []);
-
-    // iOS ya sube el campo enfocado solo con `automaticallyAdjustKeyboardInsets`. En Android,
-    // un frame de espera para que el scroll tenga el padding nuevo, y scrollToEnd. Los inputs
-    // (asientos y precio) están en la última tarjeta del paso, así que llevar el final a la
-    // vista los muestra enteros.
     const scrollFieldAboveKeyboard = () => {
         if (Platform.OS !== 'android') return;
         requestAnimationFrame(() => {
@@ -336,25 +327,28 @@ const TripDetails = ({ navigation, route }) => {
                 KeyboardAvoidingView y con el teclado abierto dejaba una franja vacía DEBAJO
                 del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
+                {/* KAV externo: en Android, behavior 'height' achica este contenedor por el alto
+                    del teclado. Es lo que reemplaza al `adjustResize` que SDK 54 dejó sin efecto
+                    (ver scrollFieldAboveKeyboard). Al achicar el contenedor, el ScrollView de
+                    adentro se comprime —hay a dónde scrollear— y el footer sube con él. En iOS
+                    va undefined para no interferir con automaticallyAdjustKeyboardInsets. */}
+                <KeyboardAvoidingView
+                    style={styles.flex}
+                    behavior={Platform.OS === 'android' ? 'height' : undefined}
+                    keyboardVerticalOffset={headerHeight}
+                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     {/* `automaticallyAdjustKeyboardInsets` en vez de KeyboardAwareScrollView.
                         Esa librería (0.9.5, sin mantenimiento desde 2021) llama a APIs del
                         renderer viejo —UIManager.viewIsDescendantOf, measureInWindow sobre un
                         findNodeHandle— que en la New Architecture de Expo SDK 54 no existen, y
                         justo se disparan al enfocar un input: es la causa más probable de que
-                        la app se cerrara sola en esta pantalla.
-
-                        Esto lo resuelve el propio ScrollView de RN: iOS ajusta el contentInset
-                        solo con el teclado y sube el campo enfocado, sin JS de por medio. En
-                        Android la prop no aplica, pero `app.json` ya tiene
-                        softwareKeyboardLayoutMode: 'resize' y el sistema achica la pantalla. */}
+                        la app se cerrara sola en esta pantalla. En iOS ajusta el contentInset
+                        solo con el teclado y sube el campo enfocado, sin JS de por medio. */}
                     <ScrollView
                         ref={scrollRef}
                         style={styles.flex}
-                        // El padding de abajo crece con el teclado (sólo Android): así el final
-                        // de la lista puede pasar por encima de él y scrollToEnd deja el campo
-                        // enfocado entero a la vista. Sin teclado vuelve a `styles.scroll`.
-                        contentContainerStyle={[styles.scroll, alturaTeclado > 0 && { paddingBottom: alturaTeclado + 40 }]}
+                        contentContainerStyle={styles.scroll}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         automaticallyAdjustKeyboardInsets
@@ -690,16 +684,11 @@ const TripDetails = ({ navigation, route }) => {
                     </ScrollView>
                     </TouchableWithoutFeedback>
 
-                    {/* El KeyboardAvoidingView envuelve SÓLO el footer, no el scroll.
-                        Envolviendo los dos, en iOS el teclado se compensaba dos veces —el KAV
-                        achicaba el contenedor y KeyboardAwareScrollView volvía a subir el input
-                        encima— y el campo enfocado salía disparado al borde de arriba con un
-                        hueco enorme abajo. Cada uno hace lo suyo: KAS sube el input, el KAV
-                        levanta el botón.
-
-                        En Android `app.json` ya tiene softwareKeyboardLayoutMode: 'resize', o
-                        sea que el sistema achica la pantalla solo: ahí el KAV no hace falta
-                        (undefined = que lo resuelva el sistema). */}
+                    {/* KAV interno, sólo para iOS: sube el footer con behavior 'padding' mientras
+                        el ScrollView de arriba sube el input. En Android va undefined —el KAV
+                        externo con behavior 'height' ya achicó todo el contenedor, así que el
+                        footer sube sin necesidad de otro KAV. Ponerle 'padding' o 'height' acá
+                        además lo compensaría dos veces. */}
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                         keyboardVerticalOffset={headerHeight}
@@ -731,6 +720,7 @@ const TripDetails = ({ navigation, route }) => {
                         }
                     </TouchableOpacity>
                     </View>
+                </KeyboardAvoidingView>
                 </KeyboardAvoidingView>
 
             </SafeAreaView>
