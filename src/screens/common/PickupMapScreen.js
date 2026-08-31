@@ -123,8 +123,9 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // Ratio del PNG (150x219). Alto ~64pt: se lee claro sin tapar media pantalla.
-  pinPasajero: { width: 44, height: 64 },
+  // Ratio del PNG (33x48). Alto 46pt: tamaño de pin de mapa normal — a 64 tapaba media
+  // ciudad al alejar el zoom.
+  pinPasajero: { width: 32, height: 46 },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',

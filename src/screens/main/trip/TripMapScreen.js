@@ -1293,7 +1293,9 @@ const styles = StyleSheet.create({
   },
   // Puntas en negro pleno, paradas intermedias en gris: el número dice el orden y el
   // color dice si es una punta del viaje o una parada del camino.
-  driverCarIcon: { width: 64, height: 96 },
+  // Ratio del PNG (180x247). 58pt de alto: tamaño de pin de mapa normal. A 96 tapaba media
+  // provincia cuando el mapa está alejado.
+  driverCarIcon: { width: 42, height: 58 },
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },

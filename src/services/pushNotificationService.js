@@ -6,16 +6,24 @@ import { put_withauth, delete_withauth } from './apiService';
 import { reportError } from '../utils/sentry';
 
 // Cómo se manejan las notificaciones con la app en primer plano.
+//
 // El banner NO se muestra: el usuario ya está adentro de la app y le tapaba el contenido
 // (ej: "Aceptá a tu pasajero" cayendo encima de "próximo viaje"). Lo que llega igual va al
 // centro de notificaciones (campanita) y al badge, que es donde se revisa.
+//
+// La excepción son los avisos LOCALES (mostrarAvisoLocal, abajo): esos existen justamente para
+// interrumpir con la app abierta —al conductor manejando hay que decirle que cobre al que acaba
+// de bajar— y se marcan con `forzarBanner` para no caer en la regla de arriba.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: false,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    const forzar = notification?.request?.content?.data?.forzarBanner === true;
+    return {
+      shouldShowBanner: forzar,
+      shouldShowList: true,
+      shouldPlaySound: forzar,
+      shouldSetBadge: true,
+    };
+  },
 });
 
 /**
@@ -170,8 +178,8 @@ export const getLastNotificationResponse = async () => {
  *
  * Para lo que hay que decirle al conductor en el momento —cobrarle al que acaba de bajar— y que
  * no puede ser un alert: manejando, un modal le pide un toque y le tapa el mapa. Esto baja como
- * notificación, no bloquea nada y se va solo. Se ve con la app abierta porque el handler de
- * arriba tiene `shouldShowBanner: true`.
+ * notificación, no bloquea nada y se va solo. Se ve con la app abierta gracias a `forzarBanner`
+ * (ver el handler de arriba): los avisos que vienen del server sí quedan silenciados.
  *
  * @returns {Promise<boolean>} false si no se pudo mostrar (típicamente porque el usuario no dio
  *          permiso de notificaciones). Se devuelve en vez de tragarlo para que el llamador
@@ -182,7 +190,7 @@ export const mostrarAvisoLocal = async ({ title, body }) => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return false;
     await Notifications.scheduleNotificationAsync({
-      content: { title, body, sound: true },
+      content: { title, body, sound: true, data: { forzarBanner: true } },
       trigger: null, // null = ahora, sin programar
     });
     return true;
