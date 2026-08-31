@@ -5,12 +5,15 @@ import Constants from 'expo-constants';
 import { put_withauth, delete_withauth } from './apiService';
 import { reportError } from '../utils/sentry';
 
-// Configurar cómo se manejan las notificaciones cuando la app está en primer plano
+// Cómo se manejan las notificaciones con la app en primer plano.
+// El banner NO se muestra: el usuario ya está adentro de la app y le tapaba el contenido
+// (ej: "Aceptá a tu pasajero" cayendo encima de "próximo viaje"). Lo que llega igual va al
+// centro de notificaciones (campanita) y al badge, que es donde se revisa.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true,
+    shouldShowBanner: false,
     shouldShowList: true,
-    shouldPlaySound: true,
+    shouldPlaySound: false,
     shouldSetBadge: true,
   }),
 });

@@ -151,4 +151,30 @@ assert.deepStrictEqual(
   ['Mariano Moreno 1071', 'Mariano Moreno 1150', 'Av. Santa Fe 900']
 );
 
+// Mismo recorrido pero la recogida geocodificó ~40 m aparte de la salida (pasa seguido): el
+// filtro por distancia (15 m) no la fusiona, pero la calle y número son idénticos.
+const mismoRecorridoGeoDrift = buildRoutePoints({
+  origin: { address: 'Damián P. Garat 1061', coordinates: concordia },
+  destination: { address: 'Mendoza, Capital, Mendoza', coordinates: caba },
+  intermediateStops: [
+    {
+      address: 'Damián P. Garat 1061', kind: 'pickup', order: 1,
+      coordinates: { latitude: concordia.latitude + 0.00035, longitude: concordia.longitude },
+      passenger: { firstName: 'Benjamín' },
+    },
+    {
+      address: 'Mendoza, Capital, Mendoza', kind: 'dropoff', order: 2,
+      coordinates: { latitude: caba.latitude - 0.00035, longitude: caba.longitude },
+      passenger: { firstName: 'Benjamín' },
+    },
+  ],
+});
+assert.deepStrictEqual(
+  mismoRecorridoGeoDrift.map((p) => p.location.address),
+  ['Damián P. Garat 1061', 'Mendoza, Capital, Mendoza'],
+  `misma dirección + drift de geocoding no debería repetir: ${mismoRecorridoGeoDrift.map((p) => p.location.address).join(' | ')}`
+);
+assert.strictEqual(mismoRecorridoGeoDrift[0].kindFusionado, 'pickup');
+assert.strictEqual(mismoRecorridoGeoDrift[1].kindFusionado, 'dropoff');
+
 console.log('✅ routePoints: todos los checks pasaron');

@@ -105,6 +105,28 @@ const ordenarStops = (trip) => {
  */
 const MISMO_PUNTO_M = 15;
 
+/**
+ * Dos direcciones que son "la misma" aunque las coordenadas no coincidan por unos metros.
+ * Pasa cuando el pasajero pidió el mismo recorrido que el conductor: la recogida se crea en
+ * su origen —misma calle y número que la salida del viaje— pero geocodificada por otro lado,
+ * así que cae a 30-40m y el filtro por distancia no la fusiona. El texto sí coincide.
+ */
+const normalizarDireccion = (s) =>
+  (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    // saca los signos diacríticos combinantes (U+0300–U+036F) sin escribirlos literales acá
+    .split('').filter((c) => { const n = c.charCodeAt(0); return n < 0x0300 || n > 0x036f; }).join('')
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const mismaDireccion = (a, b) => {
+  const na = normalizarDireccion(a);
+  const nb = normalizarDireccion(b);
+  return !!na && na === nb;
+};
+
 const buildRoutePoints = (trip) => {
   const origen = trip?.origin;
   const destino = trip?.destination;
@@ -128,7 +150,11 @@ const buildRoutePoints = (trip) => {
   const fusionadas = new Set();
   const fusionarEnPunta = (punta) => {
     const encima = stops.find(
-      (s) => !fusionadas.has(s) && metersBetween(punta?.coordinates, s?.coordinates) <= MISMO_PUNTO_M,
+      (s) => !fusionadas.has(s) && (
+        metersBetween(punta?.coordinates, s?.coordinates) <= MISMO_PUNTO_M
+        // o la misma calle y número aunque geocodifique unos metros aparte (mismo recorrido).
+        || mismaDireccion(punta?.address, s?.address)
+      ),
     );
     if (encima) fusionadas.add(encima);
     return encima;

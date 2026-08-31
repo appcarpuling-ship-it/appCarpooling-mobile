@@ -1100,7 +1100,7 @@ const TripMapScreen = ({ route, navigation }) => {
         <View style={styles.sheetTimeline}>
           <View style={styles.sheetTimelineRow}>
             <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
-              <Text style={styles.sheetTimelineDotNum}>1</Text>
+              <Text style={[styles.sheetTimelineDotNum, { color: ui.invertText }]}>1</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
@@ -1120,7 +1120,7 @@ const TripMapScreen = ({ route, navigation }) => {
           {sheetItems.map((t, i) => (
               <View key={t.id} style={styles.sheetTimelineRow}>
                 <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
-                  <Text style={styles.sheetTimelineDotNum}>{i + 2}</Text>
+                  <Text style={[styles.sheetTimelineDotNum, { color: ui.invertText }]}>{i + 2}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
