@@ -26,6 +26,7 @@ import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { get_withauth, put_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+import { routeNumberImage } from '../../../components/map/routeNumberMarkers';
 import { iniciarSeguimiento, detenerSeguimiento } from '../../../services/ubicacionBackground';
 import { empujarCalificacionPendiente } from '../../../services/calificacionPendiente';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -852,23 +853,32 @@ const TripMapScreen = ({ route, navigation }) => {
             Origen y destino usaban PNG fijos en Android; ya no pueden, porque el número
             cambia según cuántas paradas tenga el viaje. */}
         {routePoints.map((point, i) => (
-          <Marker
-            key={`pt-${i}-${mapReady}`}
-            coordinate={point.coordinate}
-            anchor={{ x: 0.5, y: 0.5 }}
-            // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
-            // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
-            // mismo justo cuando pasa por una parada.
-            zIndex={1}
-            // Android redibuja la vista del marcador en cada frame mientras `tracksViewChanges`
-            // esté en true, y eso es el parpadeo de los numeritos. Se apaga apenas el marcador
-            // termina de dibujarse: si se apagara desde el arranque, saldrían en blanco.
-            tracksViewChanges={marcadoresVivos}
-          >
-            <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
-              <Text style={styles.routeMarkerNum}>{i + 1}</Text>
-            </View>
-          </Marker>
+          Platform.OS === 'android' ? (
+            // PNG nativo: la vista custom se corría de su coordenada al mover la cámara y el
+            // numerito terminaba lejos del trazado. Ver routeNumberMarkers.
+            <Marker
+              key={`pt-${i}`}
+              coordinate={point.coordinate}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={1}
+              image={routeNumberImage(i + 1, point.isEnd)}
+            />
+          ) : (
+            <Marker
+              key={`pt-${i}-${mapReady}`}
+              coordinate={point.coordinate}
+              anchor={{ x: 0.5, y: 0.5 }}
+              // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
+              // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
+              // mismo justo cuando pasa por una parada.
+              zIndex={1}
+              tracksViewChanges={marcadoresVivos}
+            >
+              <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
+                <Text style={styles.routeMarkerNum}>{i + 1}</Text>
+              </View>
+            </Marker>
+          )
         ))}
 
         {/* Calle arriba de cada pin, como en Uber: de un vistazo se sabe qué es cada número
