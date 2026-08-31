@@ -93,34 +93,16 @@ const PickupMapScreen = ({ route, navigation }) => {
               image={PIN_PASAJERO}
             />
           ) : (
-            <>
-              {/* El tracking se apaga a los 900ms (ver marcadoresVivos): apagado ya evita que el
-                  mapa re-renderice y re-decodifique el ícono en cada actualización. */}
-              <Marker
-                key={`pin-${mapaListo}`}
-                coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-                anchor={{ x: 0.5, y: 1 }}
-                tracksViewChanges={marcadoresVivos}
-              >
-                <Image source={PIN_PASAJERO} style={styles.pinPasajero} resizeMode="contain" />
-              </Marker>
-              {/* La dirección arriba del pin, un marcador aparte anclado abajo. */}
-              {!!address && (
-                <Marker
-                  key={`lbl-${mapaListo}`}
-                  coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-                  anchor={{ x: 0.5, y: 1 }}
-                  zIndex={2}
-                  tracksViewChanges={marcadoresVivos}
-                >
-                  <View style={styles.addressLabelWrap}>
-                    <View style={styles.addressLabelBubble}>
-                      <Text style={styles.addressLabelBubbleText} numberOfLines={2}>{address}</Text>
-                    </View>
-                  </View>
-                </Marker>
-              )}
-            </>
+            // Sólo el pin. La dirección va en la tarjeta de abajo — antes había una etiqueta
+            // flotante sobre el pin y se pidió sacarla.
+            <Marker
+              key={`pin-${mapaListo}`}
+              coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges={marcadoresVivos}
+            >
+              <Image source={PIN_PASAJERO} style={styles.pinPasajero} resizeMode="contain" />
+            </Marker>
           )
         )}
       </MapView>}
@@ -143,17 +125,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   // Ratio del PNG (150x219). Alto ~64pt: se lee claro sin tapar media pantalla.
   pinPasajero: { width: 44, height: 64 },
-  // marginBottom despega la etiqueta de la CABEZA del pin (64pt de alto + margen) sin que el
-  // pin se mueva de su coordenada real, sea cual sea el largo del texto.
-  addressLabelWrap: { alignItems: 'center', marginBottom: 72 },
-  // Blanco fijo y no del tema: sobre un mapa oscuro o claro el contraste tiene que ser
-  // siempre el mismo.
-  addressLabelBubble: {
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, maxWidth: 180,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.25, shadowRadius: 3, elevation: 3,
-  },
-  addressLabelBubbleText: { fontSize: 11, fontFamily: 'Sora_600SemiBold', color: '#1A1A1A' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 999, justifyContent: 'center', alignItems: 'center',

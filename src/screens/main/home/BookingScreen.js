@@ -750,13 +750,10 @@ const BookingScreen = ({ route, navigation }) => {
               </>
           )}
 
-        </ScrollView>
-
-        {/* Fijo abajo: el botón principal tiene que estar siempre en el mismo lugar. Dentro
-            del scroll subía o bajaba según cuánto contenido tuviera el paso, y en los pasos
-            cortos quedaba en el medio de la pantalla con todo vacío debajo. */}
-        <View style={[styles.footerFijo, { backgroundColor: bg, borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) }]}>
-        {/* Footer */}
+        {/* Botón al final del scroll, NO fijo: en los pasos cortos queda abajo del todo
+            (marginTop:'auto'), en los largos aparece después del contenido al scrollear hasta
+            el fondo. Cuando el foco está en un input, lo que importa es ver el input. */}
+        <View style={[styles.footerScroll, { backgroundColor: bg, borderTopColor: divider, paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
           style={[
             styles.confirmBtn,
@@ -796,6 +793,8 @@ const BookingScreen = ({ route, navigation }) => {
         </TouchableOpacity>
 
         </View>
+
+        </ScrollView>
       </Animated.View>
 
 
@@ -828,6 +827,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    // flexGrow para que el footer con marginTop:'auto' tenga espacio libre que empujar hacia
+    // abajo en los pasos cortos.
+    flexGrow: 1,
   },
 
   // Card
@@ -1012,7 +1014,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_500Medium',
   },
 
-  footerFijo: {
+  footerScroll: {
+    // marginTop:'auto' lo pega abajo cuando el paso es corto; con contenido largo fluye
+    // después de todo. marginHorizontal:-16 anula el padding del scroll para que el borde
+    // superior cruce de lado a lado.
+    marginTop: 'auto',
+    marginHorizontal: -16,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
