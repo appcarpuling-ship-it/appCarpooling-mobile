@@ -161,7 +161,7 @@ const DeleteAccountScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1 },
-  scroll: { padding: 24, paddingBottom: 24 },
+  scroll: { padding: 24, paddingBottom: 24, flexGrow: 1 },
 
   aviso: {
     flexDirection: 'row', gap: 12, alignItems: 'flex-start',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15, fontFamily: 'Sora_400Regular',
   },
 
-  footer: { paddingHorizontal: 24, paddingTop: 10 },
+  footer: { paddingTop: 14, marginTop: 'auto' },
   cancelar: { textAlign: 'center', fontSize: 14, fontFamily: 'Sora_600SemiBold', paddingVertical: 14 },
 });
 

@@ -50,15 +50,13 @@ const TripDetails = ({ navigation, route }) => {
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
 
-    // El botón "Continuar" vive al FINAL del scroll, como en el resto de la app: al enfocar
-    // asientos o precio, lo único que importa es ver el input, y el botón se alcanza scrolleando.
-    // Antes era un footer fijo que el teclado tapaba, o —peleándolo con KeyboardAvoidingView— el
-    // botón saltaba de lugar. El botón "salta" un poco de altura entre pasos (los cortos dejan
-    // más aire abajo), que es el precio aceptado por un teclado que funciona.
+    // El botón "Continuar" vive al final del scroll (como el resto de la app) pero con
+    // `marginTop:'auto'` sobre un contentContainer `flexGrow:1`: cuando el paso es corto queda
+    // pegado abajo igual que un footer fijo; cuando es largo, queda después del contenido y se
+    // scrollea. Antes era un footer fijo que el teclado tapaba.
     //
-    // En Android (SDK 54 no achica la ventana con el teclado): un espacio extra al final del
-    // scroll igual al alto del teclado, para que haya a dónde scrollear el input, y un
-    // scrollToEnd al enfocar que lo lleva arriba del teclado. iOS lo resuelve solo con
+    // Con el teclado abierto en Android (SDK 54 no achica la ventana): se suma su alto como
+    // espacio al final para poder scrollear el input a la vista. iOS lo sube solo con
     // `automaticallyAdjustKeyboardInsets`.
     const [alturaTeclado, setAlturaTeclado] = useState(0);
     useEffect(() => {
@@ -67,10 +65,12 @@ const TripDetails = ({ navigation, route }) => {
         const hide = Keyboard.addListener('keyboardDidHide', () => setAlturaTeclado(0));
         return () => { show.remove(); hide.remove(); };
     }, []);
+    // Al enfocar asientos/precio, un scroll suave para acercar el input al tope. `scrollToEnd`
+    // scrolleaba de más (dejaba todo el paso pegado al teclado); esto lo acerca sin exagerar.
     const scrollFieldAboveKeyboard = () => {
         if (Platform.OS !== 'android') return;
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+            requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 260, animated: true }));
         });
     };
     const [loading, setLoading] = useState(false);
@@ -336,7 +336,10 @@ const TripDetails = ({ navigation, route }) => {
                     <ScrollView
                         ref={scrollRef}
                         style={styles.flex}
-                        contentContainerStyle={[styles.scroll, alturaTeclado > 0 && { paddingBottom: alturaTeclado }]}
+                        contentContainerStyle={[
+                            styles.scroll,
+                            { paddingBottom: (alturaTeclado > 0 ? alturaTeclado : Math.max(insets.bottom, 12)) + 16 },
+                        ]}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         automaticallyAdjustKeyboardInsets
@@ -780,7 +783,10 @@ const TripDetails = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     flex:      { flex: 1 },
-    scroll:    { padding: 16, paddingBottom: 40, gap: 8 },
+    // flexGrow: el contenido ocupa al menos toda la altura del scroll aunque el paso sea corto,
+    // para que el footer (marginTop:'auto') pueda irse al fondo. paddingBottom se pone inline
+    // (safe area / alto del teclado).
+    scroll:    { padding: 16, gap: 8, flexGrow: 1 },
 
     sectionLabel: {
         fontSize: 11,
@@ -957,11 +963,11 @@ const styles = StyleSheet.create({
     progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
     progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
     faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginBottom: 10 },
-    // Cierra el contenido del scroll con el botón. `marginTop` lo separa de la última tarjeta,
-    // y los márgenes negativos devuelven la línea superior al ancho completo (el scroll tiene
-    // padding 16).
+    // `marginTop:'auto'` empuja el botón al fondo del scroll cuando el paso es corto (queda
+    // como un footer fijo); cuando el contenido llena la pantalla, colapsa a 0 y el botón va
+    // después del contenido. Los márgenes negativos devuelven la línea al ancho completo.
     footerScroll: {
-        marginTop: 20,
+        marginTop: 'auto',
         marginHorizontal: -16,
         paddingHorizontal: 20,
         paddingTop: 16,

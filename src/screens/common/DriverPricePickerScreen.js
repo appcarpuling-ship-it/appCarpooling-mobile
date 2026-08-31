@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
 
   body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
+  bodyContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, flexGrow: 1 },
   bodyInner: { gap: 12 },
   intro: { fontFamily: 'Sora_400Regular', fontSize: 14, lineHeight: 20, marginBottom: 4 },
 
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   error: { color: '#EF4444', fontSize: 13, fontFamily: 'Sora_400Regular', paddingHorizontal: 4 },
   total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
 
-  footer: { paddingHorizontal: 24, paddingTop: 8 },
+  footer: { paddingTop: 16, marginTop: 'auto' },
 });
 
 export default DriverPricePickerScreen;
