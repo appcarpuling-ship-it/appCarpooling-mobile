@@ -74,6 +74,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // un marker con vista propia y tracksViewChanges en false desde el primer render se dibuja
   // invisible; arranca en true y se apaga solo una vez que el mapa avisa que está listo.
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
+  // onMapReady no alcanza: en Android llega antes del layout, con la vista nativa todavía en
+  // 0x0. Ahí react-native-maps descarta el encuadre y deja su fallback —el centro del
+  // recorrido en zoom 10—, que es el mapa "cerrado en cualquier lado". El ancho del onLayout
+  // es la señal de que la vista ya mide algo y el fit se puede aplicar.
+  const [mapPreviewAncho, setMapPreviewAncho] = useState(0);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   // Loading que tapa el mapa hasta que ESTÁ TODO: en Android el trazado tarda en llegar de
   // Directions y se veía el mapa a medio armar (sin línea, sin encuadrar). Se saca recién
@@ -103,7 +108,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // lista y queda ignorada. Las dependencias son las fuentes de los puntos (la solicitud y el
   // trazado que llega de Directions), no el array, que se arma nuevo en cada render.
   useEffect(() => {
-    if (!mapPreviewReady) return undefined;
+    if (!mapPreviewReady || !mapPreviewAncho) return undefined;
     const puntos = puntosEncuadreRef.current;
     if (puntos.length >= 2) {
       previewMapRef.current?.fitToCoordinates(puntos, {
@@ -119,7 +124,18 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     setMapPreviewDotsVivos(true);
     const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
     return () => clearTimeout(t);
-  }, [mapPreviewReady, request, previewRoutePoints]);
+  }, [mapPreviewReady, mapPreviewAncho, request, previewRoutePoints]);
+
+  // Al volver de TripMap el MapView se remonta (pantallaEnfocada lo desmonta al salir) y nace
+  // sin encuadrar. Si las señales quedaran en true no cambiarían de valor y el efecto de
+  // arriba no volvería a correr: se reinician al perder el foco.
+  useEffect(() => {
+    if (!pantallaEnfocada) {
+      setMapPreviewReady(false);
+      setMapPreviewAncho(0);
+    }
+  }, [pantallaEnfocada]);
+
 
   // Saca el loading del mapa: con la ruta ya dibujada, un respiro para que pinte el trazado y
   // las baldosas; sin ruta, un tope de 6s para no dejarlo girando en una solicitud sin polyline.
@@ -561,6 +577,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               pitchEnabled={false}
               pointerEvents="none"
               onMapReady={() => setMapPreviewReady(true)}
+              onLayout={(e) => setMapPreviewAncho(e.nativeEvent.layout.width)}
             >
               {previewRoutePoints.length > 1 && (
                 // Fijo en negro, no del tema: va sobre las baldosas del mapa, no sobre la app.

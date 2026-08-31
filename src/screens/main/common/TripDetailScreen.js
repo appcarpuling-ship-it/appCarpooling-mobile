@@ -155,6 +155,11 @@ const TripDetailScreen = ({ route, navigation }) => {
   // TripMapScreen, arranca en true (se ve mientras se dibuja) y se apaga solo una vez que
   // el mapa avisa que está listo.
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
+  // onMapReady no alcanza: en Android llega antes del layout, con la vista nativa todavía en
+  // 0x0. Ahí react-native-maps descarta el encuadre y deja su fallback —el centro del
+  // recorrido en zoom 10—, que es el mapa "cerrado en cualquier lado". El ancho del onLayout
+  // es la señal de que la vista ya mide algo y el fit se puede aplicar.
+  const [mapPreviewAncho, setMapPreviewAncho] = useState(0);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   const previewMapRef = useRef(null);
   /**
@@ -260,7 +265,7 @@ const TripDetailScreen = ({ route, navigation }) => {
    * en sí: se arma nuevo en cada render y comparar la referencia reencuadraría siempre.
    */
   useEffect(() => {
-    if (!mapPreviewReady) return undefined;
+    if (!mapPreviewReady || !mapPreviewAncho) return undefined;
     const puntos = puntosEncuadreRef.current;
     if (puntos.length >= 2) {
       previewMapRef.current?.fitToCoordinates(puntos, {
@@ -277,7 +282,18 @@ const TripDetailScreen = ({ route, navigation }) => {
     setMapPreviewDotsVivos(true);
     const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
     return () => clearTimeout(t);
-  }, [mapPreviewReady, trip, liveRouteCoords]);
+  }, [mapPreviewReady, mapPreviewAncho, trip, liveRouteCoords]);
+
+  // Al volver de TripMap el MapView se remonta (pantallaEnfocada lo desmonta al salir) y nace
+  // sin encuadrar. Si las señales quedaran en true no cambiarían de valor y el efecto de
+  // arriba no volvería a correr: se reinician al perder el foco.
+  useEffect(() => {
+    if (!pantallaEnfocada) {
+      setMapPreviewReady(false);
+      setMapPreviewAncho(0);
+    }
+  }, [pantallaEnfocada]);
+
 
   // Apiladas por defecto: en un viaje con paradas, la lista completa empujaba el precio, el
   // conductor y el botón de reservar fuera de la primera pantalla.
@@ -824,6 +840,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               pitchEnabled={false}
               pointerEvents="none"
               onMapReady={() => setMapPreviewReady(true)}
+              onLayout={(e) => setMapPreviewAncho(e.nativeEvent.layout.width)}
             >
               {/* Sin trazado real guardado (viajes viejos, o de prueba) no va línea: una
                   recta entre dos ciudades cruza terreno y ríos en diagonal, ninguna calle
