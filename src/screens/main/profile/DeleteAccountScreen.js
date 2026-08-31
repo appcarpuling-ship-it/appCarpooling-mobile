@@ -5,8 +5,6 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,12 +89,14 @@ const DeleteAccountScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.screen, { backgroundColor: ui.bg }]}>
+        {/* Botón al final del scroll, como el resto de la app: al confirmar con la contraseña
+            lo que importa es ver el input; el botón se alcanza scrolleando. */}
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
         >
           <View style={[styles.aviso, { backgroundColor: ui.surface, borderColor: ui.border }]}>
             <Ionicons name="warning-outline" size={22} color="#EF4444" />
@@ -139,24 +139,22 @@ const DeleteAccountScreen = ({ navigation }) => {
               />
             </>
           )}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <PillButton
+              label="Eliminar mi cuenta"
+              onPress={confirmar}
+              loading={enviando}
+              disabled={tienePassword && password.length === 0}
+            />
+            <Text
+              style={[styles.cancelar, { color: ui.textMuted }]}
+              onPress={() => navigation.goBack()}
+            >
+              Mejor no
+            </Text>
+          </View>
         </ScrollView>
-
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <PillButton
-            label="Eliminar mi cuenta"
-            onPress={confirmar}
-            loading={enviando}
-            disabled={tienePassword && password.length === 0}
-          />
-          <Text
-            style={[styles.cancelar, { color: ui.textMuted }]}
-            onPress={() => navigation.goBack()}
-          >
-            Mejor no
-          </Text>
-        </View>
       </View>
-    </KeyboardAvoidingView>
   );
 };
 

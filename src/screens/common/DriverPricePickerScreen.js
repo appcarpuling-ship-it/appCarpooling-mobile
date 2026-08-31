@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -45,12 +45,7 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
     onDone?.({ driverPrice: sinPrecioFijo ? 0 : valor, sinPrecioFijo, aceptaEfectivo });
   };
 
-  // Mismo criterio que TripDetails: en Android `app.json` ya trae softwareKeyboardLayoutMode
-  // 'resize', o sea que el sistema achica la ventana solo. Con behavior 'height' el teclado se
-  // compensaba dos veces y el footer con "Enviar propuesta" quedaba flotando en el medio en vez
-  // de abajo del todo (y con autoFocus se veía siempre). undefined = que lo resuelva el sistema.
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -66,21 +61,17 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
           <View style={styles.headerBtn} />
         </View>
 
-        {/* Tocar fuera del campo cierra el teclado, como en TripDetails. El campo entra con
-            autoFocus, así que sin esto el teclado se quedaba arriba sin forma de bajarlo salvo
-            con el botón del sistema. Envuelve sólo el cuerpo y no el footer: así el botón de
-            enviar sigue respondiendo al primer toque. `accessible={false}` para que el envoltorio
-            no se anuncie como un elemento más; los toggles de adentro siguen siendo táctiles. */}
-        {/* Scrolleable y no una View fija: con el teclado abierto la ventana se achica, las dos
-            tarjetas y el campo no entran, y el footer con "Enviar propuesta" quedaba empujado
-            fuera de pantalla. `keyboardShouldPersistTaps` deja que los toggles respondan con el
-            teclado arriba, y `keyboardDismissMode` lo baja al arrastrar. */}
+        {/* Todo scrollea, con el botón "Enviar propuesta" al final —como el resto de la app—
+            en vez de un footer fijo que el teclado tapaba. `automaticallyAdjustKeyboardInsets`
+            sube el campo en iOS; `keyboardDismissMode="on-drag"` lo baja al scrollear.
+            `keyboardShouldPersistTaps` deja que los toggles respondan con el teclado arriba. */}
         <ScrollView
           style={styles.body}
           contentContainerStyle={styles.bodyContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
         >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.bodyInner}>
@@ -173,15 +164,14 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
               </Text>
             </View>
           </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <PillButton label="Enviar propuesta" onPress={confirmar} />
+          </View>
         </View>
         </TouchableWithoutFeedback>
         </ScrollView>
-
-        <View style={styles.footer}>
-          <PillButton label="Enviar propuesta" onPress={confirmar} />
-        </View>
       </View>
-    </KeyboardAvoidingView>
   );
 };
 

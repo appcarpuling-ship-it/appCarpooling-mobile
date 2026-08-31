@@ -7,7 +7,6 @@ import {
     StyleSheet,
     ActivityIndicator,
     ScrollView,
-    KeyboardAvoidingView,
     Platform,
     Modal,
     Keyboard,
@@ -15,7 +14,6 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { post_withauth } from '../../../services/apiService';
@@ -38,7 +36,6 @@ const PASOS = [
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
     const insets = useSafeAreaInsets();
-    const headerHeight = useHeaderHeight();
     const { showAlert } = useAlert();
     const { user } = useAuth();
 
@@ -53,31 +50,23 @@ const TripDetails = ({ navigation, route }) => {
     const [step, setStep] = useState(1);
     const scrollRef = useRef(null);
 
-    // Con el teclado abierto en Android, el footer queda pegado a su borde superior (lo sube el
-    // KAV externo). Ahí `insets.bottom` —la barra de gestos— queda TAPADA por el teclado, así
-    // que sumarla como respiro deja un hueco muerto debajo de "Continuar". Se descuenta mientras
-    // el teclado está arriba.
-    const [tecladoVisible, setTecladoVisible] = useState(false);
+    // El botón "Continuar" vive al FINAL del scroll, como en el resto de la app: al enfocar
+    // asientos o precio, lo único que importa es ver el input, y el botón se alcanza scrolleando.
+    // Antes era un footer fijo que el teclado tapaba, o —peleándolo con KeyboardAvoidingView— el
+    // botón saltaba de lugar. El botón "salta" un poco de altura entre pasos (los cortos dejan
+    // más aire abajo), que es el precio aceptado por un teclado que funciona.
+    //
+    // En Android (SDK 54 no achica la ventana con el teclado): un espacio extra al final del
+    // scroll igual al alto del teclado, para que haya a dónde scrollear el input, y un
+    // scrollToEnd al enfocar que lo lleva arriba del teclado. iOS lo resuelve solo con
+    // `automaticallyAdjustKeyboardInsets`.
+    const [alturaTeclado, setAlturaTeclado] = useState(0);
     useEffect(() => {
         if (Platform.OS !== 'android') return undefined;
-        const show = Keyboard.addListener('keyboardDidShow', () => setTecladoVisible(true));
-        const hide = Keyboard.addListener('keyboardDidHide', () => setTecladoVisible(false));
+        const show = Keyboard.addListener('keyboardDidShow', (e) => setAlturaTeclado(e.endCoordinates?.height || 0));
+        const hide = Keyboard.addListener('keyboardDidHide', () => setAlturaTeclado(0));
         return () => { show.remove(); hide.remove(); };
     }, []);
-
-    /**
-     * El campo enfocado se sube distinto por plataforma:
-     *  - iOS: `automaticallyAdjustKeyboardInsets` del ScrollView, sin JS.
-     *  - Android: el KeyboardAvoidingView externo con behavior 'height' (ver el return). En
-     *    Expo SDK 54 el `adjustResize` del manifiesto YA NO achica la ventana —edge-to-edge
-     *    forzado hace que el teclado sea un inset que se dibuja encima— así que el layout no se
-     *    mueve solo y hay que compensarlo con el KAV, que en 54 sí lee ese inset. Con el
-     *    contenedor ya achicado, este scrollToEnd lleva a la vista los últimos campos (asientos
-     *    y precio, que viven en la última tarjeta del paso).
-     *
-     * Reemplaza CUATRO intentos con measure()/scroll que fallaban porque todos asumían que la
-     * ventana se achicaba sola.
-     */
     const scrollFieldAboveKeyboard = () => {
         if (Platform.OS !== 'android') return;
         requestAnimationFrame(() => {
@@ -335,28 +324,7 @@ const TripDetails = ({ navigation, route }) => {
 
     return (
         <>
-            {/* Sin el borde 'bottom': ese inset se suma al padding que mete el
-                KeyboardAvoidingView y con el teclado abierto dejaba una franja vacía DEBAJO
-                del teclado. El respiro de abajo lo pone el footer con insets.bottom. */}
             <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
-                {/* KAV externo: en Android, behavior 'height' achica este contenedor por el alto
-                    del teclado. Es lo que reemplaza al `adjustResize` que SDK 54 dejó sin efecto
-                    (ver scrollFieldAboveKeyboard). Al achicar el contenedor, el ScrollView de
-                    adentro se comprime —hay a dónde scrollear— y el footer sube con él. En iOS
-                    va undefined para no interferir con automaticallyAdjustKeyboardInsets. */}
-                <KeyboardAvoidingView
-                    style={styles.flex}
-                    // 'padding' y no 'height': con 'height' el KAV fija una altura al contenedor
-                    // y el footer quedaba "flotando" con aire arriba y abajo. Con 'padding' suma
-                    // el alto del teclado como paddingBottom, el ScrollView (flex:1) absorbe esa
-                    // reducción y el footer queda pegado al borde del teclado, en el mismo lugar
-                    // que sin teclado. En iOS va undefined para no pisar
-                    // automaticallyAdjustKeyboardInsets del ScrollView.
-                    behavior={Platform.OS === 'android' ? 'padding' : undefined}
-                    // Sin keyboardVerticalOffset: este KAV envuelve el contenido de la screen,
-                    // que React Navigation ya posiciona DEBAJO del header, así que el alto del
-                    // teclado se mide bien tal cual. Pasarle headerHeight descontaba de más.
-                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     {/* `automaticallyAdjustKeyboardInsets` en vez de KeyboardAwareScrollView.
                         Esa librería (0.9.5, sin mantenimiento desde 2021) llama a APIs del
@@ -368,7 +336,7 @@ const TripDetails = ({ navigation, route }) => {
                     <ScrollView
                         ref={scrollRef}
                         style={styles.flex}
-                        contentContainerStyle={styles.scroll}
+                        contentContainerStyle={[styles.scroll, alturaTeclado > 0 && { paddingBottom: alturaTeclado }]}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         automaticallyAdjustKeyboardInsets
@@ -700,48 +668,34 @@ const TripDetails = ({ navigation, route }) => {
                             </>
                         )}
 
+                        {/* El botón, al final del contenido y no en un footer fijo. El texto de
+                            "qué falta" se renderiza siempre (vacío si no hay nada) para que el
+                            botón no cambie de alto entre pasos. */}
+                        <View style={[styles.footerScroll, { borderTopColor: divider }]}>
+                            <Text style={[styles.faltante, { color: textMuted }]} numberOfLines={1}>
+                                {faltante || ' '}
+                            </Text>
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitBtn,
+                                    { backgroundColor: ui.invertBg },
+                                    (loading || !!faltante) && { opacity: 0.4 },
+                                ]}
+                                onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
+                                disabled={loading || !!faltante}
+                                activeOpacity={0.85}
+                            >
+                                {loading
+                                    ? <ActivityIndicator color={ui.invertText} size="small" />
+                                    : <Text style={[styles.submitText, { color: ui.invertText }]}>
+                                        {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
+                                      </Text>
+                                }
+                            </TouchableOpacity>
+                        </View>
 
                     </ScrollView>
                     </TouchableWithoutFeedback>
-
-                    {/* KAV interno, sólo para iOS: sube el footer con behavior 'padding' mientras
-                        el ScrollView de arriba sube el input. En Android va undefined —el KAV
-                        externo con behavior 'height' ya achicó todo el contenedor, así que el
-                        footer sube sin necesidad de otro KAV. Ponerle 'padding' o 'height' acá
-                        además lo compensaría dos veces. */}
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                        keyboardVerticalOffset={headerHeight}
-                    >
-                    {/* Fijo abajo, siempre en el mismo lugar. Dentro del scroll el botón subía
-                        y bajaba según cuánto contenido tuviera cada paso. */}
-                    <View style={[styles.footerFijo, { borderTopColor: divider, paddingBottom: (tecladoVisible ? 16 : Math.max(insets.bottom, 16)) + 8 }]}>
-                    {/* Un solo botón para todo: avanza mientras falten pasos y publica en el último.
-                        El texto se renderiza siempre (vacío si no hay nada que avisar) para que
-                        reserve la misma altura y el botón no salte de lugar entre pasos. */}
-                    <Text style={[styles.faltante, { color: textMuted }]} numberOfLines={1}>
-                        {faltante || ' '}
-                    </Text>
-                    <TouchableOpacity
-                        style={[
-                            styles.submitBtn,
-                            { backgroundColor: ui.invertBg },
-                            (loading || !!faltante) && { opacity: 0.4 },
-                        ]}
-                        onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
-                        disabled={loading || !!faltante}
-                        activeOpacity={0.85}
-                    >
-                        {loading
-                            ? <ActivityIndicator color={ui.invertText} size="small" />
-                            : <Text style={[styles.submitText, { color: ui.invertText }]}>
-                                {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
-                              </Text>
-                        }
-                    </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
-                </KeyboardAvoidingView>
 
             </SafeAreaView>
 
@@ -1003,9 +957,14 @@ const styles = StyleSheet.create({
     progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
     progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
     faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginBottom: 10 },
-    footerFijo: {
+    // Cierra el contenido del scroll con el botón. `marginTop` lo separa de la última tarjeta,
+    // y los márgenes negativos devuelven la línea superior al ancho completo (el scroll tiene
+    // padding 16).
+    footerScroll: {
+        marginTop: 20,
+        marginHorizontal: -16,
         paddingHorizontal: 20,
-        paddingTop: 14,
+        paddingTop: 16,
         borderTopWidth: StyleSheet.hairlineWidth,
     },
     submitBtn: {

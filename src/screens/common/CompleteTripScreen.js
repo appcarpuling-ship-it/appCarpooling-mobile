@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -120,7 +120,6 @@ const CompleteTripScreen = ({ route, navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12} style={[styles.headerBtn, { backgroundColor: ui.surface }]}>
@@ -130,7 +129,16 @@ const CompleteTripScreen = ({ route, navigation }) => {
           <View style={styles.headerBtn} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* El botón va al final del scroll, como en el resto de la app: al enfocar un monto,
+            lo único que importa es ver el input, y el botón se alcanza scrolleando. Antes era
+            un footer fijo y el teclado lo tapaba. `automaticallyAdjustKeyboardInsets` sube el
+            input en iOS; en Android alcanza con scrollear. */}
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
+        >
           <Text style={[styles.subtitle, { color: ui.textMuted }]}>
             Cargá lo que se gastó en este viaje. Se reparte entre todos los que viajaron, vos incluido.
           </Text>
@@ -189,13 +197,12 @@ const CompleteTripScreen = ({ route, navigation }) => {
               )}
             </View>
           </View>
-        </ScrollView>
 
-        <View style={styles.footer}>
-          <PillButton label="Completar viaje" onPress={handleSubmit} loading={submitting} disabled={extraExcedido} />
-        </View>
+          <View style={styles.footer}>
+            <PillButton label="Completar viaje" onPress={handleSubmit} loading={submitting} disabled={extraExcedido} />
+          </View>
+        </ScrollView>
       </View>
-    </KeyboardAvoidingView>
   );
 };
 
