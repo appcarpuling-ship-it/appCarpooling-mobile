@@ -10,8 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyReservations, cancelSeatReservation, confirmFromCallback } from '../../../services/seatReservationService';
-import useColors from '../../../hooks/useColors';
-import { useTheme } from '../../../context/ThemeContext';
 import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import CheckoutWebView from '../../../components/payment/CheckoutWebView';
@@ -22,9 +20,7 @@ import { reportError } from '../../../utils/sentry';
 
 const MySeatReservationsScreen = ({ navigation }) => {
   const { showAlert } = useAlert();
-  const { colors } = useColors();
   const ui = useUI();
-  const { isDarkMode } = useTheme();
 
   // Flecha de volver garantizada aunque la pantalla quede como raíz (deep-link).
   useLayoutEffect(() => {
@@ -43,13 +39,15 @@ const MySeatReservationsScreen = ({ navigation }) => {
     });
   }, [navigation, ui.text]);
 
-  const dark = isDarkMode;
-  const bg = colors.background;
-  const cardBg = colors.cardBackground;
-  const divider = ui.bg;
-  const textPrimary = colors.textPrimary;
-  const textMuted = colors.textMuted;
-  const chipBg = dark ? '#1C1C1C' : '#F3F4F6';
+  // Todo del sistema `ui`, como el resto de la app (MyBookingsScreen es la pantalla gemela y
+  // usa lo mismo). Antes mezclaba `useColors` —`colors.background` es negro puro, más oscuro
+  // que el `ui.bg` del tema— con chips hardcodeados, y no matcheaba con ninguna otra pantalla.
+  const bg = ui.bg;
+  const cardBg = ui.surface;
+  const divider = ui.border;
+  const textPrimary = ui.text;
+  const textMuted = ui.textMuted;
+  const chipBg = ui.surface;
 
   const [activeTab, setActiveTab] = useState('upcoming');
   const [reservations, setReservations] = useState([]);
@@ -371,14 +369,14 @@ const MySeatReservationsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: chipBg }]}>
+      <View style={[styles.centered, { backgroundColor: bg }]}>
         <ActivityIndicator size="small" color={textMuted} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: chipBg }]}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: textPrimary }]}>Tus reservas</Text>
         <Text style={[styles.title, styles.titleStrong, { color: textPrimary }]}>de asiento</Text>
