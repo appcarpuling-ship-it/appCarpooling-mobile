@@ -28,6 +28,7 @@ import LocationPickerScreen from '../screens/common/LocationPickerScreen';
 import VehiclePickerScreen from '../screens/common/VehiclePickerScreen';
 import CompleteTripScreen from '../screens/common/CompleteTripScreen';
 import PickupMapScreen from '../screens/common/PickupMapScreen';
+import RequestDetailScreen from '../screens/main/carpool/RequestDetailScreen';
 import PointPickerScreen from '../screens/common/PointPickerScreen';
 import DriverRoutePickerScreen from '../screens/common/DriverRoutePickerScreen';
 import DriverPricePickerScreen from '../screens/common/DriverPricePickerScreen';
@@ -167,6 +168,14 @@ const AppNavigator = () => {
           <Stack.Screen
             name="PickupMap"
             component={PickupMapScreen}
+            options={{ headerShown: false }}
+          />
+          {/* La ficha de una solicitud de reserva. Va acá arriba, al lado de PickupMap y
+              PointPicker, porque a la bandeja se llega desde dos stacks distintos
+              (Carpoolings e Historial) y la ficha tiene que abrirse desde las dos. */}
+          <Stack.Screen
+            name="RequestDetail"
+            component={RequestDetailScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen

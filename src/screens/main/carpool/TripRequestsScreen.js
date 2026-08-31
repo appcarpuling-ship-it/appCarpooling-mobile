@@ -25,6 +25,15 @@ import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { reportError } from '../../../utils/sentry';
+import {
+  getStatus,
+  estadoDe,
+  esperandoRespuesta,
+  seatsLabelEs,
+  fmtDate,
+  fmtCuando,
+  partirDesvio,
+} from '../../../utils/solicitudes';
 
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -93,12 +102,6 @@ const TripRequestsScreen = ({ route }) => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [pendingCounts, setPendingCounts] = useState({});
-  /**
-   * La solicitud abierta en la ficha. Se guarda el id y no el objeto: así, cuando la lista
-   * se recarga después de aceptar o rechazar, la ficha muestra el estado nuevo y no una foto
-   * vieja de la solicitud.
-   */
-  const [fichaId, setFichaId] = useState(null);
 
   const enrichPendingForTrips = async (tripList) => {
     const active = tripList.filter(t => t.status === 'active' || t.status === 'started');
@@ -226,15 +229,6 @@ const TripRequestsScreen = ({ route }) => {
     loadUserTrips(tripsPage + 1, { append: true });
   };
 
-  /** Las dos claves con las que el backend dice "todavía no respondiste". */
-  const esperandoRespuesta = (rs) => rs === 'pending_approval' || rs === 'pending';
-  const estadoDe = (item) => item.seatReservation?.reservationStatus || item.status;
-
-  const seatsLabelEs = (n) => {
-    const s = Math.max(1, Number(n) || 1);
-    return s === 1 ? '1 asiento' : `${s} asientos`;
-  };
-
   const handleAccept = (request) => {
     const requestId = request._id || request.id;
     const isSeatReservation = request.bookingType === 'seat_reservation';
@@ -299,55 +293,6 @@ const TripRequestsScreen = ({ route }) => {
     }
   };
 
-  const getStatus = (status) => {
-    // Los 8 valores del enum reservationStatus del backend, mas los del viaje.
-    // Faltaban payment_failed, trip_completed y expired: caian al default y la
-    // pantalla mostraba la clave cruda ("trip_completed") al conductor.
-    const map = {
-      // del viaje
-      pending:          { solid: true,  label: 'Pendiente' },
-      confirmed:        { solid: true,  label: 'Confirmado' },
-      cancelled:        { solid: false, label: 'Cancelado' },
-      completed:        { solid: false, label: 'Completado' },
-      // de la reserva del asiento
-      pending_approval: { solid: true,  label: 'Esperando tu aprobación' },
-      pending_payment:  { solid: true,  label: 'Pago pendiente' },
-      payment_failed:   { solid: true,  label: 'Pago fallido' },
-      reserved:         { solid: true,  label: 'Confirmada' },
-      trip_completed:   { solid: false, label: 'Viaje completado' },
-      expired:          { solid: false, label: 'Vencida' },
-      rejected:         { solid: false, label: 'Rechazada' },
-    };
-    return map[status] || { solid: false, label: '—' };
-  };
-
-  const fmtDate = (d) =>
-    new Date(d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-
-  /**
-   * Cuándo pidió, contado como lo cuenta una persona. En una bandeja lo que importa es hace
-   * cuánto que está esperando, no la fecha exacta: "hoy" pesa distinto que "mar, 26 ago".
-   */
-  const fmtCuando = (d) => {
-    const t = d ? new Date(d) : null;
-    if (!t || isNaN(t)) return '';
-    const dias = Math.floor((Date.now() - t.getTime()) / 86400000);
-    if (dias <= 0) return 'hoy';
-    if (dias === 1) return 'ayer';
-    if (dias < 7) return `hace ${dias} días`;
-    return fmtDate(d);
-  };
-
-  /**
-   * El desvío partido en dos para la fila: el número manda y la aclaración va abajo, chica.
-   * `desvioEtiqueta` viene armada del backend y es "+2,1 km de desvío" o "Te queda de paso".
-   */
-  const partirDesvio = (etiqueta) => {
-    if (!etiqueta) return null;
-    if (!etiqueta.startsWith('+')) return { fuerte: 'De paso', pie: null };
-    return { fuerte: etiqueta.replace(' de desvío', ''), pie: 'de desvío' };
-  };
-
   const fmtAddress = (address, city) => {
     if (!address) return city || '';
     let s = address
@@ -368,11 +313,6 @@ const TripRequestsScreen = ({ route }) => {
   const resueltas = useMemo(
     () => requests.filter((r) => !esperandoRespuesta(estadoDe(r))),
     [requests],
-  );
-  /** La solicitud abierta, releída de la lista para que refleje el estado más nuevo. */
-  const fichaActual = useMemo(
-    () => (fichaId ? requests.find((r) => String(r._id || r.id) === String(fichaId)) : null),
-    [requests, fichaId],
   );
 
   /** Viaje actualmente seleccionado (origen / destino para el encabezado de solicitudes) */
@@ -520,7 +460,16 @@ const TripRequestsScreen = ({ route }) => {
       <TouchableOpacity
         key={id}
         style={[styles.fila, !esUltima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
-        onPress={() => setFichaId(id)}
+        onPress={() =>
+          navigation.navigate('RequestDetail', {
+            request: item,
+            tripId: selectedTripId,
+            // Los resuelve la bandeja y no la ficha: el diálogo de confirmar y el cuadro del
+            // motivo viven acá, con el estado de la lista que hay que recargar después.
+            onAceptar: () => handleAccept(item),
+            onRechazar: () => { setSelectedRequest(id); setRejectModalVisible(true); },
+          })
+        }
         activeOpacity={0.6}
         accessibilityRole="button"
         accessibilityLabel={`Solicitud de ${item.passenger?.firstName || 'un pasajero'}`}
@@ -559,171 +508,6 @@ const TripRequestsScreen = ({ route }) => {
 
         <Ionicons name="chevron-forward" size={16} color={textMuted} />
       </TouchableOpacity>
-    );
-  };
-
-  // ─── La ficha: la solicitud entera, con todo lo que hace falta para decidir ──
-  const renderFicha = (item) => {
-    const id = item._id || item.id;
-    const rs = estadoDe(item);
-    const pendiente = esperandoRespuesta(rs);
-    const status = getStatus(rs);
-    const seats = item.seatsBooked || item.seatsRequested;
-    const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
-    const puntos = [
-      { punto: item.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
-      { punto: item.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
-    ].filter(({ punto }) => punto?.address);
-
-    return (
-      <View style={[styles.fichaWrap, { backgroundColor: bg, paddingTop: insets.top + 6 }]}>
-        <View style={[styles.fichaHeader, { borderBottomColor: divider }]}>
-          <TouchableOpacity
-            onPress={() => setFichaId(null)}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar la solicitud"
-          >
-            <Ionicons name="chevron-down" size={24} color={textPrimary} />
-          </TouchableOpacity>
-          <Text style={[styles.fichaTitulo, { color: textPrimary }]}>Solicitud</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        <ScrollView contentContainerStyle={[styles.fichaBody, { paddingBottom: insets.bottom + 24 }]}>
-          {/* Quién pide. Toca y vas a su perfil, igual que antes. */}
-          <TouchableOpacity
-            style={styles.passengerRow}
-            activeOpacity={0.7}
-            onPress={() => {
-              setFichaId(null);
-              navigation.navigate('UserProfile', { userId: item.passenger._id, tripId: selectedTripId });
-            }}
-          >
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, styles.avatar, { backgroundColor: cardBg }]}>
-                <Text style={[styles.avatarInitials, { color: textMuted }]}>
-                  {item.passenger?.firstName?.[0]}{item.passenger?.lastName?.[0]}
-                </Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.passengerName, { color: textPrimary }]} numberOfLines={1}>
-                {item.passenger?.firstName} {item.passenger?.lastName}
-              </Text>
-              <Text style={[styles.reqSub, { color: textMuted }]} numberOfLines={1}>
-                {seatsLabelEs(seats)} · pidió {fmtCuando(item.createdAt)}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={textMuted} />
-          </TouchableOpacity>
-
-          {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
-              abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
-          {!pendiente && (
-            <View style={[styles.statusPill, styles.fichaStatus, { backgroundColor: status.solid ? accent : cardBg }]}>
-              <Text style={[styles.statusPillText, { color: status.solid ? accentInv : textMuted }]}>
-                {status.label}
-              </Text>
-            </View>
-          )}
-
-          {!!item.message && (
-            <Text style={[styles.fichaMensaje, { color: textMuted, borderColor: border }]}>
-              "{item.message}"
-            </Text>
-          )}
-
-          {/* Dónde sube y dónde baja. Cada punto abre el mapa con su propio botón. */}
-          {puntos.length > 0 && (
-            <View style={[styles.reqRutaCard, { backgroundColor: cardBg }]}>
-              {puntos.map(({ punto, rotulo, fin }, i) => {
-                const hasCoords = punto.coordinates?.latitude != null;
-                return (
-                  <View key={rotulo}>
-                    <View style={styles.reqRutaFila}>
-                      <View style={fin ? [styles.reqDotFin, { backgroundColor: textPrimary }] : [styles.reqDotIni, { borderColor: textPrimary }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.reqPuntoRotulo, { color: textMuted }]}>{rotulo}</Text>
-                        <Text style={[styles.reqPuntoDir, { color: textPrimary }]}>{punto.address}</Text>
-                      </View>
-                      {hasCoords && (
-                        <TouchableOpacity
-                          style={[styles.reqMapBtn, { backgroundColor: bg, borderColor: divider }]}
-                          onPress={() => {
-                            setFichaId(null);
-                            navigation.navigate('PickupMap', { coordinates: punto.coordinates, address: punto.address, label: rotulo });
-                          }}
-                          activeOpacity={0.7}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Ver ${rotulo} en el mapa`}
-                        >
-                          <Ionicons name="map-outline" size={18} color={textMuted} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    {i < puntos.length - 1 && <View style={[styles.reqRutaDivider, { backgroundColor: divider }]} />}
-                  </View>
-                );
-              })}
-
-              {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
-                  conductor si no conoce el barrio: este número es lo que le permite decidir. */}
-              {!!item.desvioEtiqueta && (
-                <View style={[styles.reqDesvio, { borderTopColor: divider }]}>
-                  <Ionicons
-                    name={item.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
-                    size={14}
-                    color={item.desvioKm > 2 ? textMuted : '#10B981'}
-                  />
-                  <Text style={[styles.reqDesvioText, { color: item.desvioKm > 2 ? textMuted : '#10B981' }]}>
-                    {item.desvioEtiqueta}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {item.status === 'rejected' && item.rejectionReason && (
-            <Text style={[styles.rejectionText, { borderTopColor: divider }]}>
-              Razón: {item.rejectionReason}
-            </Text>
-          )}
-
-          {/* Los botones cierran la ficha ANTES de seguir: tanto el diálogo de confirmar como
-              el de rechazar se abren encima, y con la ficha abierta quedarían tapados por
-              ella —el Modal de React Native vive por arriba de la navegación—. */}
-          {pendiente && (
-            <View style={styles.fichaAcciones}>
-              <TouchableOpacity
-                style={[styles.btnReject, { borderColor: border }]}
-                onPress={() => {
-                  setFichaId(null);
-                  setSelectedRequest(id);
-                  setRejectModalVisible(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.btnRejectText, { color: textPrimary }]}>Rechazar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btnAccept, { backgroundColor: accent }]}
-                onPress={() => { setFichaId(null); handleAccept(item); }}
-                disabled={acceptingRequestId === id}
-                activeOpacity={0.8}
-              >
-                {acceptingRequestId === id ? (
-                  <ActivityIndicator size="small" color={accentInv} />
-                ) : (
-                  <Text style={[styles.btnAcceptText, { color: accentInv }]}>Aceptar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </View>
     );
   };
 
@@ -854,16 +638,6 @@ const TripRequestsScreen = ({ route }) => {
         </ScrollView>
       )}
 
-      {/* Ficha de una solicitud */}
-      <Modal
-        animationType="slide"
-        visible={!!fichaActual}
-        onRequestClose={() => setFichaId(null)}
-        presentationStyle="overFullScreen"
-      >
-        {fichaActual ? renderFicha(fichaActual) : null}
-      </Modal>
-
       {/* Reject Modal */}
       <Modal animationType="fade" transparent visible={rejectModalVisible} onRequestClose={() => setRejectModalVisible(false)}>
         <View style={styles.modalOverlay}>
@@ -939,20 +713,6 @@ const styles = StyleSheet.create({
   filaDesvioPie: { fontFamily: 'Sora_400Regular', fontSize: 10, marginTop: 1 },
 
   // Ficha
-  fichaWrap: { flex: 1 },
-  fichaHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  fichaTitulo: { flex: 1, textAlign: 'center', fontFamily: 'Sora_700Bold', fontSize: 17 },
-  fichaBody: { padding: 20, gap: 16 },
-  fichaStatus: { alignSelf: 'flex-start' },
-  fichaMensaje: {
-    fontFamily: 'Sora_400Regular', fontSize: 13.5, lineHeight: 20, fontStyle: 'italic',
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
-  },
-  fichaAcciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1039,12 +799,6 @@ const styles = StyleSheet.create({
   },
   pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
-  passengerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-  },
   avatar: {
     width: 46,
     height: 46,
@@ -1058,58 +812,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
-  passengerName:  { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   // El chip apagado va sobre el fondo de pagina: la card ya es `surface`, pintarlo
   // del mismo color lo dejaba invisible.
   statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
-  reqSub:         { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
 
   // El recorrido de la solicitud, en su propia sub-tarjeta: se distingue del resto de la card.
-  reqRutaCard: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
-  reqDesvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
-  reqDesvioText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
-  reqRutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
-  reqPuntoRotulo: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.3 },
-  reqPuntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
-  reqMapBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-  reqDotIni: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, flexShrink: 0 },
-  reqDotFin: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  reqRutaDivider: { height: 1, marginLeft: 20 },
 
 
-  rejectionText: {
-    fontSize: 13,
-    color: '#8A8A8E',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
 
   // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
-  btnReject: {
-    flex: 1,
-    height: 48,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnRejectText: {
-    fontSize: 15,
-    fontFamily: 'Sora_600SemiBold',
-  },
-  btnAccept: {
-    flex: 1.4,
-    height: 48,
-    borderRadius: 999,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnAcceptText: {
-    fontSize: 15,
-    fontFamily: 'Sora_700Bold',
-  },
   modalCancelBtn: {
     flex: 1,
     height: 46,
