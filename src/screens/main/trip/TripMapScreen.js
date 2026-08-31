@@ -45,9 +45,9 @@ const DRIVER_LOCATION_DISTANCE_M = 25;
  */
 const DRIVER_LOCATION_HEARTBEAT_MS = 60000;
 
-/** Lo que ve el PASAJERO en el lugar del conductor: era un círculo negro con una flechita
- * genérica. Un auto de verdad se lee más rápido de un vistazo en un mapa lleno de otras cosas. */
-const CAR_ICON = require('../../../../assets/icons/icon-carr.png');
+/** Lo que ve el PASAJERO en el lugar del conductor: un pin con un auto de frente. Se lee más
+ * rápido de un vistazo en un mapa lleno de otras cosas que el círculo con flechita de antes. */
+const CAR_ICON = require('../../../../assets/icons/icon-driver.png');
 
 /**
  * Con el mapa alejado (por ejemplo encuadrando un viaje de un pueblo a otro), dos paradas de
