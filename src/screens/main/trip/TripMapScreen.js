@@ -256,6 +256,26 @@ const TripMapScreen = ({ route, navigation }) => {
   // al abrir el mapa —lo normal— el temporizador se consumía antes de que el marcador
   // existiera, y al tocar "Iniciar viaje" nacía con la captura ya apagada: invisible.
   const [autoMarkerVivo, setAutoMarkerVivo] = useState(true);
+  /**
+   * Revive la vista del marcador un instante después de cada movimiento de cámara.
+   *
+   * Android CONGELA la vista de un marcador cuando `tracksViewChanges` baja a false, y una
+   * vista congelada no se vuelve a anclar cuando la cámara se mueve: la punta del pin deja de
+   * caer en la coordenada. Con zoom de calle el desvío son metros y no se nota; con el país
+   * entero en pantalla esos mismos píxeles son decenas de km y el auto aparece en otra
+   * provincia — que es como se reportó.
+   *
+   * Un pulso y no `tracksViewChanges` siempre en true: mientras está en true Android redibuja
+   * el marcador en cada frame, y eso es el parpadeo que este mismo archivo ya evita en los
+   * numeritos de las paradas. Se lo deja vivo mientras la cámara se acomoda y se apaga después.
+   */
+  const autoMarkerTimer = useRef(null);
+  const revivirAutoMarker = () => {
+    setAutoMarkerVivo(true);
+    clearTimeout(autoMarkerTimer.current);
+    autoMarkerTimer.current = setTimeout(() => setAutoMarkerVivo(false), 600);
+  };
+  useEffect(() => () => clearTimeout(autoMarkerTimer.current), []);
   useEffect(() => {
     if (!driverLocation?.latitude || !isTripStarted) return undefined;
     setAutoMarkerVivo(true);
@@ -879,6 +899,7 @@ const TripMapScreen = ({ route, navigation }) => {
         // nosotros (encuadre inicial, seguimiento): sin eso, la propia cámara se apagaría sola.
         onRegionChangeComplete={(r, detalles = {}) => {
           setZoomedInEnough(zoomAlcanzaParaEtiquetas(r));
+          revivirAutoMarker();
           if (!detalles.isGesture || !siguiendoRef.current) return;
           siguiendoRef.current = false;
           setSiguiendo(false);
@@ -892,9 +913,9 @@ const TripMapScreen = ({ route, navigation }) => {
           >
             {/* Vista custom y NO `<Marker image=>`: en Android, un Marker con `image` de un
                 recurso local CRASHEA cuando la coordenada cambia (el conductor emite posición
-                cada ~8s). Con vista custom se descoloca un poco al alejar mucho el zoom, que es
-                molesto pero no tira la app. Sin rotation: el ícono es un pin con auto de
-                frente, no cenital. anchor y:1 = la punta marca la posición. */}
+                cada ~8s). Sin rotation: el ícono es un pin con auto de frente, no cenital.
+                anchor y:1 = la punta marca la posición, y el PNG no trae aire transparente
+                abajo (medido: el dibujo llega hasta la última fila de píxeles). */}
             <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
           </Marker>
         )}
