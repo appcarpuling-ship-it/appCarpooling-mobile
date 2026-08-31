@@ -230,4 +230,14 @@ const puntosDeRuta = (ruta) => {
   return decodePolyline(ruta.overview_polyline?.points);
 };
 
-module.exports = { buildRoutePoints, ordenarStops, puntosDeRuta, metersBetween, kindLabel, quienLabel, decodePolyline };
+/**
+ * ¿Estos dos puntos son "el mismo lugar"? Misma regla que usa buildRoutePoints para fusionar
+ * la recogida/bajada del pasajero con las puntas del viaje. Exportada porque el mapa del
+ * conductor arma su propia lista (necesita las paradas como destinos de navegación) y tiene
+ * que mostrar el MISMO recorrido, sin direcciones repetidas.
+ */
+const mismoLugar = (a, b) =>
+  metersBetween(a?.coordinates, b?.coordinates) <= MISMO_PUNTO_M
+  || mismaDireccion(a?.address, b?.address);
+
+module.exports = { buildRoutePoints, ordenarStops, puntosDeRuta, metersBetween, mismoLugar, kindLabel, quienLabel, decodePolyline };

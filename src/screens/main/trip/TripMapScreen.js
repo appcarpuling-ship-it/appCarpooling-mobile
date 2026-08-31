@@ -22,7 +22,7 @@ import { useNotifications } from '../../../context/NotificationContext';
 import socketService from '../../../services/socketService';
 import { getDirections } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
-import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta } from '../../../utils/routePoints';
+import { buildRoutePoints, kindLabel, quienLabel, ordenarStops, puntosDeRuta, mismoLugar } from '../../../utils/routePoints';
 import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { get_withauth, put_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
@@ -482,12 +482,53 @@ const TripMapScreen = ({ route, navigation }) => {
     ].filter(Boolean);
   }, [trip?.intermediateStops, destCoords?.latitude, destCoords?.longitude]);
 
-  // El TEXTO del sheet "RECORRIDO": todas las paradas más el destino, cada una en su propia
-  // fila. Antes, si un pasajero subía o bajaba cerca del origen o el destino del conductor,
-  // esa dirección se fundía en la fila de al lado en vez de tener la suya propia. Se saca:
-  // cada dirección que carga un usuario se muestra tal cual, sin importar qué tan cerca
-  // caiga de otra.
-  const sheetItems = navTargets;
+  /**
+   * El TEXTO del sheet "RECORRIDO".
+   *
+   * No es `navTargets` tal cual, y la diferencia importa: navTargets son los destinos de
+   * NAVEGACIÓN (cada uno es un "Recoger a X" / "Continuar" que el conductor va tachando), así
+   * que la recogida tiene que seguir estando aunque caiga sobre el origen. Pero como TEXTO esa
+   * fila es la misma dirección dos veces seguidas: el conductor que se postula diciendo "hago
+   * el mismo recorrido" veía "Hipólito Yrigoyen 1183 · Salida" e inmediatamente abajo
+   * "Hipólito Yrigoyen 1183 · A recoger a Benjamín".
+   *
+   * Se fusiona igual que en buildRoutePoints (mismoLugar): la fila no se duplica pero el
+   * "acá sube Benjamín" no se pierde, pasa a la punta que es donde efectivamente sube.
+   */
+  const filasRecorrido = useMemo(() => {
+    const destino = navTargets.find((t) => t.id === 'destino');
+    const paradas = navTargets.filter((t) => t.id !== 'destino');
+    const comoPunto = (t) => ({ address: t.address, coordinates: t.coordinate });
+
+    const filaOrigen = {
+      key: 'origen',
+      address: trip?.origin?.address || trip?.origin?.city || 'Origen',
+      ciudad: [trip?.origin?.city, trip?.origin?.province].filter(Boolean).join(', '),
+      quienes: ['Salida'],
+    };
+    const filaDestino = destino && {
+      key: 'destino',
+      address: destino.address,
+      ciudad: destino.ciudad,
+      quienes: [destino.quien].filter(Boolean),
+    };
+
+    const medio = [];
+    paradas.forEach((t) => {
+      if (mismoLugar(trip?.origin, comoPunto(t))) {
+        if (t.quien) filaOrigen.quienes.push(t.quien);
+        return;
+      }
+      if (filaDestino && mismoLugar(comoPunto(destino), comoPunto(t))) {
+        // unshift: "A dejar a X" va antes que "A finalizar el viaje" — es el orden en que pasan.
+        if (t.quien) filaDestino.quienes.unshift(t.quien);
+        return;
+      }
+      medio.push({ key: t.id, address: t.address, ciudad: t.ciudad, quienes: [t.quien].filter(Boolean) });
+    });
+
+    return [filaOrigen, ...medio, filaDestino].filter(Boolean);
+  }, [navTargets, trip?.origin]);
 
   const pendientes = navTargets.filter((t) => !paradasHechas.includes(t.id));
   const proximaParada = pendientes[0] || null;
@@ -1098,37 +1139,21 @@ const TripMapScreen = ({ route, navigation }) => {
             después las paradas en el orden en que se pisan. */}
         <Text style={[styles.sheetSectionLabel, { color: ui.textMuted }]}>RECORRIDO</Text>
         <View style={styles.sheetTimeline}>
-          <View style={styles.sheetTimelineRow}>
-            <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
-              <Text style={[styles.sheetTimelineDotNum, { color: ui.invertText }]}>1</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
-                {trip?.origin?.address || trip?.origin?.city || 'Origen'}
-              </Text>
-              <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
-                {[
-                  [trip?.origin?.city, trip?.origin?.province].filter(Boolean).join(', '),
-                  'Salida',
-                ].filter(Boolean).join(' · ')}
-              </Text>
-            </View>
-          </View>
           {/* Todas las paradas se leen igual, hayan pasado o no: antes la parada ya hecha
               cambiaba el número por un tilde y apagaba la dirección a gris, y el recorrido
               quedaba con la mitad de las direcciones en un tono más débil que el resto. */}
-          {sheetItems.map((t, i) => (
-              <View key={t.id} style={styles.sheetTimelineRow}>
+          {filasRecorrido.map((f, i) => (
+              <View key={f.key} style={styles.sheetTimelineRow}>
                 <View style={[styles.sheetTimelineDot, { backgroundColor: textPrimary }]}>
-                  <Text style={[styles.sheetTimelineDotNum, { color: ui.invertText }]}>{i + 2}</Text>
+                  <Text style={[styles.sheetTimelineDotNum, { color: ui.invertText }]}>{i + 1}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sheetTimelineAddress, { color: textPrimary }]} numberOfLines={1}>
-                    {t.address}
+                    {f.address}
                   </Text>
-                  {!!(t.ciudad || t.quien) && (
+                  {!!(f.ciudad || f.quienes.length) && (
                     <Text style={[styles.sheetTimelineQuien, { color: ui.textMuted }]} numberOfLines={1}>
-                      {[t.ciudad, t.quien].filter(Boolean).join(' · ')}
+                      {[f.ciudad, ...f.quienes].filter(Boolean).join(' · ')}
                     </Text>
                   )}
                 </View>
