@@ -252,7 +252,7 @@ const sendMultipart = async (method, endpoint, formData) => {
     if (!response.ok) {
       // Forma de error igual a la de axios para que handleError y las pantallas
       // que leen error.response.data sigan funcionando igual.
-      const error = new Error(body?.message || 'Error en el servidor');
+      const error = new Error(body?.message || 'No pudimos completar la operación.');
       error.response = { status: response.status, data: body };
       throw handleError(error);
     }
@@ -262,9 +262,11 @@ const sendMultipart = async (method, endpoint, formData) => {
     if (error.response) throw error; // ya paso por handleError arriba
     reportError(error, { helper: 'sendMultipart', method, endpoint });
     if (error.name === 'AbortError') {
-      throw new Error('El servidor tardó demasiado en responder. Verificá tu conexión e intentá de nuevo.');
+      throw new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
     }
-    throw new Error(`No pudimos subir los archivos. ${error.message || ''}`.trim());
+    // Sin pegarle `error.message`: el error crudo de una petición fallida puede traer el
+    // host o la ruta entera. El detalle ya se fue a Sentry en el reportError de arriba.
+    throw new Error('No pudimos subir los archivos. Revisá tu conexión e intentá de nuevo.');
   } finally {
     clearTimeout(timer);
   }
@@ -298,7 +300,7 @@ const sendMultipartPublic = async (endpoint, formData) => {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const error = new Error(body?.message || 'Error en el servidor');
+      const error = new Error(body?.message || 'No pudimos completar la operación.');
       error.response = { status: response.status, data: body };
       throw handleError(error);
     }
@@ -308,9 +310,10 @@ const sendMultipartPublic = async (endpoint, formData) => {
     if (error.response) throw error;
     reportError(error, { helper: 'sendMultipartPublic', endpoint });
     if (error.name === 'AbortError') {
-      throw new Error('El servidor tardó demasiado en responder. Verificá tu conexión e intentá de nuevo.');
+      throw new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
     }
-    throw new Error(`No pudimos completar el registro. ${error.message || ''}`.trim());
+    // Mismo motivo que arriba: el mensaje crudo puede traer la URL del backend.
+    throw new Error('No pudimos completar el registro. Revisá tu conexión e intentá de nuevo.');
   } finally {
     clearTimeout(timer);
   }
@@ -324,28 +327,23 @@ export const post_public_formdata = (endpoint, formData) =>
  * @param {object} error - Error de axios
  * @returns {Error} - Error formateado con informaci?n completa
  */
-const connectionHintForBaseUrl = (baseUrl) => {
-  if (/ngrok-free\.dev|\.ngrok\.io/i.test(baseUrl)) {
-    return (
-      'No se alcanzó el servidor de desarrollo (ngrok). ' +
-      'En la PC: backend en el puerto 5000 y `ngrok http 5000 --domain=kimberlee-traceried-arrhythmically.ngrok-free.dev`. ' +
-      'Si cambiaste la URL, generá un APK nuevo con `eas build --profile ngrok` o reiniciá Expo con `npx expo start -c`.'
-    );
-  }
-  if (/192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\./i.test(baseUrl)) {
-    return (
-      'No se alcanzó el servidor en tu red local. El celular debe estar en la misma Wi‑Fi que la PC, ' +
-      'o usá ngrok en mobile/.env (EXPO_PUBLIC_API_BASE_URL) y reiniciá con `npx expo start -c`.'
-    );
-  }
-  if (/appcarpuling\.cloud/i.test(baseUrl)) {
-    return (
-      'No se pudo conectar el servidor(producción).' +
-      'Por favor, verificá tu conexión a Internet y volvé a intentarlo.' 
-    );
-  }
-  // Sin nombrar el servidor ni su URL: al usuario no le sirve y expone la infra.
-  return 'Verificá tu conexión e intentá de nuevo.';
+/**
+ * Lo que ve el usuario cuando no se llegó al servidor. UNO solo, y sin nombrar la infra.
+ *
+ * Antes había un texto por entorno: el de producción decía "No se pudo conectar el
+ * servidor(producción)" —el usuario no sabe ni tiene por qué saber qué es "producción"— y los
+ * de desarrollo llegaban a imprimir el dominio de ngrok y los comandos de la terminal en un
+ * cartel de la app. Nada de eso le sirve a quien está esperando que cargue una pantalla, y
+ * cualquiera de esos textos es un mapa de la infraestructura para quien no debería tenerlo.
+ *
+ * La pista para desarrollar no se perdió: se movió a la consola, donde corresponde.
+ */
+const SIN_CONEXION = 'No pudimos conectarnos. Revisá tu conexión a internet y volvé a intentarlo.';
+
+/** La pista para desarrollar, en la consola: la URL sola ya dice si es el túnel, la red
+ *  local o producción, así que no hace falta ramificar por entorno. */
+const avisarEnConsolaSiEsDev = (baseUrl) => {
+  if (__DEV__) console.warn('[api] no se alcanzó %s', baseUrl);
 };
 
 // Choke point único: toda llamada get/post/put/patch/delete _withauth y
@@ -363,7 +361,7 @@ const handleError = (error) => {
 
   if (error.response) {
     // El servidor respondi? con un c?digo de estado fuera del rango 2xx
-    const message = error.response.data?.message || 'Error en el servidor';
+    const message = error.response.data?.message || 'No pudimos completar la operación.';
     const enhancedError = new Error(message);
     // Preservar toda la informaci?n del error del backend
     enhancedError.response = {
@@ -377,11 +375,11 @@ const handleError = (error) => {
     return enhancedError;
   } else if (error.request) {
     if (error.code === 'ECONNABORTED') {
-      return new Error(
-        `El servidor tardó demasiado en responder. ${connectionHintForBaseUrl(baseUrl)}`
-      );
+      avisarEnConsolaSiEsDev(baseUrl);
+      return new Error('Tardó demasiado en responder. Revisá tu conexión e intentá de nuevo.');
     }
-    return new Error(connectionHintForBaseUrl(baseUrl));
+    avisarEnConsolaSiEsDev(baseUrl);
+    return new Error(SIN_CONEXION);
   } else {
     // Algo pas? al configurar la petici?n
     return new Error(error.message || 'Error desconocido');

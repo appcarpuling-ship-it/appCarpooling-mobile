@@ -86,7 +86,7 @@ const VerificationScreen = ({ route, navigation }) => {
         });
       } else {
         if (result.isBackendIssue) {
-          showAlert('Problema del servidor', 'Hay un problema con la verificación. Por favor contactá al soporte técnico.', [
+          showAlert('No pudimos verificarte', 'Hubo un problema al verificar tu cuenta. Escribinos al soporte y lo resolvemos.', [
             { text: 'Intentar después', style: 'cancel' },
           ]);
         } else {
