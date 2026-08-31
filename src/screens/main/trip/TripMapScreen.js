@@ -26,7 +26,6 @@ import { asientosDePasajero } from '../../../utils/asientosDePasajero';
 import { mostrarAvisoLocal } from '../../../services/pushNotificationService';
 import { get_withauth, put_withauth, post_withauth, buildImageUri } from '../../../services/apiService';
 import RutaPolyline from '../../../components/map/RutaPolyline';
-import { routeNumberImage } from '../../../components/map/routeNumberMarkers';
 import { iniciarSeguimiento, detenerSeguimiento } from '../../../services/ubicacionBackground';
 import { empujarCalificacionPendiente } from '../../../services/calificacionPendiente';
 import { useMapFit } from '../../../hooks/useMapFit';
@@ -838,13 +837,18 @@ const TripMapScreen = ({ route, navigation }) => {
         }}
       >
         {!isDriver && isTripStarted && driverLocation?.latitude && (
-          // Sin rotation: el ícono es un pin con un auto de frente, no un auto cenital.
-          // anchor y:1 = la punta del pin marca la posición.
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
             anchor={{ x: 0.5, y: 1 }}
-            image={CAR_ICON}
-          />
+            tracksViewChanges={autoMarkerVivo}
+          >
+            {/* Vista custom y NO `<Marker image=>`: en Android, un Marker con `image` de un
+                recurso local CRASHEA cuando la coordenada cambia (el conductor emite posición
+                cada ~8s). Con vista custom se descoloca un poco al alejar mucho el zoom, que es
+                molesto pero no tira la app. Sin rotation: el ícono es un pin con auto de
+                frente, no cenital. anchor y:1 = la punta marca la posición. */}
+            <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
+          </Marker>
         )}
 
         {/* Un solo recorrido para los tres tipos de punto: la numeración es la misma
@@ -853,32 +857,26 @@ const TripMapScreen = ({ route, navigation }) => {
             Origen y destino usaban PNG fijos en Android; ya no pueden, porque el número
             cambia según cuántas paradas tenga el viaje. */}
         {routePoints.map((point, i) => (
-          Platform.OS === 'android' ? (
-            // PNG nativo: la vista custom se corría de su coordenada al mover la cámara y el
-            // numerito terminaba lejos del trazado. Ver routeNumberMarkers.
-            <Marker
-              key={`pt-${i}`}
-              coordinate={point.coordinate}
-              anchor={{ x: 0.5, y: 0.5 }}
-              zIndex={1}
-              image={routeNumberImage(i + 1, point.isEnd)}
-            />
-          ) : (
-            <Marker
-              key={`pt-${i}-${mapReady}`}
-              coordinate={point.coordinate}
-              anchor={{ x: 0.5, y: 0.5 }}
-              // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
-              // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
-              // mismo justo cuando pasa por una parada.
-              zIndex={1}
-              tracksViewChanges={marcadoresVivos}
-            >
-              <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
-                <Text style={styles.routeMarkerNum}>{i + 1}</Text>
-              </View>
-            </Marker>
-          )
+          <Marker
+            key={`pt-${i}-${mapReady}`}
+            coordinate={point.coordinate}
+            anchor={{ x: 0.5, y: 0.5 }}
+            // Por debajo del punto azul: el SDK dibuja la ubicación propia sobre los overlays,
+            // pero un marcador con zIndex alto se le pone encima y el conductor se pierde a sí
+            // mismo justo cuando pasa por una parada.
+            zIndex={1}
+            // Android redibuja la vista del marcador en cada frame mientras `tracksViewChanges`
+            // esté en true, y eso es el parpadeo de los numeritos. Se apaga apenas el marcador
+            // termina de dibujarse: si se apagara desde el arranque, saldrían en blanco.
+            // (Se probó `<Marker image=>` con PNG para que no se descoloque al zoom, pero el
+            // conductor de al lado usa vista custom sí o sí —image= crashea con coordenada que
+            // cambia— y mezclarlos rendía peor. Un solo mecanismo.)
+            tracksViewChanges={marcadoresVivos}
+          >
+            <View style={[styles.routeMarker, point.isEnd && styles.routeMarkerEnd]}>
+              <Text style={styles.routeMarkerNum}>{i + 1}</Text>
+            </View>
+          </Marker>
         ))}
 
         {/* Calle arriba de cada pin, como en Uber: de un vistazo se sabe qué es cada número
@@ -1287,6 +1285,7 @@ const styles = StyleSheet.create({
   },
   // Puntas en negro pleno, paradas intermedias en gris: el número dice el orden y el
   // color dice si es una punta del viaje o una parada del camino.
+  driverCarIcon: { width: 64, height: 96 },
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
