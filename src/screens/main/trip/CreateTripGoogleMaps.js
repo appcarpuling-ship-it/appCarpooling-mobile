@@ -907,13 +907,18 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         style={styles.map}
         region={region}
         onMapReady={() => setMapaListo(true)}
-        onRegionChange={(r) => {
+        onRegionChange={(r, details = {}) => {
           lastRegionRef.current = r;
+          // Android: al re-aplicar el prop `region` controlado, el mapa dispara este evento solo
+          // con isGesture=false. Sin este corte, reinicia el timer de scheduleMapSelectionIdleCommit
+          // sin parar y arrastrar el mapa para elegir un punto no marca NUNCA la direccion.
+          // (isGesture es Android-only: en iOS siempre undefined, asi que este if no lo toca.)
+          if (details.isGesture === false) return;
           if (mapSelectionModeRef.current) levantarPin(true);
           if (!mapSelectionModeRef.current || !hasMapGestureForSelectionRef.current) return;
           scheduleMapSelectionIdleCommit();
         }}
-        onRegionChangeComplete={(r) => {
+        onRegionChangeComplete={(r, details = {}) => {
           lastRegionRef.current = r;
           levantarPin(false);
           const fueProgramatico = isProgrammaticMoveRef.current;
@@ -922,6 +927,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
             clearTimeout(programmaticMoveResetTimer.current);
             programmaticMoveResetTimer.current = null;
           }
+          // Mismo motivo: el re-apply del prop `region` en Android vuelve a entrar aca con
+          // isGesture=false, y el setRegion(r) de abajo lo re-dispararia en loop.
+          if (details.isGesture === false) return;
           if (!fueProgramatico) {
             setRegion(r);
             if (mapSelectionModeRef.current) {
