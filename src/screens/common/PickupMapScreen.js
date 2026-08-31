@@ -8,12 +8,10 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 
-// El marcador va siempre sobre una placa blanca (ver pinBadge), así que no hace falta la
-// variante clara/oscura del ícono: el negro sobre blanco se ve igual en los dos modos.
-const ICONO_PASAJERO = require('../../../assets/icons/icon-passenger-black.png');
-// Mismo marcador, ya rasterizado, para Android: la vista custom de un Marker no se llega a
-// dibujar acá (queda en blanco), pasara lo que pasara con tracksViewChanges. El PNG nativo sí.
-const PIN_PASAJERO = require('../../../assets/map/pin-passenger.png');
+// Pin del punto del pasajero (recogida o bajada). En Android va como PNG nativo: la vista
+// custom de un Marker no se llega a dibujar acá (queda en blanco). En iOS va como <Image>
+// dentro del Marker para poder darle un tamaño en puntos (el PNG nativo saldría enorme).
+const PIN_PASAJERO = require('../../../assets/map/pin-pasajero.png');
 
 // Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
 // Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
@@ -87,11 +85,11 @@ const PickupMapScreen = ({ route, navigation }) => {
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
           Platform.OS === 'android' ? (
-            // PNG nativo: la placa blanca con el ícono, ya rasterizada. La dirección va sólo en
-            // la tarjeta de abajo (la etiqueta flotante era otra vista custom que no se dibuja).
+            // PNG nativo: se ancla en la PUNTA del pin (y:1), que es lo que cae en la coordenada.
+            // La dirección va sólo en la tarjeta de abajo (la etiqueta flotante no se dibuja acá).
             <Marker
               coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-              anchor={{ x: 0.5, y: 0.5 }}
+              anchor={{ x: 0.5, y: 1 }}
               image={PIN_PASAJERO}
             />
           ) : (
@@ -101,12 +99,10 @@ const PickupMapScreen = ({ route, navigation }) => {
               <Marker
                 key={`pin-${mapaListo}`}
                 coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-                anchor={{ x: 0.5, y: 0.5 }}
+                anchor={{ x: 0.5, y: 1 }}
                 tracksViewChanges={marcadoresVivos}
               >
-                <View style={styles.pinBadge}>
-                  <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
-                </View>
+                <Image source={PIN_PASAJERO} style={styles.pinPasajero} resizeMode="contain" />
               </Marker>
               {/* La dirección arriba del pin, un marcador aparte anclado abajo. */}
               {!!address && (
@@ -145,17 +141,11 @@ const PickupMapScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // Placa blanca con borde: sobre un mapa oscuro un ícono negro solo se funde con el fondo,
-  // igual que le pasaba al punto sin el anillo blanco antes de este cambio.
-  pinBadge: {
-    width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF',
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
-  },
-  pinIcon: { width: 14, height: 14 },
-  // marginBottom despega la etiqueta del pin (26px de badge + margen) sin que el pin se
-  // mueva de su coordenada real, sea cual sea el largo del texto.
-  addressLabelWrap: { alignItems: 'center', marginBottom: 22 },
+  // Ratio del PNG (150x219). Alto ~64pt: se lee claro sin tapar media pantalla.
+  pinPasajero: { width: 44, height: 64 },
+  // marginBottom despega la etiqueta de la CABEZA del pin (64pt de alto + margen) sin que el
+  // pin se mueva de su coordenada real, sea cual sea el largo del texto.
+  addressLabelWrap: { alignItems: 'center', marginBottom: 72 },
   // Blanco fijo y no del tema: sobre un mapa oscuro o claro el contraste tiene que ser
   // siempre el mismo.
   addressLabelBubble: {

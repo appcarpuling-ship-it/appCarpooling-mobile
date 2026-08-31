@@ -75,6 +75,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // invisible; arranca en true y se apaga solo una vez que el mapa avisa que está listo.
   const [mapPreviewReady, setMapPreviewReady] = useState(false);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
+  // Loading que tapa el mapa hasta que ESTÁ TODO: en Android el trazado tarda en llegar de
+  // Directions y se veía el mapa a medio armar (sin línea, sin encuadrar). Se saca recién
+  // cuando el mapa está listo y la ruta dibujada — o a los 6s, si esa solicitud no tiene ruta.
+  const [mapPreviewCargado, setMapPreviewCargado] = useState(false);
   // Trazado real del preview. Una solicitud no guarda polyline (eso lo tiene el viaje, recién
   // creado): se pide una vez a Directions, igual que TripMapScreen. Sin ruta (falla el pedido,
   // o no hay coordenadas) no va línea — una recta cruza terreno y ríos en diagonal, y se lee
@@ -116,6 +120,15 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     const t = setTimeout(() => setMapPreviewDotsVivos(false), 900);
     return () => clearTimeout(t);
   }, [mapPreviewReady, request, previewRoutePoints]);
+
+  // Saca el loading del mapa: con la ruta ya dibujada, un respiro para que pinte el trazado y
+  // las baldosas; sin ruta, un tope de 6s para no dejarlo girando en una solicitud sin polyline.
+  useEffect(() => {
+    if (!mapPreviewReady || mapPreviewCargado) return undefined;
+    const listo = previewRoutePoints.length > 1;
+    const t = setTimeout(() => setMapPreviewCargado(true), listo ? 500 : 6000);
+    return () => clearTimeout(t);
+  }, [mapPreviewReady, mapPreviewCargado, previewRoutePoints]);
 
   const previewOriginCoords = request?.origin?.coordinates;
   const previewDestCoords   = request?.destination?.coordinates;
@@ -588,6 +601,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 </>
               )}
             </MapView>
+            {!mapPreviewCargado && (
+              <View style={[styles.mapPreviewLoading, { backgroundColor: ui.surface }]}>
+                <ActivityIndicator size="small" color={textMuted} />
+              </View>
+            )}
             <View style={[styles.mapPreviewBadge, { backgroundColor: statusCfg.solid ? ui.invertBg : ui.surface }]}>
               <View style={[styles.statusDot, { backgroundColor: statusCfg.solid ? ui.invertText : textMuted }]} />
               <Text style={[styles.statusText, { color: statusCfg.solid ? ui.invertText : textMuted }]}>{statusCfg.label}</Text>
@@ -1122,6 +1140,7 @@ const styles = StyleSheet.create({
   // Map preview
   mapPreviewWrap: { height: 200, marginTop: 16, marginHorizontal: 20, marginBottom: 12, borderRadius: 24, overflow: 'hidden' },
   mapPreview:     { ...StyleSheet.absoluteFillObject },
+  mapPreviewLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   mapPreviewBadge: {
     position: 'absolute', top: 14, left: 14,
     flexDirection: 'row', alignItems: 'center',
