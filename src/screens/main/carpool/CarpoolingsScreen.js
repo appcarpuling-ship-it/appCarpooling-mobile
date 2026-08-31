@@ -28,7 +28,6 @@ import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import Skeleton from '../../../components/ui/Skeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
-import { useTabBarScroll } from '../../../components/ui/tabBarScroll';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 48;
@@ -75,7 +74,6 @@ const menuItems = [
 ];
 
 const CarpoolingsScreen = ({ navigation }) => {
-  const onTabBarScroll = useTabBarScroll();
   const { isDarkMode } = useTheme();
   const { colors } = useColors();
   const { isAuthenticated, user } = useAuth();
@@ -202,8 +200,6 @@ const CarpoolingsScreen = ({ navigation }) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        onScroll={onTabBarScroll}
-        scrollEventThrottle={16}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={textSecondary} colors={[textPrimary]} />}
       >
 

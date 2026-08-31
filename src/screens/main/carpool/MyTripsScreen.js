@@ -25,13 +25,11 @@ import { useUI } from '../../../theme/ui';
 import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
-import { useTabBarScroll } from '../../../components/ui/tabBarScroll';
 
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
 // arriba. Ahí no tiene sentido otro título + otro toggle Próximos/Pasados: el historial
 // es, por definición, solo lo pasado.
 const MyTripsScreen = ({ navigation, historyMode = false }) => {
-  const onTabBarScroll = useTabBarScroll();
   const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
@@ -430,8 +428,6 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
           data={filteredTrips}
           renderItem={renderTripItem}
           keyExtractor={(item) => item._id}
-          onScroll={onTabBarScroll}
-          scrollEventThrottle={16}
           contentContainerStyle={[styles.listContent, historyMode && { paddingBottom: TAB_BAR_SPACE + 16 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
