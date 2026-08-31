@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
-import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../utils/mapProvider';
@@ -11,6 +11,9 @@ import { useUI } from '../../theme/ui';
 // El marcador va siempre sobre una placa blanca (ver pinBadge), así que no hace falta la
 // variante clara/oscura del ícono: el negro sobre blanco se ve igual en los dos modos.
 const ICONO_PASAJERO = require('../../../assets/icons/icon-passenger-black.png');
+// Mismo marcador, ya rasterizado, para Android: la vista custom de un Marker no se llega a
+// dibujar acá (queda en blanco), pasara lo que pasara con tracksViewChanges. El PNG nativo sí.
+const PIN_PASAJERO = require('../../../assets/map/pin-passenger.png');
 
 // Mapa de un punto de un pasajero —recogida o bajada—, con un solo marcador. Se abre desde
 // Reservas Recibidas con { coordinates:{latitude,longitude}, address, label? }.
@@ -83,40 +86,46 @@ const PickupMapScreen = ({ route, navigation }) => {
         {/* El ícono de pasajero va ACÁ, en el marcador: esta pantalla es siempre el punto de
             recogida o bajada de un pasajero, así que no hace falta condición para mostrarlo. */}
         {coordinates?.latitude && (
-          <>
-            {/* El tracking se apaga a los 900ms (ver marcadoresVivos): apagado ya evita que el
-                mapa re-renderice y re-decodifique el ícono en cada actualización —esta pantalla
-                tiene historial de RAM por apilar mapas, ver el comentario de estaEnfoco— pero
-                arrancar apagado dejaba el marcador en blanco en Android. */}
+          Platform.OS === 'android' ? (
+            // PNG nativo: la placa blanca con el ícono, ya rasterizada. La dirección va sólo en
+            // la tarjeta de abajo (la etiqueta flotante era otra vista custom que no se dibuja).
             <Marker
-              key={`pin-${mapaListo}`}
               coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={marcadoresVivos}
-            >
-              <View style={styles.pinBadge}>
-                <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
-              </View>
-            </Marker>
-            {/* La dirección arriba del pin, mismo patrón que "Ver trayecto en el mapa"
-                (TripMapScreen): un marcador aparte del pin, anclado abajo, para que el pin
-                no se corra de su lugar exacto por el ancho de la etiqueta. */}
-            {!!address && (
+              image={PIN_PASAJERO}
+            />
+          ) : (
+            <>
+              {/* El tracking se apaga a los 900ms (ver marcadoresVivos): apagado ya evita que el
+                  mapa re-renderice y re-decodifique el ícono en cada actualización. */}
               <Marker
-                key={`lbl-${mapaListo}`}
+                key={`pin-${mapaListo}`}
                 coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
-                anchor={{ x: 0.5, y: 1 }}
-                zIndex={2}
+                anchor={{ x: 0.5, y: 0.5 }}
                 tracksViewChanges={marcadoresVivos}
               >
-                <View style={styles.addressLabelWrap}>
-                  <View style={styles.addressLabelBubble}>
-                    <Text style={styles.addressLabelBubbleText} numberOfLines={2}>{address}</Text>
-                  </View>
+                <View style={styles.pinBadge}>
+                  <Image source={ICONO_PASAJERO} style={styles.pinIcon} resizeMode="contain" />
                 </View>
               </Marker>
-            )}
-          </>
+              {/* La dirección arriba del pin, un marcador aparte anclado abajo. */}
+              {!!address && (
+                <Marker
+                  key={`lbl-${mapaListo}`}
+                  coordinate={{ latitude: coordinates.latitude, longitude: coordinates.longitude }}
+                  anchor={{ x: 0.5, y: 1 }}
+                  zIndex={2}
+                  tracksViewChanges={marcadoresVivos}
+                >
+                  <View style={styles.addressLabelWrap}>
+                    <View style={styles.addressLabelBubble}>
+                      <Text style={styles.addressLabelBubbleText} numberOfLines={2}>{address}</Text>
+                    </View>
+                  </View>
+                </Marker>
+              )}
+            </>
+          )
         )}
       </MapView>}
 

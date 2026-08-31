@@ -504,35 +504,36 @@ const BookingScreen = ({ route, navigation }) => {
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
             <Text style={[styles.sectionLabel, { color: sectionLabelColor }]}>Resumen del viaje</Text>
 
-            {/* Route */}
-            <View style={styles.routeRow}>
-              <View style={styles.routeCol}>
-                <View style={styles.routeDot} />
-                {/* `divider` es ui.bg, o sea el MISMO color del fondo: la línea existía pero era
-                    invisible sobre la tarjeta. Va con el color del texto, que en oscuro es blanco
-                    y en claro es negro, así que se ve en los dos temas. */}
-                <View style={[styles.routeLine, { backgroundColor: textPrimary }]} />
-                <View style={[styles.routeDotDest, { borderColor: accent }]} />
-              </View>
-              <View style={styles.routeTextCol}>
-                <View style={styles.routeStop}>
-                  {!!cleanAddress(trip.origin?.address, trip.origin?.city, trip.origin?.province) && (
-                    <Text style={[styles.routeAddress, { color: textPrimary }]} numberOfLines={1}>{cleanAddress(trip.origin.address, trip.origin.city, trip.origin.province)}</Text>
-                  )}
-                  <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
-                    {formatLocationString(trip.origin?.city || 'Origen', trip.origin?.province)}
-                  </Text>
+            {/* Ruta completa: origen, paradas del medio y destino. Antes sólo se dibujaban las
+                dos puntas —un viaje con paradas se veía igual que uno directo—. Sale de
+                buildRoutePoints, el mismo que numera el resto de la app. */}
+            {buildRoutePoints(trip).map((punto, i, arr) => {
+              const loc = punto.location || {};
+              const dir = cleanAddress(loc.address, loc.city, loc.province);
+              const esFin = i === 0 || i === arr.length - 1;
+              const etiqueta = i === 0 ? 'Origen' : i === arr.length - 1 ? 'Destino' : `Parada ${i}`;
+              return (
+                <View key={`resumen-punto-${i}`} style={styles.routePoint}>
+                  <View style={styles.routeRail}>
+                    {esFin
+                      ? <View style={[styles.routeDotFin, { backgroundColor: i === 0 ? textMuted : textPrimary }]} />
+                      : <View style={[styles.routeDotParada, { borderColor: textMuted }]} />}
+                    {i < arr.length - 1 && <View style={[styles.routeLineV, { backgroundColor: textPrimary }]} />}
+                  </View>
+                  <View style={[styles.routeBody, i < arr.length - 1 && { paddingBottom: 14 }]}>
+                    <Text style={[styles.routeLabel, { color: textMuted }]}>{etiqueta}</Text>
+                    <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>
+                      {dir || formatLocationString(loc.city, loc.province) || etiqueta}
+                    </Text>
+                    {!!dir && !!(loc.city || loc.province) && (
+                      <Text style={[styles.routeAddress, { color: textMuted }]} numberOfLines={1}>
+                        {formatLocationString(loc.city, loc.province)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View style={[styles.routeStop, { marginTop: 16 }]}>
-                  {!!cleanAddress(trip.destination?.address, trip.destination?.city, trip.destination?.province) && (
-                    <Text style={[styles.routeAddress, { color: textPrimary }]} numberOfLines={1}>{cleanAddress(trip.destination.address, trip.destination.city, trip.destination.province)}</Text>
-                  )}
-                  <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
-                    {formatLocationString(trip.destination?.city || 'Destino', trip.destination?.province)}
-                  </Text>
-                </View>
-              </View>
-            </View>
+              );
+            })}
 
             {/* Date & Time */}
             <View style={[styles.metaRow, { borderTopColor: divider }]}>
@@ -841,38 +842,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  // Route
-  routeRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  routeCol: {
-    alignItems: 'center',
-    paddingTop: 5,
-    width: 12,
-  },
-  routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#9CA3AF',
-  },
-  routeLine: {
-    width: 1.5,
-    flex: 1,
-    marginVertical: 4,
-    minHeight: 20,
-  },
-  routeDotDest: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 2,
-  },
-  routeTextCol: {
-    flex: 1,
-  },
-  routeStop: {},
+  // Ruta: una fila por punto (origen, paradas, destino), con el riel de puntos+línea a la
+  // izquierda, como en el detalle del viaje.
+  routePoint: { flexDirection: 'row', gap: 12 },
+  routeRail: { alignItems: 'center', width: 12, paddingTop: 4 },
+  routeDotFin: { width: 9, height: 9, borderRadius: 5 },
+  routeDotParada: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, backgroundColor: 'transparent' },
+  routeLineV: { width: 1.5, flex: 1, marginVertical: 3, minHeight: 14 },
+  routeBody: { flex: 1 },
+  routeLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
   routeCity: {
     fontSize: 15,
     fontFamily: 'Sora_600SemiBold',

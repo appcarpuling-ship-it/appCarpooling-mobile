@@ -836,11 +836,12 @@ const TripMapScreen = ({ route, navigation }) => {
         {!isDriver && isTripStarted && driverLocation?.latitude && (
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            rotation={driverLocation.heading || 0}
-            flat
+            anchor={{ x: 0.5, y: 1 }}
             tracksViewChanges={autoMarkerVivo}
           >
+            {/* Sin `rotation`/`flat`: el ícono es un pin con un auto de frente, no un auto
+                cenital — rotándolo según el rumbo quedaba de costado o boca abajo. Anchor en
+                y:1 porque la punta del pin es la que marca la posición. */}
             <Image source={CAR_ICON} style={styles.driverCarIcon} resizeMode="contain" />
           </Marker>
         )}
@@ -1278,7 +1279,9 @@ const styles = StyleSheet.create({
   // color dice si es una punta del viaje o una parada del camino.
   routeMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#555555', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   routeMarkerEnd: { backgroundColor: '#010101' },
-  driverCarIcon: { width: 42, height: 42 },
+  // El asset es alto (pin, ~0.66 de ancho/alto). 64 de ancho ≈ 96 de alto: bien visible en el
+  // mapa sin tapar media pantalla. Antes eran 42×42, que además deformaba el pin.
+  driverCarIcon: { width: 64, height: 96 },
   routeMarkerNum: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Sora_700Bold' },
   // marginBottom = radio del pin (13) + separación (19): deja el pin completo (número
   // incluido) a la vista debajo de la etiqueta, sin importar cuánto texto tenga (el
