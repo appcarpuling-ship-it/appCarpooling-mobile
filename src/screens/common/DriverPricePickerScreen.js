@@ -183,7 +183,9 @@ const styles = StyleSheet.create({
 
   body: { flex: 1 },
   bodyContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, flexGrow: 1 },
-  bodyInner: { gap: 12 },
+  // flexGrow: la cadena tiene que llenar el contentContainer entero para que el `marginTop:
+  // 'auto'` del footer lo empuje al fondo cuando el contenido es corto.
+  bodyInner: { gap: 12, flexGrow: 1 },
   intro: { fontFamily: 'Sora_400Regular', fontSize: 14, lineHeight: 20, marginBottom: 4 },
 
   row: {
