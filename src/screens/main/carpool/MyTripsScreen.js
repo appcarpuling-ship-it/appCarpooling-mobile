@@ -246,7 +246,6 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
 
     const activeTxt   = isActive ? '#FFFFFF' : textPrimary;
     const activeMuted = isActive ? 'rgba(255,255,255,0.5)' : textMuted;
-    const activeDivider = isActive ? '#333333' : divider;
 
     return (
       <View style={styles.cardWrapper}>
@@ -272,7 +271,8 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
               </View>
             )}
             {/* Mismo lenguaje visual que la tarjeta de Home: ícono + ruta en una sola línea
-                con flecha, en vez del timeline de dos puntos apilados. */}
+                con flecha, precio a la derecha, y la meta como una sola línea de texto
+                debajo — no una fila con caja, borde e ícono por dato. */}
             <View style={styles.tripHeaderRow}>
               <Image source={TRIP_ICON} style={styles.tripIconBox} resizeMode="contain" />
               <View style={styles.tripInfoColumn}>
@@ -287,44 +287,34 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
                     {item.destination?.city || formatAddress(item.destination)}
                   </Text>
                 </View>
+                <Text style={[styles.tripMeta, { color: activeMuted }]} numberOfLines={1}>
+                  {[
+                    formatDate(item.departureDate),
+                    item.departureTime,
+                    // En el historial no mostramos disponibilidad: el viaje ya pasó, no tiene sentido.
+                    !historyMode
+                      ? (item.fromTripRequest
+                          ? tripSeatsLabel(item)
+                          : freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`)
+                      : null,
+                    activeTab === 'upcoming' && item.bookingsCount > 0
+                      ? `${item.bookingsCount} pendiente${item.bookingsCount !== 1 ? 's' : ''}`
+                      : null,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
               </View>
-            </View>
-          </View>
-
-          {/* Meta row */}
-          <View style={[styles.metaRow, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.departureDate)}</Text>
-            </View>
-            <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>{item.departureTime}</Text>
-            </View>
-            {/* En el historial no mostramos disponibilidad: el viaje ya pasó, no tiene sentido. */}
-            {!historyMode && (
-              <>
-                <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={13} color={activeMuted} />
-                  <Text style={[styles.metaText, { color: activeMuted }]}>
-                    {item.fromTripRequest
-                      ? tripSeatsLabel(item)
-                      : freeNow <= 0 ? 'Completo' : `${freeNow} disponibles`}
-                  </Text>
+              {item.sinPrecioFijo ? (
+                <View style={styles.priceBox}>
+                  <Text style={[styles.priceValue, { color: activeTxt }]}>Gastos</Text>
+                  <Text style={[styles.priceLabel, { color: activeMuted }]}>compartidos</Text>
                 </View>
-              </>
-            )}
-            {activeTab === 'upcoming' && item.bookingsCount > 0 && (
-              <>
-                <View style={[styles.metaDivider, { backgroundColor: activeDivider }]} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={13} color={activeMuted} />
-                  <Text style={[styles.metaText, { color: activeMuted }]}>{item.bookingsCount} pendiente{item.bookingsCount !== 1 ? 's' : ''}</Text>
+              ) : item.driverPrice > 0 ? (
+                <View style={styles.priceBox}>
+                  <Text style={[styles.priceValue, { color: activeTxt }]}>${Number(item.driverPrice).toLocaleString('es-AR')}</Text>
+                  <Text style={[styles.priceLabel, { color: activeMuted }]}>por asiento</Text>
                 </View>
-              </>
-            )}
+              ) : null}
+            </View>
           </View>
 
           {/* Botones — solo viajes activos o en curso */}
@@ -563,20 +553,10 @@ const styles = StyleSheet.create({
   },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
-  // Meta row
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 8,
-  },
-  metaItem:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText:    { fontSize: 12 },
-  metaDivider: { width: 1, height: 12 },
+  // Precio: mismo cuadrito que Home, a la derecha del encabezado.
+  priceBox: { flexShrink: 0, alignSelf: 'center', alignItems: 'flex-end' },
+  priceValue: { fontSize: 15, fontFamily: 'Sora_800ExtraBold' },
+  priceLabel: { fontSize: 10, fontFamily: 'Sora_600SemiBold' },
 
   // Footer botones
   footerRow: {

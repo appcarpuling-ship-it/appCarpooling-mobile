@@ -69,7 +69,6 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
   const cardBg = ui.surface;
   const textPrimary = ui.invertBg;
   const textSecondary = ui.textMuted;
-  const divider = ui.bg;
 
   useEffect(() => {
     setupTripCancellationListener();
@@ -273,7 +272,6 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const isActive = item.trip?.status === 'started';
     const activeTxt     = isActive ? '#FFFFFF' : textPrimary;
     const activeMuted   = isActive ? 'rgba(255,255,255,0.5)' : textSecondary;
-    const activeDivider = isActive ? '#333333' : divider;
 
     return (
       <View style={styles.cardWrapper}>
@@ -300,8 +298,9 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
               </View>
             )}
 
-            {/* Ruta: mismo ícono + línea con flecha que la tarjeta de Home, en vez del
-                timeline de dos puntos apilados. */}
+            {/* Ruta: mismo ícono + línea con flecha que la tarjeta de Home, precio a la
+                derecha y la meta como una sola línea de texto — no una fila con caja,
+                borde e ícono por dato. */}
             <View style={styles.tripHeaderRow}>
               <Image source={BOOKING_ICON} style={styles.tripIconBox} resizeMode="contain" />
               <View style={styles.tripInfoColumn}>
@@ -316,25 +315,25 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
                     {item.trip?.destination?.city || formatAddress(item.trip?.destination)}
                   </Text>
                 </View>
+                <Text style={[styles.tripMeta, { color: activeMuted }]} numberOfLines={1}>
+                  {[
+                    formatDate(item.trip?.departureDate),
+                    item.trip?.departureTime,
+                    `${seats} asiento${seats !== 1 ? 's' : ''}`,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
               </View>
-            </View>
-          </View>
-
-          {/* Meta */}
-          <View style={[styles.meta, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.trip?.departureDate)}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>{item.trip?.departureTime}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="person-outline" size={13} color={activeMuted} />
-              <Text style={[styles.metaText, { color: activeMuted }]}>
-                {seats} asiento{seats !== 1 ? 's' : ''}
-              </Text>
+              {item.trip?.sinPrecioFijo ? (
+                <View style={styles.priceBox}>
+                  <Text style={[styles.priceValue, { color: activeTxt }]}>Gastos</Text>
+                  <Text style={[styles.priceLabel, { color: activeMuted }]}>compartidos</Text>
+                </View>
+              ) : item.trip?.driverPrice > 0 ? (
+                <View style={styles.priceBox}>
+                  <Text style={[styles.priceValue, { color: activeTxt }]}>${Number(item.trip.driverPrice).toLocaleString('es-AR')}</Text>
+                  <Text style={[styles.priceLabel, { color: activeMuted }]}>por asiento</Text>
+                </View>
+              ) : null}
             </View>
           </View>
 
@@ -562,19 +561,13 @@ const styles = StyleSheet.create({
   routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
   routeCity: { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
   routeArrow: { fontSize: 15, fontFamily: 'Sora_700Bold' },
-
-  meta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 12 },
+  // Meta: una sola línea de texto, como en Home — no una fila con caja/borde/ícono
+  // por dato.
+  tripMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
+  // Precio: mismo cuadrito que Home, a la derecha del encabezado.
+  priceBox: { flexShrink: 0, alignSelf: 'center', alignItems: 'flex-end' },
+  priceValue: { fontSize: 15, fontFamily: 'Sora_800ExtraBold' },
+  priceLabel: { fontSize: 10, fontFamily: 'Sora_600SemiBold' },
 
   driver: {
     flexDirection: 'row',
