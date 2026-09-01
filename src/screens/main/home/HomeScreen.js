@@ -202,7 +202,10 @@ const HomeScreen = ({ navigation, route }) => {
 
   const loadBannerSections = async () => {
     try {
-      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS);
+      // El único de los tres screens que no mandaba appScreen: sin él, el backend no filtra
+      // por targetApp y Home mostraba TODOS los banners activos, incluidos los que un admin
+      // había marcado para que salieran sólo en Viajes o en el detalle del viaje.
+      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'home' });
       if (response.success && Array.isArray(response.data)) {
         setBannerSections(response.data);
       }
