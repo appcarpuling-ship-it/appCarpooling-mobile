@@ -4,11 +4,11 @@ import { sanitizeImageUrl } from '../../utils/imageUtils';
 import { useUI } from '../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Dos tarjetas por fila y un pedazo de la tercera asomando, como Uber: le pide al usuario
-// deslizar en vez de mostrarlas todas de un vistazo. 24 de margen a cada lado de la
-// pantalla, 12 entre tarjetas. Verificado en 360/390/414 de ancho.
+// Dos tarjetas por fila, del tamaño de las de Uber (~44% del ancho de pantalla) — la
+// primera versión las dejaba mucho más chicas (~39%) y el usuario lo notó. 24 de margen a
+// cada lado de la pantalla, 12 entre tarjetas. Verificado en 360/390/414/430 de ancho.
 const GAP = 12;
-const CARD_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - GAP * 1.5) / 2.15);
+const CARD_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - GAP * 1.5) / 1.9);
 // 2:1, el aspecto que ya usan los banners cargados — no hace falta resubirlos recortados
 // distinto.
 const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 2);
@@ -102,13 +102,13 @@ const styles = StyleSheet.create({
   imageWrap: {
     width: '100%',
     height: IMAGE_HEIGHT,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#111',
   },
   image: { width: '100%', height: '100%' },
-  title: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginTop: 8 },
-  text: { fontSize: 11, fontFamily: 'Sora_400Regular', lineHeight: 15, marginTop: 2 },
+  title: { fontSize: 14.5, fontFamily: 'Sora_600SemiBold', marginTop: 9 },
+  text: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 16, marginTop: 2 },
 
   dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
   dot: { width: 6, height: 6, borderRadius: 999, marginHorizontal: 3 },

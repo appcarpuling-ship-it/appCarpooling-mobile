@@ -34,7 +34,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // dibuja antes de que lleguen los banners y no puede importar constantes privadas del
 // componente — se mantienen calculadas igual, a mano.
 const BANNER_GAP = 12;
-const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 2.15);
+const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 1.9);
 const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
 
 const menuItems = [
