@@ -73,7 +73,12 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, { page: pageNum, limit: LIST_PAGE_SIZE });
+      // Sin esto el backend pagina TODOS los viajes (cualquier estado) mientras acá solo
+      // se muestran 2 de 4 estados por pestaña: con una lista corta que no llena la pantalla,
+      // el FlatList vuelve a pedir "más" apenas termina cada fetch, y el spinner parpadeaba
+      // varias veces seguidas hasta agotar el total real.
+      const status = activeTab === 'upcoming' ? 'active,started' : 'completed,cancelled';
+      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, { page: pageNum, limit: LIST_PAGE_SIZE, status });
       if (response.success) {
         setTrips(prev => reset ? response.data : [...prev, ...response.data]);
         setPage(pageNum);

@@ -624,6 +624,13 @@ const BookingScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           ))}
 
+          {/* El pasajero no sabe que dejar estos dos puntos vacíos significa viajar el
+              trayecto completo del conductor (mismo origen y destino) — antes solo lo
+              sabía quien programó la pantalla. */}
+          <Text style={[styles.pickupHint, { color: textMuted }]}>
+            Si no elegís puntos, viajás el trayecto completo del conductor (mismo origen y destino).
+          </Text>
+
               </>
           )}
 
@@ -1028,6 +1035,13 @@ const styles = StyleSheet.create({
   pickupValue: {
     fontSize: 14,
     fontFamily: 'Sora_500Medium',
+  },
+  pickupHint: {
+    fontSize: 12,
+    fontFamily: 'Sora_400Regular',
+    paddingHorizontal: 4,
+    marginTop: -4,
+    marginBottom: 8,
   },
 
   footerScroll: {

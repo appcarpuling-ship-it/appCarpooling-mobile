@@ -800,7 +800,7 @@ const HomeScreen = ({ navigation, route }) => {
           >
             <Image source={require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Viajes que ofrecí</Text>
+              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis postulaciones</Text>
               <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes donde te postulaste como conductor</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={textMuted} />

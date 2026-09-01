@@ -91,7 +91,7 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
   useFocusEffect(
     useCallback(() => {
       loadMyBookings(1, true, { force: true });
-    }, [])
+    }, [activeTab])
   );
 
   const setupTripCancellationListener = () => {
@@ -124,7 +124,10 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     if (!force && fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: pageNum, limit: LIST_PAGE_SIZE });
+      // Ver MyTripsScreen: sin esto el backend pagina todas las reservas y acá solo se
+      // muestra una parte por pestaña, así que el spinner de "cargando más" parpadeaba.
+      const status = activeTab === 'past' ? 'cancelled,completed' : 'pending,confirmed,rejected';
+      const response = await get_withauth(ENDPOINTS.MY_BOOKINGS, { page: pageNum, limit: LIST_PAGE_SIZE, status });
       if (response.success) {
         setBookings(prev => reset ? response.data : [...prev, ...response.data]);
         setPage(pageNum);

@@ -294,7 +294,7 @@ const GUIDES = {
         key: 'trf5',
         icon: 'car-outline',
         title: 'Seguí tus postulaciones',
-        body: 'En «Viajes que ofrecí» ves las solicitudes donde te postulaste y su estado: pendiente, aceptada o rechazada. Si el pasajero te elige y completa el pago, el viaje se crea automáticamente y aparece en tu agenda.',
+        body: 'En «Mis postulaciones» ves las solicitudes donde te postulaste y su estado: pendiente, aceptada o rechazada. Si el pasajero te elige y completa el pago, el viaje se crea automáticamente y aparece en tu agenda.',
         nav: { main: { tab: 'HomeTab', screen: 'MyApplications' } },
       },
     ],

@@ -129,7 +129,7 @@ const HomeStackNavigator = () => {
       <Stack.Screen
         name="MyApplications"
         component={MyApplicationsScreen}
-        options={{ title: 'Viajes que ofrecí' }}
+        options={{ title: 'Mis postulaciones' }}
       />
       <Stack.Screen
         name="ApplicationDetail"

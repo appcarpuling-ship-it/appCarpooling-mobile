@@ -213,8 +213,11 @@ const MyApplicationsScreen = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['bottom']}>
       <View style={styles.screenHeader}>
         <Text style={[styles.screenTitle, { color: textPrimary }]}>
-          Los viajes{'\n'}
-          <Text style={styles.screenTitleStrong}>que ofreciste</Text>
+          Tus{'\n'}
+          {/* No decir "viajes que ofreciste": es el mismo texto que usa MyTripsScreen para
+              los viajes que VOS publicaste como conductor, y esto es otra cosa — las
+              solicitudes de OTROS pasajeros donde te postulaste. */}
+          <Text style={styles.screenTitleStrong}>postulaciones</Text>
         </Text>
       </View>
 
@@ -245,7 +248,7 @@ const MyApplicationsScreen = ({ navigation }) => {
             <View style={styles.center}>
               <EmptyState
                 image={require('../../../../assets/icons/pngwing.com (20).png')}
-                title="Todavía no ofreciste viaje"
+                title="Todavía no te postulaste"
                 subtitle="Cuando te postules a una solicitud, la vas a ver acá."
               />
             </View>
