@@ -2,7 +2,6 @@
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -14,7 +13,6 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,7 +20,6 @@ import { get_public, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
-import { useAlert } from '../../../context/AlertContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useColors } from '../../../hooks/useColors';
 import { precargarUbicacion } from '../../../services/locationCache';
@@ -63,7 +60,6 @@ const HomeScreen = ({ navigation, route }) => {
   const { isAuthenticated, user } = useAuth();
   const { unreadCount = 0 } = useNotifications();
   useTheme();
-  const { showAlert } = useAlert();
   const { colors, isDarkMode } = useColors();
 
   const dark = isDarkMode;
@@ -81,9 +77,6 @@ const HomeScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const showTripsSkeleton = useMinDuration(loading);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedSeats, setSelectedSeats] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [activeTab, setActiveTab] = useState('inicio');
   const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
@@ -143,7 +136,7 @@ const HomeScreen = ({ navigation, route }) => {
     }
     try {
       // nearCity/nearProvince: prioriza lo cercano al usuario (ciudad, y si no alcanza
-      // provincia) antes de filtrar/ordenar/recortar a los 3 que se muestran.
+      // provincia) antes de filtrar/ordenar/recortar a los 5 que se muestran.
       const response = await get_public(ENDPOINTS.GET_TRIPS, {
         limit: 40,
         nearCity: user?.city || undefined,
@@ -163,7 +156,7 @@ const HomeScreen = ({ navigation, route }) => {
         const sortedTrips = [...upcoming].sort(
           (a, b) => new Date(a.departureDate) - new Date(b.departureDate)
         );
-        setRecentTrips(sortedTrips.slice(0, 3));
+        setRecentTrips(sortedTrips.slice(0, 5));
       }
     } catch (error) {
       console.error('Error loading trips:', error);
@@ -274,33 +267,9 @@ const HomeScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleDateChange = (event, date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && date) {
-        setSelectedDate(date);
-      }
-    } else {
-      if (date) setSelectedDate(date);
-    }
-  };
-
-  const handleDatePickerOpen = () => {
-    setShowDatePicker(true);
-  };
-
-  const formatDate = (date) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('es-ES');
-  };
-
   const handleSearch = () => {
-    if (!origin && !destination && !selectedDate && !selectedSeats) {
-      navigation.navigate('AllTrips');
-      return;
-    }
     if (!origin && !destination) {
-      showAlert('Ocurrió algo', 'Por favor completa al menos el origen o destino');
+      navigation.navigate('AllTrips');
       return;
     }
     navigation.navigate('SearchResults', {
@@ -308,8 +277,6 @@ const HomeScreen = ({ navigation, route }) => {
       originCity,
       destination,
       destinationCity,
-      date: selectedDate,
-      seats: selectedSeats,
     });
   };
 
@@ -318,8 +285,6 @@ const HomeScreen = ({ navigation, route }) => {
     setOriginCity('');
     setDestination('');
     setDestinationCity('');
-    setSelectedDate(null);
-    setSelectedSeats('');
   };
 
   const formatAddress = (location) => {
@@ -446,6 +411,40 @@ const HomeScreen = ({ navigation, route }) => {
       </TouchableOpacity>
     );
   };
+
+  // Compartido entre Inicio y Solicitudes: mismos 4 accesos y misma flecha a Traslados,
+  // para no repetir el array+JSX en los dos paneles del switch de arriba.
+  const renderQuickRow = () => (
+    <>
+      <View style={styles.quickRowHeader}>
+        <Text style={[styles.quickRowHeaderText, { color: textPrimary }]}>Para vos</Text>
+        <TouchableOpacity
+          style={[styles.quickRowArrow, { backgroundColor: cardBg }]}
+          onPress={() => navigation.navigate('CarpoolingsTab', { screen: 'Carpoolings' })}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Ver todos los traslados"
+        >
+          <Ionicons name="arrow-forward" size={14} color={textPrimary} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.quickRow}>
+        {[
+          { label: 'Crear Viaje', icon: require('../../../../assets/tabsIcons/crear-viaje.png'), onPress: () => navigation.navigate('CreateTrip') },
+          { label: 'Crear Solicitud', icon: require('../../../../assets/tabsIcons/publica-solicitud.png'), onPress: () => navigation.navigate('CreateTripRequest') },
+          { label: 'Mis Viajes', icon: require('../../../../assets/tabsIcons/mis-viajes.png'), onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips' }) },
+          { label: 'Mis Solicitudes', icon: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), onPress: () => navigation.navigate('MyTripRequests') },
+        ].map((item) => (
+          <TouchableOpacity key={item.label} style={styles.quickItem} onPress={item.onPress} activeOpacity={0.75}>
+            <View style={[styles.quickIconWrap, { backgroundColor: cardBg, borderColor: borderColor }]}>
+              <Image source={item.icon} style={styles.quickIcon} resizeMode="contain" />
+            </View>
+            <Text style={[styles.quickLabel, { color: textMuted }]} numberOfLines={2}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
 
   const renderTop = () => (
     <>
@@ -606,44 +605,6 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           </TouchableOpacity>
 
-          <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />
-
-          {/* Date row */}
-          <TouchableOpacity
-            style={styles.searchRow}
-            onPress={handleDatePickerOpen}
-            activeOpacity={0.7}
-          >
-            <View style={styles.routeIndicator}>
-              <Ionicons name="calendar-outline" size={16} color={textPrimary} />
-            </View>
-            <View style={styles.searchRowContent}>
-              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Fecha</Text>
-              <Text style={[styles.searchRowValue, { color: selectedDate ? textPrimary : searchFieldEmpty }]}>
-                {selectedDate ? formatDate(selectedDate) : 'Cualquier dia'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={[styles.searchDividerFull, { backgroundColor: divider }]} />
-
-          {/* Seats row */}
-          <View style={styles.searchRow}>
-            <View style={styles.routeIndicator}>
-              <Ionicons name="person-outline" size={16} color={textPrimary} />
-            </View>
-            <View style={styles.searchRowContent}>
-              <Text style={[styles.searchRowLabel, { color: searchFieldLabel }]}>Asientos</Text>
-              <TextInput
-                style={[styles.searchRowInput, { color: selectedSeats ? textPrimary : searchFieldEmpty }]}
-                placeholder="Cuantos viajan"
-                placeholderTextColor={searchFieldEmpty}
-                value={selectedSeats}
-                onChangeText={setSelectedSeats}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
         </View>
 
         {/* Actions */}
@@ -662,7 +623,7 @@ const HomeScreen = ({ navigation, route }) => {
               </View>
             </TouchableOpacity>
           </View>
-          {(origin || destination || selectedDate || selectedSeats) && (
+          {(origin || destination) && (
             <TouchableOpacity
               style={styles.clearFiltersLink}
               onPress={clearFilters}
@@ -676,6 +637,8 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           )}
         </View>
+
+        {renderQuickRow()}
 
         {/* Upcoming trips */}
         <View style={styles.section}>
@@ -753,37 +716,7 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* Antes 4 tarjetas largas con descripción — ahora 4 accesos chicos, mismo criterio
-              que "Traslados" (tab Viajes): la navegación se compacta, el contenido real
-              (Próximas solicitudes, abajo) es lo que ocupa la pantalla. La flecha lleva a
-              Traslados, donde están las 8 acciones completas (estas 4 son sólo las rápidas). */}
-          <View style={styles.quickRowHeader}>
-            <Text style={[styles.quickRowHeaderText, { color: textPrimary }]}>Para vos</Text>
-            <TouchableOpacity
-              style={[styles.quickRowArrow, { backgroundColor: cardBg }]}
-              onPress={() => navigation.navigate('CarpoolingsTab', { screen: 'Carpoolings' })}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Ver todos los traslados"
-            >
-              <Ionicons name="arrow-forward" size={14} color={textPrimary} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.quickRow}>
-            {[
-              { label: 'Crear Viaje', icon: require('../../../../assets/tabsIcons/crear-viaje.png'), onPress: () => navigation.navigate('CreateTrip') },
-              { label: 'Crear Solicitud', icon: require('../../../../assets/tabsIcons/publica-solicitud.png'), onPress: () => navigation.navigate('CreateTripRequest') },
-              { label: 'Mis Viajes', icon: require('../../../../assets/tabsIcons/mis-viajes.png'), onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips' }) },
-              { label: 'Mis Solicitudes', icon: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), onPress: () => navigation.navigate('MyTripRequests') },
-            ].map((item) => (
-              <TouchableOpacity key={item.label} style={styles.quickItem} onPress={item.onPress} activeOpacity={0.75}>
-                <View style={[styles.quickIconWrap, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                  <Image source={item.icon} style={styles.quickIcon} resizeMode="contain" />
-                </View>
-                <Text style={[styles.quickLabel, { color: textMuted }]} numberOfLines={2}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {renderQuickRow()}
 
           {/* Próximas solicitudes */}
           <View style={styles.section}>
@@ -819,59 +752,6 @@ const HomeScreen = ({ navigation, route }) => {
 
         </ScrollView>
       </View>
-
-      {/* Date Picker */}
-      {showDatePicker && (
-        <>
-          {Platform.OS === 'ios' ? (
-            <Modal visible transparent animationType="fade">
-              <View style={styles.modalOverlay}>
-                <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
-                  <View style={[styles.pickerHeader, { borderBottomColor: divider }]}>
-                    <Text style={[styles.pickerTitle, { color: textPrimary }]}>Seleccionar fecha</Text>
-                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Ionicons name="close" size={22} color={textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{ padding: 16, alignItems: 'center' }}>
-                    <DateTimePicker
-                      value={selectedDate || new Date()}
-                      mode="date"
-                      display="spinner"
-                      onChange={handleDateChange}
-                      minimumDate={new Date()}
-                      textColor={textPrimary}
-                      themeVariant={dark ? 'dark' : 'light'}
-                    />
-                  </View>
-                  <View style={[styles.datePickerActions, { borderTopColor: divider }]}>
-                    <TouchableOpacity
-                      style={[styles.dateBtn, { borderColor: borderColor }]}
-                      onPress={() => { setSelectedDate(null); setShowDatePicker(false); }}
-                    >
-                      <Text style={[styles.dateBtnText, { color: textSecondary }]}>Limpiar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.dateBtn, styles.dateBtnPrimary, { backgroundColor: accent }]}
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text style={[styles.dateBtnText, { color: accentInverse }]}>Confirmar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-          ) : (
-            <DateTimePicker
-              value={selectedDate || new Date()}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              minimumDate={new Date()}
-            />
-          )}
-        </>
-      )}
 
       <BannerDetailModal
         visible={bannerModal.visible}
@@ -1076,19 +956,6 @@ const styles = StyleSheet.create({
   searchRowValue: {
     fontSize: 15,
     fontFamily: 'Sora_400Regular',
-  },
-  searchRowInput: {
-    fontSize: 15,
-    fontFamily: 'Sora_400Regular',
-    padding: 0,
-    margin: 0,
-    ...Platform.select({
-      android: {
-        paddingTop: 0,
-        paddingBottom: 0,
-        includeFontPadding: false,
-      },
-    }),
   },
   searchDivider: {
     height: 1,
@@ -1383,36 +1250,12 @@ const styles = StyleSheet.create({
   },
 
   // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pickerContainer: {
-    borderRadius: 20,
-    width: '96%',
-    maxHeight: '90%',
-    overflow: 'hidden',
-  },
   pickerLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  pickerTitle: {
-    fontSize: 17,
-    fontFamily: 'Sora_600SemiBold',
   },
   provinceOption: {
     flexDirection: 'row',
@@ -1467,27 +1310,6 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  datePickerActions: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    borderTopWidth: 1,
-  },
-  dateBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  dateBtnPrimary: {
-    borderWidth: 0,
-  },
-  dateBtnText: {
-    fontSize: 15,
-    fontFamily: 'Sora_500Medium',
   },
 });
 
