@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
 
   // Banners
   bannerSection: {
-    marginTop: 28,
+    marginTop: 40,
   },
   bannerSectionTitle: {
     fontSize: 16,
