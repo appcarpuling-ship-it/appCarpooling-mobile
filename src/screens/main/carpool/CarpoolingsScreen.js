@@ -53,11 +53,11 @@ const conductorSmall = [
   { id: 'c4', title: 'Ver solicitudes abiertas', image: require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png'), screen: 'OpenTripRequests', tab: 'HomeTab' },
   { id: 'c5', title: 'Mis postulaciones', image: require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png'), screen: 'MyApplications', tab: 'HomeTab' },
 ];
-const pasajeroBig = [
+// Pasajero son sólo 3: no alcanza para justificar grande+chico (quedaba 1 tile chico
+// solo, colgado). Van los 3 juntos, mismo tamaño, en una fila.
+const pasajeroSmall = [
   { id: 'p2', title: 'Crear Solicitud', image: require('../../../../assets/tabsIcons/publica-solicitud.png'), screen: 'CreateTripRequest', tab: 'HomeTab' },
   { id: 'p1', title: 'Mis Reservas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MyBookings' },
-];
-const pasajeroSmall = [
   { id: 'p3', title: 'Mis Solicitudes', image: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), screen: 'MyTripRequests', tab: 'HomeTab' },
 ];
 
@@ -221,19 +221,6 @@ const CarpoolingsScreen = ({ navigation }) => {
         </View>
 
         <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como pasajero</Text>
-        <View style={styles.bigRow}>
-          {pasajeroBig.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
-              activeOpacity={0.7}
-            >
-              <Image source={item.image} style={styles.tileBigIcon} resizeMode="contain" />
-              <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
         <View style={styles.smallRow}>
           {pasajeroSmall.map((item) => (
             <TouchableOpacity
