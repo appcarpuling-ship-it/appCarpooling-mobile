@@ -644,7 +644,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Route */}
-        <View style={[styles.section, { borderBottomColor: divider }]}>
+        <View style={[styles.section]}>
+          {/* Sin línea que separe esto del mapa/status de arriba, el label chico hace ese
+              trabajo — antes no llevaba ninguno. */}
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Ruta</Text>
           {/* Cada punto es UNA fila con su círculo al lado de su texto. Con la columna de
               círculos aparte —dos puntos y una línea de alto fijo— la parada intermedia no
               tenía punto propio y los de origen/destino no coincidían con su dirección. */}
@@ -672,7 +675,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Meta: fecha · hora · km · precio */}
-        <View style={[styles.metaRow, { borderBottomColor: divider }]}>
+        <View style={[styles.metaRow]}>
           <View style={styles.metaItem}>
             <Ionicons name="calendar-outline" size={16} color={textPrimary} />
             <Text style={[styles.metaText, { color: textPrimary }]}>{formatDate(request.departureDate)}</Text>
@@ -698,7 +701,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Passenger info (driver mode) */}
         {isDriver && passenger && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Publicado por</Text>
             <View style={styles.driverRow}>
               {passenger.avatar ? (
@@ -721,7 +724,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Driver selected — passenger mode, non-open */}
         {isPassenger && acceptedApp && request.status !== 'open' && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Conductor aprobado</Text>
             <View style={styles.driverRow}>
               {acceptedApp.driverSnapshot?.avatar ? (
@@ -759,7 +762,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
 
         {/* Applications — passenger, open */}
         {isPassenger && request.status === 'open' && (
-          <View style={[styles.section, { borderBottomColor: divider }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Postulaciones · {request.applications?.length || 0}/5
             </Text>
@@ -1092,8 +1095,11 @@ const styles = StyleSheet.create({
   statusDot:  { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
-  // Section
-  section:      { paddingHorizontal: 20, paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth },
+  // Section — misma dirección validada en TripDetailScreen (2026-09-01): sin líneas
+  // divisorias de punta a punta entre bloques (se leía a lista de ajustes), separa con
+  // espacio. Adentro de un mismo bloque (ej. metaRow después de Ruta) el espacio solo
+  // alcanza, no hace falta línea.
+  section:      { paddingHorizontal: 20, marginBottom: 32 },
   sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
 
   // Route
@@ -1111,7 +1117,7 @@ const styles = StyleSheet.create({
   routeStopCity:    { fontSize: 13, marginTop: 1 },
 
   // Meta row
-  metaRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth },
+  metaRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 32 },
   metaItem:   { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaDivider:{ width: StyleSheet.hairlineWidth, height: 20, marginHorizontal: 4 },
   metaText:   { fontSize: 13, flex: 1 },
