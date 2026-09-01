@@ -325,12 +325,16 @@ const styles = StyleSheet.create({
   tileBigTitle: { fontFamily: 'Sora_700Bold', fontSize: 14, lineHeight: 18, marginTop: 18 },
 
   smallRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginBottom: 28 },
+  // minHeight fijo: sin esto, un tile con título de 1 línea ("Mis Reservas") queda más
+  // bajo que uno con título de 2 ("Reservas Recibidas") — el gap no reserva alto,
+  // achica según el contenido. Con esto, las dos filas de "chicos" quedan iguales.
   tileSmall: {
     flex: 1,
+    minHeight: 92,
     borderRadius: 16,
     borderWidth: 1,
     padding: 12,
-    gap: 10,
+    justifyContent: 'space-between',
   },
   tileSmallIcon: { width: 26, height: 26 },
   tileSmallTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 11.5, lineHeight: 15 },
