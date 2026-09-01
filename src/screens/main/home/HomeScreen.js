@@ -1059,23 +1059,24 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginBottom: 4,
   },
-  quickItem: { alignItems: 'center', gap: 8, width: 72 },
+  quickItem: { alignItems: 'center', gap: 8, width: 80 },
   quickIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   // Son íconos 3D con detalle fino (el mapa con el pin y el +, por ejemplo): a 24px
-  // se perdían. Mismo tamaño que usa CarpoolingsScreen para las mismas imágenes.
-  quickIcon: { width: 44, height: 44 },
+  // se perdían, y a 44px seguían chicos pedidos. Más grandes que los de CarpoolingsScreen
+  // a propósito: acá son sólo 4, hay lugar de sobra.
+  quickIcon: { width: 52, height: 52 },
   quickLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Sora_600SemiBold',
     textAlign: 'center',
-    lineHeight: 14,
+    lineHeight: 15,
   },
 
   // Request cards (solicitudes tab)
