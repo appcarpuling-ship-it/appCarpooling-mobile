@@ -10,6 +10,7 @@ import {
   StatusBar,
   Image,
   ScrollView,
+  AppState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -95,6 +96,27 @@ const TripMapScreen = ({ route, navigation }) => {
   }, [trip?._id]);
 
   useEffect(() => { refrescarEstadoViaje(); }, []);
+
+  /**
+   * Al volver de segundo plano, la posición del conductor quedaba vieja unos segundos —lo
+   * suficiente para que el pasajero lo viera a una cuadra de donde en realidad está—. La
+   * causa no es que el socket deje de escuchar: el sistema operativo suspende la app y esa
+   * conexión queda cortada sin que nadie se entere hasta que algo la usa de nuevo. Recién ahí
+   * el cliente nota el corte (por el ping-timeout de socket.io, unos 20s) y reconecta solo.
+   *
+   * Se ataja en dos frentes al volver a 'active': un pedido REST trae la posición real EN EL
+   * ACTO —no depende del socket—, y se fuerza la reconexión del socket en vez de esperar a
+   * que se dé cuenta solo, para que las próximas posiciones en vivo también vuelvan rápido.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (estado) => {
+      if (estado !== 'active') return;
+      refrescarEstadoViaje();
+      socketService.connect();
+    });
+    return () => sub.remove();
+  }, [refrescarEstadoViaje]);
+
   const insets = useSafeAreaInsets();
   const ui = useUI();
   const { user } = useAuth();
