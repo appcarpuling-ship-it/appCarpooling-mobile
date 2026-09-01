@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image,
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -199,11 +198,11 @@ const VehiclesScreen = () => {
         </>
       ) : (
         <View style={styles.empty}>
-          <Image
-            source={require('../../../../assets/illustrations/empty-vehicles.png')}
-            style={styles.emptyIllustration}
-            resizeMode="contain"
-          />
+          {/* Antes una ilustración 3D a color, sobra del rediseño B/N viejo. Ícono simple,
+              mismo criterio que el resto de las pantallas vacías de la app. */}
+          <View style={[styles.emptyIconWrap, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+            <Ionicons name="car-sport-outline" size={36} color={ui.textMuted} />
+          </View>
           <Text style={[styles.emptyTitle, { color: ui.text }]}>Sin vehículos</Text>
           <Text style={[styles.emptySubtitle, { color: ui.textMuted }]}>
             Cargá tu primer vehículo para empezar a publicar viajes.
@@ -242,7 +241,10 @@ const styles = StyleSheet.create({
   dotActive: { width: 22 },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
-  emptyIllustration: { width: 220, height: 220, marginBottom: 4 },
+  emptyIconWrap: {
+    width: 88, height: 88, borderRadius: 44, borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+  },
   emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center' },
 

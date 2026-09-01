@@ -451,11 +451,11 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Image
-            source={require('../../../../assets/illustrations/empty-trips.png')}
-            style={styles.emptyIllustration}
-            resizeMode="contain"
-          />
+          {/* Antes una ilustración 3D a color, resto de la ilustraciones de la app quedaron
+              del rediseño B/N viejo — desentonaba. Mismo criterio que el resto: ícono simple. */}
+          <View style={[styles.emptyIconWrap, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+            <Ionicons name="car-outline" size={36} color={textMuted} />
+          </View>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>
             {activeTab === 'upcoming' ? 'Sin viajes próximos' : 'Sin viajes pasados'}
           </Text>
@@ -606,7 +606,10 @@ const styles = StyleSheet.create({
   footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   // Empty
-  emptyIllustration: { width: 200, height: 200 },
+  emptyIconWrap: {
+    width: 88, height: 88, borderRadius: 44, borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center',
+  },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     gap: 10, padding: 32,

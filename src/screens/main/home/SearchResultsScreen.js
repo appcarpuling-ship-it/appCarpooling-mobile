@@ -246,7 +246,7 @@ const SearchResultsScreen = ({ route, navigation }) => {
           {/* Mismo bloque reutilizable que usan Mis Reservas/Mis Viajes — antes esta
               pantalla tenía el suyo armado a mano, con otra tipografía y otro botón. */}
           <EmptyState
-            image={require('../../../../assets/illustrations/empty-search.png')}
+            icon="search-outline"
             title="Sin resultados"
             subtitle={sinResultadosTexto}
             actionLabel="Modificar búsqueda"
