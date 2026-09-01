@@ -71,7 +71,7 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="CarpoolingsTab"
         component={CarpoolingsStackNavigator}
-        options={{ tabBarLabel: 'Viajes' }}
+        options={{ tabBarLabel: 'Traslados' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             const state = navigation.getState();

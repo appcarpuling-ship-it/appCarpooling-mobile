@@ -28,7 +28,7 @@ const HelpScreen = () => {
     {
       id: 2,
       question: '¿Cómo creo un viaje?',
-      answer: 'Andá a la pestaña "Viajes", tocá "Crear Viaje" y completá la información: origen, destino, fecha, hora, asientos disponibles y precio por asiento.',
+      answer: 'Andá a la pestaña "Traslados", tocá "Crear Viaje" y completá la información: origen, destino, fecha, hora, asientos disponibles y precio por asiento.',
     },
     {
       id: 3,
@@ -68,7 +68,7 @@ const HelpScreen = () => {
     {
       id: 10,
       question: '¿Cómo me postulo a una solicitud como conductor?',
-      answer: 'Entrá a la pestaña "Solicitudes" → "Ver solicitudes abiertas", abrí un pedido de un pasajero y tocá "Ofrecer viaje" con tu vehículo (necesitás tener uno cargado). Si el pasajero te elige y paga, el viaje se crea automáticamente y aparece en tu agenda.',
+      answer: 'Entrá a la pestaña "Traslados" → "Ver solicitudes abiertas" (en "Como conductor"), abrí un pedido de un pasajero y tocá "Ofrecer viaje" con tu vehículo (necesitás tener uno cargado). Si el pasajero te elige y paga, el viaje se crea automáticamente y aparece en tu agenda.',
     },
   ];
 

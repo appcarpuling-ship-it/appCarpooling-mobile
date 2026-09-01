@@ -212,7 +212,7 @@ const GUIDES = {
         key: 'dt1',
         icon: 'car-outline',
         title: 'Viajes como conductor',
-        body: 'Si «» el viaje, la lista de esas publicaciones está en «». Primero entramos a la pestaña Viajes desde la barra inferior.',
+        body: 'Si «» el viaje, la lista de esas publicaciones está en «». Primero entramos a la pestaña Traslados desde la barra inferior.',
         nav: { main: { tab: 'CarpoolingsTab', screen: 'Carpoolings' } },
       },
       {

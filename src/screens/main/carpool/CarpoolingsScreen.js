@@ -37,41 +37,27 @@ const BANNER_GAP = 12;
 const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 1.45);
 const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
 
-const menuItems = [
-  {
-    id: 1,
-    title: 'Crear Viaje',
-    description: 'Publicá un nuevo viaje y ofrecé lugares libres',
-    icon: 'add-circle-outline',
-    image: require('../../../../assets/tabsIcons/crear-viaje.png'),
-    screen: 'CreateTrip',
-  },
-  {
-    id: 2,
-    title: 'Mis Viajes',
-    description: 'Mirá los viajes que publicaste como conductor',
-    icon: 'car-outline',
-    image: require('../../../../assets/tabsIcons/mis-viajes.png'),
-    screen: 'MyTrips',
-  },
-  {
-    id: 3,
-    title: 'Mis Reservas',
-    description: 'Mirá los viajes que reservaste como pasajero',
-    icon: 'list-outline',
-    image: require('../../../../assets/tabsIcons/mis-reservas.png'),
-    screen: 'MyBookings',
-  },
-  {
-    id: 4,
-    title: 'Reservas Recibidas',
-    // Texto corto: quedaba en 1 renglón mientras el resto de las cards ocupan 2. El salto
-    // de línea fuerza el mismo alto visual sin depender del ancho de pantalla.
-    description: 'Revisá quién quiere\nsumarse a tus viajes',
-    icon: 'people-outline',
-    image: require('../../../../assets/tabsIcons/reservas-recibidas.png'),
-    screen: 'TripRequests',
-  },
+// Antes esta pantalla mezclaba conductor y pasajero en 4 filas largas, y las 4 acciones de
+// solicitudes vivían aparte, en el switch "Solicitudes" del Home. Reagrupado por ROL —la
+// pregunta que el usuario ya se hizo antes de abrir la app— y en tiles (2 grandes + el resto
+// chico) en vez de filas de texto, para que no se sienta a menú de configuración.
+// Los `tab` marcan los que hay que cruzar a HomeStackNavigator; el resto vive en este mismo
+// stack (CarpoolingsStackNavigator).
+const conductorBig = [
+  { id: 'c1', title: 'Crear Viaje', image: require('../../../../assets/tabsIcons/crear-viaje.png'), screen: 'CreateTrip' },
+  { id: 'c2', title: 'Mis Viajes', image: require('../../../../assets/tabsIcons/mis-viajes.png'), screen: 'MyTrips' },
+];
+const conductorSmall = [
+  { id: 'c3', title: 'Reservas Recibidas', image: require('../../../../assets/tabsIcons/reservas-recibidas.png'), screen: 'TripRequests' },
+  { id: 'c4', title: 'Ver solicitudes abiertas', image: require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png'), screen: 'OpenTripRequests', tab: 'HomeTab' },
+  { id: 'c5', title: 'Mis postulaciones', image: require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png'), screen: 'MyApplications', tab: 'HomeTab' },
+];
+const pasajeroBig = [
+  { id: 'p1', title: 'Mis Reservas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MyBookings' },
+  { id: 'p2', title: 'Crear Solicitud', image: require('../../../../assets/tabsIcons/publica-solicitud.png'), screen: 'CreateTripRequest', tab: 'HomeTab' },
+];
+const pasajeroSmall = [
+  { id: 'p3', title: 'Mis Solicitudes', image: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), screen: 'MyTripRequests', tab: 'HomeTab' },
 ];
 
 const CarpoolingsScreen = ({ navigation }) => {
@@ -200,27 +186,63 @@ const CarpoolingsScreen = ({ navigation }) => {
             )}
           </View>
           <Text style={[styles.title, { color: textPrimary }]}>
-            Gestioná{'\n'}
-            <Text style={styles.titleStrong}>tus viajes</Text>
+            <Text style={styles.titleStrong}>Traslados</Text>
           </Text>
-          <Text style={[styles.subtitle, { color: textSecondary }]}>Creá viajes o revisá tus reservas.</Text>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>Como conductor o como pasajero.</Text>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuList}>
-          {menuItems.map((item) => (
+        <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como conductor</Text>
+        <View style={styles.bigRow}>
+          {conductorBig.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.menuItem, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => navigation.navigate(item.screen)}
+              style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
               activeOpacity={0.7}
             >
-              <Image source={item.image} style={styles.iconBox} resizeMode="contain" />
-              <View style={styles.menuText}>
-                <Text style={[styles.menuTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
-                <Text style={[styles.menuDesc, { color: textSecondary }]} numberOfLines={2}>{item.description}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={textSecondary} />
+              <Image source={item.image} style={styles.tileBigIcon} resizeMode="contain" />
+              <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.smallRow}>
+          {conductorSmall.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              activeOpacity={0.7}
+            >
+              <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
+              <Text style={[styles.tileSmallTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como pasajero</Text>
+        <View style={styles.bigRow}>
+          {pasajeroBig.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              activeOpacity={0.7}
+            >
+              <Image source={item.image} style={styles.tileBigIcon} resizeMode="contain" />
+              <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.smallRow}>
+          {pasajeroSmall.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              activeOpacity={0.7}
+            >
+              <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
+              <Text style={[styles.tileSmallTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -294,24 +316,38 @@ const styles = StyleSheet.create({
   titleStrong: { fontFamily: 'Sora_800ExtraBold' },
   subtitle: { fontFamily: 'Sora_400Regular', fontSize: 15, marginTop: 12 },
 
-  menuList: { paddingHorizontal: 24, gap: 12 },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 24,
-    padding: 18,
+  sectionLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    paddingHorizontal: 24,
+    marginBottom: 10,
   },
-  iconBox: {
-    width: 48,
-    height: 48,
+  bigRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginBottom: 10 },
+  tileBig: {
+    flex: 1,
+    minHeight: 104,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    justifyContent: 'space-between',
   },
-  menuText: { flex: 1, marginLeft: 14, marginRight: 8 },
-  menuTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16, lineHeight: 20, marginBottom: 3 },
-  // 2 renglones fijos: "Crear Viaje" entraba en uno y su card quedaba más baja
-  // que las demás. El alto no depende del ancho de pantalla.
-  menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18, minHeight: 36 },
+  tileBigIcon: { width: 34, height: 34 },
+  tileBigTitle: { fontFamily: 'Sora_700Bold', fontSize: 14, lineHeight: 18, marginTop: 18 },
 
-  bannerSection: { marginTop: 32 },
+  smallRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginBottom: 28 },
+  tileSmall: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    gap: 10,
+  },
+  tileSmallIcon: { width: 26, height: 26 },
+  tileSmallTitle: { fontFamily: 'Sora_600SemiBold', fontSize: 11.5, lineHeight: 15 },
+
+  bannerSection: { marginTop: 8 },
 });
 
 export default CarpoolingsScreen;

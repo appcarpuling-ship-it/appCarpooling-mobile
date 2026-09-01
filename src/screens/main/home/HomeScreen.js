@@ -753,58 +753,23 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          <View style={styles.solicitudesCards}>
-          <TouchableOpacity
-            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
-            onPress={() => navigation.navigate('CreateTripRequest')}
-            activeOpacity={0.8}
-          >
-            <Image source={require('../../../../assets/tabsIcons/publica-solicitud.png')} style={styles.hubIcon} resizeMode="contain" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Publicar solicitud</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Indicá a dónde querés ir y recibí postulaciones de conductores</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
-            onPress={() => navigation.navigate('MyTripRequests')}
-            activeOpacity={0.8}
-          >
-            <Image source={require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis solicitudes</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes que publicaste y elegí a tu conductor</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
-            onPress={() => navigation.navigate('OpenTripRequests')}
-            activeOpacity={0.8}
-          >
-            <Image source={require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Ver solicitudes abiertas</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Explorá pedidos de pasajeros y postulate como conductor</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.hubCard, { backgroundColor: cardBg, borderColor: borderColor }]}
-            onPress={() => navigation.navigate('MyApplications')}
-            activeOpacity={0.8}
-          >
-            <Image source={require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png')} style={styles.hubIcon} resizeMode="contain" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.hubCardTitle, { color: textPrimary }]}>Mis postulaciones</Text>
-              <Text style={[styles.hubCardSub, { color: textMuted }]} numberOfLines={2}>Revisá las solicitudes donde te postulaste como conductor</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={textMuted} />
-          </TouchableOpacity>
+          {/* Antes 4 tarjetas largas con descripción — ahora 4 accesos chicos, mismo criterio
+              que "Traslados" (tab Viajes): la navegación se compacta, el contenido real
+              (Próximas solicitudes, abajo) es lo que ocupa la pantalla. */}
+          <View style={styles.quickRow}>
+            {[
+              { label: 'Crear Viaje', icon: require('../../../../assets/tabsIcons/crear-viaje.png'), onPress: () => navigation.navigate('CreateTrip') },
+              { label: 'Crear Solicitud', icon: require('../../../../assets/tabsIcons/publica-solicitud.png'), onPress: () => navigation.navigate('CreateTripRequest') },
+              { label: 'Mis Viajes', icon: require('../../../../assets/tabsIcons/mis-viajes.png'), onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips' }) },
+              { label: 'Mis Solicitudes', icon: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), onPress: () => navigation.navigate('MyTripRequests') },
+            ].map((item) => (
+              <TouchableOpacity key={item.label} style={styles.quickItem} onPress={item.onPress} activeOpacity={0.75}>
+                <View style={[styles.quickIconWrap, { backgroundColor: cardBg, borderColor: borderColor }]}>
+                  <Image source={item.icon} style={styles.quickIcon} resizeMode="contain" />
+                </View>
+                <Text style={[styles.quickLabel, { color: textMuted }]} numberOfLines={2}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           {/* Próximas solicitudes */}
@@ -1190,37 +1155,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Solicitudes hub
-  // paddingHorizontal 24, no 16: tiene que alinear con el resto de las secciones de la
-  // pantalla (sectionHeader, tripCard, etc.) o las cards de acá quedaban más angostas.
-  solicitudesCards: {
+  // Accesos rápidos de "Solicitudes" (Crear Viaje / Crear Solicitud / Mis Viajes /
+  // Mis Solicitudes). paddingHorizontal 24 para alinear con el resto de las secciones.
+  quickRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingVertical: 16,
-    gap: 12,
+    marginBottom: 4,
   },
-  hubCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderRadius: 14,
+  quickItem: { alignItems: 'center', gap: 8, width: 72 },
+  quickIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 1,
-    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  hubIcon: {
-    width: 44,
-    height: 44,
-  },
-  hubCardTitle: {
-    fontSize: 14,
-    fontFamily: 'Sora_700Bold',
-    marginBottom: 3,
-  },
-  // 2 renglones fijos, como las cards de Viajes: las descripciones más cortas
-  // entraban en uno y esas cards quedaban más bajas que el resto.
-  hubCardSub: {
-    fontSize: 12,
-    lineHeight: 17,
-    minHeight: 34,
+  quickIcon: { width: 24, height: 24 },
+  quickLabel: {
+    fontSize: 11,
+    fontFamily: 'Sora_600SemiBold',
+    textAlign: 'center',
+    lineHeight: 14,
   },
 
   // Request cards (solicitudes tab)
