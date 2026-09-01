@@ -218,20 +218,6 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     return raw || location.city || location.name || '';
   };
 
-  /**
-   * Ciudad y provincia, para la segunda línea de cada punto de la ruta. La dirección
-   * guardada suele ser solo la calle ("1 de Mayo 447"), así que en el listado dos viajes
-   * a ciudades distintas se leían idénticos. Se omite lo que ya venga escrito dentro de
-   * la dirección, porque en algunos viajes sí viene incluida y quedaba repetido.
-   */
-  const formatArea = (location) => {
-    if (!location) return '';
-    const base = String(location.address || location.street || '').toLowerCase();
-    return [location.city, location.province]
-      .filter((part) => part && !base.includes(String(part).toLowerCase()))
-      .join(', ');
-  };
-
   const getStatusPriority = (item) => {
     const rs = item.seatReservation?.reservationStatus;
     if (rs === 'pending_payment')  return 0;
@@ -263,6 +249,9 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
   const canPay = (item) =>
     item.seatReservation?.reservationStatus === 'pending_payment' ||
     (item.status === 'pending' && !item.seatReservation);
+
+  // Mismo lenguaje visual que la tarjeta de viaje (ícono + ruta), con el ícono de reserva.
+  const BOOKING_ICON = require('../../../../assets/tabsIcons/mis-reservas.png');
 
   const renderItem = ({ item }) => {
     if (!item.trip?.driver?.firstName) return null;
@@ -302,33 +291,21 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
             </View>
           )}
 
-        {/* Route */}
-        <View style={styles.route}>
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDotOutline, { borderColor: activeTxt }]} />
-            <View style={styles.routeTextCol}>
-              <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
-                {formatAddress(item.trip?.origin)}
+        {/* Ruta: mismo ícono + línea con flecha que la tarjeta de Home, en vez del
+            timeline de dos puntos apilados. */}
+        <View style={styles.tripHeaderRow}>
+          <Image source={BOOKING_ICON} style={styles.tripIconBox} resizeMode="contain" />
+          <View style={styles.tripInfoColumn}>
+            <View style={styles.routeLine}>
+              <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                {item.trip?.origin?.city || formatAddress(item.trip?.origin)}
               </Text>
-              {!!formatArea(item.trip?.origin) && (
-                <Text style={[styles.routeArea, { color: activeMuted }]} numberOfLines={1}>
-                  {formatArea(item.trip?.origin)}
-                </Text>
-              )}
-            </View>
-          </View>
-          <View style={[styles.routeConnector, { backgroundColor: activeTxt }]} />
-          <View style={styles.routeRow}>
-            <View style={[styles.routeDotFilled, { backgroundColor: activeTxt }]} />
-            <View style={styles.routeTextCol}>
-              <Text style={[styles.routeText, { color: activeTxt }]} numberOfLines={1}>
-                {formatAddress(item.trip?.destination)}
+              <Text style={[styles.routeArrow, { color: activeMuted }]}>
+                {item.trip?.intermediateStops?.length > 0 ? '···' : '→'}
               </Text>
-              {!!formatArea(item.trip?.destination) && (
-                <Text style={[styles.routeArea, { color: activeMuted }]} numberOfLines={1}>
-                  {formatArea(item.trip?.destination)}
-                </Text>
-              )}
+              <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                {item.trip?.destination?.city || formatAddress(item.trip?.destination)}
+              </Text>
             </View>
           </View>
         </View>
@@ -555,18 +532,13 @@ const styles = StyleSheet.create({
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
-  route: { padding: 16, paddingBottom: 12 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  routeDotOutline: {
-    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
-  },
-  routeDotFilled: { width: 10, height: 10, borderRadius: 5 },
-  // Une los dos puntos del recorrido, así que va del color de los puntos y no del de los
-  // separadores: con el color de divisor quedaba una línea blanca sobre la tarjeta gris.
-  routeConnector: { width: 1.5, height: 20, marginLeft: 4, marginVertical: 3 },
-  routeTextCol: { flex: 1, gap: 2 },
-  routeText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
-  routeArea: { fontSize: 12, fontFamily: 'Sora_400Regular' },
+  // Ruta: mismo ícono + línea con flecha que la tarjeta de Home.
+  tripHeaderRow: { flexDirection: 'row', gap: 14, alignItems: 'center', padding: 16, paddingBottom: 12 },
+  tripIconBox: { width: 44, height: 44 },
+  tripInfoColumn: { flex: 1, minWidth: 0 },
+  routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
+  routeCity: { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
+  routeArrow: { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   meta: {
     flexDirection: 'row',

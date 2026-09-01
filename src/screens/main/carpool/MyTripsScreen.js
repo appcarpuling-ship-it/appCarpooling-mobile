@@ -222,6 +222,10 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
     }
   };
 
+  // Mismo ícono que usa Home para esta misma tarjeta de viaje, así la ruta se lee igual
+  // en las dos pantallas.
+  const TRIP_ICON = require('../../../../assets/tabsIcons/mis-viajes.png');
+
   const renderTripItem = ({ item }) => {
     // El fondo del chip sale de `bg`, no del color del texto: "Activo" devuelve
     // invertText (blanco en claro, negro en oscuro) y pintar el fondo con
@@ -264,19 +268,22 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
                 <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
               </View>
             )}
-            <View style={styles.routeBlock}>
-              <View style={styles.routeDots}>
-                <View style={[styles.dotOrigin, { borderColor: activeTxt }]} />
-                <View style={[styles.routeConnector, { backgroundColor: activeTxt }]} />
-                <View style={[styles.dotDest, { backgroundColor: activeTxt }]} />
-              </View>
-              <View style={styles.routeLabels}>
-                <Text style={[styles.cityText, { color: activeTxt }]} numberOfLines={1}>
-                  {formatAddress(item.origin)}
-                </Text>
-                <Text style={[styles.cityText, { color: activeTxt, marginTop: 10 }]} numberOfLines={1}>
-                  {formatAddress(item.destination)}
-                </Text>
+            {/* Mismo lenguaje visual que la tarjeta de Home: ícono + ruta en una sola línea
+                con flecha, en vez del timeline de dos puntos apilados. */}
+            <View style={styles.tripHeaderRow}>
+              <Image source={TRIP_ICON} style={styles.tripIconBox} resizeMode="contain" />
+              <View style={styles.tripInfoColumn}>
+                <View style={styles.routeLine}>
+                  <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                    {item.origin?.city || formatAddress(item.origin)}
+                  </Text>
+                  <Text style={[styles.routeArrow, { color: activeMuted }]}>
+                    {item.intermediateStops?.length > 0 ? '···' : '→'}
+                  </Text>
+                  <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                    {item.destination?.city || formatAddress(item.destination)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -536,15 +543,13 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
-  routeBlock: { flexDirection: 'row', gap: 10, alignItems: 'center', flex: 1 },
-  routeDots:  { width: 14, alignItems: 'center', paddingVertical: 2 },
-  dotOrigin: {
-    width: 9, height: 9, borderRadius: 5, borderWidth: 2,
-  },
-  routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
-  dotDest:   { width: 9, height: 9, borderRadius: 2 },
-  routeLabels: { flex: 1 },
-  cityText:  { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  // Ruta: mismo ícono + línea con flecha que la tarjeta de Home.
+  tripHeaderRow: { flexDirection: 'row', gap: 14, alignItems: 'center', flex: 1 },
+  tripIconBox: { width: 44, height: 44 },
+  tripInfoColumn: { flex: 1, minWidth: 0 },
+  routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
+  routeCity: { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
+  routeArrow: { fontSize: 15, fontFamily: 'Sora_700Bold' },
 
   // Status pill
   statusPill: {
