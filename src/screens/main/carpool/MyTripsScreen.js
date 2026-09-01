@@ -543,6 +543,10 @@ const styles = StyleSheet.create({
   routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
   routeCity: { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
   routeArrow: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  // Meta: una sola línea de texto, como en Home — no una fila con caja/borde/ícono
+  // por dato. (Se había quedado sólo en el JSX, sin esta definición: la línea salía con
+  // la tipografía por defecto del sistema en vez de la de la app.)
+  tripMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
 
   // Status pill
   statusPill: {
