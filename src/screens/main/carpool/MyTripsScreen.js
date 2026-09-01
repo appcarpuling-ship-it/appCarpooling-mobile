@@ -235,7 +235,10 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
     const freeNow = tripDisplaySeats(item);
     const textPrimary   = ui.invertBg;
     const textMuted     = ui.textMuted;
-    const cardBg        = colors.cardBackground;
+    // ui.surface y no colors.cardBackground: son dos sistemas de color viejos conviviendo
+    // (#FFFFFF puro acá vs #F4F4F5 en Solicitudes, la pantalla hermana) — con el resto de
+    // la app ya migrado a `ui`, esta tarjeta quedaba en un tono de fondo distinto sin razón.
+    const cardBg        = ui.surface;
     const divider       = ui.bg;
     const accent        = textPrimary;
     const accentInv     = ui.invertText;

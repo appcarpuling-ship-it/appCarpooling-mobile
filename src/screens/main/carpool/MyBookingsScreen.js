@@ -67,7 +67,6 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
 
   const bg = ui.bg;
   const cardBg = ui.surface;
-  const border = ui.border;
   const textPrimary = ui.invertBg;
   const textSecondary = ui.textMuted;
   const divider = ui.bg;
@@ -190,21 +189,34 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     return item.trip?.status === 'completed' || item.trip?.status === 'cancelled';
   };
 
+  /**
+   * Misma forma que el getStatusConfig de MyTripsScreen (bg/borde/text, no sólo color +
+   * label): son las dos mitades de Historial, y con formas distintas la píldora de estado
+   * terminaba viéndose distinta entre las dos —una con punto y fondo tenue, la otra sin
+   * punto y sólida u outline según el estado—.
+   *
+   * Rellena (bg sólido) sólo 'reserved'/'confirmed': es el único estado realmente positivo
+   * -el conductor te aceptó-. El resto va con contorno y transparente, igual que Trips lo
+   * hace con 'completed'/'cancelled'.
+   */
   const getStatusConfig = (item) => {
+    const positivo = { color: ui.invertText, bg: ui.invertBg, text: 'Reserva aprobada' };
+    const neutro = (text) => ({ color: ui.textMuted, bg: 'transparent', borde: ui.border, text });
+
     const rs = item.seatReservation?.reservationStatus;
-    if (rs === 'pending_approval') return { color: ui.textMuted, label: 'Pendiente' };
-    if (rs === 'pending_payment')  return { color: ui.textMuted, label: 'Pendiente de pago' };
+    if (rs === 'pending_approval') return neutro('Pendiente');
+    if (rs === 'pending_payment')  return neutro('Pendiente de pago');
     // "Aprobada" y no "paga": con el modelo actual el pasajero no le paga nada a la app, le
     // paga directo al conductor el dia del viaje. Lo que este estado significa es que el
     // conductor la acepto. Mismo criterio que ya usaba el footer del detalle del viaje.
-    if (rs === 'reserved')         return { color: ui.text, label: 'Reserva aprobada' };
-    if (rs === 'cancelled')        return { color: ui.textMuted, label: 'Cancelado' };
+    if (rs === 'reserved')         return positivo;
+    if (rs === 'cancelled')        return neutro('Cancelado');
     switch (item.status) {
-      case 'pending':   return { color: ui.textMuted, label: 'Pendiente' };
-      case 'confirmed': return { color: ui.text, label: 'Reserva aprobada' };
-      case 'cancelled': return { color: ui.textMuted, label: 'Cancelado' };
-      case 'completed': return { color: ui.text, label: 'Completado' };
-      default:          return { color: textSecondary, label: item.status };
+      case 'pending':   return neutro('Pendiente');
+      case 'confirmed': return positivo;
+      case 'cancelled': return neutro('Cancelado');
+      case 'completed': return neutro('Completado');
+      default:          return neutro(item.status);
     }
   };
 
@@ -255,81 +267,79 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
 
   const renderItem = ({ item }) => {
     if (!item.trip?.driver?.firstName) return null;
-    const { color, label } = getStatusConfig(item);
+    const { color, bg: statusBg, borde: statusBorde, text: statusText } = getStatusConfig(item);
     const driver = item.trip.driver;
     const seats = item.seats || item.seatsBooked || 1;
     const isActive = item.trip?.status === 'started';
-    const activeBg      = isDarkMode ? '#111111' : '#FFFFFF';
-    const activeBorder  = isActive ? ui.textMuted : border;
-    const activeTxt     = isActive ? (isDarkMode ? '#FFFFFF' : textPrimary) : textPrimary;
-    const activeMuted   = isActive ? (isDarkMode ? 'rgba(255,255,255,0.5)' : textSecondary) : textSecondary;
-    const activeDivider = isActive ? (isDarkMode ? '#333333' : divider) : divider;
-    const activeLabelColor = isDarkMode ? 'rgba(255,255,255,0.6)' : textSecondary;
+    const activeTxt     = isActive ? '#FFFFFF' : textPrimary;
+    const activeMuted   = isActive ? 'rgba(255,255,255,0.5)' : textSecondary;
+    const activeDivider = isActive ? '#333333' : divider;
 
     return (
       <View style={styles.cardWrapper}>
         <TouchableOpacity
-          style={[
-            styles.card,
-            isActive
-              ? { backgroundColor: activeBg, borderColor: activeBorder, borderWidth: 1, shadowOpacity: 0.15, elevation: 4 }
-              : { backgroundColor: cardBg, borderColor: border },
-          ]}
+          style={[styles.card, isActive ? styles.cardActive : { backgroundColor: cardBg }]}
           onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id })}
           activeOpacity={0.7}
         >
-          {/* Status */}
-          {isActive ? (
-            <View style={[styles.activeHeader, { borderBottomColor: activeDivider }]}>
-              <Animated.View style={[styles.activePulseDot, { opacity: pulseDot }]} />
-              <Text style={[styles.activeLabel, { color: activeLabelColor }]}>Viaje en curso</Text>
-            </View>
-          ) : (
-            <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
-              <View style={[styles.statusDot, { backgroundColor: color }]} />
-              <Text style={[styles.statusText, { color }]}>{label}</Text>
-            </View>
-          )}
+          {/* Cabecera: estado arriba, luego ruta. Misma estructura que la tarjeta de
+              Viajes -es la pantalla hermana en Historial, tienen que verse iguales-. */}
+          <View style={styles.cardHeader}>
+            {isActive ? (
+              <View style={styles.activeHeader}>
+                <Animated.View style={[styles.activePulseDot, { opacity: pulseDot }]} />
+                <Text style={styles.activeLabel}>Viaje en curso</Text>
+              </View>
+            ) : (
+              <View style={[
+                styles.statusPill,
+                { backgroundColor: statusBg },
+                statusBorde && { borderWidth: StyleSheet.hairlineWidth, borderColor: statusBorde },
+              ]}>
+                <Text style={[styles.statusPillText, { color }]}>{statusText}</Text>
+              </View>
+            )}
 
-        {/* Ruta: mismo ícono + línea con flecha que la tarjeta de Home, en vez del
-            timeline de dos puntos apilados. */}
-        <View style={styles.tripHeaderRow}>
-          <Image source={BOOKING_ICON} style={styles.tripIconBox} resizeMode="contain" />
-          <View style={styles.tripInfoColumn}>
-            <View style={styles.routeLine}>
-              <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
-                {item.trip?.origin?.city || formatAddress(item.trip?.origin)}
-              </Text>
-              <Text style={[styles.routeArrow, { color: activeMuted }]}>
-                {item.trip?.intermediateStops?.length > 0 ? '···' : '→'}
-              </Text>
-              <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
-                {item.trip?.destination?.city || formatAddress(item.trip?.destination)}
+            {/* Ruta: mismo ícono + línea con flecha que la tarjeta de Home, en vez del
+                timeline de dos puntos apilados. */}
+            <View style={styles.tripHeaderRow}>
+              <Image source={BOOKING_ICON} style={styles.tripIconBox} resizeMode="contain" />
+              <View style={styles.tripInfoColumn}>
+                <View style={styles.routeLine}>
+                  <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                    {item.trip?.origin?.city || formatAddress(item.trip?.origin)}
+                  </Text>
+                  <Text style={[styles.routeArrow, { color: activeMuted }]}>
+                    {item.trip?.intermediateStops?.length > 0 ? '···' : '→'}
+                  </Text>
+                  <Text style={[styles.routeCity, { color: activeTxt }]} numberOfLines={1}>
+                    {item.trip?.destination?.city || formatAddress(item.trip?.destination)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Meta */}
+          <View style={[styles.meta, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.trip?.departureDate)}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>{item.trip?.departureTime}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="person-outline" size={13} color={activeMuted} />
+              <Text style={[styles.metaText, { color: activeMuted }]}>
+                {seats} asiento{seats !== 1 ? 's' : ''}
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* Meta */}
-        <View style={[styles.meta, { borderTopColor: activeDivider, borderBottomColor: activeDivider }]}>
-          <View style={styles.metaItem}>
-            <Ionicons name="calendar-outline" size={14} color={activeMuted} />
-            <Text style={[styles.metaText, { color: activeMuted }]}>{formatDate(item.trip?.departureDate)}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={14} color={activeMuted} />
-            <Text style={[styles.metaText, { color: activeMuted }]}>{item.trip?.departureTime}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={14} color={activeMuted} />
-            <Text style={[styles.metaText, { color: activeMuted }]}>
-              {seats} asiento{seats !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        </View>
-
-        {/* Driver */}
-        <View style={styles.driver}>
+          {/* Driver */}
+          <View style={styles.driver}>
           {driver.avatar ? (
             <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.avatar} />
           ) : (
@@ -485,10 +495,23 @@ const styles = StyleSheet.create({
   cardWrapper: {
     marginBottom: 12,
   },
+  // Misma tarjeta que MyTripsScreen (radio, sombra, variante activa): son las dos mitades
+  // de Historial, tienen que verse iguales. Sin borde -antes lo tenía y Viajes no, y era
+  // la diferencia más visible entre las dos tarjetas al mirarlas una al lado de la otra.
   card: {
     borderRadius: 24,
-    borderWidth: 1,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardActive: {
+    backgroundColor: '#111111',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
   activeRing: {
     ...StyleSheet.absoluteFillObject,
@@ -496,13 +519,19 @@ const styles = StyleSheet.create({
     borderWidth: 0.8,
     borderColor: '#8A8A8E',
   },
+  // Cabecera: estado arriba, luego ruta. Sin su propio padding/borde -vive adentro del
+  // padding de cardHeader, igual que en Viajes-.
+  cardHeader: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    padding: 16,
+    paddingBottom: 12,
+    gap: 12,
+  },
   activeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   activePulseDot: {
     width: 8,
@@ -518,22 +547,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+  statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
-    margin: 16,
-    marginBottom: 0,
-    gap: 6,
+    alignSelf: 'flex-start',
   },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
+  statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
   // Ruta: mismo ícono + línea con flecha que la tarjeta de Home.
-  tripHeaderRow: { flexDirection: 'row', gap: 14, alignItems: 'center', padding: 16, paddingBottom: 12 },
+  tripHeaderRow: { flexDirection: 'row', gap: 14, alignItems: 'center', flex: 1 },
   tripIconBox: { width: 44, height: 44 },
   tripInfoColumn: { flex: 1, minWidth: 0 },
   routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
@@ -543,14 +566,15 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { fontSize: 13 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 12 },
 
   driver: {
     flexDirection: 'row',
