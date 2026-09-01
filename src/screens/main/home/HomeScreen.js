@@ -62,23 +62,11 @@ function tripQualifiesForHomeUpcomingStrip(trip) {
   return true;
 }
 
+// Sin auto-scroll: se queda quieto y sólo se mueve cuando la persona lo desliza, como
+// el resto de los carruseles de banners (Uber incluido). Antes tenía un setInterval que lo
+// corría solo cada 5s — se sacó a pedido del usuario.
 const BannerCarousel = ({ banners, onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef(null);
-  const autoScrollTimer = useRef(null);
-
-  useEffect(() => {
-    if (banners.length > 1) {
-      autoScrollTimer.current = setInterval(() => {
-        setActiveIndex((prev) => {
-          const next = (prev + 1) % banners.length;
-          scrollRef.current?.scrollToIndex({ index: next, animated: true });
-          return next;
-        });
-      }, 5000);
-    }
-    return () => clearInterval(autoScrollTimer.current);
-  }, [banners]);
 
   const onScroll = (event) => {
     const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_ITEM_WIDTH));
@@ -90,7 +78,6 @@ const BannerCarousel = ({ banners, onBannerPress }) => {
   return (
     <View>
       <FlatList
-        ref={scrollRef}
         data={banners}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (

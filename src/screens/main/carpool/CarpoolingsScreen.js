@@ -85,8 +85,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const showBannerSkeleton = useMinDuration(loading);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
-  const bannerScrollRef = useRef(null);
-  const bannerAutoScrollTimer = useRef(null);
+
   const [activeTrip, setActiveTrip] = useState(null);
   const pulseDot = useRef(new Animated.Value(1)).current;
 
@@ -99,7 +98,6 @@ const CarpoolingsScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadBanners();
-    return () => clearInterval(bannerAutoScrollTimer.current);
   }, []);
 
   useFocusEffect(
@@ -121,18 +119,9 @@ const CarpoolingsScreen = ({ navigation }) => {
     return () => pulse.stop();
   }, [activeTrip]);
 
-  useEffect(() => {
-    if (banners.length > 1) {
-      bannerAutoScrollTimer.current = setInterval(() => {
-        setActiveBannerIndex((prev) => {
-          const next = (prev + 1) % banners.length;
-          bannerScrollRef.current?.scrollToIndex({ index: next, animated: true });
-          return next;
-        });
-      }, 5000);
-    }
-    return () => clearInterval(bannerAutoScrollTimer.current);
-  }, [banners]);
+  // Sin auto-scroll a propósito: el carrusel de banners se queda quieto y sólo se mueve
+  // cuando la persona lo desliza, mismo criterio que el de Home. Antes había un setInterval
+  // que lo corría solo cada 5s.
 
   const loadActiveTrip = async () => {
     try {
@@ -265,7 +254,6 @@ const CarpoolingsScreen = ({ navigation }) => {
         ) : banners.length > 0 && (
           <View style={styles.bannerSection}>
             <FlatList
-              ref={bannerScrollRef}
               data={banners}
               renderItem={renderBannerItem}
               keyExtractor={(item) => item._id}
