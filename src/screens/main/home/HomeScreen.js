@@ -7,12 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  FlatList,
   RefreshControl,
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
   Image,
   Animated,
 } from 'react-native';
@@ -21,7 +19,6 @@ import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { get_public, get_withauth } from '../../../services/apiService';
-import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { ENDPOINTS } from '../../../config/api';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,6 +28,7 @@ import { useColors } from '../../../hooks/useColors';
 import { precargarUbicacion } from '../../../services/locationCache';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import BannerCarousel from '../../../components/banners/BannerCarousel';
 import { tripDisplaySeats } from '../../../utils/tripSeatsDisplay';
 import { reportError } from '../../../utils/sentry';
 import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRequestService';
@@ -38,89 +36,6 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import { useUI } from '../../../theme/ui';
 import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Dos tarjetas por fila y un pedazo de la tercera asomando, como Uber: es lo que le pide
-// al usuario deslizar en vez de mostrarlas todas de un vistazo. 24 de margen a cada lado
-// de la pantalla, 12 entre tarjetas.
-const BANNER_GAP = 12;
-const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 2.15);
-// La imagen mantiene el 2:1 que ya usan los banners cargados (no hay que volver a subirlas
-// recortadas distinto). Si se cambia, cambiarlo tambien en CarpoolingsScreen.
-const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
-const BANNER_ITEM_WIDTH = BANNER_WIDTH + BANNER_GAP;
-
-/** Incluye solo viajes públicos verdaderamente “próximos”: no cancelados ni completados, listado activo y salida aún no pasada */
-function tripQualifiesForHomeUpcomingStrip(trip) {
-  if (!trip) return false;
-  const status = trip.status;
-  if (status === 'cancelled' || status === 'completed') return false;
-  if (status === 'started') return false;
-  if (trip.isActive === false) return false;
-  const rawTime = trip.departureTime != null ? String(trip.departureTime).trim() : '';
-  const timePart = rawTime || '00:00';
-  const dep = new Date(`${trip.departureDate}T${timePart}`);
-  if (!Number.isNaN(dep.getTime()) && dep.getTime() < Date.now()) return false;
-  return true;
-}
-
-// Sin auto-scroll: se queda quieto y sólo se mueve cuando la persona lo desliza, como
-// el resto de los carruseles de banners (Uber incluido). Antes tenía un setInterval que lo
-// corría solo cada 5s — se sacó a pedido del usuario.
-const BannerCarousel = ({ banners, onBannerPress, textPrimary, textMuted }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const onScroll = (event) => {
-    const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_ITEM_WIDTH));
-    if (index !== activeIndex && index >= 0 && index < banners.length) {
-      setActiveIndex(index);
-    }
-  };
-
-  return (
-    <View>
-      <FlatList
-        data={banners}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.bannerSlide}
-            activeOpacity={0.92}
-            onPress={() => onBannerPress?.(item)}
-          >
-            <View style={styles.bannerImageWrap}>
-              {item.imageUrl ? (
-                <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
-              ) : (
-                <View style={styles.bannerImage} />
-              )}
-            </View>
-            {/* Título y texto SIEMPRE visibles, debajo de la imagen — no hace falta tocar
-                la tarjeta para saber de qué trata, mismo criterio que Uber. El modal sigue
-                estando: es donde va el resto (links, botón), esto es sólo el anticipo. */}
-            <Text style={[styles.bannerCardTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
-            {!!item.texto && (
-              <Text style={[styles.bannerCardText, { color: textMuted }]} numberOfLines={2}>{item.texto}</Text>
-            )}
-          </TouchableOpacity>
-        )}
-        horizontal
-        pagingEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        snapToInterval={BANNER_ITEM_WIDTH}
-        decelerationRate="fast"
-        contentContainerStyle={styles.bannerListContent}
-        getItemLayout={(_, index) => ({
-          length: BANNER_ITEM_WIDTH,
-          offset: BANNER_ITEM_WIDTH * index,
-          index,
-        })}
-      />
-    </View>
-  );
-};
 
 const HomeScreen = ({ navigation, route }) => {
   const { isAuthenticated, user } = useAuth();
@@ -767,8 +682,6 @@ const HomeScreen = ({ navigation, route }) => {
               <BannerCarousel
                 banners={section.banners}
                 onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
-                textPrimary={textPrimary}
-                textMuted={textMuted}
               />
             </View>
           ) : null
@@ -894,8 +807,6 @@ const HomeScreen = ({ navigation, route }) => {
                 <BannerCarousel
                   banners={section.banners}
                   onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
-                  textPrimary={textPrimary}
-                  textMuted={textMuted}
                 />
               </View>
             ) : null
@@ -1352,36 +1263,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     marginBottom: 10,
     paddingHorizontal: 24,
-  },
-  bannerListContent: {
-    paddingHorizontal: 24,
-  },
-  // La tarjeta entera, no sólo la imagen: título y texto van dentro, debajo de la foto.
-  bannerSlide: {
-    width: BANNER_WIDTH,
-    marginRight: BANNER_GAP,
-  },
-  bannerImageWrap: {
-    width: '100%',
-    height: BANNER_IMAGE_HEIGHT,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#111',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerCardTitle: {
-    fontSize: 13,
-    fontFamily: 'Sora_600SemiBold',
-    marginTop: 8,
-  },
-  bannerCardText: {
-    fontSize: 11,
-    fontFamily: 'Sora_400Regular',
-    lineHeight: 15,
-    marginTop: 2,
   },
   // Section
   section: {

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  FlatList,
   Dimensions,
   RefreshControl,
   Animated,
@@ -20,22 +19,23 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
 import { get_public, get_withauth } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
-import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
 import NotificationsScreen from '../profile/NotificationsScreen';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import Skeleton from '../../../components/ui/Skeleton';
+import BannerCarousel from '../../../components/banners/BannerCarousel';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Mismas medidas que HomeScreen: dos tarjetas por fila y un pedazo de la tercera
-// asomando. Ver el comentario alla; si se cambia, cambiarlo en los dos lados.
+// El tamaño real de la tarjeta vive en BannerCarousel (componente compartido con Home y
+// el detalle de un viaje). Estas dos son sólo para el esqueleto de carga de acá abajo, que
+// dibuja antes de que lleguen los banners y no puede importar constantes privadas del
+// componente — se mantienen calculadas igual, a mano.
 const BANNER_GAP = 12;
 const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 2.15);
 const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
-const BANNER_ITEM_WIDTH = BANNER_WIDTH + BANNER_GAP;
 
 const menuItems = [
   {
@@ -85,7 +85,6 @@ const CarpoolingsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const showBannerSkeleton = useMinDuration(loading);
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   const [activeTrip, setActiveTrip] = useState(null);
   const pulseDot = useRef(new Animated.Value(1)).current;
@@ -164,34 +163,7 @@ const CarpoolingsScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const onBannerScroll = (event) => {
-    const index = Math.floor(event.nativeEvent.contentOffset.x / BANNER_ITEM_WIDTH);
-    if (index !== activeBannerIndex && index >= 0 && index < banners.length) {
-      setActiveBannerIndex(index);
-    }
-  };
-
-  const renderBannerItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.bannerSlide}
-      activeOpacity={0.92}
-      onPress={() => setBannerModal({ visible: true, banner: item })}
-    >
-      <View style={[styles.bannerImageWrap, { backgroundColor: cardBg }]}>
-        {item.imageUrl ? (
-          <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
-        ) : null}
-      </View>
-      {/* Título y texto SIEMPRE visibles, debajo de la imagen — mismo criterio que Home
-          (y que Uber): no hace falta tocar la tarjeta para saber de qué trata. */}
-      <Text style={[styles.bannerCardTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
-      {!!item.texto && (
-        <Text style={[styles.bannerCardText, { color: textSecondary }]} numberOfLines={2}>{item.texto}</Text>
-      )}
-    </TouchableOpacity>
-  );
-
-  return (
+    return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -260,38 +232,11 @@ const CarpoolingsScreen = ({ navigation }) => {
           </View>
         ) : banners.length > 0 && (
           <View style={styles.bannerSection}>
-            <FlatList
-              data={banners}
-              renderItem={renderBannerItem}
-              keyExtractor={(item) => item._id}
-              horizontal
-              pagingEnabled={false}
-              showsHorizontalScrollIndicator={false}
-              onScroll={onBannerScroll}
-              scrollEventThrottle={16}
-              snapToInterval={BANNER_ITEM_WIDTH}
-              decelerationRate="fast"
-              contentContainerStyle={styles.bannerListContent}
-              getItemLayout={(_, index) => ({
-                length: BANNER_ITEM_WIDTH,
-                offset: BANNER_ITEM_WIDTH * index,
-                index,
-              })}
+            <BannerCarousel
+              banners={banners}
+              onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
+              showDots
             />
-            {banners.length > 1 && (
-              <View style={styles.dots}>
-                {banners.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      { backgroundColor: i === activeBannerIndex ? textPrimary : border },
-                      i === activeBannerIndex && styles.dotActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
           </View>
         )}
 
@@ -367,24 +312,6 @@ const styles = StyleSheet.create({
   menuDesc: { fontFamily: 'Sora_400Regular', fontSize: 13, lineHeight: 18, minHeight: 36 },
 
   bannerSection: { marginTop: 32 },
-  bannerListContent: { paddingHorizontal: 24 },
-  bannerSlide: {
-    width: BANNER_WIDTH,
-    marginRight: BANNER_GAP,
-  },
-  bannerImageWrap: {
-    width: '100%',
-    height: BANNER_IMAGE_HEIGHT,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  bannerImage: { width: '100%', height: '100%' },
-  bannerCardTitle: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginTop: 8 },
-  bannerCardText: { fontSize: 11, fontFamily: 'Sora_400Regular', lineHeight: 15, marginTop: 2 },
-
-  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
-  dot: { width: 6, height: 6, borderRadius: 999, marginHorizontal: 3 },
-  dotActive: { width: 22 },
 });
 
 export default CarpoolingsScreen;

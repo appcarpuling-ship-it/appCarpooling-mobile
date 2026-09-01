@@ -6,21 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Animated,
-  Easing,
   Image,
   Modal,
   TextInput,
-  Dimensions,
   Platform,
   RefreshControl,
   Linking,
 } from 'react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BANNER_WIDTH = SCREEN_WIDTH - 48;
-const BANNER_HEIGHT = 150;
-const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
@@ -33,7 +26,6 @@ const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
 const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
 const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
-import { sanitizeImageUrl } from '../../../utils/imageUtils';
 import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { buildRoutePoints, decodePolyline } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
@@ -47,77 +39,12 @@ import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
 import BannerDetailModal from '../../../components/modals/BannerDetailModal';
+import BannerCarousel from '../../../components/banners/BannerCarousel';
 import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 import Rating from '../../../components/ui/Rating';
 import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
 import { useTripRoute } from '../../../hooks/useTripRoute';
-
-const BANNER_SCROLL_SPEED = 30;
-
-const BannerCarousel = ({ banners, onPress }) => {
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const totalWidth = banners.length * BANNER_ITEM_WIDTH;
-
-  useEffect(() => {
-    if (banners.length <= 1) return;
-    const duration = (totalWidth / BANNER_SCROLL_SPEED) * 1000;
-    const animation = Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -totalWidth,
-        duration,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [banners]);
-
-  const duplicated = banners.length > 1 ? [...banners, ...banners] : banners;
-
-  return (
-    <View style={{ overflow: 'hidden' }}>
-      <Animated.View style={{ flexDirection: 'row', paddingHorizontal: 24, gap: 16, transform: [{ translateX: scrollX }] }}>
-        {duplicated.map((item, index) => (
-          <TouchableOpacity
-            key={`${item._id}-${index}`}
-            activeOpacity={0.92}
-            style={bannerStyles.slide}
-            onPress={() => onPress && onPress(item)}
-          >
-            {item.imageUrl ? (
-              <View style={StyleSheet.absoluteFillObject}>
-                <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={bannerStyles.image} resizeMode="cover" />
-              </View>
-            ) : (
-              <View style={bannerStyles.content}>
-                <Text style={bannerStyles.title} numberOfLines={2}>{item.title}</Text>
-                {item.description && (
-                  <Text style={bannerStyles.desc} numberOfLines={2}>{item.description}</Text>
-                )}
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </Animated.View>
-    </View>
-  );
-};
-
-const bannerStyles = StyleSheet.create({
-  slide: {
-    width: BANNER_WIDTH,
-    height: BANNER_HEIGHT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#111',
-  },
-  image: { width: '100%', height: '100%' },
-  content: { flex: 1, padding: 18, justifyContent: 'flex-end' },
-  title: { fontSize: 17, fontFamily: 'Sora_700Bold', color: '#FFF', marginBottom: 6 },
-  desc: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-});
 
 const TripDetailScreen = ({ route, navigation }) => {
   // El MapView nativo pesa 100-300 MB. Desmontarlo al perder foco es lo que evita que
@@ -1305,7 +1232,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             <Text style={[styles.sectionLabel, { color: textPrimary, paddingHorizontal: 20, marginBottom: 14 }]}>
               Destacados
             </Text>
-            <BannerCarousel banners={banners} onPress={(item) => setBannerModal({ visible: true, banner: item })} />
+            <BannerCarousel banners={banners} onBannerPress={(item) => setBannerModal({ visible: true, banner: item })} />
           </View>
         )}
 
