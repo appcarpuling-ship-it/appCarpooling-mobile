@@ -755,7 +755,20 @@ const HomeScreen = ({ navigation, route }) => {
 
           {/* Antes 4 tarjetas largas con descripción — ahora 4 accesos chicos, mismo criterio
               que "Traslados" (tab Viajes): la navegación se compacta, el contenido real
-              (Próximas solicitudes, abajo) es lo que ocupa la pantalla. */}
+              (Próximas solicitudes, abajo) es lo que ocupa la pantalla. La flecha lleva a
+              Traslados, donde están las 8 acciones completas (estas 4 son sólo las rápidas). */}
+          <View style={styles.quickRowHeader}>
+            <Text style={[styles.quickRowHeaderText, { color: textPrimary }]}>Para vos</Text>
+            <TouchableOpacity
+              style={[styles.quickRowArrow, { backgroundColor: cardBg }]}
+              onPress={() => navigation.navigate('CarpoolingsTab', { screen: 'Carpoolings' })}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver todos los traslados"
+            >
+              <Ionicons name="arrow-forward" size={14} color={textPrimary} />
+            </TouchableOpacity>
+          </View>
           <View style={styles.quickRow}>
             {[
               { label: 'Crear Viaje', icon: require('../../../../assets/tabsIcons/crear-viaje.png'), onPress: () => navigation.navigate('CreateTrip') },
@@ -1157,6 +1170,21 @@ const styles = StyleSheet.create({
 
   // Accesos rápidos de "Solicitudes" (Crear Viaje / Crear Solicitud / Mis Viajes /
   // Mis Solicitudes). paddingHorizontal 24 para alinear con el resto de las secciones.
+  quickRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  quickRowHeaderText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  quickRowArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   quickRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1166,14 +1194,16 @@ const styles = StyleSheet.create({
   },
   quickItem: { alignItems: 'center', gap: 8, width: 72 },
   quickIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quickIcon: { width: 24, height: 24 },
+  // Son íconos 3D con detalle fino (el mapa con el pin y el +, por ejemplo): a 24px
+  // se perdían. Mismo tamaño que usa CarpoolingsScreen para las mismas imágenes.
+  quickIcon: { width: 44, height: 44 },
   quickLabel: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
