@@ -555,15 +555,15 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
   // Ruta: mismo ícono + línea con flecha que la tarjeta de Home.
-  tripHeaderRow: { flexDirection: 'row', gap: 14, alignItems: 'center', flex: 1 },
-  tripIconBox: { width: 44, height: 44 },
-  tripInfoColumn: { flex: 1, minWidth: 0 },
+  tripHeaderRow: { flexDirection: 'row', gap: 14 },
+  tripIconBox: { width: 52, height: 52 },
+  tripInfoColumn: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 4 },
   routeLine: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
   routeCity: { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
   routeArrow: { fontSize: 15, fontFamily: 'Sora_700Bold' },
   // Meta: una sola línea de texto, como en Home — no una fila con caja/borde/ícono
   // por dato.
-  tripMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
+  tripMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   // Precio: mismo cuadrito que Home, a la derecha del encabezado.
   priceBox: { flexShrink: 0, alignSelf: 'center', alignItems: 'flex-end' },
   priceValue: { fontSize: 15, fontFamily: 'Sora_800ExtraBold' },
