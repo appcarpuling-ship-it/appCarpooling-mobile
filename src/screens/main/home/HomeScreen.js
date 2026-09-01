@@ -37,6 +37,28 @@ import { useUI } from '../../../theme/ui';
 import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 
+/**
+ * Incluye sólo viajes públicos verdaderamente "próximos": no cancelados ni completados,
+ * listado activo y salida aún no pasada.
+ *
+ * `trip.departureDate` YA es el instante real (el backend lo arma con fecha + hora + offset
+ * de Argentina al crear el viaje, ver tripController.createTrip) — no una fecha "pelada" a
+ * medianoche UTC. Antes esta función volvía a pegarle `departureTime` encima
+ * (`${departureDate}T${departureTime}`), y como departureDate ya termina en "Z", el string
+ * quedaba con dos horas adentro ("...000ZT23:59") y `new Date(...)` daba Invalid Date. Con
+ * fecha inválida el chequeo de "ya pasó" nunca se aplicaba a nada.
+ */
+function tripQualifiesForHomeUpcomingStrip(trip) {
+  if (!trip) return false;
+  const status = trip.status;
+  if (status === 'cancelled' || status === 'completed') return false;
+  if (status === 'started') return false;
+  if (trip.isActive === false) return false;
+  const dep = new Date(trip.departureDate);
+  if (!Number.isNaN(dep.getTime()) && dep.getTime() < Date.now()) return false;
+  return true;
+}
+
 const HomeScreen = ({ navigation, route }) => {
   const { isAuthenticated, user } = useAuth();
   const { unreadCount = 0 } = useNotifications();
@@ -134,11 +156,13 @@ const HomeScreen = ({ navigation, route }) => {
           const driverId = t.driver?._id || t.driver;
           return !userId || String(driverId) !== String(userId);
         });
-        const sortedTrips = [...upcoming].sort((a, b) => {
-          const dateA = new Date(`${a.departureDate}T${a.departureTime || '00:00'}`);
-          const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`);
-          return dateA - dateB;
-        });
+        // departureDate ya es el instante real (ver tripQualifiesForHomeUpcomingStrip):
+        // pegarle departureTime encima daba Invalid Date y el comparador quedaba en NaN,
+        // así que .sort() no ordenaba nada — la tira quedaba en el orden que mandó el
+        // backend, no por hora de salida.
+        const sortedTrips = [...upcoming].sort(
+          (a, b) => new Date(a.departureDate) - new Date(b.departureDate)
+        );
         setRecentTrips(sortedTrips.slice(0, 3));
       }
     } catch (error) {
