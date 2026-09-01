@@ -40,13 +40,15 @@ import { HomeTripListSkeleton } from '../../../components/ui/TripCardSkeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BANNER_WIDTH = SCREEN_WIDTH - 48;
-// Alto derivado del ancho (2:1) y NO un valor fijo: el ancho depende del telefono, asi
-// que con un alto fijo la relacion cambiaba por dispositivo y por seccion, y la misma
-// imagen se recortaba distinto en cada una. Asi una sola imagen 2:1 entra exacta en todas.
-// Si se cambia, cambiarlo tambien en CarpoolingsScreen y avisar el tamaño en el dashboard.
-const BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2);
-const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
+// Dos tarjetas por fila y un pedazo de la tercera asomando, como Uber: es lo que le pide
+// al usuario deslizar en vez de mostrarlas todas de un vistazo. 24 de margen a cada lado
+// de la pantalla, 12 entre tarjetas.
+const BANNER_GAP = 12;
+const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 2.15);
+// La imagen mantiene el 2:1 que ya usan los banners cargados (no hay que volver a subirlas
+// recortadas distinto). Si se cambia, cambiarlo tambien en CarpoolingsScreen.
+const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
+const BANNER_ITEM_WIDTH = BANNER_WIDTH + BANNER_GAP;
 
 /** Incluye solo viajes públicos verdaderamente “próximos”: no cancelados ni completados, listado activo y salida aún no pasada */
 function tripQualifiesForHomeUpcomingStrip(trip) {
@@ -65,7 +67,7 @@ function tripQualifiesForHomeUpcomingStrip(trip) {
 // Sin auto-scroll: se queda quieto y sólo se mueve cuando la persona lo desliza, como
 // el resto de los carruseles de banners (Uber incluido). Antes tenía un setInterval que lo
 // corría solo cada 5s — se sacó a pedido del usuario.
-const BannerCarousel = ({ banners, onBannerPress }) => {
+const BannerCarousel = ({ banners, onBannerPress, textPrimary, textMuted }) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const onScroll = (event) => {
@@ -86,10 +88,19 @@ const BannerCarousel = ({ banners, onBannerPress }) => {
             activeOpacity={0.92}
             onPress={() => onBannerPress?.(item)}
           >
-            {item.imageUrl ? (
-              <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.bannerContent} />
+            <View style={styles.bannerImageWrap}>
+              {item.imageUrl ? (
+                <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.bannerImage} />
+              )}
+            </View>
+            {/* Título y texto SIEMPRE visibles, debajo de la imagen — no hace falta tocar
+                la tarjeta para saber de qué trata, mismo criterio que Uber. El modal sigue
+                estando: es donde va el resto (links, botón), esto es sólo el anticipo. */}
+            <Text style={[styles.bannerCardTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
+            {!!item.texto && (
+              <Text style={[styles.bannerCardText, { color: textMuted }]} numberOfLines={2}>{item.texto}</Text>
             )}
           </TouchableOpacity>
         )}
@@ -756,6 +767,8 @@ const HomeScreen = ({ navigation, route }) => {
               <BannerCarousel
                 banners={section.banners}
                 onBannerPress={(b) => setBannerModal({ visible: true, banner: b })}
+                textPrimary={textPrimary}
+                textMuted={textMuted}
               />
             </View>
           ) : null
@@ -881,6 +894,8 @@ const HomeScreen = ({ navigation, route }) => {
                 <BannerCarousel
                   banners={section.banners}
                   onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
+                  textPrimary={textPrimary}
+                  textMuted={textMuted}
                 />
               </View>
             ) : null
@@ -1341,11 +1356,15 @@ const styles = StyleSheet.create({
   bannerListContent: {
     paddingHorizontal: 24,
   },
+  // La tarjeta entera, no sólo la imagen: título y texto van dentro, debajo de la foto.
   bannerSlide: {
     width: BANNER_WIDTH,
-    height: BANNER_HEIGHT,
-    marginRight: 16,
-    borderRadius: 12,
+    marginRight: BANNER_GAP,
+  },
+  bannerImageWrap: {
+    width: '100%',
+    height: BANNER_IMAGE_HEIGHT,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#111',
   },
@@ -1353,8 +1372,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  bannerContent: {
-    flex: 1,
+  bannerCardTitle: {
+    fontSize: 13,
+    fontFamily: 'Sora_600SemiBold',
+    marginTop: 8,
+  },
+  bannerCardText: {
+    fontSize: 11,
+    fontFamily: 'Sora_400Regular',
+    lineHeight: 15,
+    marginTop: 2,
   },
   // Section
   section: {

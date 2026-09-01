@@ -30,11 +30,12 @@ import Skeleton from '../../../components/ui/Skeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BANNER_WIDTH = SCREEN_WIDTH - 48;
-// Mismo 2:1 que HomeScreen: una sola imagen sirve para todas las secciones. Ver el
-// comentario de alla; si se cambia la relacion, cambiarla en los dos lados.
-const BANNER_HEIGHT = Math.round(BANNER_WIDTH / 2);
-const BANNER_ITEM_WIDTH = BANNER_WIDTH + 16;
+// Mismas medidas que HomeScreen: dos tarjetas por fila y un pedazo de la tercera
+// asomando. Ver el comentario alla; si se cambia, cambiarlo en los dos lados.
+const BANNER_GAP = 12;
+const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 2.15);
+const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
+const BANNER_ITEM_WIDTH = BANNER_WIDTH + BANNER_GAP;
 
 const menuItems = [
   {
@@ -164,7 +165,7 @@ const CarpoolingsScreen = ({ navigation }) => {
   };
 
   const onBannerScroll = (event) => {
-    const index = Math.floor(event.nativeEvent.contentOffset.x / (BANNER_WIDTH + 16));
+    const index = Math.floor(event.nativeEvent.contentOffset.x / BANNER_ITEM_WIDTH);
     if (index !== activeBannerIndex && index >= 0 && index < banners.length) {
       setActiveBannerIndex(index);
     }
@@ -172,14 +173,20 @@ const CarpoolingsScreen = ({ navigation }) => {
 
   const renderBannerItem = ({ item }) => (
     <TouchableOpacity
-      style={[styles.bannerSlide, { backgroundColor: cardBg }]}
+      style={styles.bannerSlide}
       activeOpacity={0.92}
       onPress={() => setBannerModal({ visible: true, banner: item })}
     >
-      {item.imageUrl ? (
-        <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
-      ) : (
-        <View style={styles.bannerContent} />
+      <View style={[styles.bannerImageWrap, { backgroundColor: cardBg }]}>
+        {item.imageUrl ? (
+          <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.bannerImage} resizeMode="cover" />
+        ) : null}
+      </View>
+      {/* Título y texto SIEMPRE visibles, debajo de la imagen — mismo criterio que Home
+          (y que Uber): no hace falta tocar la tarjeta para saber de qué trata. */}
+      <Text style={[styles.bannerCardTitle, { color: textPrimary }]} numberOfLines={1}>{item.title}</Text>
+      {!!item.texto && (
+        <Text style={[styles.bannerCardText, { color: textSecondary }]} numberOfLines={2}>{item.texto}</Text>
       )}
     </TouchableOpacity>
   );
@@ -249,7 +256,7 @@ const CarpoolingsScreen = ({ navigation }) => {
         {/* Banners */}
         {showBannerSkeleton ? (
           <View style={styles.bannerSection}>
-            <Skeleton width={BANNER_WIDTH} height={BANNER_HEIGHT} radius={20} style={{ marginLeft: 24 }} />
+            <Skeleton width={BANNER_WIDTH} height={BANNER_IMAGE_HEIGHT} radius={14} style={{ marginLeft: 24 }} />
           </View>
         ) : banners.length > 0 && (
           <View style={styles.bannerSection}>
@@ -262,12 +269,12 @@ const CarpoolingsScreen = ({ navigation }) => {
               showsHorizontalScrollIndicator={false}
               onScroll={onBannerScroll}
               scrollEventThrottle={16}
-              snapToInterval={BANNER_WIDTH + 16}
+              snapToInterval={BANNER_ITEM_WIDTH}
               decelerationRate="fast"
               contentContainerStyle={styles.bannerListContent}
               getItemLayout={(_, index) => ({
-                length: BANNER_WIDTH + 16,
-                offset: (BANNER_WIDTH + 16) * index,
+                length: BANNER_ITEM_WIDTH,
+                offset: BANNER_ITEM_WIDTH * index,
                 index,
               })}
             />
@@ -363,13 +370,17 @@ const styles = StyleSheet.create({
   bannerListContent: { paddingHorizontal: 24 },
   bannerSlide: {
     width: BANNER_WIDTH,
-    height: BANNER_HEIGHT,
-    marginRight: 16,
-    borderRadius: 24,
+    marginRight: BANNER_GAP,
+  },
+  bannerImageWrap: {
+    width: '100%',
+    height: BANNER_IMAGE_HEIGHT,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   bannerImage: { width: '100%', height: '100%' },
-  bannerContent: { flex: 1 },
+  bannerCardTitle: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginTop: 8 },
+  bannerCardText: { fontSize: 11, fontFamily: 'Sora_400Regular', lineHeight: 15, marginTop: 2 },
 
   dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
   dot: { width: 6, height: 6, borderRadius: 999, marginHorizontal: 3 },
