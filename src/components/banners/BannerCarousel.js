@@ -4,11 +4,12 @@ import { sanitizeImageUrl } from '../../utils/imageUtils';
 import { useUI } from '../../theme/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Dos tarjetas por fila, del tamaño de las de Uber (~44% del ancho de pantalla) — la
-// primera versión las dejaba mucho más chicas (~39%) y el usuario lo notó. 24 de margen a
-// cada lado de la pantalla, 12 entre tarjetas. Verificado en 360/390/414/430 de ancho.
+// ~57% del ancho de pantalla: entra una tarjeta entera y un pedazo de la siguiente
+// asomando. Pasó por 44% y el usuario las siguió viendo chicas — esta vez el salto es
+// grande a propósito, no otro ajuste tímido. 24 de margen a cada lado, 12 entre tarjetas.
+// Verificado en 360/390/414/430 de ancho.
 const GAP = 12;
-const CARD_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - GAP * 1.5) / 1.9);
+const CARD_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - GAP * 1.5) / 1.45);
 // 2:1, el aspecto que ya usan los banners cargados — no hace falta resubirlos recortados
 // distinto.
 const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 2);
