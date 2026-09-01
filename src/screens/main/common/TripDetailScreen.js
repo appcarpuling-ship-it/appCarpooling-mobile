@@ -847,7 +847,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Cabecera: conductor, fecha/hora/asientos y precio, todo junto. Antes eran 3
             tarjetas separadas repitiendo la misma info del viaje en compartimentos distintos. */}
-        <View style={[styles.section, { backgroundColor: cardBg }, !hasMapPreview && { marginTop: 4 }]}>
+        <View style={[styles.section, !hasMapPreview && { marginTop: 4 }]}>
           <View style={styles.driverRow}>
             {(() => {
               const driverPhotoUri = driver?.avatar ? buildImageUri(driver.avatar) : null;
@@ -917,7 +917,7 @@ const TripDetailScreen = ({ route, navigation }) => {
             seatReservationService.confirmPaymentAndReserve) — el pasajero no tiene que pagarla
             ni verla; lo que sí paga (el precio del conductor) ya está arriba, en la cabecera. */}
         {userBooking && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Tu reserva</Text>
             <View style={styles.myBookingRow}>
               <View style={styles.myBookingItem}>
@@ -960,13 +960,16 @@ const TripDetailScreen = ({ route, navigation }) => {
             lo envuelve se dibujaba igual, y quedaba un rectángulo gris vacío en el medio de la
             pantalla. La condición va acá, en el envoltorio, no adentro del componente. */}
         {trip.status === 'completed' && trip.actualCost > 0 && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
+          <View style={[styles.section]}>
             <TripCostBreakdown trip={trip} />
           </View>
         )}
 
         {/* Route */}
-        <View style={[styles.section, { backgroundColor: cardBg }]}>
+        <View style={[styles.section]}>
+          {/* Sin card ya no hay borde que separe esto del resto — un label chico, igual
+              que "Tu reserva"/"Vehículo"/etc., hace ese trabajo. Antes no llevaba ninguno. */}
+          <Text style={[styles.sectionLabel, { color: textPrimary }]}>Ruta</Text>
           {/* Cada punto es UNA fila con su círculo al lado de su texto. Antes eran dos
               columnas separadas —una de círculos con la línea de alto fijo, otra de
               direcciones de alto variable— y con dos paradas ya se desincronizaban: el
@@ -1035,7 +1038,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         {trip.vehicle && (() => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
-            <View style={[styles.section, { backgroundColor: cardBg }]}>
+            <View style={[styles.section]}>
               <Text style={[styles.sectionLabel, { color: textPrimary }]}>Vehículo</Text>
               {vehiclePaths.length > 0 ? (
                 <ScrollView
@@ -1078,7 +1081,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Features */}
         {trip.vehicle?.features && Object.values(trip.vehicle.features).some(Boolean) && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
             <View style={styles.featuresRow}>
               {trip.vehicle.features.ac && (
@@ -1110,7 +1113,7 @@ const TripDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Rules */}
-        <View style={[styles.section, { backgroundColor: cardBg }]}>
+        <View style={[styles.section]}>
           <Text style={[styles.sectionLabel, { color: textPrimary }]}>Preferencias</Text>
           <View style={styles.rulesRow}>
             <View style={styles.ruleItem}>
@@ -1154,7 +1157,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Notes */}
         {trip.notes && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>Notas</Text>
             <Text style={[styles.notesText, { color: textPrimary }]}>{trip.notes}</Text>
           </View>
@@ -1162,7 +1165,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Passengers (driver only) */}
         {isOwnTrip && (
-          <View style={[styles.section, { backgroundColor: cardBg }]}>
+          <View style={[styles.section]}>
             <Text style={[styles.sectionLabel, { color: textPrimary }]}>
               Pasajeros confirmados ({passengers.length})
             </Text>
@@ -1527,14 +1530,14 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
   // Section
-  // Cards separadas en vez de filas con línea divisoria: era el look de lista
-  // de ajustes y no el del resto de la app.
+  // Hasta el 2026-09-01 eran cards separadas (fondo+borde+sombra) para no parecer una
+  // lista de ajustes con filas y líneas — pero con 5-6 bloques seguidos, cada uno en su
+  // caja, se leía "muy cargado" (feedback directo tras ver el rediseño en HTML). Vuelve
+  // sin caja: todo en el mismo fondo, separado por espacio generoso — la jerarquía la da
+  // sectionLabel (chico, mayúscula) y el espacio en sí.
   section: {
     marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: 24,
+    marginBottom: 32,
   },
   myBookingRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 12 },
   myBookingItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },

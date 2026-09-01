@@ -245,7 +245,6 @@ const CarpoolingsScreen = ({ navigation }) => {
             <BannerCarousel
               banners={banners}
               onBannerPress={(banner) => setBannerModal({ visible: true, banner })}
-              showDots
             />
           </View>
         )}
