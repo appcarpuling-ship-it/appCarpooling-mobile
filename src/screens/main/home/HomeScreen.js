@@ -91,8 +91,10 @@ const HomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     loadRecentTrips();
     loadBannerSections();
-    loadOpenRequests();
-    if (isAuthenticated) loadActiveTrip();
+    // loadOpenRequests y loadActiveTrip NO van acá: useFocusEffect ya corre también en el
+    // montaje inicial (es "on focus", y el primer focus es al abrir la pantalla), así que
+    // tenerlos acá también los disparaba dos veces en simultáneo en cada arranque en frío
+    // —el doble de requests justo en el momento más pesado (WebSocket + push token + esto).
     // Pide el GPS acá y no cuando se abre un mapa: para cuando el usuario entra a reservar o a
     // publicar un viaje, la ubicación ya está lista en el caché (ver locationCache) y esas
     // pantallas no tienen que esperar al GPS de nuevo.

@@ -46,9 +46,8 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
   const pulseDot = useRef(new Animated.Value(1)).current;
   const [startingTripId, setStartingTripId] = useState(null);
 
-  useEffect(() => {
-    loadMyTrips(1, true);
-  }, []);
+  // Sin useEffect([]) acá: useFocusEffect ya corre en el montaje inicial (el primer focus
+  // es al abrir la pantalla), tenerlo también acá disparaba loadMyTrips 2 veces en simultáneo.
 
   useEffect(() => {
     const hasActive = trips.some(t => t.status === 'started');

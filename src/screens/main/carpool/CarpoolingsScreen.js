@@ -83,10 +83,8 @@ const CarpoolingsScreen = ({ navigation }) => {
   const textPrimary = ui.text;
   const textSecondary = ui.textMuted;
 
-  useEffect(() => {
-    loadBanners();
-  }, []);
-
+  // Sin useEffect([]) acá: useFocusEffect ya corre en el montaje inicial y disparaba
+  // loadBanners 2 veces en simultáneo al abrir la pantalla.
   useFocusEffect(
     useCallback(() => {
       loadBanners();
