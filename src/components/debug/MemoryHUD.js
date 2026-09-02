@@ -8,30 +8,32 @@ import DeviceInfo from 'react-native-device-info';
  * vivas al cambiar de tab (ver commit f61ff0c). Sacar este componente y su import de
  * MainTabNavigator una vez confirmado — no es algo para dejar en la app.
  *
- * Oculto por defecto: aparece con mantener presionado el logo de Inicio (ver HomeScreen).
- * getUsedMemorySync ya viene con react-native-device-info (dependencia ya instalada).
+ * Siempre visible mientras esté montado (ver MainTabNavigator) — es de testeo, no hace
+ * falta esconderlo con un gesto. getUsedMemory ya viene con react-native-device-info
+ * (dependencia ya instalada). Async y no la Sync: la sync tira en algunos setups.
  */
 export default function MemoryHUD() {
   const [mb, setMb] = useState(null);
+  const [err, setErr] = useState(null);
 
   useEffect(() => {
-    const tick = () => {
+    let vivo = true;
+    const tick = async () => {
       try {
-        setMb(Math.round(DeviceInfo.getUsedMemorySync() / 1024 / 1024));
-      } catch {
-        // no-op: si el método no está en este binario (build viejo), no mostrar nada.
+        const bytes = await DeviceInfo.getUsedMemory();
+        if (vivo) { setMb(Math.round(bytes / 1024 / 1024)); setErr(null); }
+      } catch (e) {
+        if (vivo) setErr(e?.message || 'error');
       }
     };
     tick();
     const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    return () => { vivo = false; clearInterval(id); };
   }, []);
-
-  if (mb === null) return null;
 
   return (
     <View style={styles.wrap} pointerEvents="none">
-      <Text style={styles.text}>{mb} MB</Text>
+      <Text style={styles.text}>{err ? `ERR: ${err}` : mb === null ? '…' : `${mb} MB`}</Text>
     </View>
   );
 }
@@ -47,6 +49,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     zIndex: 9999,
     elevation: 9999,
+    maxWidth: 220,
   },
   text: {
     color: '#00FF88',

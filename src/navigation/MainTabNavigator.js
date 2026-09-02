@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Keyboard, Platform, DeviceEventEmitter } from 'react-native';
+import { Keyboard, Platform } from 'react-native';
 import MemoryHUD from '../components/debug/MemoryHUD';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -32,15 +32,6 @@ const MainTabNavigator = () => {
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
   const { tutorialReady, tutorialCompleted, completeTutorial } = useTutorial();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  // ponytail: HUD de RAM para verificar a mano el fix del rejunte de pantallas. Se prende con
-  // un long-press en el logo de Inicio (ver HomeScreen). Sacar junto con MemoryHUD y este
-  // estado una vez confirmado.
-  const [showMemoryHUD, setShowMemoryHUD] = useState(false);
-
-  useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('toggleMemoryHUD', () => setShowMemoryHUD(v => !v));
-    return () => sub.remove();
-  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -183,7 +174,7 @@ const MainTabNavigator = () => {
         })}
       />
     </Tab.Navigator>
-      {showMemoryHUD && <MemoryHUD />}
+      <MemoryHUD />
       <UnreadNewsModalLayer />
       {tutorialReady && !tutorialCompleted ? (
         <AppTutorialOverlay onComplete={completeTutorial} />
