@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Keyboard, Platform } from 'react-native';
-import MemoryHUD from '../components/debug/MemoryHUD';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -174,7 +173,6 @@ const MainTabNavigator = () => {
         })}
       />
     </Tab.Navigator>
-      <MemoryHUD />
       <UnreadNewsModalLayer />
       {tutorialReady && !tutorialCompleted ? (
         <AppTutorialOverlay onComplete={completeTutorial} />
