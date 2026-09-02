@@ -19,7 +19,7 @@ const STEPS = [
     key: 'welcome',
     showLogo: true,
     title: '¡Bienvenido a Carpuling!',
-    body: 'En unos pasos te contamos cómo moverte por la app para buscar viajes, chatear y gestionar tu perfil.',
+    body: 'En unos pasos te contamos cómo moverte por la app: buscar o publicar un viaje, verificar tu identidad y usar el chat con confianza.',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
   },
   {
@@ -27,7 +27,7 @@ const STEPS = [
     icon: 'home',
     illustration: require('../../../assets/illustrations/tutorial-home.png'),
     title: 'Inicio',
-    body: 'Desde acá podés explorar la app, ver novedades y buscar viajes que se ajusten a tu ruta y fecha.',
+    body: 'Buscá por origen y destino, o mirá directo los próximos viajes cerca tuyo. Antes de reservar, revisá el perfil del conductor: sus reseñas y si tiene el DNI verificado.',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
   },
   {
@@ -35,16 +35,23 @@ const STEPS = [
     icon: 'megaphone',
     illustration: require('../../../assets/illustrations/tutorial-requests.png'),
     title: 'Solicitudes de viaje',
-    body: 'Si no encontrás un viaje, pedilo. En la pestaña «Solicitudes» del inicio publicás a dónde querés ir y los conductores se postulan; elegís uno y, al pagar, el viaje queda confirmado. Si manejás, ahí también podés ofrecer tus viajes.',
+    body: 'Si no encontrás un viaje que te sirva, pedilo vos: tocá «Solicitudes» en Inicio, publicá a dónde querés ir y esperá que un conductor se postule. Vos elegís con cuál viajar.',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
   },
   {
     key: 'carpool',
     icon: 'car',
     illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
-    title: 'Viajes compartidos',
-    body: 'En este ícono vas a ver y administrar tus carpools: los que ofrecés y a los que te sumás como pasajero.',
+    title: 'Traslados',
+    body: 'Acá administrás todo lo tuyo, separado por rol: como conductor tus viajes publicados y las reservas que te piden, y como pasajero tus reservas y postulaciones.',
     tabNav: { tab: 'CarpoolingsTab', screen: 'Carpoolings' },
+  },
+  {
+    key: 'assistant',
+    icon: 'chatbubble-ellipses',
+    title: 'Asistente',
+    body: 'Rumbo es un asistente que responde dudas sobre cómo funciona la app, tus reservas o tarifas, a cualquier hora. Escribile como a un chat.',
+    tabNav: { tab: 'AssistantTab', screen: 'Assistant' },
   },
   {
     key: 'history',
@@ -53,7 +60,7 @@ const STEPS = [
     // compartidos por ser la más cercana en tema. Cambiar si se genera una.
     illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
     title: 'Historial',
-    body: 'Acá vas a encontrar todo lo que hiciste: los viajes que ofreciste como conductor y las reservas que hiciste como pasajero.',
+    body: 'Todo lo que ya viajaste, como conductor o pasajero. Cuando termina un viaje tenés que calificarlo: es obligatorio, y es lo que mantiene confiable a toda la comunidad.',
     tabNav: { tab: 'HistoryTab', screen: 'History' },
   },
   {
@@ -61,7 +68,7 @@ const STEPS = [
     icon: 'person',
     illustration: require('../../../assets/illustrations/tutorial-profile.png'),
     title: 'Perfil',
-    body: 'Editá tus datos, vehículos, notificaciones y preferencias. Cuando quieras, podés volver a ver esta guía desde tu perfil.',
+    body: 'Cargá tu DNI y, si vas a manejar, tu licencia de conducir: sin eso no podés publicar viajes. También administrás tus vehículos, notificaciones y podés volver a ver esta guía cuando quieras.',
     tabNav: { tab: 'ProfileTab', screen: 'Profile' },
   },
   {
@@ -69,7 +76,7 @@ const STEPS = [
     icon: 'apps',
     illustration: require('../../../assets/illustrations/tutorial-tabs.png'),
     title: 'Navegación inferior',
-    body: 'Usá los cuatro botones de abajo para cambiar de sección en cualquier momento. ¡Ya estás listo para usar Carpuling!',
+    body: 'Usá los botones de abajo para cambiar de sección en cualquier momento. ¡Ya estás listo para usar Carpuling!',
     tabNav: { tab: 'HomeTab', screen: 'Home' },
   },
 ];
