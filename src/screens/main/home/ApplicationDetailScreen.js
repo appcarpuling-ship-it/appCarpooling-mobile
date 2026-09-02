@@ -24,7 +24,6 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const dark = isDarkMode;
   const ui = useUI();
   const bg         = ui.bg;
-  const cardBg     = ui.surface;
   const border     = ui.border;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
@@ -108,7 +107,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Driver info */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[styles.card]}>
           <View style={styles.driverTop}>
             {driver.avatar ? (
               <Image source={{ uri: buildImageUri(driver.avatar) }} style={styles.avatar} />
@@ -140,7 +139,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
             postulación aparecía en la lista con su modalidad y al abrirla no decía nada: el
             pasajero no tenía forma de saber qué le habían ofrecido. */}
         {oferta && (
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[styles.card]}>
             {/* "por asiento" pasa al rótulo al sacar la aclaración de abajo: sin eso, $30.000
                 puede leerse como el total de la reserva y no como el precio de cada lugar. */}
             <Text style={[styles.sectionLabel, { color: textMuted }]}>{oferta.etiqueta}</Text>
@@ -163,7 +162,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         {/* Recorrido: lo que el pasajero necesita para decidir si le sirve este conductor.
             Sin esto sólo veía el auto y la calificación, y no por dónde pasa. */}
         {recorrido.length > 0 && (
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[styles.card]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Recorrido</Text>
 
             {/* Qué eligió al postularse. Va arriba de los puntos porque es el encuadre: sin
@@ -199,7 +198,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         {/* Ver trayecto en mapa: mismas direcciones de arriba, ahora en el mapa. */}
         {tripParaMapa?.origin?.coordinates?.latitude && (
           <TouchableOpacity
-            style={[styles.card, styles.mapCard, { backgroundColor: cardBg, borderColor: border }]}
+            style={styles.mapCard}
             onPress={() => navigation.navigate('TripMap', { trip: tripParaMapa })}
             activeOpacity={0.8}
           >
@@ -211,7 +210,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
         {/* Vehicle info */}
         {Object.keys(vehicle).length > 0 && (
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[styles.card]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
 
             {/* La principal grande y hasta 3 más en fila abajo. El tope es a propósito: con seis
@@ -332,9 +331,12 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 16, fontFamily: 'Sora_700Bold' },
-  content: { padding: 16, gap: 12 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 16 },
-  mapCard: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // Misma dirección validada en TripDetailScreen/TripRequestDetailScreen (2026-09-01):
+  // sin tarjetas con fondo+borde apiladas, separadas por espacio en vez de caja.
+  content: { padding: 16 },
+  card: { marginBottom: 32 },
+  // "Ver trayecto en mapa" es un link, no una tarjeta de info — fila simple, sin caja.
+  mapCard: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20, paddingVertical: 4 },
   mapBtnText: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium' },
   driverTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 72, height: 72, borderRadius: 36 },
