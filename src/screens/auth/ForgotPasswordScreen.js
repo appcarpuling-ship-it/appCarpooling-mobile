@@ -123,7 +123,8 @@ const styles = StyleSheet.create({
   card:         { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
   inputRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   inputIcon:    { marginRight: 10 },
-  input:        { flex: 1, height: 52, fontSize: 15 },
+  // Mismo fix que LoginScreen: sin esto el texto queda más abajo que el ícono de al lado.
+  input:        { flex: 1, height: 52, fontSize: 15, paddingVertical: 0, textAlignVertical: 'center' },
   btn:          { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center' },
   btnText:      { fontSize: 16, fontFamily: 'Sora_700Bold' },
 });

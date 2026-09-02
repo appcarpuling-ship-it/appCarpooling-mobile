@@ -248,7 +248,10 @@ const styles = StyleSheet.create({
   card:          { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 16 },
   inputRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   inputIcon:     { marginRight: 10 },
-  input:         { flex: 1, height: 52, fontSize: 15 },
+  // textAlignVertical + paddingVertical:0: sin esto el texto/placeholder no queda
+  // centrado contra el ícono de al lado — Android lo alinea arriba por defecto en un
+  // input de 52 de alto, y algunos padding por defecto del SO se suman al del height.
+  input:         { flex: 1, height: 52, fontSize: 15, paddingVertical: 0, textAlignVertical: 'center' },
   eyeBtn:        { padding: 8 },
   btn:           { borderRadius: 999, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   btnText:       { fontSize: 16, fontFamily: 'Sora_700Bold' },
