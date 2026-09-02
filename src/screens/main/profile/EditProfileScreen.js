@@ -112,7 +112,7 @@ const EditProfileScreen = ({ navigation }) => {
   };
 
   const pickImage = () => {
-    const useSource = async (getAsset) => {
+    const elegirDesde = async (getAsset) => {
       try {
         const imageAsset = await getAsset({
           mediaTypes: ['images'],
@@ -130,8 +130,8 @@ const EditProfileScreen = ({ navigation }) => {
     };
 
     showAlertAsync('Foto de perfil', '¿De dónde la querés sacar?', [
-      { text: 'Cámara', onPress: () => useSource(takePhoto) },
-      { text: 'Galería', onPress: () => useSource(pickImageFromGallery) },
+      { text: 'Cámara', onPress: () => elegirDesde(takePhoto) },
+      { text: 'Galería', onPress: () => elegirDesde(pickImageFromGallery) },
       { text: 'Cancelar', style: 'cancel' },
     ]);
   };
@@ -687,27 +687,30 @@ const styles = StyleSheet.create({
   genderChipText: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
 
   // Secciones
-  section: { paddingHorizontal: 24, marginBottom: 28 },
+  // "Todo lo que tiene es necesario, hay que hacerla más linda" (feedback directo): no se
+  // sacó nada, se le dio más aire — más separación entre secciones y entre campos, y un
+  // poco más de padding adentro de cada uno.
+  section: { paddingHorizontal: 24, marginBottom: 36 },
   sectionLabel: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 10,
+    marginBottom: 14,
     marginLeft: 4,
   },
   sectionHint: { fontFamily: 'Sora_400Regular', fontSize: 12, lineHeight: 18, marginTop: 10, marginLeft: 4, marginRight: 4 },
 
   // Campos
-  fieldStack: { gap: 10 },
-  row:        { flexDirection: 'row', gap: 10 },
+  fieldStack: { gap: 14 },
+  row:        { flexDirection: 'row', gap: 14 },
   fieldHalf:  { flex: 1 },
   field: {
     borderRadius: 18,
     borderWidth: 1.5,
     paddingHorizontal: 18,
-    paddingTop: 11,
-    paddingBottom: 13,
+    paddingTop: 14,
+    paddingBottom: 16,
   },
   fieldLabel: {
     fontFamily: 'Sora_600SemiBold',

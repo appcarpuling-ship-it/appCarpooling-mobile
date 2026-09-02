@@ -168,7 +168,7 @@ const DocumentoUpload = ({
 };
 
 const styles = StyleSheet.create({
-  bloque: { marginTop: 20 },
+  bloque: { marginTop: 28 },
   label: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   hint: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 3, marginBottom: 8 },
 

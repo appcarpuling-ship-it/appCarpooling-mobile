@@ -767,14 +767,15 @@ const styles = StyleSheet.create({
   subtitle:    { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 22, marginTop: 12 },
 
   // Las secciones ya no son cards con borde: la etiqueta va afuera y el gris lo
-  // aportan los campos, igual que en editar perfil.
-  section: { paddingHorizontal: 24, marginBottom: 30 },
+  // aportan los campos, igual que en editar perfil. Más aire entre secciones/campos
+  // (feedback: "está muy cargada, hay que hacerla más linda" — sin sacar nada).
+  section: { paddingHorizontal: 24, marginBottom: 36 },
   sectionLabel: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 14,
     marginLeft: 4,
   },
   sectionHint: {
@@ -906,14 +907,14 @@ const styles = StyleSheet.create({
   featureChipText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Campos
-  fieldStack: { gap: 10 },
-  row:        { flexDirection: 'row', gap: 10 },
+  fieldStack: { gap: 14 },
+  row:        { flexDirection: 'row', gap: 14 },
   field: {
     borderRadius: 18,
     borderWidth: 1.5,
     paddingHorizontal: 18,
-    paddingTop: 11,
-    paddingBottom: 13,
+    paddingTop: 14,
+    paddingBottom: 16,
   },
   fieldHalf: { flex: 1 },
   fieldLabel: {
