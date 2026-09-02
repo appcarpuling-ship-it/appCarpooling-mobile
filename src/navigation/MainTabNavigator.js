@@ -67,6 +67,25 @@ const MainTabNavigator = () => {
         name="HomeTab"
         component={HomeStackNavigator}
         options={{ tabBarLabel: 'Inicio' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            const state = navigation.getState();
+            const currentRoute = state.routes[state.index];
+            const leavingOtherTab = currentRoute.name !== 'HomeTab';
+            const inner = currentRoute.state;
+            const nestedInHome = currentRoute.name === 'HomeTab' && inner && inner.index > 0;
+
+            // Mismo criterio que Traslados/Historial/Perfil: HomeTab es el de más pantallas
+            // (detalle, reserva, perfil de usuario, mapa, postulaciones...) y no tenía este
+            // reset. Sin él, cada vez que el usuario se metía hondo y cambiaba de tab en vez
+            // de volver atrás, esa pila quedaba viva en memoria indefinidamente en vez de
+            // liberarse al volver a Inicio.
+            if (leavingOtherTab || nestedInHome) {
+              e.preventDefault();
+              navigation.navigate('HomeTab', { screen: 'Home' });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="CarpoolingsTab"
