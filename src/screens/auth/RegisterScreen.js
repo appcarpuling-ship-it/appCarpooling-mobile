@@ -23,7 +23,6 @@ import FormPicker from '../../components/forms/FormPicker';
 import LocationPickerField from '../../components/forms/LocationPickerField';
 import { useGalleryPermissions } from '../../hooks/useGalleryPermissions';
 import PermissionModal from '../../components/modals/PermissionModal';
-import { get_public } from '../../services/apiService';
 import * as ScreenCapture from 'expo-screen-capture';
 
 const STEPS = [
@@ -52,7 +51,7 @@ const RegisterScreen = ({ navigation }) => {
   const stepAnim = useRef(new Animated.Value(1)).current;
 
   const { values, errors, touched, setValue, setFieldTouched, validateAllFields, getFieldProps } = useFormValidation(
-    { firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', gender: '', age: '', city: '', province: '', bio: '', referralCode: '' },
+    { firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', gender: '', age: '', city: '', province: '', bio: '' },
     validationSchemas.register
   );
 
@@ -60,8 +59,6 @@ const RegisterScreen = ({ navigation }) => {
   const [dniFrontUri, setDniFrontUri] = useState(null);
   const [dniBackUri, setDniBackUri] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [validatingReferral, setValidatingReferral] = useState(false);
-  const [referralMessage, setReferralMessage] = useState('');
   const { register } = useAuth();
 
   const { pickImage: pickImageFromGallery, takePhoto, showPermissionModal, setShowPermissionModal, openSettings, forceRefreshPermissions } = useGalleryPermissions();
@@ -98,31 +95,6 @@ const RegisterScreen = ({ navigation }) => {
       { mediaTypes: ['images'], allowsEditing: false, quality: 0.85 },
       (uri) => (side === 'front' ? setDniFrontUri(uri) : setDniBackUri(uri))
     );
-  };
-
-  const validateReferralCode = async (code) => {
-    if (!code || code.trim().length === 0) { setReferralMessage(''); return; }
-    setValidatingReferral(true);
-    setReferralMessage('');
-    try {
-      const data = await get_public(`/users/validate-referral/${code.toUpperCase()}`);
-      setReferralMessage(data.success
-        ? `Código válido. Referido por: ${data.data.referrerName}`
-        : 'Código promocional no válido');
-    } catch (err) {
-      // 404 = código no existe; cualquier otro error = problema de red
-      const msg = err?.response?.data?.message;
-      setReferralMessage(msg || 'Código promocional no válido');
-    } finally {
-      setValidatingReferral(false);
-    }
-  };
-
-  const debounceRef = useRef();
-  const handleReferralCodeChange = (text) => {
-    setValue('referralCode', text.toUpperCase());
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => validateReferralCode(text), 1000);
   };
 
   const animateToStep = (newStep) => {
@@ -171,7 +143,6 @@ const RegisterScreen = ({ navigation }) => {
       formDataToSend.append('city', values.city);
       formDataToSend.append('province', values.province);
       if (values.bio) formDataToSend.append('bio', values.bio);
-      if (values.referralCode?.trim()) formDataToSend.append('referralCode', values.referralCode.toUpperCase());
       await appendRegisterImage(formDataToSend, 'avatar', avatarUri);
       await appendRegisterImage(formDataToSend, 'dniFront', dniFrontUri);
       await appendRegisterImage(formDataToSend, 'dniBack', dniBackUri);
@@ -246,20 +217,6 @@ const RegisterScreen = ({ navigation }) => {
         return (
           <>
             <FormInput label="Biografía" placeholder="Contanos sobre vos (opcional)" leftIcon="document-text-outline" multiline numberOfLines={3} maxLength={500} helper="Máximo 500 caracteres" {...getFieldProps('bio')} />
-            <FormInput label="Código promocional" placeholder="Ej: JP1234 (opcional)" leftIcon="gift-outline" value={values.referralCode} onChangeText={handleReferralCodeChange} autoCapitalize="characters" maxLength={6} helper="Si tenés un código de un amigo, ingresalo para obtener 20% de descuento" />
-            {(validatingReferral || referralMessage) && (
-              <View style={{ marginTop: -8, marginBottom: 16 }}>
-                {validatingReferral
-                  ? <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color={textMuted} />
-                      <Text style={[styles.referralMsg, { color: textMuted }]}>  Validando código...</Text>
-                    </View>
-                  : <Text style={[styles.referralMsg, { color: textPrimary }]}>
-                      {referralMessage}
-                    </Text>
-                }
-              </View>
-            )}
             <Text style={[styles.dniSectionTitle, { color: textPrimary }]}>Documentación (DNI)</Text>
             <Text style={[styles.dniHint, { color: textMuted }]}>
               Lo pedimos a todos (conductores y pasajeros) para verificar tu identidad. Necesitamos frente y dorso. Podés cargarlos ahora o después en Editar perfil.
@@ -429,7 +386,6 @@ const styles = StyleSheet.create({
   loginRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 },
   loginText:    { fontSize: 14 },
   loginLink:    { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  referralMsg:  { fontSize: 12, fontFamily: 'Sora_500Medium' },
   dniSectionTitle: { fontSize: 15, fontFamily: 'Sora_700Bold', marginTop: 8, marginBottom: 6 },
   dniHint: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
   dniRow: { flexDirection: 'row', gap: 12 },

@@ -157,27 +157,6 @@ const ProfileScreen = () => {
       ],
     },
     {
-      title: 'Referidos',
-      items: [
-        {
-          id: 8,
-          title: 'Mi Código Promocional',
-          subtitle: (user?.discountPercentage ?? 0) > 0
-            ? `${user.discountPercentage}% de descuento disponible`
-            : 'Invitá amigos y ganá descuentos',
-          icon: 'gift-outline',
-          onPress: () => navigation.navigate('ReferralScreen'),
-        },
-        {
-          id: 13,
-          title: 'Mis Cupones',
-          subtitle: 'Canjeá un código y consultá tu estado',
-          icon: 'pricetag-outline',
-          onPress: () => navigation.navigate('Coupons'),
-        },
-      ],
-    },
-    {
       title: 'Sesión',
       items: [
         // Tiene que poder hacerse desde adentro de la app: es requisito de App Store y, sobre

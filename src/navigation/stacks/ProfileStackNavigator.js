@@ -16,8 +16,6 @@ import VehiclesScreen from '../../screens/main/profile/VehiclesScreen';
 import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
-import ReferralScreen from '../../screens/main/profile/ReferralScreen';
-import CouponsScreen from '../../screens/main/profile/CouponsScreen';
 // La bandeja de mensajes se saco de la barra de tabs, asi que su unica entrada es el acceso
 // de Perfil. Sin registrarlas aca, ese boton no tendria a donde navegar.
 import ChatsScreen from '../../screens/main/chat/ChatsScreen';
@@ -70,16 +68,6 @@ const ProfileStackNavigator = () => {
         name="EditProfile"
         component={EditProfileScreen}
         options={{ title: 'Editar Perfil' }}
-      />
-      <Stack.Screen
-        name="ReferralScreen"
-        component={ReferralScreen}
-        options={{ title: 'Código Promocional' }}
-      />
-      <Stack.Screen
-        name="Coupons"
-        component={CouponsScreen}
-        options={{ title: 'Mis Cupones' }}
       />
       <Stack.Screen
         name="Vehicles"
