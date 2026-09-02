@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -452,7 +453,14 @@ const HomeScreen = ({ navigation, route }) => {
     <>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Image source={LOGO_SOURCE} style={styles.logo} />
+          {/* ponytail: mantener presionado el logo prende/apaga el MemoryHUD (MainTabNavigator)
+              — herramienta de una sola vez, sacar junto con MemoryHUD una vez verificado. */}
+          <TouchableOpacity
+            onLongPress={() => DeviceEventEmitter.emit('toggleMemoryHUD')}
+            delayLongPress={1500}
+          >
+            <Image source={LOGO_SOURCE} style={styles.logo} />
+          </TouchableOpacity>
           <Text style={[styles.headerGreeting, { color: textMuted }]} numberOfLines={1}>
             {user?.firstName ? `Hola, ${user.firstName}` : 'Carpuling'}
           </Text>
