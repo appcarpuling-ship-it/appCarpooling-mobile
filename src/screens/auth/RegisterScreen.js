@@ -260,7 +260,12 @@ const RegisterScreen = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
       {/* Sin TouchableWithoutFeedback envolviendo todo: con el teclado abierto se
           comia el primer tap para cerrarlo y el boton de abajo (fuera del
-          ScrollView) nunca recibia su onPress. */}
+          ScrollView) nunca recibia su onPress.
+
+          El KeyboardAvoidingView envuelve SOLO el nav+scroll, no el botón: antes lo
+          envolvía todo, y como el botón es hermano directo del ScrollView (no está
+          adentro), el padding/alto que el teclado le agregaba al wrapper lo empujaba
+          a él también — subía pegado al teclado en vez de quedarse fijo abajo. */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* Top nav */}
@@ -325,33 +330,33 @@ const RegisterScreen = ({ navigation }) => {
             {renderStepContent()}
           </Animated.View>
         </ScrollView>
-
-        {/* Action button — always at bottom */}
-        <View style={[styles.btnContainer, { backgroundColor: bg }]}>
-          {currentStep < STEPS.length - 1 ? (
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: ui.invertBg }]}
-              onPress={handleNext}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.btnText, { color: ui.invertText }]}>Siguiente</Text>
-              <Ionicons name="arrow-forward" size={18} color={ui.invertText} style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
-              onPress={handleRegister}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading
-                ? <ActivityIndicator color={ui.invertText} />
-                : <Text style={[styles.btnText, { color: ui.invertText }]}>Crear cuenta</Text>
-              }
-            </TouchableOpacity>
-          )}
-        </View>
       </KeyboardAvoidingView>
+
+      {/* Fuera del KeyboardAvoidingView a propósito: fijo abajo siempre, el teclado no lo mueve. */}
+      <View style={[styles.btnContainer, { backgroundColor: bg }]}>
+        {currentStep < STEPS.length - 1 ? (
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: ui.invertBg }]}
+            onPress={handleNext}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.btnText, { color: ui.invertText }]}>Siguiente</Text>
+            <Ionicons name="arrow-forward" size={18} color={ui.invertText} style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: ui.invertBg }, loading && { opacity: 0.7 }]}
+            onPress={handleRegister}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color={ui.invertText} />
+              : <Text style={[styles.btnText, { color: ui.invertText }]}>Crear cuenta</Text>
+            }
+          </TouchableOpacity>
+        )}
+      </View>
 
       <PermissionModal
         visible={showPermissionModal}
