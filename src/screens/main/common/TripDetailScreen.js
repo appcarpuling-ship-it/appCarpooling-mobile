@@ -1067,13 +1067,26 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               )}
               <View style={styles.vehicleInfoBlock}>
-                <Text style={[styles.vehicleName, { color: textPrimary }]}>
-                  {trip.vehicle.brand} {trip.vehicle.model}
-                  {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
-                </Text>
+                <View style={styles.vehicleNameRow}>
+                  <Text style={[styles.vehicleName, { color: textPrimary }]}>
+                    {trip.vehicle.brand} {trip.vehicle.model}
+                    {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
+                  </Text>
+                  {trip.vehicle.documentacionCompleta && (
+                    <Ionicons name="shield-checkmark" size={16} color={textPrimary} style={styles.vehicleDocsIcon} />
+                  )}
+                </View>
                 <Text style={[styles.vehicleColor, { color: textMuted }]}>
                   {[trip.vehicle.color, trip.vehicle.licensePlate].filter(Boolean).join(' · ')}
                 </Text>
+                {trip.vehicle.documentacionCompleta && (
+                  // "Completa" != "verificada": el conductor la subió y declaró, nadie la
+                  // comprobó todavía (ver docStatus en el modelo Vehicle). No prometer más
+                  // de lo que es.
+                  <Text style={[styles.vehicleDocsText, { color: textMuted }]}>
+                    Documentación completa
+                  </Text>
+                )}
               </View>
             </View>
           );
@@ -1659,7 +1672,10 @@ const styles = StyleSheet.create({
   },
   vehicleInfo: { flex: 1 },
   vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+  vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  vehicleDocsIcon: {},
   vehicleColor: { fontSize: 13, marginTop: 2 },
+  vehicleDocsText: { fontSize: 12, marginTop: 4 },
 
   // Features
   featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

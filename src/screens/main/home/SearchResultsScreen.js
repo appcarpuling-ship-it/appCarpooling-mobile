@@ -160,6 +160,15 @@ const SearchResultsScreen = ({ route, navigation }) => {
             <Text style={[styles.driverName, { color: textSecondary }]} numberOfLines={1}>
               {driver.firstName} {driver.lastName}
             </Text>
+            {item.vehicle?.documentacionCompleta && (
+              <Ionicons
+                name="shield-checkmark"
+                size={14}
+                color={textPrimary}
+                style={styles.docsBadge}
+                accessibilityLabel="Documentación del vehículo completa"
+              />
+            )}
           </View>
 
           {/* Meta */}
@@ -371,6 +380,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: fontSize.sm,
     fontFamily: 'Sora_500Medium',
+  },
+  docsBadge: {
+    marginLeft: spacing.xs,
   },
   ratingRow: {
     flexDirection: 'row',
