@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator, Dimensions } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
@@ -21,12 +21,30 @@ const LocationPickerScreen = ({ route, navigation }) => {
 
   const [step, setStep] = useState(initialProvince ? 'department' : 'province');
   const [province, setProvince] = useState(initialProvince);
+  const [search, setSearch] = useState('');
 
-  const provinces = ARGENTINA_PROVINCES;
-  const depts = getDepartmentsForProvince(province);
+  // Sin esto, Buenos Aires solo (130+ departamentos) se scrollea a ciegas. Sin acentos ni
+  // mayúsculas: "cordoba" tiene que encontrar "Córdoba". Mismo truco que routePoints.js:
+  // no se escriben los diacríticos literales en el código, se filtran por rango Unicode.
+  const norm = (s) =>
+    (s || '').toLowerCase().normalize('NFD').split('')
+      .filter((c) => { const n = c.charCodeAt(0); return n < 0x0300 || n > 0x036f; }).join('');
+
+  const allDepts = getDepartmentsForProvince(province);
+  const provinces = useMemo(() => {
+    if (!search.trim()) return ARGENTINA_PROVINCES;
+    const q = norm(search);
+    return ARGENTINA_PROVINCES.filter((p) => norm(p).includes(q));
+  }, [search]);
+  const depts = useMemo(() => {
+    if (!search.trim()) return allDepts;
+    const q = norm(search);
+    return allDepts.filter((d) => norm(d.label).includes(q));
+  }, [search, allDepts]);
 
   const handleProvince = (p) => {
     setProvince(p);
+    setSearch('');
     setStep('loading');
     setTimeout(() => setStep('department'), 900);
   };
@@ -37,8 +55,12 @@ const LocationPickerScreen = ({ route, navigation }) => {
   };
 
   const goBack = () => {
-    if (step === 'department') setStep('province');
-    else navigation.goBack();
+    if (step === 'department') {
+      setSearch('');
+      setStep('province');
+    } else {
+      navigation.goBack();
+    }
   };
 
   const renderGridItem = (image, label, isSelected, onPress) => {
@@ -74,6 +96,25 @@ const LocationPickerScreen = ({ route, navigation }) => {
         </Text>
         <View style={styles.headerBtn} />
       </View>
+
+      {(step === 'province' || step === 'department') && (
+        <View style={[styles.searchBar, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+          <Ionicons name="search" size={18} color={ui.textMuted} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder={step === 'province' ? 'Buscar provincia' : 'Buscar departamento'}
+            placeholderTextColor={ui.textMuted}
+            style={[styles.searchInput, { color: ui.text }]}
+            autoCorrect={false}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')} hitSlop={10}>
+              <Ionicons name="close-circle" size={18} color={ui.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {(step === 'province' || step === 'loading') && (
         <FlatList
@@ -133,6 +174,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, gap: 12 },
   headerBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: 20, letterSpacing: -0.5, textAlign: 'center' },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 4,
+    paddingHorizontal: 14, height: 44,
+    borderRadius: 999, borderWidth: 1,
+  },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: 'Sora_400Regular', padding: 0 },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   gridItem: { borderRadius: 24, borderWidth: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
   gridImage: { width: 96, height: 96, marginBottom: 10 },

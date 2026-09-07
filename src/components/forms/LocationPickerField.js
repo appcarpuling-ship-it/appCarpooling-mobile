@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Modal,
   StyleSheet,
@@ -11,10 +12,16 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
+import { useUI } from '../../theme/ui';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { PROVINCE_IMAGES } from '../../constants/provinceImages';
 import { getDepartmentsForProvince } from '../../constants/departmentImages';
+
+// Sin acentos ni mayúsculas: "cordoba" tiene que encontrar "Córdoba". Mismo truco que
+// routePoints.js — no se escriben los diacríticos literales en el código.
+const norm = (s) =>
+  (s || '').toLowerCase().normalize('NFD').split('')
+    .filter((c) => { const n = c.charCodeAt(0); return n < 0x0300 || n > 0x036f; }).join('');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ITEM_SIZE = (SCREEN_WIDTH * 0.96 - 32 - 12) / 2;
@@ -37,22 +44,34 @@ const LocationPickerField = ({
   provinceError,
   cityError,
 }) => {
-  const { isDarkMode: dark } = useTheme();
+  const ui = useUI();
+  const dark = ui.isDarkMode;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState('province'); // 'province' | 'loading' | 'department'
+  const [search, setSearch] = useState('');
 
-  // Paleta (alineada con el filtro del Home y los registros)
-  const modalBg     = dark ? '#1E1E1E' : '#FFFFFF';
-  const divider     = dark ? '#2E2E2E' : '#E5E7EB';
-  const textPrimary = dark ? '#FFFFFF' : '#000000';
-  const textMuted   = dark ? '#9CA3AF' : '#6B7280';
+  // Paleta única del rediseño (blanco y negro), la misma que usa el filtro del Home.
+  const modalBg     = ui.card;
+  const divider     = ui.border;
+  const textPrimary = ui.text;
+  const textMuted   = ui.textMuted;
 
-  const fieldBg     = dark ? '#292929' : '#F8F9FA';
-  const fieldBorder = dark ? '#404040' : '#E5E7EB';
+  const fieldBg     = ui.surface;
+  const fieldBorder = ui.border;
   const errorColor  = dark ? '#EF4444' : '#DC2626';
 
-  const depts = getDepartmentsForProvince(province);
+  const allDepts = getDepartmentsForProvince(province);
+  const provinces = useMemo(() => {
+    if (!search.trim()) return ARGENTINA_PROVINCES;
+    const q = norm(search);
+    return ARGENTINA_PROVINCES.filter((p) => norm(p).includes(q));
+  }, [search]);
+  const depts = useMemo(() => {
+    if (!search.trim()) return allDepts;
+    const q = norm(search);
+    return allDepts.filter((d) => norm(d.label).includes(q));
+  }, [search, allDepts]);
 
   const openAt = (targetStep) => {
     setStep(targetStep);
@@ -61,11 +80,12 @@ const LocationPickerField = ({
 
   const closeModal = () => {
     setModalVisible(false);
-    setTimeout(() => setStep('province'), 250);
+    setTimeout(() => { setStep('province'); setSearch(''); }, 250);
   };
 
   const handleProvinceSelect = (p) => {
     onProvinceChange(p);
+    setSearch('');
     setStep('loading');
     setTimeout(() => setStep('department'), 700);
   };
@@ -96,7 +116,7 @@ const LocationPickerField = ({
       >
         <Ionicons name={icon} size={20} color={error ? errorColor : textMuted} style={{ marginRight: 10 }} />
         <Text
-          style={[styles.fieldText, { color: valueText ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#6B7280' : '#9CA3AF') }]}
+          style={[styles.fieldText, { color: valueText ? textPrimary : textMuted }]}
           numberOfLines={1}
         >
           {valueText || placeholder}
@@ -113,19 +133,15 @@ const LocationPickerField = ({
   );
 
   const renderGridItem = (image, label, isSelected, onPress) => {
-    const cardBg    = isSelected ? (dark ? '#FFFFFF' : '#1F2937') : (dark ? '#252525' : '#FFFFFF');
-    const imgTint   = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : (dark ? '#FFFFFF' : '#1F2937');
-    const labelClr  = isSelected ? (dark ? '#1F2937' : '#FFFFFF') : textMuted;
+    const cardBg   = isSelected ? ui.text : ui.surface;
+    const imgTint  = isSelected ? ui.invertText : ui.text;
+    const labelClr = isSelected ? ui.invertText : textMuted;
     return (
       <TouchableOpacity
         style={[styles.gridItem, {
           width: ITEM_SIZE,
           backgroundColor: cardBg,
-          borderColor: isSelected ? cardBg : (dark ? '#333333' : '#E5E7EB'),
-          shadowColor: isSelected ? (dark ? '#FFFFFF' : '#000') : 'transparent',
-          shadowOpacity: isSelected ? 0.15 : 0,
-          shadowRadius: 8,
-          elevation: isSelected ? 4 : 0,
+          borderColor: isSelected ? cardBg : ui.border,
         }]}
         onPress={onPress}
         activeOpacity={0.75}
@@ -186,9 +202,28 @@ const LocationPickerField = ({
               </TouchableOpacity>
             </View>
 
+            {(step === 'province' || step === 'department') && (
+              <View style={[styles.searchBar, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
+                <Ionicons name="search" size={18} color={textMuted} />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder={step === 'province' ? 'Buscar provincia' : 'Buscar ciudad'}
+                  placeholderTextColor={textMuted}
+                  style={[styles.searchInput, { color: textPrimary }]}
+                  autoCorrect={false}
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={10}>
+                    <Ionicons name="close-circle" size={18} color={textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             {(step === 'province' || step === 'loading') && (
               <FlatList
-                data={ARGENTINA_PROVINCES}
+                data={provinces}
                 keyExtractor={(item) => item}
                 numColumns={2}
                 columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
@@ -202,7 +237,7 @@ const LocationPickerField = ({
 
             {step === 'loading' && (
               <View style={styles.pickerLoadingOverlay}>
-                <ActivityIndicator size="large" color={dark ? '#FFFFFF' : '#1F2937'} />
+                <ActivityIndicator size="large" color={ui.text} />
               </View>
             )}
 
@@ -239,6 +274,14 @@ const styles = StyleSheet.create({
   pickerLoadingOverlay:{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   pickerHeader:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1 },
   pickerTitle:         { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
+
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 12,
+    paddingHorizontal: 14, height: 44,
+    borderRadius: 999, borderWidth: 1,
+  },
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
 
   gridItem:   { borderRadius: 16, borderWidth: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
   gridImage:  { width: 96, height: 96, marginBottom: 10 },
