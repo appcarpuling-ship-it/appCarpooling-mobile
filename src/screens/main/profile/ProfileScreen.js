@@ -213,6 +213,7 @@ const ProfileScreen = () => {
                 </View>
               </>
             )}
+            {/* Comentado a pedido: por ahora no se muestra el badge de descuento activo.
             {(user?.discountPercentage ?? 0) > 0 && (() => {
               const pct = user.discountPercentage;
               const count = Math.round(pct / 20) || 1;
@@ -225,6 +226,7 @@ const ProfileScreen = () => {
                 </View>
               );
             })()}
+            */}
           </View>
 
           {showAuthSkeleton ? (

@@ -1009,11 +1009,20 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
                 {i < puntosVisibles.length - 1 && (
                   <View style={[styles.routeRailLine, { backgroundColor: dark ? '#333' : '#D0D0D0' }]}>
-                    {/* Apiladas: los puntitos dicen que entre estas dos hay algo más. */}
+                    {/* Apiladas: los puntitos dicen que entre estas dos hay algo más. Tocarlos
+                        hace lo mismo que la flechita de arriba — es la misma acción, dos lugares
+                        donde a alguien se le puede ocurrir tocar. */}
                     {!paradasAbiertas && hayParadasIntermedias && (
-                      <View style={[styles.railPuntos, { backgroundColor: cardBg }]}>
+                      <TouchableOpacity
+                        style={[styles.railPuntos, { backgroundColor: cardBg }]}
+                        onPress={() => setParadasAbiertas((v) => !v)}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        activeOpacity={0.6}
+                        accessibilityRole="button"
+                        accessibilityLabel="Ver paradas intermedias"
+                      >
                         <Ionicons name="ellipsis-vertical" size={13} color={textMuted} />
-                      </View>
+                      </TouchableOpacity>
                     )}
                   </View>
                 )}
