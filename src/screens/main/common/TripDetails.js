@@ -146,9 +146,6 @@ const TripDetails = ({ navigation, route }) => {
             if (!formData.vehicle) return 'Elegí con qué vehículo vas a viajar';
             const asientos = parseInt(formData.availableSeats, 10);
             if (!asientos || asientos < 1) return 'Indicá cuántos asientos ofrecés';
-            if (selectedVehicle?.capacity && asientos > selectedVehicle.capacity) {
-                return `El vehículo tiene lugar para ${selectedVehicle.capacity} pasajeros`;
-            }
             // El precio se valida acá y no recién al publicar: está marcado con * en este paso,
             // y enterarse dos pasos después de que faltaba es lo que los pasos vienen a evitar.
             // En "Gastos compartidos" no hay precio que poner: es carpooling real, se
@@ -220,11 +217,6 @@ const TripDetails = ({ navigation, route }) => {
         const precioConductor = parseInt(String(driverPrice).replace(/\./g, ''), 10) || 0;
         if (!formData.sinPrecioFijo && precioConductor <= 0) {
             showAlert('Falta el precio', 'Poné cuánto le cobrás a cada pasajero por el viaje.');
-            return;
-        }
-
-        if (selectedVehicle?.capacity && parseInt(availableSeats) > selectedVehicle.capacity) {
-            showAlert('Asientos inválidos', `El vehículo seleccionado tiene capacidad para ${selectedVehicle.capacity} pasajeros.`);
             return;
         }
 
@@ -467,19 +459,9 @@ const TripDetails = ({ navigation, route }) => {
                                     value={formData.availableSeats}
                                     editable={!!selectedVehicle}
                                     onFocus={scrollFieldAboveKeyboard}
-                                    onChangeText={v => {
-                                        const num = parseInt(v);
-                                        const cap = selectedVehicle?.capacity;
-                                        if (cap && num > cap) return;
-                                        handleChange('availableSeats', v);
-                                    }}
+                                    onChangeText={v => handleChange('availableSeats', v)}
                                     keyboardType="numeric"
                                 />
-                                {selectedVehicle?.capacity && (
-                                    <Text style={[styles.capacityHint, { color: textMuted }]}>
-                                        máx {selectedVehicle.capacity}
-                                    </Text>
-                                )}
                             </View>
 
                             {/* Cómo cobrás. Es una elección entre dos modalidades, no una
@@ -917,11 +899,6 @@ const styles = StyleSheet.create({
         minHeight: 72,
         paddingTop: 0,
     },
-    capacityHint: {
-        fontSize: 12,
-        fontFamily: 'Sora_500Medium',
-    },
-
     // Preferences
     prefRow: {
         flexDirection: 'row',

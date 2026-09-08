@@ -73,7 +73,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
 
   const [selectedType, setSelectedType] = useState(vehicleData?.type || 'sedan');
   const [focusedField, setFocusedField] = useState(null);
-  const maxCapacityForType = VEHICLE_TYPES.find(t => t.key === selectedType)?.maxCapacity ?? 8;
 
   const [formData, setFormData] = useState({
     brand:        vehicleData?.brand || '',
@@ -136,20 +135,11 @@ const VehicleFormScreen = ({ navigation, route }) => {
       : null;
 
   const handleChange = (name, value) => {
-    if (name === 'capacity') {
-      const num = parseInt(value);
-      if (!isNaN(num) && num > maxCapacityForType) return;
-    }
     setFormData({ ...formData, [name]: value });
   };
 
   const handleTypeChange = (typeKey) => {
     setSelectedType(typeKey);
-    const maxCap = VEHICLE_TYPES.find(t => t.key === typeKey)?.maxCapacity ?? 8;
-    const currentCap = parseInt(formData.capacity);
-    if (!isNaN(currentCap) && currentCap > maxCap) {
-      setFormData(prev => ({ ...prev, capacity: maxCap.toString() }));
-    }
   };
 
   const {
@@ -336,8 +326,8 @@ const VehicleFormScreen = ({ navigation, route }) => {
     }
 
     const capacityNum = parseInt(capacity);
-    if (capacityNum < 1 || capacityNum > maxCapacityForType) {
-      showAlert('Ocurrió algo', `Para ese tipo podés cargar de 1 a ${maxCapacityForType} pasajeros.`);
+    if (capacityNum < 1) {
+      showAlert('Ocurrió algo', 'Indicá cuántos pasajeros entran en el vehículo.');
       return;
     }
 
@@ -414,7 +404,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
     // en la chapa") intentaba decir — y además queda igual que el resto de los campos,
     // que muestran ejemplos del valor y no una instrucción.
     { key: 'licensePlate', label: 'Patente', placeholder: 'AB 123 CD o ABC 123', half: false, caps: true, autoCapitalize: 'characters', max: 50 },
-    { key: 'capacity',     label: `Pasajeros (máx. ${maxCapacityForType})`, placeholder: `1–${maxCapacityForType}`, half: false, keyboard: 'numeric', max: 1 },
+    { key: 'capacity',     label: 'Pasajeros', placeholder: 'Ej: 4', half: false, keyboard: 'numeric', max: 2 },
   ];
 
   const totalPhotos = existingPhotos.length + photos.length;
@@ -553,7 +543,7 @@ const VehicleFormScreen = ({ navigation, route }) => {
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Tipo</Text>
             <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Define cuántos pasajeros vas a poder ofrecer.
+              Elegí el que más se parece a tu vehículo.
             </Text>
             <View style={styles.chipsWrap}>
               {TYPE_CHIP_GROUPS.map((g) => {
@@ -571,11 +561,6 @@ const VehicleFormScreen = ({ navigation, route }) => {
                         a ciegas y encontrarse con otro dibujo desconcertaba. */}
                     <Image source={imageForType(g.canonicalKey)} style={styles.chipImage} resizeMode="contain" />
                     <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{g.label}</Text>
-                    {/* El número solo no se entendía: el ícono lo ancla a "pasajeros". */}
-                    <View style={styles.chipMetaWrap}>
-                      <Ionicons name="person" size={11} color={on ? ui.invertText : textMuted} />
-                      <Text style={[styles.chipMeta, { color: on ? ui.invertText : textMuted }]}>{g.maxCapacity}</Text>
-                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -894,8 +879,6 @@ const styles = StyleSheet.create({
   declaracionBox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   declaracionText: { flex: 1, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17 },
   chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  chipMetaWrap: { flexDirection: 'row', alignItems: 'center', gap: 3, opacity: 0.75 },
-  chipMeta: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   featureChip: {
     flexDirection: 'row',
     alignItems: 'center',

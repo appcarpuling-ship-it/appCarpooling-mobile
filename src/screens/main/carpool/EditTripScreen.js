@@ -129,11 +129,7 @@ const EditTripScreen = ({ navigation, route }) => {
 
   const handleChange = (field, value) => {
     if (field === 'vehicle') {
-      const newVehicle = vehicles.find(v => v._id === value);
-      const maxCap = newVehicle?.capacity ?? 8;
-      const currentSeats = parseInt(formData.availableSeats) || 1;
-      const clampedSeats = Math.min(currentSeats, maxCap);
-      setFormData(prev => ({ ...prev, vehicle: value, availableSeats: clampedSeats.toString() }));
+      setFormData(prev => ({ ...prev, vehicle: value }));
     } else if (field.includes('.')) {
       const [parent, child] = field.split('.');
       setFormData({ ...formData, [parent]: { ...formData[parent], [child]: value } });
@@ -190,11 +186,6 @@ const EditTripScreen = ({ navigation, route }) => {
     }
     if (seatsNum < occupiedSeats) {
       navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: `No podés bajar los asientos a ${seatsNum}: ya hay ${occupiedSeats} pasajero${occupiedSeats !== 1 ? 's' : ''} confirmado${occupiedSeats !== 1 ? 's' : ''}.` });
-      return;
-    }
-    const maxSeats = selectedVehicle?.capacity ?? 8;
-    if (seatsNum > maxSeats) {
-      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: `El vehículo elegido tiene capacidad máxima de ${maxSeats} pasajeros.` });
       return;
     }
     setLoading(true);
@@ -365,7 +356,6 @@ const EditTripScreen = ({ navigation, route }) => {
 
           {/* ── Asientos ── */}
           {selectedVehicle && (() => {
-            const maxCap = selectedVehicle.capacity;
             const current = parseInt(formData.availableSeats) || 1;
             const minSeats = Math.max(1, occupiedSeats);
             return (
@@ -375,9 +365,11 @@ const EditTripScreen = ({ navigation, route }) => {
                   <View style={[styles.row, { justifyContent: 'space-between' }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.rowText, { color: tp }]}>Asientos disponibles</Text>
-                      <Text style={[{ fontSize: 12, color: tm, marginTop: 2 }]}>
-                        Máx. {maxCap} · vehículo{occupiedSeats > 0 ? ` · ${occupiedSeats} ya reservado${occupiedSeats !== 1 ? 's' : ''}` : ''}
-                      </Text>
+                      {occupiedSeats > 0 && (
+                        <Text style={[{ fontSize: 12, color: tm, marginTop: 2 }]}>
+                          {occupiedSeats} ya reservado{occupiedSeats !== 1 ? 's' : ''}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.stepper}>
                       <TouchableOpacity
@@ -392,11 +384,8 @@ const EditTripScreen = ({ navigation, route }) => {
                       </TouchableOpacity>
                       <Text style={[styles.stepperVal, { color: tp }]}>{current}</Text>
                       <TouchableOpacity
-                        onPress={() => {
-                          if (current < maxCap) handleChange('availableSeats', (current + 1).toString());
-                        }}
-                        style={[styles.stepperBtn, { borderColor: border, opacity: current >= maxCap ? 0.3 : 1 }]}
-                        disabled={current >= maxCap}
+                        onPress={() => handleChange('availableSeats', (current + 1).toString())}
+                        style={[styles.stepperBtn, { borderColor: border }]}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <Ionicons name="add" size={16} color={tp} />
