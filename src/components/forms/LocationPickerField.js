@@ -221,6 +221,33 @@ const LocationPickerField = ({
               </View>
             )}
 
+            {/* No todo lo que la gente escribe está en la lista (localidades chicas, barrios,
+                nombres que no coinciden con el departamento oficial). */}
+            {search.trim().length > 0 && step === 'province' && (
+              <TouchableOpacity
+                style={[styles.useTypedRow, { borderColor: fieldBorder }]}
+                onPress={() => handleProvinceSelect(search.trim())}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={18} color={textPrimary} />
+                <Text style={[styles.useTypedText, { color: textPrimary }]} numberOfLines={1}>
+                  Usar "{search.trim()}" como provincia
+                </Text>
+              </TouchableOpacity>
+            )}
+            {search.trim().length > 0 && step === 'department' && (
+              <TouchableOpacity
+                style={[styles.useTypedRow, { borderColor: fieldBorder }]}
+                onPress={() => handleCitySelect(search.trim())}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={18} color={textPrimary} />
+                <Text style={[styles.useTypedText, { color: textPrimary }]} numberOfLines={1}>
+                  Usar "{search.trim()}" como ciudad
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {(step === 'province' || step === 'loading') && (
               <FlatList
                 data={provinces}
@@ -282,6 +309,13 @@ const styles = StyleSheet.create({
     borderRadius: 999, borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, padding: 0 },
+  useTypedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 12,
+    paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 999, borderWidth: 1, borderStyle: 'dashed',
+  },
+  useTypedText: { flex: 1, fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   gridItem:   { borderRadius: 16, borderWidth: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
   gridImage:  { width: 96, height: 96, marginBottom: 10 },

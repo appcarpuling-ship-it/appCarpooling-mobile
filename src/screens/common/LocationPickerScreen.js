@@ -116,6 +116,34 @@ const LocationPickerScreen = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* No todo lo que la gente escribe está en la lista (localidades chicas, barrios,
+          nombres que no coinciden con el departamento oficial). Sin esto quedaban trabados
+          si su lugar no figuraba. */}
+      {search.trim().length > 0 && step === 'province' && (
+        <TouchableOpacity
+          style={[styles.useTypedRow, { borderColor: ui.border }]}
+          onPress={() => handleProvince(search.trim())}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="create-outline" size={18} color={ui.text} />
+          <Text style={[styles.useTypedText, { color: ui.text }]} numberOfLines={1}>
+            Usar "{search.trim()}" como provincia
+          </Text>
+        </TouchableOpacity>
+      )}
+      {search.trim().length > 0 && step === 'department' && (
+        <TouchableOpacity
+          style={[styles.useTypedRow, { borderColor: ui.border }]}
+          onPress={() => finish(search.trim())}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="create-outline" size={18} color={ui.text} />
+          <Text style={[styles.useTypedText, { color: ui.text }]} numberOfLines={1}>
+            Usar "{search.trim()}" como ciudad
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {(step === 'province' || step === 'loading') && (
         <FlatList
           data={provinces}
@@ -181,6 +209,13 @@ const styles = StyleSheet.create({
     borderRadius: 999, borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'Sora_400Regular', padding: 0 },
+  useTypedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 12,
+    paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 999, borderWidth: 1, borderStyle: 'dashed',
+  },
+  useTypedText: { flex: 1, fontSize: 13, fontFamily: 'Sora_500Medium' },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   gridItem: { borderRadius: 24, borderWidth: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
   gridImage: { width: 96, height: 96, marginBottom: 10 },
