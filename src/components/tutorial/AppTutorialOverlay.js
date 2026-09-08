@@ -47,18 +47,11 @@ const STEPS = [
     tabNav: { tab: 'CarpoolingsTab', screen: 'Carpoolings' },
   },
   {
-    key: 'assistant',
-    icon: 'chatbubble-ellipses',
-    title: 'Asistente',
-    body: 'Rumbo es un asistente que responde dudas sobre cómo funciona la app, tus reservas o tarifas, a cualquier hora. Escribile como a un chat.',
-    tabNav: { tab: 'AssistantTab', screen: 'Assistant' },
-  },
-  {
     key: 'history',
     icon: 'time',
-    // No hay ilustración propia para Historial todavía; se reusa la de Viajes
-    // compartidos por ser la más cercana en tema. Cambiar si se genera una.
-    illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
+    // Sin ilustración propia todavía: reusar la de Traslados quedaba repetida
+    // (mismo dibujo dos pasos seguidos). Cae al ícono grande, como Asistente
+    // antes de sacarse. Cambiar si se genera una ilustración para este paso.
     title: 'Historial',
     body: 'Todo lo que ya viajaste, como conductor o pasajero. Cuando termina un viaje tenés que calificarlo: es obligatorio, y es lo que mantiene confiable a toda la comunidad.',
     tabNav: { tab: 'HistoryTab', screen: 'History' },
