@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   linkBtn: {
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1.5,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_600SemiBold',
   },
   closeActionBtn: {
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
   },
