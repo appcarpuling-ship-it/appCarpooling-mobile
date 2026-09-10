@@ -19,17 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
-import * as Clipboard from 'expo-clipboard';
-import { senaLegible } from '../../../utils/sena';
-import { useElegirFoto } from '../../../hooks/useElegirFoto';
-import { appendFile } from '../../../utils/formDataFile';
 
 // Puntos del preview del mapa en Android (ver el <Marker image=> más abajo). Réplica exacta de
 // los estilos previewDotOrigin/Stop/Dest, que en iOS se siguen dibujando como vista propia.
 const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
 const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
 const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
-import { get_public, get_withauth, post_withauth, put_withauth, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
+import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { buildRoutePoints, decodePolyline } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
@@ -57,7 +53,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const { tripId } = route.params;
   const { user, refreshUser } = useAuth();
   const { showAlert } = useAlert();
-  const elegirFoto = useElegirFoto();
   const { colors, isDarkMode } = useColors();
 
   const dark = isDarkMode;
@@ -74,7 +69,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userBooking, setUserBooking] = useState(null);
-  const [subiendoComprobante, setSubiendoComprobante] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [paymentModalData, setPaymentModalData] = useState({ paymentUrl: null, qrDataUrl: null, amount: null });
@@ -355,30 +349,6 @@ const TripDetailScreen = ({ route, navigation }) => {
         setPassengers(confirmed);
       }
     } catch (_) {}
-  };
-
-  /**
-   * El pasajero sube la foto de la transferencia. No prueba nada por sí sola —una captura se
-   * edita—: quien confirma que la plata llegó es el conductor, que la ve en su cuenta. Va
-   * acá y no por el chat porque los mensajes se borran a los 7 días y esto tiene que quedar.
-   */
-  const mandarComprobante = () => {
-    elegirFoto(async (uri) => {
-      setSubiendoComprobante(true);
-      try {
-        const fd = new FormData();
-        await appendFile(fd, 'comprobante', uri, 'comprobante.jpg');
-        const res = await put_withauth_formdata(`/bookings/${userBooking._id}/sena`, fd);
-        if (!res?.success) throw new Error(res?.message || 'No se pudo enviar el comprobante');
-        setUserBooking((b) => (b ? { ...b, sena: res.data } : b));
-        showAlert('Listo', 'Le avisamos al conductor. Te confirma cuando vea la transferencia.');
-      } catch (e) {
-        reportError(e, { screen: 'TripDetail', action: 'mandarComprobante' });
-        showAlert('Ocurrió algo', 'No pudimos enviar el comprobante. Probá de nuevo.');
-      } finally {
-        setSubiendoComprobante(false);
-      }
-    }, { titulo: 'Comprobante de la seña', mensaje: '¿De dónde la querés sacar?' });
   };
 
   const checkUserBooking = async () => {
@@ -674,13 +644,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const isOwnTrip = userId && driverId && userId === driverId;
   const driver = trip.driver;
 
-  // Copiar el CVU/alias al que hay que transferirle la seña. Un CVU son 22 dígitos: tipearlo
-  // a mano es justo donde alguien se come un número y la plata se va a otra cuenta.
-  const copiarDatoCobro = async (que, valor) => {
-    if (!valor) return;
-    await Clipboard.setStringAsync(String(valor));
-    showAlert('Copiado', `${que} copiado al portapapeles`);
-  };
   // Mismos estados que el footer trata como "Reserva paga" (líneas de abajo): sin esto, el chat
   // quedaba visible con solo tener una reserva creada, antes de pagarla o de que la aprueben.
   const isPassengerPaid = Boolean(
@@ -946,93 +909,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.headerPriceHint, { color: textMuted }]}>Se arreglan directo con el conductor</Text>
             </View>
           )}
-          {/* Seña: la mitad por adelantado para reservar. Va en la cabecera, junto al precio,
-              porque es plata que el pasajero tiene que poner ANTES de decidir. */}
-          {trip?.requiereSena && trip.status !== 'completed' && (
-            <View style={[styles.headerPriceRow, { borderTopColor: divider }]}>
-              <Text style={[styles.headerPriceLabel, { color: textMuted }]}>Seña para reservar</Text>
-              <Text style={[styles.headerPriceValue, { color: textPrimary }]}>
-                {senaLegible(trip.driverPrice) || 'La mitad'}
-              </Text>
-            </View>
-          )}
         </View>
-
-        {/* A dónde transferir la seña. Sólo para el pasajero (el conductor ya sabe sus datos)
-            y sólo si el viaje la pide — el server manda `driverDatosCobro` justamente con esa
-            condición. La plata va directo de uno al otro, la app no la toca; el comprobante
-            se manda por el chat del viaje. */}
-        {trip?.requiereSena && !isOwnTrip && trip.status !== 'completed' && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Cómo pagar la seña</Text>
-            {(trip.driverDatosCobro?.alias || trip.driverDatosCobro?.cvu) ? (
-              <>
-                {trip.driverDatosCobro?.alias ? (
-                  <TouchableOpacity
-                    style={[styles.senaRow, { borderColor: divider }]}
-                    onPress={() => copiarDatoCobro('Alias', trip.driverDatosCobro.alias)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.senaLabel, { color: textMuted }]}>ALIAS</Text>
-                      <Text style={[styles.senaValue, { color: textPrimary }]}>{trip.driverDatosCobro.alias}</Text>
-                    </View>
-                    <Ionicons name="copy-outline" size={18} color={textMuted} />
-                  </TouchableOpacity>
-                ) : null}
-                {trip.driverDatosCobro?.cvu ? (
-                  <TouchableOpacity
-                    style={[styles.senaRow, { borderColor: divider }]}
-                    onPress={() => copiarDatoCobro('CVU', trip.driverDatosCobro.cvu)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.senaLabel, { color: textMuted }]}>CVU / CBU</Text>
-                      <Text style={[styles.senaValue, { color: textPrimary }]}>{trip.driverDatosCobro.cvu}</Text>
-                    </View>
-                    <Ionicons name="copy-outline" size={18} color={textMuted} />
-                  </TouchableOpacity>
-                ) : null}
-                {trip.driverDatosCobro?.titular ? (
-                  <Text style={[styles.senaHint, { color: textMuted }]}>
-                    Titular: {trip.driverDatosCobro.titular}
-                  </Text>
-                ) : null}
-                <Text style={[styles.senaHint, { color: textMuted }]}>
-                  Transferí {senaLegible(trip.driverPrice, myBookingSeats) || 'la mitad'} y mandá el comprobante acá abajo. El resto se lo pagás al subir.
-                </Text>
-              </>
-            ) : (
-              <Text style={[styles.senaHint, { color: textMuted }]}>
-                Este conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale por el chat a dónde transferirle.
-              </Text>
-            )}
-
-            {/* Sólo una vez que el conductor lo aceptó: antes de eso no hay nada que señar. */}
-            {userBooking?.sena?.estado === 'esperando' && (
-              <TouchableOpacity
-                style={[styles.senaBtn, { backgroundColor: textPrimary }]}
-                onPress={mandarComprobante}
-                disabled={subiendoComprobante}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.senaBtnText, { color: bg }]}>
-                  {subiendoComprobante ? 'Enviando…' : 'Mandar comprobante'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            {userBooking?.sena?.estado === 'enviada' && (
-              <Text style={[styles.senaHint, { color: textMuted }]}>
-                Mandaste el comprobante. Falta que el conductor confirme que le llegó.
-              </Text>
-            )}
-            {userBooking?.sena?.estado === 'confirmada' && (
-              <Text style={[styles.senaHint, { color: textMuted }]}>
-                El conductor confirmó la seña. Tu lugar está reservado.
-              </Text>
-            )}
-          </View>
-        )}
 
         {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
             los asientos que reservó ESTE usuario no aparecían por ningún lado: había que ir
@@ -1918,12 +1795,6 @@ const styles = StyleSheet.create({
   headerPriceHint: { fontSize: 12 },
   // Fila de dato de cobro (alias / CVU) para pagar la seña: valor grande y el ícono de
   // copiar a la derecha, porque copiar es lo único que se hace acá.
-  senaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
-  senaLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5 },
-  senaValue: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
-  senaHint: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 10 },
-  senaBtn: { marginTop: 14, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  senaBtnText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
   // Footer
   footer: {
