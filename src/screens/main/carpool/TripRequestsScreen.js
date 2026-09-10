@@ -234,9 +234,12 @@ const TripRequestsScreen = ({ route }) => {
     const isSeatReservation = request.bookingType === 'seat_reservation';
     const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
 
-    const successParams = isSeatReservation && seatReservationId
-      ? { title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' }
-      : { title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' };
+    const pideSena = selectedTrip?.requiereSena || request.sena?.estado === 'esperando';
+    const successParams = pideSena
+      ? { title: 'Aceptaste', message: 'Le avisamos al pasajero que te mande la seña. Te confirma cuando la veas en tu cuenta.' }
+      : isSeatReservation && seatReservationId
+        ? { title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' }
+        : { title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' };
 
     navigation.navigate('Confirm', {
       title: 'Aceptar solicitud',
