@@ -101,11 +101,9 @@ const VehicleDetailScreen = ({ route }) => {
       {dato('Tipo', TIPO_LABEL[vehicle.type] || null)}
       {dato(
         'Documentación',
-        vehicle.documentacionCompleta
-          // "Completa" != "verificada": la subió el conductor y declaró, nadie la comprobó
-          // todavía (ver docStatus en el modelo Vehicle). No prometer de más.
-          ? 'Completa (declarada por el conductor)'
-          : 'Incompleta',
+        // "Completa" != "verificada": la subió el conductor y declaró, nadie la comprobó
+        // todavía (ver docStatus en el modelo Vehicle). No prometer de más.
+        vehicle.documentacionCompleta ? 'Completa' : 'Incompleta',
       )}
 
       {featuresActivas.length > 0 && (
