@@ -25,6 +25,7 @@ import RutaPolyline from '../../../components/map/RutaPolyline';
 const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
 const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
 const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
+import { senaLegible } from '../../../utils/sena';
 import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { buildRoutePoints, decodePolyline } from '../../../utils/routePoints';
@@ -907,6 +908,29 @@ const TripDetailScreen = ({ route, navigation }) => {
             <View style={[styles.headerPriceRow, { borderTopColor: divider }]}>
               <Text style={[styles.headerPriceLabel, { color: textMuted }]}>Gastos compartidos</Text>
               <Text style={[styles.headerPriceHint, { color: textMuted }]}>Se arreglan directo con el conductor</Text>
+            </View>
+          )}
+
+          {/* Que el viaje pide seña tiene que saberse ANTES de reservar: es plata que hay que
+              poner, y enterarse recién cuando te aceptan es una sorpresa.
+
+              Va como aclaración del precio y no como una segunda fila de precio: probamos eso
+              ("Seña para reservar $25.000" en negrita, del mismo tamaño que el precio) y se
+              leía como un cargo aparte que se suma. Es la mitad del mismo número de arriba.
+
+              El alias y el CVU NO van acá: esta pantalla la ve cualquiera que pase por el
+              viaje, y a dónde transferir sólo le importa a quien ya fue aceptado. Eso vive en
+              PagarSenaScreen, que se abre desde Mis reservas. */}
+          {trip?.requiereSena && trip.status !== 'completed' && (
+            <View style={[styles.senaNota, { borderTopColor: divider }]}>
+              <Ionicons name="shield-checkmark-outline" size={15} color={textMuted} />
+              <Text style={[styles.senaNotaText, { color: textMuted }]}>
+                Para reservar hay que señar{' '}
+                <Text style={{ color: textPrimary, fontFamily: 'Sora_600SemiBold' }}>
+                  {senaLegible(trip.driverPrice) || 'la mitad'}
+                </Text>
+                {' '}por transferencia una vez que el conductor te acepta. El resto se lo pagás al subir.
+              </Text>
             </View>
           )}
         </View>
@@ -1793,6 +1817,11 @@ const styles = StyleSheet.create({
   headerPriceLabel: { fontSize: 13, fontFamily: 'Sora_500Medium' },
   headerPriceValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
   headerPriceHint: { fontSize: 12 },
+  senaNota: {
+    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
+    marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  senaNotaText: { flex: 1, fontSize: 12.5, fontFamily: 'Sora_400Regular', lineHeight: 18 },
   // Fila de dato de cobro (alias / CVU) para pagar la seña: valor grande y el ícono de
   // copiar a la derecha, porque copiar es lo único que se hace acá.
 
