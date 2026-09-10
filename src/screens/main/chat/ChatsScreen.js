@@ -60,7 +60,6 @@ const ChatsScreen = ({ navigation }) => {
   const [loadingMoreConv, setLoadingMoreConv] = useState(false);
   const convFetchLock = useRef(false);
   const lastConvLoadRef = useRef(0);
-  const [filter, setFilter] = useState('all'); // 'all', 'trips', 'direct'
   const [searchTerm, setSearchTerm] = useState('');
   const conversationsRef = useRef([]);
   const [chatActionsTarget, setChatActionsTarget] = useState(null);
@@ -390,7 +389,9 @@ const ChatsScreen = ({ navigation }) => {
     return messageDate.toLocaleDateString();
   };
 
-  // Filtrar conversaciones según el filtro seleccionado y búsqueda
+  // Sólo por búsqueda. Los tres tabs (Todos / Viajes / Directos) se sacaron: TODA
+  // conversación nace de un viaje —las tres vías que abren un chat mandan `tripId`—, así que
+  // "Directos" estaba siempre vacío y "Todos" era idéntico a "Viajes".
   const filteredConversations = conversations.filter(conv => {
     const otherUser = getOtherParticipant(conv);
     const matchesSearch = !searchTerm || 
@@ -398,15 +399,16 @@ const ChatsScreen = ({ navigation }) => {
       otherUser?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       `${otherUser?.firstName} ${otherUser?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Aplicar filtro de tipo
-    if (filter === 'trips') return matchesSearch && !!conv.trip; // Solo conversaciones con viaje
-    if (filter === 'direct') return matchesSearch && !conv.trip; // Solo conversaciones sin viaje (directos)
-    return matchesSearch; // 'all' - todas las conversaciones que coincidan con la búsqueda
+    return matchesSearch;
   });
 
   const renderConversation = ({ item }) => {
     const otherUser = getOtherParticipant(item);
-    const lastMessagePreview = item.lastMessage?.content || 'Sin mensajes';
+    // Un mensaje que es sólo una foto no tiene texto: sin esto la lista decía
+    // "Sin mensajes" justo cuando acababa de llegar el comprobante de la seña.
+    const lastMessagePreview =
+      item.lastMessage?.content
+      || (item.lastMessage?.imageUrl ? '📷 Foto' : 'Sin mensajes');
     const userId = user?._id || user?.id;
 
     const hasLastMessage = !!item.lastMessage;
@@ -539,64 +541,6 @@ const ChatsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Filtros */}
-        <View style={[styles.filterContainer, { backgroundColor: ui.surface }]}>
-          <TouchableOpacity
-            style={[
-              styles.filterButton, 
-              filter === 'all' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
-            ]}
-            onPress={() => setFilter('all')}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              { 
-                color: filter === 'all' ? (ui.invertText) : (ui.textMuted),
-                fontWeight: filter === 'all' ? '600' : '500'
-              }
-            ]}>
-              Todos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterButton, 
-              filter === 'trips' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
-            ]}
-            onPress={() => setFilter('trips')}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              { 
-                color: filter === 'trips' ? (ui.invertText) : (ui.textMuted),
-                fontWeight: filter === 'trips' ? '600' : '500'
-              }
-            ]}>
-              Viajes
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterButton, 
-              filter === 'direct' && [styles.filterButtonActive, { backgroundColor: ui.invertBg }]
-            ]}
-            onPress={() => setFilter('direct')}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              { 
-                color: filter === 'direct' ? (ui.invertText) : (ui.textMuted),
-                fontWeight: filter === 'direct' ? '600' : '500'
-              }
-            ]}>
-              Directos
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {filteredConversations.length === 0 ? (
           <ScrollView
             style={{ flex: 1 }}
@@ -617,11 +561,7 @@ const ChatsScreen = ({ navigation }) => {
                     ? 'No tienes conversaciones'
                     : searchTerm
                       ? 'No se encontraron conversaciones'
-                      : filter === 'trips'
-                        ? 'No tienes conversaciones de viajes'
-                        : filter === 'direct'
-                          ? 'No tienes mensajes directos'
-                          : 'No hay conversaciones'
+                      : 'No hay conversaciones'
                 }
               />
             </View>
@@ -797,34 +737,6 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     marginLeft: spacing.xs,
     borderRadius: borderRadius.full,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    // backgroundColor: '#F3F4F6', // Ahora dinámico
-    borderRadius: borderRadius.full,
-    padding: 5,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.xs,
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: spacing.sm + 3,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterButtonActive: {
-    // backgroundColor: '#FFFFFF', // Ahora dinámico
-  },
-  filterButtonText: {
-    fontSize: fontSize.sm,
-    fontFamily: SORA_FONTS.medium,
-  },
-  filterButtonTextActive: {
-    fontFamily: SORA_FONTS.semiBold,
   },
   listContent: {
     padding: spacing.md,

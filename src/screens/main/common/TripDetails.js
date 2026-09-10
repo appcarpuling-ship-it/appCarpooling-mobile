@@ -16,6 +16,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimeRow from '../../../components/ui/DateTimeRow';
+import { senaLegible } from '../../../utils/sena';
 import { post_withauth } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
 import { useColors } from '../../../hooks/useColors';
@@ -87,7 +89,7 @@ const TripDetails = ({ navigation, route }) => {
         availableSeats: '',
         driverPrice:    '',
         sinPrecioFijo:  false,
-        aceptaEfectivo: false,
+        requiereSena:   false,
 
         notes:          '',
         allowSmoking:        false,
@@ -97,6 +99,18 @@ const TripDetails = ({ navigation, route }) => {
     });
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+    // Vista previa de la seña mientras escribe el precio. El número final lo deriva el
+    // server con la misma regla (la mitad), esto es sólo para que sepa qué está ofreciendo.
+    const senaPreview = senaLegible(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) || 0);
+    // Sin CVU ni alias cargados, pedir seña no sirve: el pasajero no tiene a dónde transferir.
+    const tieneDatosCobro = Boolean(user?.datosCobro?.cvu || user?.datosCobro?.alias);
+
+    // Mínimo para el <input type="date"> de web (equivalente a minimumDate={new Date()}).
+    const todayStr = (() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    })();
 
     const onDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -244,8 +258,10 @@ const TripDetails = ({ navigation, route }) => {
                 driverPrice: precioConductor,
                 // El server lo ignora igual si sinPrecioFijo viene en true: fuerza 0.
                 sinPrecioFijo: formData.sinPrecioFijo === true,
-                // Sólo informativo — no cambia cómo se cobra la comisión.
-                aceptaEfectivo: formData.aceptaEfectivo === true,
+                // El pasajero adelanta la mitad para reservar. Con "gastos compartidos" no
+                // hay precio del cual sacarla, así que se apaga acá también (el server la
+                // normaliza igual — ver backend/utils/sena.js).
+                requiereSena: formData.sinPrecioFijo !== true && formData.requiereSena === true,
                 notes: formData.notes,
                 rules: {
                     smokingAllowed:      formData.allowSmoking,
@@ -535,38 +551,48 @@ const TripDetails = ({ navigation, route }) => {
                             </View>
                             )}
 
-                            {/* Sólo informativo: en este modelo el pasajero SIEMPRE le paga
-                                directo al conductor, nunca por la app, así que no hay un
-                                segundo método del cual "aceptar efectivo" sea la alternativa.
-                                No cambia el cobro ni el flujo — es un aviso para el pasajero
-                                de que este conductor recibe billetes, no sólo transferencia. */}
+                            {/* Seña: el pasajero adelanta la mitad para reservar. Es el
+                                compromiso contra el que se baja a último momento, cuando el
+                                conductor ya contaba con esa plata.
+                                No aparece con "Gastos compartidos": sin precio por asiento no
+                                hay mitad que calcular (el server lo fuerza igual, ver
+                                utils/sena.js — esconderlo acá es sólo no ofrecer algo roto). */}
+                            {!formData.sinPrecioFijo && (
                             <TouchableOpacity
                                 style={[styles.inputRow, { alignItems: 'flex-start' }]}
-                                onPress={() => handleChange('aceptaEfectivo', !formData.aceptaEfectivo)}
+                                onPress={() => handleChange('requiereSena', !formData.requiereSena)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="wallet-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
+                                <Ionicons name="shield-checkmark-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
                                 <View style={{ flex: 1 }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
-                                            Acepto efectivo
+                                            Pido seña
                                         </Text>
                                         <View style={[
                                             styles.toggle,
-                                            { backgroundColor: formData.aceptaEfectivo ? textPrimary : divider },
+                                            { backgroundColor: formData.requiereSena ? textPrimary : divider },
                                         ]}>
                                             <View style={[
                                                 styles.toggleCircle,
-                                                { backgroundColor: formData.aceptaEfectivo ? ui.invertText : textMuted },
-                                                formData.aceptaEfectivo && styles.toggleOn,
+                                                { backgroundColor: formData.requiereSena ? ui.invertText : textMuted },
+                                                formData.requiereSena && styles.toggleOn,
                                             ]} />
                                         </View>
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
-                                        Le avisa al pasajero que además de transferencia, también recibís efectivo.
+                                        {senaPreview
+                                            ? `El pasajero te transfiere ${senaPreview} por asiento para reservar, y el resto al subir.`
+                                            : 'El pasajero te adelanta la mitad para reservar, y te paga el resto al subir. Poné el precio por asiento para ver cuánto es.'}
                                     </Text>
+                                    {formData.requiereSena && !tieneDatosCobro && (
+                                        <Text style={{ color: '#B45309', fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 17, marginTop: 6 }}>
+                                            Cargá tu CVU o alias en tu perfil, si no el pasajero no sabe a dónde transferirte.
+                                        </Text>
+                                    )}
                                 </View>
                             </TouchableOpacity>
+                            )}
                         </View>
                         {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                             <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
@@ -590,6 +616,27 @@ const TripDetails = ({ navigation, route }) => {
                         {/* Fecha y hora */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+                            {Platform.OS === 'web' ? (
+                                <>
+                                    <DateTimeRow
+                                        mode="date"
+                                        icon="calendar-outline"
+                                        value={formData.departureDate}
+                                        min={todayStr}
+                                        onChange={(v) => handleChange('departureDate', v)}
+                                        colors={{ textPrimary, textMuted, divider, isDark: ui.isDarkMode }}
+                                    />
+                                    <DateTimeRow
+                                        mode="time"
+                                        icon="time-outline"
+                                        value={formData.departureTime}
+                                        onChange={(v) => handleChange('departureTime', v)}
+                                        isLast
+                                        colors={{ textPrimary, textMuted, divider, isDark: ui.isDarkMode }}
+                                    />
+                                </>
+                            ) : (
+                                <>
                             <TouchableOpacity
                                 style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
                                 onPress={() => setShowDatePicker(true)}
@@ -612,6 +659,8 @@ const TripDetails = ({ navigation, route }) => {
                                 </Text>
                                 <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
+                                </>
+                            )}
                         </View>
 
                             </>

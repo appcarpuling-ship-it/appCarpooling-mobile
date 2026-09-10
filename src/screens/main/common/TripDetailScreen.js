@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
+import * as Clipboard from 'expo-clipboard';
+import { senaLegible } from '../../../utils/sena';
 
 // Puntos del preview del mapa en Android (ver el <Marker image=> más abajo). Réplica exacta de
 // los estilos previewDotOrigin/Stop/Dest, que en iOS se siguen dibujando como vista propia.
@@ -643,6 +645,14 @@ const TripDetailScreen = ({ route, navigation }) => {
   const driverId = trip.driver?._id || trip.driver?.id;
   const isOwnTrip = userId && driverId && userId === driverId;
   const driver = trip.driver;
+
+  // Copiar el CVU/alias al que hay que transferirle la seña. Un CVU son 22 dígitos: tipearlo
+  // a mano es justo donde alguien se come un número y la plata se va a otra cuenta.
+  const copiarDatoCobro = async (que, valor) => {
+    if (!valor) return;
+    await Clipboard.setStringAsync(String(valor));
+    showAlert('Copiado', `${que} copiado al portapapeles`);
+  };
   // Mismos estados que el footer trata como "Reserva paga" (líneas de abajo): sin esto, el chat
   // quedaba visible con solo tener una reserva creada, antes de pagarla o de que la aprueben.
   const isPassengerPaid = Boolean(
@@ -908,7 +918,69 @@ const TripDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.headerPriceHint, { color: textMuted }]}>Se arreglan directo con el conductor</Text>
             </View>
           )}
+          {/* Seña: la mitad por adelantado para reservar. Va en la cabecera, junto al precio,
+              porque es plata que el pasajero tiene que poner ANTES de decidir. */}
+          {trip?.requiereSena && trip.status !== 'completed' && (
+            <View style={[styles.headerPriceRow, { borderTopColor: divider }]}>
+              <Text style={[styles.headerPriceLabel, { color: textMuted }]}>Seña para reservar</Text>
+              <Text style={[styles.headerPriceValue, { color: textPrimary }]}>
+                {senaLegible(trip.driverPrice) || 'La mitad'}
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* A dónde transferir la seña. Sólo para el pasajero (el conductor ya sabe sus datos)
+            y sólo si el viaje la pide — el server manda `driverDatosCobro` justamente con esa
+            condición. La plata va directo de uno al otro, la app no la toca; el comprobante
+            se manda por el chat del viaje. */}
+        {trip?.requiereSena && !isOwnTrip && trip.status !== 'completed' && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: textMuted }]}>Cómo pagar la seña</Text>
+            {(trip.driverDatosCobro?.alias || trip.driverDatosCobro?.cvu) ? (
+              <>
+                {trip.driverDatosCobro?.alias ? (
+                  <TouchableOpacity
+                    style={[styles.senaRow, { borderColor: divider }]}
+                    onPress={() => copiarDatoCobro('Alias', trip.driverDatosCobro.alias)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.senaLabel, { color: textMuted }]}>ALIAS</Text>
+                      <Text style={[styles.senaValue, { color: textPrimary }]}>{trip.driverDatosCobro.alias}</Text>
+                    </View>
+                    <Ionicons name="copy-outline" size={18} color={textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+                {trip.driverDatosCobro?.cvu ? (
+                  <TouchableOpacity
+                    style={[styles.senaRow, { borderColor: divider }]}
+                    onPress={() => copiarDatoCobro('CVU', trip.driverDatosCobro.cvu)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.senaLabel, { color: textMuted }]}>CVU / CBU</Text>
+                      <Text style={[styles.senaValue, { color: textPrimary }]}>{trip.driverDatosCobro.cvu}</Text>
+                    </View>
+                    <Ionicons name="copy-outline" size={18} color={textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+                {trip.driverDatosCobro?.titular ? (
+                  <Text style={[styles.senaHint, { color: textMuted }]}>
+                    Titular: {trip.driverDatosCobro.titular}
+                  </Text>
+                ) : null}
+                <Text style={[styles.senaHint, { color: textMuted }]}>
+                  Transferí {senaLegible(trip.driverPrice) || 'la mitad'} y mandale el comprobante por el chat. El resto se lo pagás al subir.
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.senaHint, { color: textMuted }]}>
+                Este conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale por el chat a dónde transferirle.
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
             los asientos que reservó ESTE usuario no aparecían por ningún lado: había que ir
@@ -1792,6 +1864,12 @@ const styles = StyleSheet.create({
   headerPriceLabel: { fontSize: 13, fontFamily: 'Sora_500Medium' },
   headerPriceValue: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
   headerPriceHint: { fontSize: 12 },
+  // Fila de dato de cobro (alias / CVU) para pagar la seña: valor grande y el ícono de
+  // copiar a la derecha, porque copiar es lo único que se hace acá.
+  senaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  senaLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5 },
+  senaValue: { fontSize: 15, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
+  senaHint: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 10 },
 
   // Footer
   footer: {

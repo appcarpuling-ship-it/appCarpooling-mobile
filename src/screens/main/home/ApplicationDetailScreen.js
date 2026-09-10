@@ -17,7 +17,7 @@ import PillButton from '../../../components/ui/PillButton';
 import { armarRecorrido, recorridoElegido, armarTripParaMapa, ofertaDelConductor } from '../../../utils/postulacionTrip';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
-  const { app, requestId, tramoPasajero } = route.params;
+  const { app, requestId, tramoPasajero, seatsNeeded = 1 } = route.params;
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -36,7 +36,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const vehicle = app.vehicleSnapshot || {};
   const recorrido = armarRecorrido(app, tramoPasajero);
   const eleccion = recorridoElegido(app);
-  const oferta = ofertaDelConductor(app);
+  const oferta = ofertaDelConductor(app, seatsNeeded);
   const tripParaMapa = armarTripParaMapa(app, tramoPasajero, driver, vehicle);
 
   // Las fotos: la principal es `photo`, y `photos` puede repetirla. Se deduplica para no
@@ -156,6 +156,16 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                 {oferta.detalle}
               </Text>
             )}
+            {/* Si este conductor pide seña, va acá pegado al precio: es plata que hay que
+                adelantar y es parte de lo que se compara entre las propuestas. */}
+            {oferta.sena ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                <Ionicons name="shield-checkmark-outline" size={15} color={textMuted} />
+                <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, flex: 1 }}>
+                  Pide {oferta.sena} de seña por adelantado para reservar.
+                </Text>
+              </View>
+            ) : null}
           </View>
         )}
 

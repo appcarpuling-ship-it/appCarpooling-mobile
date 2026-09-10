@@ -9,6 +9,7 @@
  */
 
 const { metersBetween } = require('./routePoints');
+const { senaLegible } = require('./sena');
 
 // Dirección (línea principal) + ciudad/provincia (línea chica), cuando no son lo mismo.
 // Antes era sólo `address || city`: las puntas del conductor tienen una dirección de calle
@@ -128,13 +129,16 @@ const armarTripParaMapa = (app, tramo, driver, vehicle) => {
  * `null` cuando la postulación es vieja y no declaró ninguna de las dos cosas: ahí no hay nada
  * que decir, y es distinto de decir "$0".
  */
-const ofertaDelConductor = (app) => {
+const ofertaDelConductor = (app, asientos = 1) => {
   if (Number(app?.driverPrice) > 0) {
     return {
       esPrecio: true,
       etiqueta: 'Su precio por asiento',
       texto: `$${Number(app.driverPrice).toLocaleString('es-AR')}`,
       detalle: 'por asiento',
+      // La mitad por adelantado para reservar, si este conductor la pide. Es parte de lo
+      // que el pasajero compara entre las hasta 5 propuestas, igual que el precio.
+      sena: app?.requiereSena ? senaLegible(app.driverPrice, asientos) : '',
     };
   }
   if (app?.sinPrecioFijo) {
@@ -143,6 +147,8 @@ const ofertaDelConductor = (app) => {
       etiqueta: 'Su propuesta',
       texto: 'Gastos compartidos',
       detalle: 'Arreglás los gastos del viaje directo con el conductor',
+      // Sin precio no hay mitad: nunca hay seña en esta modalidad.
+      sena: '',
     };
   }
   return null;

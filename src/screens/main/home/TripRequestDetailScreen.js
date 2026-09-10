@@ -498,7 +498,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     ? { ...statusBase, label: 'Sin confirmar' }
     : statusBase;
   const acceptedApp = request.applications?.find(a => a.status === 'accepted');
-  const ofertaAceptada = acceptedApp ? ofertaDelConductor(acceptedApp) : null;
+  const ofertaAceptada = acceptedApp ? ofertaDelConductor(acceptedApp, request?.seatsNeeded) : null;
   const passenger   = request.passenger;
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
@@ -778,6 +778,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   onPress={() => navigation.navigate('ApplicationDetail', {
                     app,
                     requestId,
+                    // Cuántos asientos pidió: la seña es la mitad de lo que paga ESTE
+                    // pasajero, así que sin esto saldría la mitad de un solo asiento.
+                    seatsNeeded: request.seatsNeeded,
                     // Para poder mostrar el recorrido completo: dónde sube y baja el pasajero
                     // entre las puntas del conductor.
                     // Con las paradas: sin ellas, la postulación mostraba el tramo del
@@ -827,7 +830,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                           modalidad no va nada: un hueco vacío se lee como si esta postulación
                           no tuviera nada que ofrecer, pero "$0" mentiría. */}
                       {(() => {
-                        const oferta = ofertaDelConductor(app);
+                        const oferta = ofertaDelConductor(app, request.seatsNeeded);
                         if (!oferta) return null;
                         return oferta.esPrecio ? (
                           <View style={{ alignItems: 'flex-end' }}>
@@ -835,6 +838,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                               {oferta.texto}
                             </Text>
                             <Text style={{ color: textMuted, fontSize: 10 }}>{oferta.detalle}</Text>
+                            {/* Quién pide seña se ve sin abrir la propuesta: es justo lo
+                                que se compara de un vistazo entre las cinco. */}
+                            {oferta.sena ? (
+                              <Text style={{ color: textMuted, fontSize: 10, marginTop: 2 }}>
+                                seña {oferta.sena}
+                              </Text>
+                            ) : null}
                           </View>
                         ) : (
                           <Text style={{ color: textMuted, fontSize: 11, fontFamily: 'Sora_600SemiBold' }}>

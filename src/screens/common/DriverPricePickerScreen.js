@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
+import { senaLegible } from '../../utils/sena';
 
 /**
  * Último paso al postularse a una solicitud: cuánto cobra el conductor por asiento, o si
@@ -19,7 +20,7 @@ import PillButton from '../../components/ui/PillButton';
  *
  *   navigation.navigate('DriverPricePicker', { seatsNeeded, onDone })
  *     seatsNeeded  cuántos asientos pidió el pasajero, para mostrar el total
- *     onDone       ({ driverPrice, sinPrecioFijo, aceptaEfectivo }) => void
+ *     onDone       ({ driverPrice, sinPrecioFijo, requiereSena }) => void
  */
 const formatMiles = (n) => Number(n).toLocaleString('es-AR');
 
@@ -31,10 +32,12 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
   const [precio, setPrecio] = useState('');
   const [error, setError] = useState('');
   const [sinPrecioFijo, setSinPrecioFijo] = useState(false);
-  const [aceptaEfectivo, setAceptaEfectivo] = useState(false);
+  const [requiereSena, setRequiereSena] = useState(false);
 
   const valor = parseInt(String(precio).replace(/\./g, ''), 10) || 0;
   const asientos = Math.max(1, Number(seatsNeeded) || 1);
+  // La mitad de lo que va a pagar ESE pasajero (precio × asientos que pidió).
+  const senaTexto = senaLegible(valor, asientos);
 
   const confirmar = () => {
     if (!sinPrecioFijo && valor <= 0) {
@@ -42,7 +45,11 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
       return;
     }
     navigation.goBack();
-    onDone?.({ driverPrice: sinPrecioFijo ? 0 : valor, sinPrecioFijo, aceptaEfectivo });
+    onDone?.({
+      driverPrice: sinPrecioFijo ? 0 : valor,
+      sinPrecioFijo,
+      requiereSena: !sinPrecioFijo && requiereSena,
+    });
   };
 
   return (
@@ -139,31 +146,36 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {/* Sólo informativo, igual que en TripDetails: no cambia el cobro. */}
+          {/* Seña: mismo concepto que al publicar un viaje. No aparece con "gastos
+              compartidos" porque sin precio por asiento no hay mitad que calcular. */}
+          {!sinPrecioFijo && (
           <TouchableOpacity
             style={[styles.row, { backgroundColor: ui.surface, borderColor: ui.border, marginTop: 4 }]}
-            onPress={() => setAceptaEfectivo((v) => !v)}
+            onPress={() => setRequiereSena((v) => !v)}
             activeOpacity={0.7}
           >
-            <Ionicons name="wallet-outline" size={19} color={ui.text} style={{ marginTop: 2 }} />
+            <Ionicons name="shield-checkmark-outline" size={19} color={ui.text} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={{ color: ui.text, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
-                  Acepto efectivo
+                  Pido seña
                 </Text>
-                <View style={[styles.toggle, { backgroundColor: aceptaEfectivo ? ui.text : ui.border }]}>
+                <View style={[styles.toggle, { backgroundColor: requiereSena ? ui.text : ui.border }]}>
                   <View style={[
                     styles.toggleCircle,
-                    { backgroundColor: aceptaEfectivo ? ui.invertText : ui.textMuted },
-                    aceptaEfectivo && styles.toggleOn,
+                    { backgroundColor: requiereSena ? ui.invertText : ui.textMuted },
+                    requiereSena && styles.toggleOn,
                   ]} />
                 </View>
               </View>
               <Text style={{ color: ui.textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
-                Le avisa al pasajero que además de transferencia, también recibís efectivo.
+                {senaTexto
+                  ? `Te transfiere ${senaTexto} por adelantado para reservar, y el resto al subir.`
+                  : 'Te adelanta la mitad para reservar, y te paga el resto al subir. Poné el precio para ver cuánto es.'}
               </Text>
             </View>
           </TouchableOpacity>
+          )}
 
           <View style={styles.footer}>
             <PillButton label="Enviar propuesta" onPress={confirmar} />

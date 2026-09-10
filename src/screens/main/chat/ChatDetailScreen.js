@@ -15,6 +15,7 @@ import {
   DeviceEventEmitter,
   Dimensions,
   AppState,
+  Modal,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -22,7 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
 import { useUnreadMessages } from '../../../hooks/useUnreadMessages';
-import apiService, { buildImageUri } from '../../../services/apiService';
+import apiService, { buildImageUri, post_withauth_formdata } from '../../../services/apiService';
+import { appendFile } from '../../../utils/formDataFile';
+import { useElegirFoto } from '../../../hooks/useElegirFoto';
+import { useAlert } from '../../../context/AlertContext';
 import socketService from '../../../services/socketService';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
@@ -106,6 +110,10 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const isFocusedRef = useRef(isFocused);
   
   const { loadUnreadCount, setActiveConversation, clearActiveConversation } = useUnreadMessages();
+  // Arriba con el resto de los hooks a propósito: más abajo, cualquier `return`
+  // temprano que alguien agregue en el medio los saltearía y la pantalla crashea.
+  const elegirFoto = useElegirFoto();
+  const { showAlert } = useAlert();
   const [messages, setMessages] = useState([]);
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -116,6 +124,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  // Envío de fotos: comprobantes de seña, capturas, el punto de encuentro.
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [fotoAmpliada, setFotoAmpliada] = useState(null);
   const [typing, setTyping] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -473,6 +484,31 @@ const ChatDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  /**
+   * La foto va por HTTP multipart y no por el socket como el texto: un socket no transporta
+   * archivos. El backend, al guardarla, emite el mismo `message:received` de siempre, así que
+   * la burbuja aparece por el canal de siempre y no hace falta agregarla optimísticamente.
+   */
+  const handleEnviarFoto = () => {
+    if (subiendoFoto || sending) return;
+    elegirFoto(async (uri) => {
+      setSubiendoFoto(true);
+      try {
+        const fd = new FormData();
+        fd.append('conversationId', conversationId);
+        await appendFile(fd, 'image', uri, 'foto.jpg');
+        const res = await post_withauth_formdata('/chat/message', fd);
+        if (!res?.success) throw new Error(res?.message || 'No se pudo enviar la foto');
+        scrollToBottom();
+      } catch (e) {
+        reportError(e, { screen: 'ChatDetail', action: 'enviarFoto' });
+        showAlert('Ocurrió algo', 'No pudimos enviar la foto. Probá de nuevo.');
+      } finally {
+        setSubiendoFoto(false);
+      }
+    }, { titulo: 'Enviar foto', mensaje: '¿De dónde la querés sacar?' });
+  };
+
   const handleTyping = (text) => {
     setNewMessage(text);
 
@@ -521,9 +557,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
       >
         {isOwnMessage ? (
           <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
+            {item.imageUrl ? (
+              <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
+                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+              </TouchableOpacity>
+            ) : null}
+            {item.content ? (
             <Text style={[styles.messageText, { color: ui.invertText }]}>
               {item.content}
             </Text>
+            ) : null}
             <Text style={[styles.messageTime, { color: ui.invertText, opacity: 0.6 }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
@@ -534,9 +577,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
             styles.otherMessage,
             { backgroundColor: ui.surface }
           ]}>
+            {item.imageUrl ? (
+              <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
+                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+              </TouchableOpacity>
+            ) : null}
+            {item.content ? (
             <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
               {item.content}
             </Text>
+            ) : null}
             <Text style={[styles.messageTime, styles.otherMessageTime, { color: ui.textMuted }]}>
               {formatMessageTime(item.createdAt)}
             </Text>
@@ -624,6 +674,21 @@ const ChatDetailScreen = ({ route, navigation }) => {
             paddingBottom: inputPadBottom,
           },
         ]}>
+          {/* Adjuntar foto: el mismo selector Cámara/Galería/Cancelar del resto de la app.
+              Es lo que hace usable la seña — el pasajero transfiere y manda el comprobante
+              acá mismo, en el chat del viaje. */}
+          <TouchableOpacity
+            onPress={handleEnviarFoto}
+            disabled={subiendoFoto || sending}
+            activeOpacity={0.7}
+            style={[styles.attachButton, { backgroundColor: ui.surface, borderColor: ui.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Adjuntar foto"
+          >
+            {subiendoFoto
+              ? <ActivityIndicator size="small" color={ui.text} />
+              : <Ionicons name="camera-outline" size={20} color={ui.text} />}
+          </TouchableOpacity>
           <TextInput
             style={[
               styles.input,
@@ -661,6 +726,15 @@ const ChatDetailScreen = ({ route, navigation }) => {
         </Animated.View>
         </Animated.View>
       </View>
+
+      {/* Foto a pantalla completa: un comprobante de transferencia en una burbuja chica no
+          se lee. Se cierra tocando en cualquier lado. */}
+      <Modal visible={!!fotoAmpliada} transparent animationType="fade" onRequestClose={() => setFotoAmpliada(null)}>
+        <TouchableOpacity style={styles.fotoOverlay} activeOpacity={1} onPress={() => setFotoAmpliada(null)}>
+          <Image source={{ uri: fotoAmpliada }} style={styles.fotoAmpliada} resizeMode="contain" />
+        </TouchableOpacity>
+      </Modal>
+
     </KeyboardAvoidingView>
   );
 };
@@ -760,6 +834,15 @@ const styles = StyleSheet.create({
   otherMessage: {
     borderBottomLeftRadius: 4
   },
+  // Foto dentro de la burbuja. Ancho fijo para que todas se vean parejas; el alto sale del
+  // 4:3 más común en fotos de celular, y `cover` recorta lo que sobre.
+  messageImage: { width: 200, height: 150, borderRadius: 12, marginBottom: 6 },
+  attachButton: {
+    width: 44, height: 44, borderRadius: 22, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', marginRight: 8,
+  },
+  fotoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  fotoAmpliada: { width: '100%', height: '80%' },
   messageText: {
     fontSize: 15,
     lineHeight: 21,

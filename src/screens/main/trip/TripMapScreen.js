@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
+import { senaLegible } from '../../../utils/sena';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../context/AuthContext';
@@ -1205,7 +1206,7 @@ const TripMapScreen = ({ route, navigation }) => {
         }
       >
         {/* Etiquetas de plata: el mismo criterio que en el resto de la app — un tag para el
-            precio o "gastos compartidos", y otro si el conductor acepta efectivo. */}
+            precio o "gastos compartidos", y otro si el conductor pide seña. */}
         <View style={styles.sheetTagsRow}>
           {precioTag && (
             <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
@@ -1213,10 +1214,12 @@ const TripMapScreen = ({ route, navigation }) => {
               <Text style={[styles.sheetTagText, { color: textPrimary }]}>{precioTag.texto}</Text>
             </View>
           )}
-          {trip?.aceptaEfectivo && (
+          {trip?.requiereSena && (
             <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
-              <Ionicons name="wallet-outline" size={13} color={textPrimary} />
-              <Text style={[styles.sheetTagText, { color: textPrimary }]}>Acepta efectivo</Text>
+              <Ionicons name="shield-checkmark-outline" size={13} color={textPrimary} />
+              <Text style={[styles.sheetTagText, { color: textPrimary }]}>
+                {senaLegible(trip?.driverPrice) ? `Seña ${senaLegible(trip?.driverPrice)}` : 'Con seña'}
+              </Text>
             </View>
           )}
         </View>
