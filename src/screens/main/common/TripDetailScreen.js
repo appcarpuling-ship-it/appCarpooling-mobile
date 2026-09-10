@@ -924,7 +924,7 @@ const TripDetailScreen = ({ route, navigation }) => {
               El alias y el CVU NO van acá: esta pantalla la ve cualquiera que pase por el
               viaje, y a dónde transferir sólo le importa a quien ya fue aceptado. Eso vive en
               PagarSenaScreen, que se abre desde Mis reservas. */}
-          {trip?.requiereSena && trip.status !== 'completed' && (
+          {trip?.requiereSena && trip.status !== 'completed' && !isOwnTrip && (
             <View style={[styles.senaNota, { borderTopColor: divider }]}>
               <Ionicons name="shield-checkmark-outline" size={15} color={textMuted} />
               <Text style={[styles.senaNotaText, { color: textMuted }]}>
@@ -936,6 +936,71 @@ const TripDetailScreen = ({ route, navigation }) => {
               </Text>
             </View>
           )}
+
+          {/* El mismo dato, del lado del conductor: cuánto va a cobrar de seña y —lo que
+              pidió el usuario— qué datos suyos van a ver los pasajeros que acepte, para que
+              los pueda revisar sin salir de acá. Si no cargó nada, el aviso lleva a la
+              pantalla de datos de cobro. */}
+          {trip?.requiereSena && trip.status !== 'completed' && isOwnTrip && (() => {
+            const dc = user?.datosCobro || {};
+            const tieneDatos = Boolean(dc.cvu || dc.alias);
+            return (
+              <View style={[styles.senaNota, { borderTopColor: divider, flexDirection: 'column', gap: 10 }]}>
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+                  <Ionicons name="shield-checkmark-outline" size={15} color={textMuted} />
+                  <Text style={[styles.senaNotaText, { color: textMuted }]}>
+                    Pedís seña: cada pasajero que aceptes te transfiere{' '}
+                    <Text style={{ color: textPrimary, fontFamily: 'Sora_600SemiBold' }}>
+                      {senaLegible(trip.driverPrice) || 'la mitad'}
+                    </Text>
+                    {' '}por asiento para reservar, y el resto al subir.
+                  </Text>
+                </View>
+
+                {tieneDatos ? (
+                  <View style={[styles.senaDatosCobro, { borderColor: divider }]}>
+                    <Text style={[styles.senaDatosCobroLabel, { color: textMuted }]}>
+                      LOS PASAJEROS QUE ACEPTES VAN A VER
+                    </Text>
+                    {!!dc.alias && (
+                      <Text style={[styles.senaDatosCobroValue, { color: textPrimary }]}>
+                        Alias: {dc.alias}
+                      </Text>
+                    )}
+                    {!!dc.cvu && (
+                      <Text style={[styles.senaDatosCobroValue, { color: textPrimary }]}>
+                        CVU: {dc.cvu}
+                      </Text>
+                    )}
+                    {!!dc.titular && (
+                      <Text style={[styles.senaDatosCobroValue, { color: textMuted }]}>
+                        Titular: {dc.titular}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('ProfileTab', { screen: 'DatosCobro', initial: false })}
+                      activeOpacity={0.7}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}
+                    >
+                      <Text style={[styles.senaDatosCobroEdit, { color: textPrimary }]}>Cambiar mis datos de cobro</Text>
+                      <Ionicons name="chevron-forward" size={13} color={textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ProfileTab', { screen: 'DatosCobro', initial: false })}
+                    activeOpacity={0.7}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  >
+                    <Text style={{ color: '#B45309', fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 17, flex: 1 }}>
+                      No cargaste tu CVU ni alias. Los pasajeros no van a saber a dónde transferirte la seña.
+                    </Text>
+                    <Ionicons name="chevron-forward" size={14} color="#B45309" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })()}
         </View>
 
         {/* Tu reserva. Esta pantalla es la misma para cualquiera que mire el viaje, así que
@@ -1742,6 +1807,10 @@ const styles = StyleSheet.create({
     marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth,
   },
   senaNotaText: { flex: 1, fontSize: 12.5, fontFamily: 'Sora_400Regular', lineHeight: 18 },
+  senaDatosCobro: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, gap: 3 },
+  senaDatosCobroLabel: { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, marginBottom: 4 },
+  senaDatosCobroValue: { fontSize: 13, fontFamily: 'Sora_500Medium' },
+  senaDatosCobroEdit: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   // Fila de dato de cobro (alias / CVU) para pagar la seña: valor grande y el ícono de
   // copiar a la derecha, porque copiar es lo único que se hace acá.
 
