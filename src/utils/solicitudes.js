@@ -66,3 +66,16 @@ export const partirDesvio = (etiqueta) => {
   if (!etiqueta.startsWith('+')) return { fuerte: 'De paso', pie: null };
   return { fuerte: etiqueta.replace(' de desvío', ''), pie: 'de desvío' };
 };
+
+/**
+ * Para el conductor no es lo mismo "todavía no respondí" que "ya acepté y estoy esperando que
+ * me transfiera": las dos son `pending` en la base, porque la reserva recién se confirma
+ * cuando él dice que la seña le llegó. Por eso el estado de la seña pisa la etiqueta.
+ * Ver `Booking.sena` en el backend.
+ */
+export const getStatusConSena = (item) => {
+  const sena = item?.sena?.estado;
+  if (sena === 'esperando') return { solid: false, label: 'Esperando la seña' };
+  if (sena === 'enviada') return { solid: true, label: 'Mandó la seña' };
+  return getStatus(estadoDe(item));
+};

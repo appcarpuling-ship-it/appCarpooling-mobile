@@ -26,7 +26,7 @@ import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { reportError } from '../../../utils/sentry';
 import {
-  getStatus,
+  getStatusConSena,
   estadoDe,
   esperandoRespuesta,
   seatsLabelEs,
@@ -262,6 +262,36 @@ const TripRequestsScreen = ({ route }) => {
     });
   };
 
+  /**
+   * El conductor dice que la transferencia le llegó. Recién ahí se confirma la reserva: el
+   * `/confirm` de arriba, con seña de por medio, sólo abre la ventana para pagarla. La app
+   * nunca ve la plata — ver `Booking.sena` en el backend.
+   */
+  const handleConfirmarSena = (request) => {
+    const requestId = request._id || request.id;
+    navigation.navigate('Confirm', {
+      title: 'Confirmar la seña',
+      message: '¿Ya viste la transferencia en tu cuenta? El lugar le queda reservado.',
+      confirmLabel: 'Sí, me llegó',
+      onConfirm: async () => {
+        setAcceptingRequestId(requestId);
+        try {
+          const res = await put_withauth(`/bookings/${requestId}/sena`);
+          if (!res.success) throw new Error(res.message || 'No se pudo confirmar la seña');
+          if (res.confirmarReserva) {
+            const conf = await put_withauth(`/bookings/${requestId}/confirm`);
+            if (!conf.success) throw new Error(conf.message || 'No se pudo confirmar la reserva');
+          }
+          loadRequests(1, { append: false });
+        } finally {
+          setAcceptingRequestId(null);
+        }
+      },
+      successParams: { title: 'Listo', message: 'La reserva quedó confirmada.' },
+      errorParams: { title: 'Error' },
+    });
+  };
+
   const handleReject = async () => {
     try {
       const request = requests.find(r => (r._id || r.id) === selectedRequest);
@@ -451,10 +481,12 @@ const TripRequestsScreen = ({ route }) => {
     }
     const rs = estadoDe(item);
     const pendiente = esperandoRespuesta(rs);
-    const status = getStatus(rs);
+    const status = getStatusConSena(item);
     const seats = item.seatsBooked || item.seatsRequested;
     const avatarUrl = item.passenger?.avatar ? buildImageUri(item.passenger.avatar) : null;
-    const desvio = pendiente ? partirDesvio(item.desvioEtiqueta) : null;
+    // Con seña de por medio el desvío ya no es lo que tiene que decidir: le cede el lugar a
+    // la etiqueta ("Esperando la seña" / "Mandó la seña"), que es la acción que le queda.
+    const desvio = pendiente && !item.sena?.estado ? partirDesvio(item.desvioEtiqueta) : null;
 
     return (
       <TouchableOpacity
@@ -468,6 +500,7 @@ const TripRequestsScreen = ({ route }) => {
             // motivo viven acá, con el estado de la lista que hay que recargar después.
             onAceptar: () => handleAccept(item),
             onRechazar: () => { setSelectedRequest(id); setRejectModalVisible(true); },
+            onConfirmarSena: () => handleConfirmarSena(item),
           })
         }
         activeOpacity={0.6}

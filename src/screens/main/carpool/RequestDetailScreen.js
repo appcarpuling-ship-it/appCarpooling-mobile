@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { buildImageUri } from '../../../services/apiService';
 import { useUI } from '../../../theme/ui';
 import {
-  getStatus,
+  getStatusConSena,
   estadoDe,
   esperandoRespuesta,
   seatsLabelEs,
@@ -21,16 +21,17 @@ import {
  * escapaba a la navegación, sacando al conductor de la pantalla. Además es lo que ya hace el
  * resto de la app —VehiclePicker, DriverPricePicker, PointPicker son todas pantallas—.
  *
- *   navigation.navigate('RequestDetail', { request, tripId, onAceptar, onRechazar })
+ *   navigation.navigate('RequestDetail', { request, tripId, onAceptar, onRechazar, onConfirmarSena })
  *     request     la solicitud tal como la devuelve /bookings/trip/:id
  *     tripId      para poder abrir el perfil del pasajero en el contexto de este viaje
  *     onAceptar   () => void, lo resuelve la bandeja (abre el diálogo de confirmación)
  *     onRechazar  () => void, ídem (abre el cuadro del motivo)
+ *     onConfirmarSena () => void, ídem — sólo si el viaje pide seña y el pasajero ya la mandó
  */
 const RequestDetailScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-  const { request, tripId, onAceptar, onRechazar } = route.params || {};
+  const { request, tripId, onAceptar, onRechazar, onConfirmarSena } = route.params || {};
 
   if (!request) {
     return (
@@ -42,7 +43,8 @@ const RequestDetailScreen = ({ route, navigation }) => {
 
   const rs = estadoDe(request);
   const pendiente = esperandoRespuesta(rs);
-  const status = getStatus(rs);
+  const status = getStatusConSena(request);
+  const sena = request.sena?.estado;
   const seats = request.seatsBooked || request.seatsRequested;
   const avatarUrl = request.passenger?.avatar ? buildImageUri(request.passenger.avatar) : null;
   const puntos = [
@@ -185,6 +187,26 @@ const RequestDetailScreen = ({ route, navigation }) => {
           </Text>
         )}
 
+        {/* El comprobante que subió el pasajero. Una captura se edita, así que no prueba nada
+            por sí sola: sirve para que el conductor sepa qué buscar en su cuenta. Quien
+            confirma es él. */}
+        {sena === 'enviada' && !!request.sena?.comprobanteUrl && (
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.puntoRotulo, { color: ui.textMuted }]}>Comprobante</Text>
+            <Image
+              source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
+              style={[styles.comprobante, { backgroundColor: ui.surface }]}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+
+        {sena === 'esperando' && (
+          <Text style={[styles.rechazo, { color: ui.textMuted, borderColor: ui.border }]}>
+            Ya lo aceptaste. Te avisamos cuando suba el comprobante de la seña.
+          </Text>
+        )}
+
         {pendiente && (
           <View style={styles.acciones}>
             <TouchableOpacity
@@ -194,13 +216,17 @@ const RequestDetailScreen = ({ route, navigation }) => {
             >
               <Text style={[styles.btnRejectText, { color: ui.text }]}>Rechazar</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btnAccept, { backgroundColor: ui.invertBg }]}
-              onPress={salirY(onAceptar)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>Aceptar</Text>
-            </TouchableOpacity>
+            {sena !== 'esperando' && (
+              <TouchableOpacity
+                style={[styles.btnAccept, { backgroundColor: ui.invertBg }]}
+                onPress={salirY(sena === 'enviada' ? onConfirmarSena : onAceptar)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
+                  {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
@@ -232,6 +258,8 @@ const styles = StyleSheet.create({
     fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic',
     borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
   },
+
+  comprobante: { width: '100%', height: 320, borderRadius: 14 },
 
   rutaCard: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
   rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
