@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
+  useWindowDimensions,
   Keyboard,
   StatusBar,
   ScrollView,
@@ -39,8 +40,10 @@ import MapCenterPin, { usePinAlzado } from '../../../components/ui/MapCenterPin'
 import RutaPolyline from '../../../components/map/RutaPolyline';
 import { useMapFit } from '../../../hooks/useMapFit';
 
+// Sólo para el aspecto inicial de la región; en web `Dimensions.get` a nivel de módulo
+// queda clavado, pero acá un ratio aproximado alcanza (el zoom real lo maneja el mapa).
 const { width, height } = Dimensions.get('window');
-const ASPECT_RATIO = width / height;
+const ASPECT_RATIO = (width && height) ? width / height : 0.5;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 /** Tras arrastrar el mapa, si el pin central queda quieto este tiempo, se confirma el punto */
@@ -63,6 +66,8 @@ const cityFromGoogleComponents = (components) => {
 };
 
 const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
+  // El alto de la ventana para el mapa (en web `Dimensions.get` de módulo queda clavado).
+  const { width: winW, height: winH } = useWindowDimensions();
   const isRequestMode = navRoute?.params?.mode === 'request';
   // 'apply': el conductor elige su propio origen y destino para postularse a una solicitud.
   // Como el modo 'request', no necesita vehículos cargados: acá sólo se elige el recorrido.
@@ -904,7 +909,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
       {estaEnfoco && <MapView
         ref={mapRef}
         provider={MAP_PROVIDER}
-        style={styles.map}
+        style={[styles.map, { width: winW, height: winH }]}
         region={region}
         onMapReady={() => setMapaListo(true)}
         onRegionChange={(r, details = {}) => {
@@ -1333,7 +1338,7 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  map: { ...StyleSheet.absoluteFillObject, width, height },
+  map: { ...StyleSheet.absoluteFillObject },
 
   topBar: { position: 'absolute', top: 0, left: 0, right: 0 },
   earlyExitHeader: {

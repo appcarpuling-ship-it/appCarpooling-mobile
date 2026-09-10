@@ -29,6 +29,8 @@ const CarpoolingsStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        // Web: stack anidado en tabs — ver comentario en HomeStackNavigator.
+        cardStyle: { flex: 1, minHeight: 0 },
         headerStatusBarHeight,
         headerStyle: {
           backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',

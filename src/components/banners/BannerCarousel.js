@@ -1,19 +1,30 @@
-import React, { useState } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { sanitizeImageUrl } from '../../utils/imageUtils';
 import { useUI } from '../../theme/ui';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // ~57% del ancho de pantalla: entra una tarjeta entera y un pedazo de la siguiente
 // asomando. Pasó por 44% y el usuario las siguió viendo chicas — esta vez el salto es
 // grande a propósito, no otro ajuste tímido. 24 de margen a cada lado, 12 entre tarjetas.
 // Verificado en 360/390/414/430 de ancho.
 const GAP = 12;
-const CARD_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - GAP * 1.5) / 1.45);
-// 2:1, el aspecto que ya usan los banners cargados — no hace falta resubirlos recortados
-// distinto.
-const IMAGE_HEIGHT = Math.round(CARD_WIDTH / 2);
-const ITEM_WIDTH = CARD_WIDTH + GAP;
+// El ancho se saca de useWindowDimensions (no del Dimensions.get de nivel de módulo, que
+// en web queda clavado en el tamaño que tenía la ventana al cargar y hacía banners
+// gigantes al achicarla). Tope de 430: esta UI es un teléfono en vertical, en una ventana
+// de escritorio ancha las tarjetas no tienen que crecer sin límite.
+function useCardMetrics() {
+  const { width } = useWindowDimensions();
+  return useMemo(() => {
+    const w = Math.min(width || 390, 430);
+    const cardWidth = Math.round((w - 24 * 2 - GAP * 1.5) / 1.45);
+    return {
+      CARD_WIDTH: cardWidth,
+      // 2:1, el aspecto que ya usan los banners cargados.
+      IMAGE_HEIGHT: Math.round(cardWidth / 2),
+      ITEM_WIDTH: cardWidth + GAP,
+    };
+  }, [width]);
+}
 
 /**
  * El carrusel de banners que comparten Home, Carpoolings y el detalle de un viaje.
@@ -35,6 +46,7 @@ const ITEM_WIDTH = CARD_WIDTH + GAP;
 const BannerCarousel = ({ banners, onBannerPress, showDots = false }) => {
   const ui = useUI();
   const [activeIndex, setActiveIndex] = useState(0);
+  const { CARD_WIDTH, IMAGE_HEIGHT, ITEM_WIDTH } = useCardMetrics();
 
   const onScroll = (event) => {
     if (!showDots) return;
@@ -51,11 +63,11 @@ const BannerCarousel = ({ banners, onBannerPress, showDots = false }) => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { width: CARD_WIDTH }]}
             activeOpacity={0.92}
             onPress={() => onBannerPress?.(item)}
           >
-            <View style={styles.imageWrap}>
+            <View style={[styles.imageWrap, { height: IMAGE_HEIGHT }]}>
               {item.imageUrl ? (
                 <Image source={{ uri: sanitizeImageUrl(item.imageUrl) }} style={styles.image} resizeMode="cover" />
               ) : null}
@@ -77,6 +89,7 @@ const BannerCarousel = ({ banners, onBannerPress, showDots = false }) => {
         decelerationRate="fast"
         contentContainerStyle={styles.content}
         getItemLayout={(_, index) => ({ length: ITEM_WIDTH, offset: ITEM_WIDTH * index, index })}
+        extraData={ITEM_WIDTH}
       />
 
       {showDots && banners.length > 1 && (
@@ -99,10 +112,9 @@ const BannerCarousel = ({ banners, onBannerPress, showDots = false }) => {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 24 },
-  card: { width: CARD_WIDTH, marginRight: GAP },
+  card: { marginRight: GAP },
   imageWrap: {
     width: '100%',
-    height: IMAGE_HEIGHT,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#111',

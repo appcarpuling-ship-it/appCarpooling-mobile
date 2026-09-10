@@ -9,10 +9,10 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
+import { useScreenWidth } from '../../hooks/useScreenWidth';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { PROVINCE_IMAGES } from '../../constants/provinceImages';
 import { getDepartmentsForProvince } from '../../constants/departmentImages';
@@ -23,8 +23,6 @@ const norm = (s) =>
   (s || '').toLowerCase().normalize('NFD').split('')
     .filter((c) => { const n = c.charCodeAt(0); return n < 0x0300 || n > 0x036f; }).join('');
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ITEM_SIZE = (SCREEN_WIDTH * 0.96 - 32 - 12) / 2;
 
 /**
  * Selector de provincia + ciudad con imágenes, replicando el filtro del Home.
@@ -46,6 +44,7 @@ const LocationPickerField = ({
 }) => {
   const ui = useUI();
   const dark = ui.isDarkMode;
+  const ITEM_SIZE = (useScreenWidth() * 0.96 - 32 - 12) / 2;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState('province'); // 'province' | 'loading' | 'department'

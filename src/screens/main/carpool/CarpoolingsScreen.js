@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  Dimensions,
   RefreshControl,
   Animated,
   Modal,
@@ -27,15 +26,12 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 import Skeleton from '../../../components/ui/Skeleton';
 import BannerCarousel from '../../../components/banners/BannerCarousel';
 import { useMinDuration } from '../../../hooks/useMinDuration';
+import { useScreenWidth } from '../../../hooks/useScreenWidth';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // El tamaño real de la tarjeta vive en BannerCarousel (componente compartido con Home y
-// el detalle de un viaje). Estas dos son sólo para el esqueleto de carga de acá abajo, que
-// dibuja antes de que lleguen los banners y no puede importar constantes privadas del
-// componente — se mantienen calculadas igual, a mano.
+// el detalle de un viaje). Esto es sólo para el esqueleto de carga de acá abajo, que
+// dibuja antes de que lleguen los banners.
 const BANNER_GAP = 12;
-const BANNER_WIDTH = Math.round((SCREEN_WIDTH - 24 * 2 - BANNER_GAP * 1.5) / 1.45);
-const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
 
 // Antes esta pantalla mezclaba conductor y pasajero en 4 filas largas, y las 4 acciones de
 // solicitudes vivían aparte, en el switch "Solicitudes" del Home. Reagrupado por ROL —la
@@ -62,6 +58,9 @@ const pasajeroSmall = [
 ];
 
 const CarpoolingsScreen = ({ navigation }) => {
+  const screenW = useScreenWidth();
+  const BANNER_WIDTH = Math.round((screenW - 24 * 2 - BANNER_GAP * 1.5) / 1.45);
+  const BANNER_IMAGE_HEIGHT = Math.round(BANNER_WIDTH / 2);
   const { isDarkMode } = useTheme();
   const { colors } = useColors();
   const { isAuthenticated, user } = useAuth();

@@ -5,17 +5,15 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Dimensions,
   ScrollView,
   Pressable,
 } from 'react-native';
 import { useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import useColors from '../../hooks/useColors';
+import { useScreenWidth } from '../../hooks/useScreenWidth';
 import { navigationRef } from '../../navigation/rootNavigation';
 import { getHelpGuide } from '../../content/helpGuideContent';
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 function runStepNav(nav) {
   if (!nav) return undefined;
@@ -44,6 +42,7 @@ function runStepNav(nav) {
 }
 
 const GuidedHelpOverlay = ({ visible, guideId, onClose }) => {
+  const SCREEN_W = useScreenWidth();
   const insets = useSafeAreaInsets();
   const insetTop = insets.top || initialWindowMetrics?.insets.top || 0;
   const insetBottom = insets.bottom || initialWindowMetrics?.insets.bottom || 0;

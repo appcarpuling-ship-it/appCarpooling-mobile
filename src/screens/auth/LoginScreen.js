@@ -52,6 +52,8 @@ const LoginScreen = ({ navigation }) => {
     : require('../../../assets/logo/192x192-black.png');
 
   useEffect(() => {
+    // expo-screen-capture no existe en web (tira UnavailabilityError).
+    if (Platform.OS === 'web') return undefined;
     ScreenCapture.preventScreenCaptureAsync();
     return () => { ScreenCapture.allowScreenCaptureAsync(); };
   }, []);

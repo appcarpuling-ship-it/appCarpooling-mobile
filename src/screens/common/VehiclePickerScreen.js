@@ -1,12 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
 import VehicleShowcase from '../../components/vehicle/VehicleShowcase';
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 // Selección de vehículo como pantalla: carrusel con la foto del auto arriba y el detalle
 // scrolleando abajo, se pasa de auto con swipe o flechas. Devuelve el _id elegido por
@@ -15,6 +13,9 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const VehiclePickerScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
+  // En web Dimensions.get() a nivel de módulo queda clavado en el ancho de carga; el hook
+  // sigue la ventana. Tope de 480: es una página de carrusel, no crece en escritorio.
+  const SCREEN_W = Math.min(useWindowDimensions().width || 390, 480);
   const { vehicles = [], selectedId, onSelect } = route.params || {};
 
   const initialIndex = Math.max(0, vehicles.findIndex((v) => v._id === selectedId));

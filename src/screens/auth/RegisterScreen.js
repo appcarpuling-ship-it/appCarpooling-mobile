@@ -34,6 +34,8 @@ const STEPS = [
 
 const RegisterScreen = ({ navigation }) => {
   useEffect(() => {
+    // expo-screen-capture no existe en web (tira UnavailabilityError).
+    if (Platform.OS === 'web') return undefined;
     ScreenCapture.preventScreenCaptureAsync();
     return () => { ScreenCapture.allowScreenCaptureAsync(); };
   }, []);

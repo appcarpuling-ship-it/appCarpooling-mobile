@@ -12,10 +12,8 @@ import {
   ScrollView,
   Platform,
   Image,
-  Dimensions,
 } from 'react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { get_public, buildImageUri } from '../../../services/apiService';

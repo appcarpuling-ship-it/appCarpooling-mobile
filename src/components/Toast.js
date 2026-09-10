@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -7,8 +7,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 const SORA_FONTS = {
   semiBold: 'Sora_600SemiBold',
 };
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const Toast = ({ visible, message, type = 'success', duration = 3000, onHide }) => {
   const slideAnim = useRef(new Animated.Value(-100)).current;

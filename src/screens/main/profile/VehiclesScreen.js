@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +17,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { reportError } from '../../../utils/sentry';
 import VehicleShowcase from '../../../components/vehicle/VehicleShowcase';
-
-const { width: SCREEN_W } = Dimensions.get('window');
+import { useScreenWidth } from '../../../hooks/useScreenWidth';
 
 /**
  * Mis vehículos: un auto por pantalla, con su foto grande arriba y el detalle scrolleando
@@ -30,6 +28,7 @@ const { width: SCREEN_W } = Dimensions.get('window');
  * ninguno. Antes era una lista de tarjetas chicas donde la foto del auto casi no se veía.
  */
 const VehiclesScreen = () => {
+  const SCREEN_W = useScreenWidth();
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const ui = useUI();

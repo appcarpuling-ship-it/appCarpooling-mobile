@@ -33,6 +33,8 @@ const ProfileStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
+        // Web: stack anidado en tabs — ver comentario en HomeStackNavigator.
+        cardStyle: { flex: 1, minHeight: 0 },
         headerStatusBarHeight,
         headerStyle: {
           backgroundColor: colors.background,

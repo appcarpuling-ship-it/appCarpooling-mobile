@@ -31,7 +31,12 @@ const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={({ navigation }) => ({
-        cardStyle: { backgroundColor: isDarkMode ? '#0A0A0A' : '#F9FAFB' },
+        // Web: este stack está anidado dentro de las tabs. Sin esto, el CardSheet de
+        // react-navigation entra en modo "page" (minHeight:100%, sin flex-shrink) y el
+        // ResourceSavingScene de las tabs (overflow:hidden) le recorta el contenido alto
+        // sin dejar scroll. flex:1 + minHeight:0 lo acota al viewport y el ScrollView
+        // interno vuelve a scrollear, como en nativo.
+        cardStyle: { flex: 1, minHeight: 0, backgroundColor: isDarkMode ? '#0A0A0A' : '#F9FAFB' },
         headerStatusBarHeight,
         headerStyle: {
           backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',

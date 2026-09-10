@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Dimensions,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
+import { useScreenWidth } from '../../hooks/useScreenWidth';
 import PillButton from '../ui/PillButton';
 import { navigationRef } from '../../navigation/rootNavigation';
 
@@ -74,9 +74,8 @@ const STEPS = [
   },
 ];
 
-const { width: SCREEN_W } = Dimensions.get('window');
-
 const AppTutorialOverlay = ({ onComplete }) => {
+  const SCREEN_W = useScreenWidth();
   const insets = useSafeAreaInsets();
   const insetTop = insets.top || initialWindowMetrics?.insets.top || 0;
   const insetBottom = insets.bottom || initialWindowMetrics?.insets.bottom || 0;

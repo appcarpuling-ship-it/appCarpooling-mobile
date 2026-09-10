@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
+import { useScreenWidth } from '../../hooks/useScreenWidth';
 import { ARGENTINA_PROVINCES } from '../../constants/provinces';
 import { PROVINCE_IMAGES } from '../../constants/provinceImages';
 import { getDepartmentsForProvince } from '../../constants/departmentImages';
-
-const { width: SCREEN_W } = Dimensions.get('window');
-const ITEM_SIZE = (SCREEN_W - 48 - 12) / 2;
 
 // Selector de provincia + ciudad como pantalla (reemplaza el modal que se
 // repetía en Home, AllTrips y Solicitudes). El caller navega con:
@@ -17,6 +15,7 @@ const ITEM_SIZE = (SCREEN_W - 48 - 12) / 2;
 const LocationPickerScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
+  const ITEM_SIZE = (useScreenWidth() - 48 - 12) / 2;
   const { title = 'Provincia', province: initialProvince = '', city = '', onSelect } = route.params || {};
 
   const [step, setStep] = useState(initialProvince ? 'department' : 'province');
