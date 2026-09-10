@@ -30,6 +30,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { obtenerUbicacion } from '../../../services/locationCache';
 import { reverseGeocode } from '../../../services/mapsService';
 import { useUI } from '../../../theme/ui';
+import { montoSena } from '../../../utils/sena';
 
 // Reservar en pasos: el mapa de recogida/bajada ya era una pantalla aparte, pero todo lo
 // demás caía junto y el asiento quedaba enterrado entre el precio y las preferencias.
@@ -712,6 +713,24 @@ const BookingScreen = ({ route, navigation }) => {
                   ${formatNumber(driverPrice)} por asiento × {seats}
                 </Text>
               )}
+
+              {/* La seña se avisa acá y no en el detalle del viaje: es plata que hay que poner
+                  y enterarse recién cuando te aceptan es una sorpresa. Va pegado al precio
+                  porque es la mitad de ese número, no un cargo aparte. El cómo y el a dónde
+                  van después, en Mis reservas (PagarSenaScreen): antes de que te acepten no
+                  hay nada que transferir. */}
+              {trip?.requiereSena && (
+                <View style={[styles.senaAviso, { borderTopColor: divider }]}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={textMuted} />
+                  <Text style={[styles.senaAvisoText, { color: textMuted }]}>
+                    Si te acepta, tenés que señar{' '}
+                    <Text style={{ color: textPrimary, fontFamily: 'Sora_600SemiBold' }}>
+                      ${formatNumber(montoSena(driverPrice, seats))}
+                    </Text>
+                    {' '}por transferencia. El resto se lo pagás al subir.
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -955,6 +974,11 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 14,
   },
+  senaAviso: {
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
+    marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  senaAvisoText: { flex: 1, fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19 },
   priceValue: {
     fontSize: 14,
     fontFamily: 'Sora_500Medium',

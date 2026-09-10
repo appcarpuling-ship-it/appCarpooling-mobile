@@ -205,6 +205,11 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const positivo = { color: ui.invertText, bg: ui.invertBg, text: 'Reserva aprobada' };
     const neutro = (text) => ({ color: ui.textMuted, bg: 'transparent', borde: ui.border, text });
 
+    // El conductor ya te aceptó pero falta la plata: decirle "Pendiente" es esconderle que
+    // la pelota está de su lado. Ver Booking.sena en el backend.
+    if (item.sena?.estado === 'esperando') return neutro('Falta la seña');
+    if (item.sena?.estado === 'enviada') return neutro('Seña enviada');
+
     const rs = item.seatReservation?.reservationStatus;
     if (rs === 'pending_approval') return neutro('Pendiente');
     if (rs === 'pending_payment')  return neutro('Pendiente de pago');
@@ -273,6 +278,8 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const driver = item.trip.driver;
     const seats = item.seats || item.seatsBooked || 1;
     const isActive = item.trip?.status === 'started';
+    // Sólo 'esperando': una vez mandado el comprobante no hay nada más que hacer desde acá.
+    const faltaSena = item.sena?.estado === 'esperando';
     const activeTxt     = isActive ? '#FFFFFF' : textPrimary;
     const activeMuted   = isActive ? 'rgba(255,255,255,0.5)' : textSecondary;
 
@@ -359,9 +366,17 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
         </View>
 
         {/* Actions */}
-        {canCancel(item) && (
+        {(canCancel(item) || faltaSena) && (
           <View style={styles.actions}>
-            {canPay(item) && (
+            {faltaSena ? (
+              <TouchableOpacity
+                style={[styles.btnPrimary, { backgroundColor: isActive ? '#FFFFFF' : textPrimary }]}
+                onPress={() => navigation.navigate('PagarSena', { bookingId: item._id, tripId: item.trip?._id })}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.btnPrimaryText, { color: isActive ? '#000' : (isDarkMode ? '#000' : '#FFF') }]}>Pagar la seña</Text>
+              </TouchableOpacity>
+            ) : canPay(item) && (
               <TouchableOpacity
                 style={[styles.btnPrimary, { backgroundColor: isActive ? '#FFFFFF' : textPrimary }]}
                 onPress={() => navigation.navigate('TripDetailFromCarpoolings', { tripId: item.trip?._id, openPayment: true })}
