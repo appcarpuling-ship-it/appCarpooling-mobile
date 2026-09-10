@@ -7,6 +7,7 @@ import { useHeaderStatusBarHeight } from '../useHeaderStatusBarHeight';
 import { useTheme } from '../../context/ThemeContext';
 import HomeScreen from '../../screens/main/home/HomeScreen';
 import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
+import VehicleDetailScreen from '../../screens/main/common/VehicleDetailScreen';
 import SearchTripsScreen from '../../screens/main/home/SearchTripsScreen';
 import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
 import BookingScreen from '../../screens/main/home/BookingScreen';
@@ -74,6 +75,11 @@ const HomeStackNavigator = () => {
         name="SearchResults"
         component={SearchResultsScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="VehicleDetail"
+        component={VehicleDetailScreen}
+        options={{ title: 'Vehículo' }}
       />
       <Stack.Screen
         name="TripDetail"

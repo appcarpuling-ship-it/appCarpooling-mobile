@@ -1068,17 +1068,39 @@ const TripDetailScreen = ({ route, navigation }) => {
           ))}
         </View>
 
-        {/* Vehicle — galería con todas las fotos */}
+        {/* Vehículo — nombre + fotos, y la flecha abre VehicleDetailScreen con el resto
+            (color, patente, asientos, documentación, características). Antes todo eso estaba
+            acá y alargaba la pantalla con datos que casi nadie mira antes de reservar. */}
         {trip.vehicle && (() => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section]}>
-              <Text style={[styles.sectionLabel, { color: textPrimary }]}>Vehículo</Text>
+              <TouchableOpacity
+                style={styles.vehicleHeaderRow}
+                onPress={() => navigation.navigate('VehicleDetail', { vehicle: trip.vehicle })}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel="Ver todos los detalles del vehículo"
+              >
+                <Text style={[styles.sectionLabel, { color: textPrimary, marginBottom: 0 }]}>Vehículo</Text>
+                <Ionicons name="chevron-forward" size={18} color={textMuted} />
+              </TouchableOpacity>
+
+              <View style={styles.vehicleNameRow}>
+                <Text style={[styles.vehicleName, { color: textPrimary }]}>
+                  {trip.vehicle.brand} {trip.vehicle.model}
+                  {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
+                </Text>
+                {trip.vehicle.documentacionCompleta && (
+                  <Ionicons name="shield-checkmark" size={16} color={textPrimary} style={styles.vehicleDocsIcon} />
+                )}
+              </View>
+
               {vehiclePaths.length > 0 ? (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.vehiclePhotosScroll}
+                  contentContainerStyle={[styles.vehiclePhotosScroll, { marginTop: 12 }]}
                 >
                   {vehiclePaths.map((path, idx) => {
                     const uri = buildImageUri(path);
@@ -1096,68 +1118,13 @@ const TripDetailScreen = ({ route, navigation }) => {
                   })}
                 </ScrollView>
               ) : (
-                <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg, marginBottom: 12 }]}>
+                <View style={[styles.vehicleImagePlaceholder, { backgroundColor: cardBg, marginTop: 12 }]}>
                   <Ionicons name="car-outline" size={32} color={colors.primary} />
                 </View>
               )}
-              <View style={styles.vehicleInfoBlock}>
-                <View style={styles.vehicleNameRow}>
-                  <Text style={[styles.vehicleName, { color: textPrimary }]}>
-                    {trip.vehicle.brand} {trip.vehicle.model}
-                    {trip.vehicle.year ? ` (${trip.vehicle.year})` : ''}
-                  </Text>
-                  {trip.vehicle.documentacionCompleta && (
-                    <Ionicons name="shield-checkmark" size={16} color={textPrimary} style={styles.vehicleDocsIcon} />
-                  )}
-                </View>
-                <Text style={[styles.vehicleColor, { color: textMuted }]}>
-                  {[trip.vehicle.color, trip.vehicle.licensePlate].filter(Boolean).join(' · ')}
-                </Text>
-                {trip.vehicle.documentacionCompleta && (
-                  // "Completa" != "verificada": el conductor la subió y declaró, nadie la
-                  // comprobó todavía (ver docStatus en el modelo Vehicle). No prometer más
-                  // de lo que es.
-                  <Text style={[styles.vehicleDocsText, { color: textMuted }]}>
-                    Documentación completa
-                  </Text>
-                )}
-              </View>
             </View>
           );
         })()}
-
-        {/* Features */}
-        {trip.vehicle?.features && Object.values(trip.vehicle.features).some(Boolean) && (
-          <View style={[styles.section]}>
-            <Text style={[styles.sectionLabel, { color: textPrimary }]}>Características del auto</Text>
-            <View style={styles.featuresRow}>
-              {trip.vehicle.features.ac && (
-                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="snow-outline" size={15} color={textPrimary} />
-                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Aire</Text>
-                </View>
-              )}
-              {trip.vehicle.features.music && (
-                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="musical-notes-outline" size={15} color={textPrimary} />
-                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Musica</Text>
-                </View>
-              )}
-              {trip.vehicle.features.pets && (
-                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="paw-outline" size={15} color={textPrimary} />
-                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Mascotas</Text>
-                </View>
-              )}
-              {trip.vehicle.features.luggage && (
-                <View style={[styles.featureChip, { backgroundColor: cardBg }]}>
-                  <Ionicons name="bag-handle-outline" size={15} color={textPrimary} />
-                  <Text style={[styles.featureChipText, { color: textPrimary }]}>Equipaje</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
 
         {/* Rules */}
         <View style={[styles.section]}>
@@ -1706,19 +1673,11 @@ const styles = StyleSheet.create({
   },
   vehicleInfo: { flex: 1 },
   vehicleName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-  vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+  vehicleHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   vehicleDocsIcon: {},
   vehicleColor: { fontSize: 13, marginTop: 2 },
   vehicleDocsText: { fontSize: 12, marginTop: 4 },
-
-  // Features
-  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  featureChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 20, gap: 6,
-  },
-  featureChipText: { fontSize: 13 },
 
   // Rules
   rulesRow: { gap: 12 },

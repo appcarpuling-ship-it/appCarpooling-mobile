@@ -13,6 +13,7 @@ import MyBookingsScreen from '../../screens/main/carpool/MyBookingsScreen';
 import PagarSenaScreen from '../../screens/main/carpool/PagarSenaScreen';
 import MySeatReservationsScreen from '../../screens/main/carpool/MySeatReservationsScreen';
 import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
+import VehicleDetailScreen from '../../screens/main/common/VehicleDetailScreen';
 import TripRequestsScreen from '../../screens/main/carpool/TripRequestsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
@@ -60,6 +61,11 @@ const CarpoolingsStackNavigator = () => {
         name="Carpoolings"
         component={CarpoolingsScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="VehicleDetail"
+        component={VehicleDetailScreen}
+        options={{ title: 'Vehículo' }}
       />
       <Stack.Screen
         name="TripDetails"
