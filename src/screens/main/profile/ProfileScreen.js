@@ -130,6 +130,13 @@ const ProfileScreen = () => {
       badge: deuda > 0 ? `$${deuda.toLocaleString('es-AR')}` : null,
     },
     { id: 2, title: 'Vehículos',     icon: 'car-outline',    onPress: () => navigation.navigate('Vehicles') },
+    // Al lado de "Mi saldo" a propósito: son las dos pantallas de plata del conductor.
+    // El badge avisa lo que un conductor no descubre solo — que sin esto no puede pedir seña.
+    {
+      id: 6, title: 'Datos de cobro', icon: 'card-outline',
+      onPress: () => navigation.navigate('DatosCobro'),
+      badge: (user?.datosCobro?.alias || user?.datosCobro?.cvu) ? null : 'Sin cargar',
+    },
     { id: 5, title: 'Ayuda',         icon: 'help-circle-outline', onPress: () => navigation.navigate('Help') },
   ];
 

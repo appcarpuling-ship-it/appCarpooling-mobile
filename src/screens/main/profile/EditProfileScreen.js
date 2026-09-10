@@ -48,10 +48,6 @@ const EditProfileScreen = ({ navigation }) => {
     city:      user?.city     || '',
     province:  user?.province || '',
     bio:       user?.bio      || '',
-    // Datos de cobro: a dónde le transfiere el pasajero la seña. Ver Trip.requiereSena.
-    cobroAlias:   user?.datosCobro?.alias   || '',
-    cobroCvu:     user?.datosCobro?.cvu     || '',
-    cobroTitular: user?.datosCobro?.titular || '',
   });
   const [avatarUri, setAvatarUri] = useState(null);
   const [gender, setGender] = useState(user?.gender || '');
@@ -78,9 +74,6 @@ const EditProfileScreen = ({ navigation }) => {
         city:      user.city     || '',
         province:  user.province || '',
         bio:       user.bio      || '',
-        cobroAlias:   user.datosCobro?.alias   || '',
-        cobroCvu:     user.datosCobro?.cvu     || '',
-        cobroTitular: user.datosCobro?.titular || '',
       });
     }
   }, [user]);
@@ -251,11 +244,6 @@ const EditProfileScreen = ({ navigation }) => {
     if (!formData.city.trim() || !formData.province) {
       navigation.navigate('Result', { type: 'error', title: 'Error', message: 'Ciudad y provincia son obligatorios' }); return;
     }
-    // Un CVU a medias es peor que ninguno: la transferencia de la seña se va a otra cuenta.
-    const cvuDigitos = formData.cobroCvu.replace(/\D/g, '');
-    if (cvuDigitos && cvuDigitos.length !== 22) {
-      navigation.navigate('Result', { type: 'error', title: 'Revisá el CVU', message: 'El CVU/CBU tiene que tener 22 dígitos.' }); return;
-    }
 
     setLoading(true);
     try {
@@ -270,12 +258,6 @@ const EditProfileScreen = ({ navigation }) => {
       // El backend solo acepta gender si el usuario todavía no tiene uno
       // (authController.updateProfile); mandarlo si ya está lo ignora.
       if (!user?.gender && gender) fd.append('gender', gender);
-      // Van planos (`datosCobro_x`) porque el form es multipart y no anida objetos; el
-      // backend los vuelve a armar campo por campo. Se mandan siempre, incluso vacíos, para
-      // poder BORRAR un dato que ya no se quiere publicar.
-      fd.append('datosCobro_alias',   formData.cobroAlias.trim());
-      fd.append('datosCobro_cvu',     formData.cobroCvu.replace(/\D/g, ''));
-      fd.append('datosCobro_titular', formData.cobroTitular.trim());
 
       const response = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
       if (response.success) {
@@ -509,20 +491,6 @@ const EditProfileScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* Datos de cobro. Sólo hacen falta si publicás viajes pidiendo seña: es a dónde
-              el pasajero te transfiere la mitad por adelantado. La app no toca esa plata —
-              va directo de uno al otro—, así que sin esto la seña no se puede pagar.
-              Se muestran al pasajero SÓLO en los viajes tuyos que piden seña. */}
-          <View style={styles.section}>
-            <SectionLabel>Datos de cobro</SectionLabel>
-            <Text style={[styles.cobroHint, { color: textMuted }]}>
-              Para cobrar señas. El pasajero los ve sólo en tus viajes que piden seña.
-            </Text>
-            {renderField({ key: 'cobroAlias', label: 'Alias', placeholder: 'tu.alias.mp', keyboard: 'default' })}
-            {renderField({ key: 'cobroCvu', label: 'CVU / CBU', placeholder: '22 dígitos', keyboard: 'numeric', maxLength: 22 })}
-            {renderField({ key: 'cobroTitular', label: 'Titular de la cuenta', placeholder: 'Como figura en el banco', keyboard: 'default' })}
-          </View>
-
           {/* Verificación de identidad. Antes eran dos recuadros enormes para algo
               secundario; ahora es una tarjeta con estado y dos filas compactas. */}
           <View style={styles.section}>
@@ -722,7 +690,6 @@ const styles = StyleSheet.create({
   // "Todo lo que tiene es necesario, hay que hacerla más linda" (feedback directo): no se
   // sacó nada, se le dio más aire — más separación entre secciones y entre campos, y un
   // poco más de padding adentro de cada uno.
-  cobroHint: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginBottom: 10, marginTop: -2 },
   section: { paddingHorizontal: 24, marginBottom: 36 },
   sectionLabel: {
     fontFamily: 'Sora_600SemiBold',

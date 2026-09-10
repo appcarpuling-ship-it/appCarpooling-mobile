@@ -23,6 +23,7 @@ import ChatDetailScreen from '../../screens/main/chat/ChatDetailScreen';
 import BlockedUsersScreen from '../../screens/main/profile/BlockedUsersScreen';
 import DeleteAccountScreen from '../../screens/main/profile/DeleteAccountScreen';
 import SaldoScreen from '../../screens/main/profile/SaldoScreen';
+import DatosCobroScreen from '../../screens/main/profile/DatosCobroScreen';
 
 const Stack = createStackNavigator();
 
@@ -85,6 +86,11 @@ const ProfileStackNavigator = () => {
         name="Saldo"
         component={SaldoScreen}
         options={{ title: 'Mi saldo' }}
+      />
+      <Stack.Screen
+        name="DatosCobro"
+        component={DatosCobroScreen}
+        options={{ title: 'Datos de cobro' }}
       />
       <Stack.Screen
         name="Notifications"

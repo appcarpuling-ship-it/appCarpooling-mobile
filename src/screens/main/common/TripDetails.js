@@ -585,10 +585,19 @@ const TripDetails = ({ navigation, route }) => {
                                             ? `El pasajero te transfiere ${senaPreview} por asiento para reservar, y el resto al subir.`
                                             : 'El pasajero te adelanta la mitad para reservar, y te paga el resto al subir. Poné el precio por asiento para ver cuánto es.'}
                                     </Text>
+                                    {/* Tocable: sin esto el conductor lee "cargá tu CVU" y tiene
+                                        que salir a buscar dónde. Lleva derecho a la pantalla. */}
                                     {formData.requiereSena && !tieneDatosCobro && (
-                                        <Text style={{ color: '#B45309', fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 17, marginTop: 6 }}>
-                                            Cargá tu CVU o alias en tu perfil, si no el pasajero no sabe a dónde transferirte.
-                                        </Text>
+                                        <TouchableOpacity
+                                            onPress={() => navigation.navigate('ProfileTab', { screen: 'DatosCobro', initial: false })}
+                                            activeOpacity={0.7}
+                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}
+                                        >
+                                            <Text style={{ color: '#B45309', fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 17, flex: 1 }}>
+                                                Cargá tu CVU o alias, si no el pasajero no sabe a dónde transferirte.
+                                            </Text>
+                                            <Ionicons name="chevron-forward" size={14} color="#B45309" />
+                                        </TouchableOpacity>
                                     )}
                                 </View>
                             </TouchableOpacity>
