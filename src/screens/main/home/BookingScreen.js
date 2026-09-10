@@ -727,7 +727,7 @@ const BookingScreen = ({ route, navigation }) => {
                     <Text style={{ color: textPrimary, fontFamily: 'Sora_600SemiBold' }}>
                       ${formatNumber(montoSena(driverPrice, seats))}
                     </Text>
-                    {' '}por transferencia. El resto se lo pagás al subir.
+                    . El resto se lo pagás al subir.
                   </Text>
                 </View>
               )}

@@ -929,7 +929,7 @@ const TripDetailScreen = ({ route, navigation }) => {
                 <Text style={{ color: textPrimary, fontFamily: 'Sora_600SemiBold' }}>
                   {senaLegible(trip.driverPrice) || 'la mitad'}
                 </Text>
-                {' '}por transferencia una vez que el conductor te acepta. El resto se lo pagás al subir.
+                {' '}una vez que el conductor te acepta. El resto se lo pagás al subir.
               </Text>
             </View>
           )}
