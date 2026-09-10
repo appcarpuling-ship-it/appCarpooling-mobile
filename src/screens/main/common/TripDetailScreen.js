@@ -26,7 +26,7 @@ const PREVIEW_DOT_ORIGIN = require('../../../../assets/map/preview-origin.png');
 const PREVIEW_DOT_STOP = require('../../../../assets/map/preview-stop.png');
 const PREVIEW_DOT_DEST = require('../../../../assets/map/preview-dest.png');
 import { senaLegible } from '../../../utils/sena';
-import { get_public, get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
+import { get_withauth, post_withauth, put_withauth, buildImageUri } from '../../../services/apiService';
 import { tripRemainingSeats, tripSeatsLabel } from '../../../utils/tripSeatsDisplay';
 import { buildRoutePoints, decodePolyline } from '../../../utils/routePoints';
 import { isTripToday } from '../../../utils/tripDateUtils';
@@ -39,8 +39,6 @@ import { useColors } from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
-import BannerDetailModal from '../../../components/modals/BannerDetailModal';
-import BannerCarousel from '../../../components/banners/BannerCarousel';
 import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 import Rating from '../../../components/ui/Rating';
@@ -104,8 +102,6 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [bannerModal, setBannerModal] = useState({ visible: false, banner: null });
 
   const canReserveWomenOnlyTrip = trip ? (!trip.womenOnly || user?.gender === 'female') : false;
 
@@ -141,7 +137,6 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     loadTripDetail();
-    loadBanners();
   }, []);
 
   // El apagado del tracking de los puntos vive ahora en el efecto del encuadre, para que ocurra
@@ -306,15 +301,6 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (!time) return '';
     const [h, m] = time.split(':');
     return m && m !== '00' ? `${h}:${m}hs` : `${h}hs`;
-  };
-
-  const loadBanners = async () => {
-    try {
-      const response = await get_public(ENDPOINTS.GET_BANNER_SECTIONS, { appScreen: 'trip_detail' });
-      if (response.success && Array.isArray(response.data)) {
-        setBanners(response.data.flatMap(s => s.banners || []));
-      }
-    } catch (_) {}
   };
 
   const loadTripDetail = async () => {
@@ -604,7 +590,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Ya no se piden gastos al completar: lo que cobra el conductor lo fijó al publicar el viaje
   // (`driverPrice`) y el pasajero lo vio antes de reservar. Se confirma y listo.
   const handleCompleteTrip = () => {
-    if (imageModalVisible || bannerModal.visible || checkoutWebViewVisible) return;
+    if (imageModalVisible || checkoutWebViewVisible) return;
     navigation.navigate('Confirm', {
       title: 'Completar viaje',
       message: '¿Damos el viaje por terminado?',
@@ -874,6 +860,23 @@ const TripDetailScreen = ({ route, navigation }) => {
               </Text>
               <Rating rating={driver?.rating} count={driver?.ratingCount} style={styles.driverRating} />
             </View>
+            {/* El chat con el conductor sólo se abre con la reserva ya paga/aprobada (misma
+                condición que tenía el botón del footer, showDriverChatCta). Es un globito y
+                no un botón ancho: no compite con "Reservar", que es la acción principal. */}
+            {showDriverChatCta && (
+              <TouchableOpacity
+                style={[styles.driverChatBubble, { borderColor: divider }]}
+                onPress={handleStartChat}
+                disabled={chatLoading}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Chatear con el conductor"
+              >
+                {chatLoading
+                  ? <ActivityIndicator size="small" color={textPrimary} />
+                  : <Ionicons name="chatbubble-ellipses-outline" size={20} color={textPrimary} />}
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={[styles.headerMetaRow, { borderTopColor: divider }]}>
@@ -1233,16 +1236,6 @@ const TripDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Banners */}
-        {banners.length > 0 && (
-          <View style={styles.bannersSection}>
-            <Text style={[styles.sectionLabel, { color: textPrimary, paddingHorizontal: 20, marginBottom: 14 }]}>
-              Destacados
-            </Text>
-            <BannerCarousel banners={banners} onBannerPress={(item) => setBannerModal({ visible: true, banner: item })} />
-          </View>
-        )}
-
         {/* Footer — driver */}
         {isOwnTrip && (trip.status === 'active' || trip.status === 'started' || trip.status === 'pending') && (
           <View style={[styles.footer, { borderTopColor: divider }]}>
@@ -1425,48 +1418,12 @@ const TripDetailScreen = ({ route, navigation }) => {
               )
             )}
 
-            {showDriverChatCta && (
-              <View
-                style={[
-                  styles.footerChatWrap,
-                  { marginTop: 16, paddingTop: 16, borderTopColor: divider },
-                ]}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.footerChatBtn,
-                    {
-                      backgroundColor: cardBg,
-                      borderColor: dark ? '#3F3F46' : '#D4D4D8',
-                    },
-                  ]}
-                  onPress={handleStartChat}
-                  disabled={chatLoading}
-                  activeOpacity={0.8}
-                >
-                  {chatLoading ? (
-                    <ActivityIndicator size="small" color={accent} />
-                  ) : (
-                    <>
-                      <Text style={[styles.footerChatBtnText, { color: textPrimary }]}>Chatear con el conductor</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
 
-      <BannerDetailModal
-        visible={bannerModal.visible}
-        banner={bannerModal.banner}
-        onClose={() => setBannerModal({ visible: false, banner: null })}
-        navigation={navigation}
-        colors={colors}
-      />
 
       {/* Payment Options Modal */}
       <Modal
@@ -1649,6 +1606,10 @@ const styles = StyleSheet.create({
   driverInfo: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   driverRating: { marginTop: 3 },
+  driverChatBubble: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
 
   // Vehicle
   vehiclePhotosScroll: {
@@ -1835,21 +1796,6 @@ const styles = StyleSheet.create({
   pendingDot: { width: 8, height: 8, borderRadius: 4 },
   pendingLabel: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   cancelLink: { fontSize: 14, fontFamily: 'Sora_500Medium' },
-  footerChatWrap: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  // Mismo alto y mismo pill que el resto de los botones (footerBtn).
-  footerChatBtn: {
-    height: 52,
-    borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderWidth: 1.5,
-  },
-  footerChatBtnText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
-
   // Modals
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheetContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
@@ -1929,11 +1875,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Banners section
-  bannersSection: {
-    marginTop: 28,
-    paddingBottom: 4,
-  },
 });
 
 export default TripDetailScreen;
