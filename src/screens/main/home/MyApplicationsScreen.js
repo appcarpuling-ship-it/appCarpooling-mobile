@@ -16,9 +16,9 @@ import { reportError } from '../../../utils/sentry';
 // Sin color: aceptado y pendiente siguen en juego y llevan badge solido;
 // rechazado va apagado.
 const APP_STATUS = {
-  pending:  { label: 'Pendiente', solid: true },
-  accepted: { label: 'Aceptado',  solid: true },
-  rejected: { label: 'Rechazado', solid: false },
+  pending:  { label: 'Pendiente',    solid: true },
+  accepted: { label: 'Te eligieron', solid: true },
+  rejected: { label: 'Rechazado',    solid: false },
 };
 
 const MyApplicationsScreen = ({ navigation }) => {
@@ -182,15 +182,6 @@ const MyApplicationsScreen = ({ navigation }) => {
           )}
         </View>
 
-        {item.myApplication?.status === 'accepted' && (
-          <View style={styles.acceptedBanner}>
-            <Ionicons name="checkmark-circle" size={15} color={textPrimary} />
-            <Text style={[styles.acceptedText, { color: textPrimary }]}>
-              El pasajero te eligió como conductor
-            </Text>
-          </View>
-        )}
-
         {item.myApplication?.status === 'pending' && (
           <View style={styles.footerRow}>
             <TouchableOpacity
@@ -312,9 +303,6 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 12 },
   metaDivider: { width: 1, height: 12 },
-
-  acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 12 },
-  acceptedText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   footerRow: { flexDirection: 'row', padding: 12, gap: 8 },
   footerBtnOutline: {
