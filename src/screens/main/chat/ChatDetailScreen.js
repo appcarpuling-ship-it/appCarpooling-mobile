@@ -239,6 +239,10 @@ const ChatDetailScreen = ({ route, navigation }) => {
   // Mensaje propio en edición (como WhatsApp): al tocar "Editar" se precarga el compositor
   // con su texto y, al mandar, se hace PUT en vez de crear un mensaje nuevo.
   const [editingMessage, setEditingMessage] = useState(null);
+  // Menú de Editar/Eliminar de un mensaje propio: antes reusaba el AlertModal genérico con
+  // título y botones vacíos (`showAlert(null, null, buttons)`), que se veía como pastillas
+  // sin texto. Ahora es su propia hoja, con ícono + rótulo por opción, como WhatsApp.
+  const [accionesMensaje, setAccionesMensaje] = useState(null);
   const [typing, setTyping] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -616,26 +620,31 @@ const ChatDetailScreen = ({ route, navigation }) => {
     const isOwnMessage = senderId === user._id || senderId === user.id;
     if (!isOwnMessage || item.isTemp || item.deleted) return;
 
-    const buttons = [];
     // Sólo se edita texto (una foto no tiene qué editar) y sólo dentro de la primera hora.
     const dentroDeVentana = Date.now() - new Date(item.createdAt).getTime() < EDIT_WINDOW_MS;
-    if (item.content && dentroDeVentana) {
-      buttons.push({ text: 'Editar', onPress: () => { setEditingMessage({ _id: item._id }); setNewMessage(item.content); } });
-    }
-    buttons.push({
-      text: 'Eliminar',
-      style: 'destructive',
-      onPress: () => showAlert(
-        'Eliminar mensaje',
-        'Se eliminará para todos en la conversación.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Eliminar', style: 'destructive', onPress: () => deleteMessage(item._id) },
-        ]
-      ),
-    });
-    buttons.push({ text: 'Cancelar', style: 'cancel' });
-    showAlert(null, null, buttons);
+    setAccionesMensaje({ item, puedeEditar: !!item.content && dentroDeVentana });
+  };
+
+  const handleEditarDesdeAcciones = () => {
+    const item = accionesMensaje?.item;
+    setAccionesMensaje(null);
+    if (!item) return;
+    setEditingMessage({ _id: item._id });
+    setNewMessage(item.content);
+  };
+
+  const handleEliminarDesdeAcciones = () => {
+    const item = accionesMensaje?.item;
+    setAccionesMensaje(null);
+    if (!item) return;
+    showAlert(
+      'Eliminar mensaje',
+      'Se eliminará para todos en la conversación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => deleteMessage(item._id) },
+      ]
+    );
   };
 
   const handleSendMessage = async () => {
@@ -905,6 +914,38 @@ const ChatDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Editar/Eliminar un mensaje propio: hoja que sube desde abajo con ícono + rótulo por
+          opción, como el menú de un mensaje en WhatsApp — no el AlertModal genérico de
+          título+botones, que para un menú sin título se veía como pastillas vacías. */}
+      <Modal
+        visible={!!accionesMensaje}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAccionesMensaje(null)}
+      >
+        <TouchableOpacity style={styles.accionesOverlay} activeOpacity={1} onPress={() => setAccionesMensaje(null)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.accionesSheet, { backgroundColor: ui.card, borderColor: ui.border }]} onPress={() => {}}>
+            {accionesMensaje?.puedeEditar && (
+              <>
+                <TouchableOpacity style={styles.accionFila} onPress={handleEditarDesdeAcciones} activeOpacity={0.7}>
+                  <Ionicons name="create-outline" size={20} color={ui.text} />
+                  <Text style={[styles.accionTexto, { color: ui.text }]}>Editar</Text>
+                </TouchableOpacity>
+                <View style={[styles.accionDivider, { backgroundColor: ui.border }]} />
+              </>
+            )}
+            <TouchableOpacity style={styles.accionFila} onPress={handleEliminarDesdeAcciones} activeOpacity={0.7}>
+              <Ionicons name="trash-outline" size={20} color="#DC2626" />
+              <Text style={[styles.accionTexto, { color: '#DC2626' }]}>Eliminar</Text>
+            </TouchableOpacity>
+            <View style={[styles.accionDivider, { backgroundColor: ui.border }]} />
+            <TouchableOpacity style={styles.accionFila} onPress={() => setAccionesMensaje(null)} activeOpacity={0.7}>
+              <Text style={[styles.accionTexto, styles.accionCancelar, { color: ui.textMuted }]}>Cancelar</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
     </KeyboardAvoidingView>
   );
 };
@@ -1013,6 +1054,15 @@ const styles = StyleSheet.create({
   },
   fotoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   fotoAmpliada: { width: '100%', height: '80%' },
+
+  // Menú Editar/Eliminar de un mensaje: hoja angosta centrada, no a lo ancho — es un menú de
+  // 2-3 opciones, no un formulario.
+  accionesOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  accionesSheet: { width: '100%', maxWidth: 280, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  accionFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 15 },
+  accionTexto: { fontSize: 15, fontFamily: 'Sora_500Medium' },
+  accionCancelar: { flex: 1, textAlign: 'center', fontFamily: 'Sora_600SemiBold' },
+  accionDivider: { height: StyleSheet.hairlineWidth },
   messageText: {
     fontSize: 15,
     lineHeight: 21,
