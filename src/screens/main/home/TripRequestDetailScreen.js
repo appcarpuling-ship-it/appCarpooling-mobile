@@ -515,11 +515,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
     if (miPostulacion.status === 'rejected') return { label: 'No elegido', icono: 'close-circle-outline' };
     if (isAcceptedDriver) {
       if (request.status === 'awaiting_payment') return { label: 'Elegido, esperando pago', icono: 'hourglass-outline' };
-      if (request.status === 'paid') {
-        return request.createdTrip?.requiereSena
-          ? { label: 'Elegido, falta la seña', icono: 'hourglass-outline' }
-          : { label: 'Confirmado', icono: 'checkmark-circle' };
-      }
+      if (request.status === 'paid') return { label: 'Confirmado', icono: 'checkmark-circle' };
       if (request.status === 'completed') return { label: 'Completado', icono: 'checkmark-done-circle-outline' };
     }
     return { label: 'Enviada', icono: 'checkmark-circle' };
