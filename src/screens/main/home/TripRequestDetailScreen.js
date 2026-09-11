@@ -504,6 +504,27 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const passenger   = request.passenger;
   const isAcceptedDriver = isDriver && !!acceptedApp && String(acceptedApp.driver) === String(user?._id);
 
+  /**
+   * Un solo estado para la tarjeta "TU PROPUESTA", en vez de esa misma info repetida en un
+   * cartel negro aparte más arriba. Antes "Enviada" en la tarjeta y "¡Te eligieron!"/
+   * "Completado" en carteles sueltos decían cosas parecidas de dos formas distintas — de ahí
+   * que la pantalla se sintiera recargada.
+   */
+  const miEstadoBadge = (() => {
+    if (!miPostulacion) return null;
+    if (miPostulacion.status === 'rejected') return { label: 'No elegido', icono: 'close-circle-outline' };
+    if (isAcceptedDriver) {
+      if (request.status === 'awaiting_payment') return { label: 'Elegido, esperando pago', icono: 'hourglass-outline' };
+      if (request.status === 'paid') {
+        return request.createdTrip?.requiereSena
+          ? { label: 'Elegido, falta la seña', icono: 'hourglass-outline' }
+          : { label: 'Confirmado', icono: 'checkmark-circle' };
+      }
+      if (request.status === 'completed') return { label: 'Completado', icono: 'checkmark-done-circle-outline' };
+    }
+    return { label: 'Enviada', icono: 'checkmark-circle' };
+  })();
+
   // Una solicitud todavía no tiene trazado real (eso lo tiene el viaje, una vez creado): solo
   // los dos puntos, sin línea — una recta cruza terreno y ríos en diagonal, ninguna calle hace eso.
   const originCoords = request.origin?.coordinates;
@@ -645,31 +666,11 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* El estado de pago/completado y tu propuesta van acá, pegados al mapa: es lo primero
-            que hay que saber al abrir esta pantalla. El cartel de "ya te eligieron" queda
-            abajo, pegado al botón de cancelar, no acá arriba. */}
+        {/* Tu propuesta va acá, pegada al mapa: es lo primero que hay que saber al abrir
+            esta pantalla. Su estado (esperando pago, falta la seña, completado...) va
+            adentro de la misma tarjeta en vez de repetirse en un cartel aparte arriba.
+            El cartel de "ya te eligieron" queda abajo, pegado al botón de cancelar. */}
         <View style={[styles.section, { gap: 12 }]}>
-          {/* Esperando que el pasajero confirme (driver). No se nombra ningún pago: el
-              conductor no paga nada acá y lo que cobra se lo paga el pasajero directo. */}
-          {isAcceptedDriver && request.status === 'awaiting_payment' && (
-            <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
-              <Ionicons name="hourglass-outline" size={17} color={ui.invertText} />
-              <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                ¡Te eligieron! Falta que el pasajero confirme el viaje.
-              </Text>
-            </View>
-          )}
-
-          {/* Completado */}
-          {(isPassenger || isAcceptedDriver) && request.status === 'completed' && (
-            <View style={[styles.statusFooter, { backgroundColor: ui.surface }]}>
-              <Ionicons name="checkmark-done-circle-outline" size={17} color={ui.textMuted} />
-              <Text style={[styles.statusFooterText, { color: ui.textMuted }]}>
-                Viaje completado.
-              </Text>
-            </View>
-          )}
-
           {isDriver && !!miPostulacion && (
             <View style={{ gap: 12 }}>
               {/* El precio, solo: es lo que se vino a mirar, no tiene que compartir caja
@@ -678,10 +679,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               <View style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}>
                 <View style={styles.miPropuestaTop}>
                   <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
-                  <View style={styles.miPropuestaEstado}>
-                    <Ionicons name="checkmark-circle" size={14} color={ui.text} />
-                    <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>Enviada</Text>
-                  </View>
+                  {!!miEstadoBadge && (
+                    <View style={styles.miPropuestaEstado}>
+                      <Ionicons name={miEstadoBadge.icono} size={14} color={ui.text} />
+                      <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>{miEstadoBadge.label}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {miPostulacion?.driverPrice > 0 ? (
