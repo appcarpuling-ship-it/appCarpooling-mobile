@@ -135,6 +135,20 @@ const RequestDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // Pendiente, sin pill de estado con quien compartir la fila (los botones Aceptar/Rechazar
+  // ya dicen eso): el precio va solo y alineado a la izquierda como cualquier otro dato de la
+  // tarjeta, no empujado a la derecha por un `<View />` vacío haciendo de espaciador.
+  const precioBlock = !trip?.sinPrecioFijo && alConductor > 0 && (
+    <View>
+      <Text style={[styles.precioLabel, { color: ui.textMuted }, pendiente && styles.precioIzquierda]}>
+        Le paga al conductor
+      </Text>
+      <Text style={[styles.precio, { color: ui.text }, pendiente && styles.precioIzquierda]}>
+        ${alConductor.toLocaleString('es-AR')}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top + 6 }]}>
       <View style={[styles.header, { borderBottomColor: ui.bg }]}>
@@ -200,27 +214,20 @@ const RequestDetailScreen = ({ route, navigation }) => {
             )}
           </TouchableOpacity>
 
-          {(!pendiente || (!trip?.sinPrecioFijo && alConductor > 0)) && (
+          {(!pendiente || precioBlock) && (
             <View style={[styles.section, { borderTopColor: ui.border }]}>
-              <View style={styles.passengerCardFooter}>
-                {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
-                    abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
-                {!pendiente ? (
+              {pendiente ? (
+                precioBlock
+              ) : (
+                <View style={styles.passengerCardFooter}>
                   <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.bg }]}>
                     <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
                       {status.label}
                     </Text>
                   </View>
-                ) : <View />}
-                {!trip?.sinPrecioFijo && alConductor > 0 && (
-                  <View>
-                    <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
-                    <Text style={[styles.precio, { color: ui.text }]}>
-                      ${alConductor.toLocaleString('es-AR')}
-                    </Text>
-                  </View>
-                )}
-              </View>
+                  {precioBlock}
+                </View>
+              )}
             </View>
           )}
 
@@ -428,6 +435,7 @@ const styles = StyleSheet.create({
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   precio: { fontSize: 17, fontFamily: 'Sora_700Bold', textAlign: 'right', marginTop: 1 },
+  precioIzquierda: { textAlign: 'left' },
 
   mensaje: { fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic' },
 
