@@ -134,8 +134,18 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const paradaPropia = (kind) => trip.intermediateStops?.find(
     (s) => s.kind === kind && String(s.passenger?._id || s.passenger) === String(booking.passenger?._id || booking.passenger),
   );
-  const sube = booking.seatReservation?.pickupLocation?.address || paradaPropia('pickup')?.address;
-  const baja = booking.seatReservation?.dropoffLocation?.address || paradaPropia('dropoff')?.address;
+  /**
+   * No elegir un punto propio no es "a coordinar": es subir donde arranca el viaje y bajar
+   * donde termina. Por eso el último respaldo son las puntas del viaje del conductor — decir
+   * "A coordinar" mandaba a preguntar algo que ya está decidido.
+   */
+  const puntaDelViaje = (p) => p?.address || p?.city || '';
+  const sube = booking.seatReservation?.pickupLocation?.address
+    || paradaPropia('pickup')?.address
+    || puntaDelViaje(trip.origin);
+  const baja = booking.seatReservation?.dropoffLocation?.address
+    || paradaPropia('dropoff')?.address
+    || puntaDelViaje(trip.destination);
 
   const senaResuelta = pideSena && monto > 0 && !(estado === 'esperando' && viajeEnCurso);
   const mostrarTransferirA = senaResuelta && !yaConfirmada && estado !== 'enviada';
@@ -293,22 +303,18 @@ const PagarSenaScreen = ({ route, navigation }) => {
           {asientos} asiento{asientos !== 1 ? 's' : ''} · {fmtFecha(trip.departureDate)}{trip.departureTime ? ` · ${trip.departureTime}` : ''}
         </Text>
 
-        {(sube || baja) ? (
+        {!!(sube || baja) && (
           <View style={styles.ruta}>
             <View style={styles.rutaFila}>
               <View style={[styles.dotIni, { borderColor: ui.textMuted }]} />
-              <Text style={[styles.rutaTexto, { color: ui.text }]} numberOfLines={2}>{sube || 'A coordinar'}</Text>
+              <Text style={[styles.rutaTexto, { color: ui.text }]} numberOfLines={2}>{sube}</Text>
             </View>
             <View style={[styles.rutaLinea, { backgroundColor: ui.border }]} />
             <View style={styles.rutaFila}>
               <View style={[styles.dotFin, { backgroundColor: ui.textMuted }]} />
-              <Text style={[styles.rutaTexto, { color: ui.text }]} numberOfLines={2}>{baja || 'A coordinar'}</Text>
+              <Text style={[styles.rutaTexto, { color: ui.text }]} numberOfLines={2}>{baja}</Text>
             </View>
           </View>
-        ) : (
-          <Text style={[styles.viajeMeta, { color: ui.textMuted, marginTop: 10 }]}>
-            Coordinás con el conductor dónde subir y bajar.
-          </Text>
         )}
       </View>
 

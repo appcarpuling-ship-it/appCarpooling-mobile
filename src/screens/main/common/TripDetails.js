@@ -150,6 +150,10 @@ const TripDetails = ({ navigation, route }) => {
 
     const esUltimoPaso = step === PASOS.length;
 
+    const selectedVehicle = vehicles?.find(v => v?._id === formData.vehicle);
+    /** Tope de asientos: los que tiene el auto elegido. Lo mismo lo revisa el backend. */
+    const maxAsientos = Number(selectedVehicle?.capacity) || 0;
+
     /**
      * Qué le falta al paso actual, en texto. Devuelve null si está completo.
      * Se valida por paso y no sólo al publicar: llegar al final para que recién ahí te digan
@@ -160,6 +164,11 @@ const TripDetails = ({ navigation, route }) => {
             if (!formData.vehicle) return 'Elegí con qué vehículo vas a viajar';
             const asientos = parseInt(formData.availableSeats, 10);
             if (!asientos || asientos < 1) return 'Indicá cuántos asientos ofrecés';
+            // Red de seguridad: el campo ya no deja escribir de más, pero si el auto se cambia
+            // DESPUÉS de cargar los asientos, el número viejo puede quedar pasado de tope.
+            if (maxAsientos && asientos > maxAsientos) {
+                return `Tu ${selectedVehicle.brand} ${selectedVehicle.model} tiene ${maxAsientos} asiento${maxAsientos !== 1 ? 's' : ''}`;
+            }
             // El precio se valida acá y no recién al publicar: está marcado con * en este paso,
             // y enterarse dos pasos después de que faltaba es lo que los pasos vienen a evitar.
             // En "Gastos compartidos" no hay precio que poner: es carpooling real, se
@@ -306,8 +315,6 @@ const TripDetails = ({ navigation, route }) => {
             setLoading(false);
         }
     };
-
-    const selectedVehicle = vehicles?.find(v => v?._id === formData.vehicle);
 
     // El recorrido completo, con las paradas que el conductor eligió en el mapa. Antes esta
     // tarjeta mostraba sólo origen y destino: las paradas se mandaban igual al backend, pero
@@ -461,13 +468,26 @@ const TripDetails = ({ navigation, route }) => {
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
                                 <TextInput
                                     style={[styles.input, { color: textPrimary }]}
-                                    placeholder={selectedVehicle ? 'Asientos disponibles *' : 'Primero elegí un vehículo'}
+                                    placeholder={
+                                        selectedVehicle
+                                            ? `Asientos disponibles * (hasta ${maxAsientos})`
+                                            : 'Primero elegí un vehículo'
+                                    }
                                     placeholderTextColor={textMuted}
                                     value={formData.availableSeats}
                                     editable={!!selectedVehicle}
                                     onFocus={scrollFieldAboveKeyboard}
-                                    onChangeText={v => handleChange('availableSeats', v)}
+                                    // No se puede ofrecer más de lo que entra en el auto: el campo
+                                    // recorta al tope en vez de dejar escribir un número que el
+                                    // backend va a rechazar recién al publicar, tres pasos después.
+                                    onChangeText={(v) => {
+                                        const digitos = v.replace(/\D/g, '');
+                                        if (!digitos) return handleChange('availableSeats', '');
+                                        const n = Math.min(parseInt(digitos, 10), maxAsientos || 8);
+                                        handleChange('availableSeats', String(n));
+                                    }}
                                     keyboardType="numeric"
+                                    maxLength={2}
                                 />
                             </View>
 
