@@ -927,7 +927,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Footer */}
-        <View style={[styles.footer, { borderTopColor: divider }]}>
+        <View style={styles.footer}>
 
           {/* Pago pendiente (passenger) */}
           {isPassenger && request.status === 'awaiting_payment' && request.paymentData?.paymentUrl && (
@@ -1259,7 +1259,7 @@ const styles = StyleSheet.create({
   chatBtn:                   { width: 60, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 
   // Footer
-  footer:           { padding: 16, paddingTop: 12, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 4, gap: 4 },
+  footer:           { padding: 16, paddingTop: 12, paddingBottom: 8, marginTop: 4, gap: 4 },
   footerRow:        { flexDirection: 'row', gap: 10 },
   // Pill, como el resto de los botones de la app.
   footerBtn:        { borderRadius: 999, paddingVertical: 15, alignItems: 'center' },
