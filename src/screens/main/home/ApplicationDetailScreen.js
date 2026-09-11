@@ -77,6 +77,31 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
             return { skipResult: true };
           }
           const total = res.data?.totalAmount;
+
+          // Con seña, el lugar NO queda confirmado acá: falta que la transfieras. Decir
+          // "¡Viaje confirmado!" en ese caso sería mentirle al pasajero sobre su propia
+          // reserva. Ver Trip.requiereSena / Booking.sena en el backend.
+          if (res.data?.requiereSena) {
+            return {
+              title: 'Elegiste a tu conductor',
+              message: oferta?.sena
+                ? `Transferile la seña de ${oferta.sena} para confirmar tu lugar.`
+                : 'Transferile la seña para confirmar tu lugar.',
+              primaryLabel: 'Ir a pagar la seña',
+              // ApplicationDetailScreen vive en el stack raíz, no en el de un tab: PagarSena
+              // está adentro de CarpoolingsTab, así que hay que resolverlo anidado (mismo
+              // patrón que notificationNavigation.js) — un 'navigate' plano no la encuentra.
+              onPrimary: () => navigation.navigate('Main', {
+                screen: 'CarpoolingsTab',
+                params: {
+                  screen: 'PagarSena',
+                  params: { bookingId: res.data.bookingId, tripId: res.data.tripId },
+                  initial: false,
+                },
+              }),
+            };
+          }
+
           return {
             title: '¡Viaje confirmado!',
             message: total > 0

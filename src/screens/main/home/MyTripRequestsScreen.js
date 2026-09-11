@@ -120,7 +120,11 @@ const MyTripRequestsScreen = ({ navigation }) => {
       case 'awaiting_payment':
         return { icon: 'hourglass-outline', text: 'Conductor aceptado — pendiente de pago', color: textMuted };
       case 'paid':
-        return { icon: 'checkmark-circle-outline', text: '¡Viaje confirmado!', color: textPrimary };
+        // Con seña, 'paid' significa "elegiste conductor", no "confirmado": todavía puede
+        // faltar que transfieras. El detalle real vive en Mis Reservas.
+        return item.createdTrip?.requiereSena
+          ? { icon: 'hourglass-outline', text: 'Conductor elegido — revisá la seña en Mis Reservas', color: textMuted }
+          : { icon: 'checkmark-circle-outline', text: '¡Viaje confirmado!', color: textPrimary };
       case 'completed':
         return { icon: 'checkmark-done-circle-outline', text: 'Viaje completado', color: textMuted };
       case 'cancelled':

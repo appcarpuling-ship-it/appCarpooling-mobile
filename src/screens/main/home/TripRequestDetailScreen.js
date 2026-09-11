@@ -899,12 +899,21 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Confirmado */}
+          {/* Confirmado — o, si el conductor elegido pide seña, todavía falta transferirla:
+              'paid' acá significa "ya no hay más postulaciones que mirar", no "confirmado". */}
           {(isPassenger || isAcceptedDriver) && request.status === 'paid' && (
             <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
-              <Ionicons name="checkmark-circle" size={17} color={ui.invertText} />
+              <Ionicons
+                name={request.createdTrip?.requiereSena ? 'hourglass-outline' : 'checkmark-circle'}
+                size={17}
+                color={ui.invertText}
+              />
               <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                {isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Viaje confirmado. Aparece en "Mis viajes".'}
+                {request.createdTrip?.requiereSena
+                  ? (isPassenger
+                    ? 'Elegiste conductor. Falta la seña — revisá "Mis Reservas".'
+                    : 'Te eligieron. Falta que transfiera la seña.')
+                  : (isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Viaje confirmado. Aparece en "Mis viajes".')}
               </Text>
             </View>
           )}
