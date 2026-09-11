@@ -499,6 +499,7 @@ const TripRequestsScreen = ({ route }) => {
           navigation.navigate('RequestDetail', {
             request: item,
             tripId: selectedTripId,
+            trip: selectedTrip,
             // Los resuelve la bandeja y no la ficha: el diálogo de confirmar y el cuadro del
             // motivo viven acá, con el estado de la lista que hay que recargar después.
             onAceptar: () => handleAccept(item),

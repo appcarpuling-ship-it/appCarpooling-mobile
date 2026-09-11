@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { buildImageUri } from '../../../services/apiService';
 import { useUI } from '../../../theme/ui';
+import { montoSena } from '../../../utils/sena';
 import {
   getStatusConSena,
   estadoDe,
@@ -12,17 +13,23 @@ import {
   fmtCuando,
 } from '../../../utils/solicitudes';
 
+const fmtFechaHora = (d) =>
+  !d ? '' : new Date(d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }) +
+    ' a las ' + new Date(d).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
 /**
- * Una solicitud de reserva entera: quién la pidió, su mensaje, dónde sube y dónde baja,
- * cuánto te desvía, y los botones para aceptarla o rechazarla.
+ * Una solicitud de reserva entera: para qué viaje es, quién la pidió, su mensaje, dónde sube
+ * y dónde baja, cuánto te desvía, la seña (si el viaje la pide) y los botones para
+ * aceptarla/rechazarla o confirmar que la seña llegó.
  *
  * Se abre desde la bandeja (TripRequestsScreen) tocando una fila. Va como PANTALLA y no como
  * modal: el modal dejaba un parpadeo en blanco al cerrarse y en Android su botón de atrás se
  * escapaba a la navegación, sacando al conductor de la pantalla. Además es lo que ya hace el
  * resto de la app —VehiclePicker, DriverPricePicker, PointPicker son todas pantallas—.
  *
- *   navigation.navigate('RequestDetail', { request, tripId, onAceptar, onRechazar, onConfirmarSena })
+ *   navigation.navigate('RequestDetail', { request, trip, tripId, onAceptar, onRechazar, onConfirmarSena })
  *     request     la solicitud tal como la devuelve /bookings/trip/:id
+ *     trip        el viaje (selectedTrip de la bandeja) — para el contexto y el precio/seña
  *     tripId      para poder abrir el perfil del pasajero en el contexto de este viaje
  *     onAceptar   () => void, lo resuelve la bandeja (abre el diálogo de confirmación)
  *     onRechazar  () => void, ídem (abre el cuadro del motivo)
@@ -31,7 +38,8 @@ import {
 const RequestDetailScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
-  const { request, tripId, onAceptar, onRechazar, onConfirmarSena } = route.params || {};
+  const { request, trip, tripId, onAceptar, onRechazar, onConfirmarSena } = route.params || {};
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
 
   if (!request) {
     return (
@@ -45,12 +53,16 @@ const RequestDetailScreen = ({ route, navigation }) => {
   const pendiente = esperandoRespuesta(rs);
   const status = getStatusConSena(request);
   const sena = request.sena?.estado;
-  const seats = request.seatsBooked || request.seatsRequested;
+  const seats = request.seatsBooked || request.seatsRequested || 1;
   const avatarUrl = request.passenger?.avatar ? buildImageUri(request.passenger.avatar) : null;
   const puntos = [
     { punto: request.seatReservation?.pickupLocation, rotulo: 'Sube en', fin: false },
     { punto: request.seatReservation?.dropoffLocation, rotulo: 'Baja en', fin: true },
   ].filter(({ punto }) => punto?.address);
+
+  const pideSena = trip?.requiereSena || !!sena;
+  const alConductor = (Number(trip?.driverPrice) || 0) * seats;
+  const monto = montoSena(trip?.driverPrice, seats);
 
   /**
    * El goBack va ANTES del callback, no después.
@@ -82,6 +94,20 @@ const RequestDetailScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 24 }]}>
+        {/* El viaje al que corresponde esta solicitud: sin esto, abrir la ficha de golpe
+            perdía todo el contexto de la bandeja (qué viaje, cuándo sale). */}
+        {!!trip && (
+          <View>
+            <Text style={[styles.ruta, { color: ui.text }]}>
+              {trip.origin?.city} → {trip.destination?.city}
+            </Text>
+            <Text style={[styles.rutaSub, { color: ui.textMuted }]}>
+              {trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
+              {trip.departureTime ? ` · ${trip.departureTime}` : ''}
+            </Text>
+          </View>
+        )}
+
         {/* Quién pide. Toca y vas a su perfil. */}
         <TouchableOpacity
           style={[styles.passengerRow, { backgroundColor: ui.surface }]}
@@ -113,15 +139,22 @@ const RequestDetailScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
 
-        {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar abajo,
-            un cartel que diga "esperando tu aprobación" no agrega nada. */}
-        {!pendiente && (
-          <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.surface }]}>
-            <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
-              {status.label}
+        <View style={styles.filaEntre}>
+          {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
+              abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
+          {!pendiente ? (
+            <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.surface }]}>
+              <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
+                {status.label}
+              </Text>
+            </View>
+          ) : <View />}
+          {!trip?.sinPrecioFijo && alConductor > 0 && (
+            <Text style={[styles.precio, { color: ui.text }]}>
+              ${alConductor.toLocaleString('es-AR')}
             </Text>
-          </View>
-        )}
+          )}
+        </View>
 
         {!!request.message && (
           <Text style={[styles.mensaje, { color: ui.textMuted, borderColor: ui.border }]}>
@@ -187,33 +220,62 @@ const RequestDetailScreen = ({ route, navigation }) => {
           </Text>
         )}
 
-        {/* El comprobante que subió el pasajero. Una captura se edita, así que no prueba nada
-            por sí sola: sirve para que el conductor sepa qué buscar en su cuenta. Quien
-            confirma es él. Se queda visible después de confirmada — antes desaparecía justo
-            cuando más servía como registro de lo que pagó. */}
-        {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
-          <View style={{ gap: 8 }}>
-            <Text style={[styles.puntoRotulo, { color: ui.textMuted }]}>Comprobante</Text>
-            <Image
-              source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
-              style={[styles.comprobante, { backgroundColor: ui.surface }]}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+        {/* Seña: cuánto es, en qué anda, y el comprobante — sigue visible después de
+            confirmada, como registro de lo que el pasajero transfirió. */}
+        {pideSena && (
+          <View style={[styles.senaCard, { backgroundColor: ui.surface }]}>
+            <View style={styles.senaHeader}>
+              <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginBottom: 0 }]}>SEÑA</Text>
+              {monto > 0 && (
+                <Text style={[styles.senaMonto, { color: ui.text }]}>${monto.toLocaleString('es-AR')}</Text>
+              )}
+            </View>
 
-        {sena === 'esperando' && (
-          <Text style={[styles.rechazo, { color: ui.textMuted, borderColor: ui.border }]}>
-            Ya lo aceptaste. Te avisamos cuando suba el comprobante de la seña.
-          </Text>
-        )}
+            {sena === 'esperando' && (
+              <View style={styles.senaEstado}>
+                <Ionicons name="hourglass-outline" size={16} color={ui.textMuted} />
+                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                  Ya lo aceptaste. Avisamos cuando suba el comprobante.
+                </Text>
+              </View>
+            )}
 
-        {sena === 'confirmada' && (
-          <View style={[styles.senaConfirmada, { borderColor: ui.border }]}>
-            <Ionicons name="checkmark-circle-outline" size={17} color="#10B981" />
-            <Text style={[styles.senaConfirmadaText, { color: ui.textMuted }]}>
-              Confirmaste que te llegó la seña.
-            </Text>
+            {sena === 'enviada' && (
+              <View style={styles.senaEstado}>
+                <Ionicons name="time-outline" size={16} color={ui.textMuted} />
+                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                  Mandó el comprobante{request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Confirmá si te llegó.
+                </Text>
+              </View>
+            )}
+
+            {sena === 'confirmada' && (
+              <View style={styles.senaEstado}>
+                <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
+                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                  Confirmaste que te llegó{request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.
+                </Text>
+              </View>
+            )}
+
+            {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
+                conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
+            {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
+              <TouchableOpacity
+                onPress={() => setFotoAmpliada(true)}
+                activeOpacity={0.85}
+                style={styles.comprobanteTouch}
+              >
+                <Image
+                  source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
+                  style={[styles.comprobante, { backgroundColor: ui.bg }]}
+                  resizeMode="cover"
+                />
+                <View style={[styles.comprobanteZoom, { backgroundColor: ui.bg }]}>
+                  <Ionicons name="expand-outline" size={15} color={ui.text} />
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -233,13 +295,25 @@ const RequestDetailScreen = ({ route, navigation }) => {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
-                  {sena === 'enviada' ? 'Aceptar' : 'AceptarR'}
+                  {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
                 </Text>
               </TouchableOpacity>
             )}
           </View>
         )}
       </ScrollView>
+
+      <Modal visible={fotoAmpliada} transparent animationType="fade" onRequestClose={() => setFotoAmpliada(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setFotoAmpliada(false)}>
+          {!!request.sena?.comprobanteUrl && (
+            <Image
+              source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
+              style={styles.overlayImg}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -254,6 +328,9 @@ const styles = StyleSheet.create({
 
   body: { padding: 20, gap: 16 },
 
+  ruta: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 },
+  rutaSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3, textTransform: 'capitalize' },
+
   passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },
   avatar: { width: 46, height: 46, borderRadius: 23 },
   avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
@@ -261,15 +338,15 @@ const styles = StyleSheet.create({
   passengerName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   reqSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
 
+  filaEntre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -6 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
+  precio: { fontSize: 17, fontFamily: 'Sora_700Bold' },
 
   mensaje: {
     fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic',
     borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
   },
-
-  comprobante: { width: '100%', height: 320, borderRadius: 14 },
 
   rutaCard: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
   rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
@@ -286,11 +363,20 @@ const styles = StyleSheet.create({
     fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19,
     borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
   },
-  senaConfirmada: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
+
+  senaCard: { borderRadius: 18, padding: 16, gap: 12 },
+  senaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rotuloSeccion: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5 },
+  senaMonto: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
+  senaEstado: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  senaEstadoText: { flex: 1, fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19 },
+
+  comprobanteTouch: { borderRadius: 14, overflow: 'hidden' },
+  comprobante: { width: '100%', height: 220, borderRadius: 14 },
+  comprobanteZoom: {
+    position: 'absolute', top: 10, right: 10,
+    width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
   },
-  senaConfirmadaText: { flex: 1, fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19 },
 
   acciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
   // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
@@ -298,6 +384,9 @@ const styles = StyleSheet.create({
   btnRejectText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   btnAccept: { flex: 1.4, height: 48, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
   btnAcceptText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  overlayImg: { width: '100%', height: '80%' },
 });
 
 export default RequestDetailScreen;
