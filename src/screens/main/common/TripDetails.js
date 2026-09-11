@@ -582,7 +582,7 @@ const TripDetails = ({ navigation, route }) => {
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
                                         {senaPreview
-                                            ? `El pasajero te transfiere ${senaPreview} por asiento para reservar, y el resto al subir.`
+                                            ? `El pasajero paga ${senaPreview} por asiento por la seña, y el resto al subir.`
                                             : 'El pasajero te adelanta la mitad para reservar, y te paga el resto al subir. Poné el precio por asiento para ver cuánto es.'}
                                     </Text>
                                     {/* Tocable: sin esto el conductor lee "cargá tu CVU" y tiene

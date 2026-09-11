@@ -1320,6 +1320,29 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <Ionicons name="close-circle" size={18} color={textMuted} />
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>Reserva cancelada</Text>
                 </View>
+              ) : userBooking.sena?.estado === 'esperando' ? (
+                // El conductor ya te aceptó, pero con seña de por medio la reserva no se
+                // confirma hasta que transferís. Mismo botón que en Mis Reservas.
+                <View style={styles.pendingWrap}>
+                  <TouchableOpacity
+                    style={[styles.footerBtn, { backgroundColor: accent }]}
+                    onPress={() => navigation.navigate('PagarSena', { bookingId: userBooking._id, tripId })}
+                  >
+                    <Text style={[styles.footerBtnText, { color: accentInverse }]}>Pagar la seña</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : userBooking.sena?.estado === 'enviada' ? (
+                <View style={styles.pendingWrap}>
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>
+                    Mandaste el comprobante. Falta que el conductor confirme que le llegó.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: divider }]}
+                    onPress={() => navigation.navigate('PagarSena', { bookingId: userBooking._id, tripId })}
+                  >
+                    <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Ver la seña</Text>
+                  </TouchableOpacity>
+                </View>
               ) : userBooking.seatReservation?.reservationStatus === 'pending_approval' ? (
                 <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>
