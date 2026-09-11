@@ -353,12 +353,12 @@ const RequestDetailScreen = ({ route, navigation }) => {
         {pendiente && (
           <View style={styles.acciones}>
             <TouchableOpacity
-              style={[styles.btnReject, { borderColor: ui.border }]}
+              style={[styles.btnReject, { backgroundColor: '#EF4444', borderColor: '#EF4444' }]}
               onPress={salirY(onRechazar)}
               activeOpacity={0.7}
               disabled={confirmando}
             >
-              <Text style={[styles.btnRejectText, { color: ui.text }]}>Rechazar</Text>
+              <Text style={[styles.btnRejectText, { color: '#FFFFFF' }]}>Rechazar</Text>
             </TouchableOpacity>
             {sena !== 'esperando' && (
               <TouchableOpacity
@@ -458,7 +458,8 @@ const styles = StyleSheet.create({
   },
 
   acciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
+  // Rojo sólido, como el resto de las acciones destructivas de la app (Cancelar viaje,
+  // Retirar postulación): antes era un contorno gris que no se leía como "rechazar".
   btnReject: { flex: 1, height: 48, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },
   btnRejectText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   btnAccept: { flex: 1.4, height: 48, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
