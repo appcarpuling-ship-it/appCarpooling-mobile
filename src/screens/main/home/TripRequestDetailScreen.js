@@ -57,7 +57,9 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const textSecondary = dark ? '#D1D5DB' : '#374151';
   const textMuted   = dark ? '#9CA3AF'  : '#6B7280';
   const divider     = dark ? '#2A2A2A'  : '#E5E7EB';
-  const accent      = dark ? '#FFFFFF'  : '#1F2937';  const accentInverse = ui.invertText;
+  // Antes era un gris azulado (#1F2937) fijo en claro, que se leía como un botón celeste en
+  // vez del negro que usa el resto de la app. ui.invertBg es el token real de "botón sólido".
+  const accent      = ui.invertBg;  const accentInverse = ui.invertText;
 
   const [request,        setRequest]        = useState(null);
   const [loading,        setLoading]        = useState(true);
