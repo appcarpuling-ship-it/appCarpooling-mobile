@@ -196,10 +196,11 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   // Sin paddingBottom: abajo del boton queda solo el del contenedor (insets.bottom + 16),
   // el mismo aire que el resto de los botones de la app. Con los 24 de acá quedaba más arriba.
-  bodyContent: { paddingHorizontal: 24, paddingTop: 16, flexGrow: 1 },
-  // flexGrow: la cadena tiene que llenar el contentContainer entero para que el `marginTop:
-  // 'auto'` del footer lo empuje al fondo cuando el contenido es corto.
-  bodyInner: { gap: 12, flexGrow: 1 },
+  bodyContent: { paddingHorizontal: 24, paddingTop: 16 },
+  // El botón iba pegado al fondo con flexGrow+marginTop:'auto': con esta pantalla tan corta
+  // (2 toggles y un precio) dejaba un pozo de aire vacío enorme en el medio. Ahora sigue al
+  // contenido, como el resto de los formularios cortos de la app.
+  bodyInner: { gap: 12 },
   intro: { fontFamily: 'Sora_400Regular', fontSize: 14, lineHeight: 20, marginBottom: 4 },
 
   row: {
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   error: { color: '#EF4444', fontSize: 13, fontFamily: 'Sora_400Regular', paddingHorizontal: 4 },
   total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
 
-  footer: { paddingTop: 16, marginTop: 'auto' },
+  footer: { paddingTop: 28 },
 });
 
 export default DriverPricePickerScreen;
