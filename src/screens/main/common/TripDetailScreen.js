@@ -1340,6 +1340,16 @@ const TripDetailScreen = ({ route, navigation }) => {
                   <Ionicons name="close-circle" size={18} color={textMuted} />
                   <Text style={[styles.statusFooterText, { color: textMuted }]}>Reserva cancelada</Text>
                 </View>
+              ) : userBooking.sena?.estado === 'esperando' && trip.status === 'started' ? (
+                // El viaje ya salió: transferir ahora no tiene sentido, el lugar ya se
+                // resolvió con o sin vos. Nada de botón — esto se arregla hablando con el
+                // conductor, no pagando a último momento.
+                <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>
+                  <Ionicons name="information-circle-outline" size={18} color={textMuted} />
+                  <Text style={[styles.statusFooterText, { color: textMuted }]}>
+                    El viaje ya salió sin que llegaras a mandar la seña
+                  </Text>
+                </View>
               ) : userBooking.sena?.estado === 'esperando' ? (
                 // El conductor ya te aceptó, pero con seña de por medio la reserva no se
                 // confirma hasta que transferís. Mismo botón que en Mis Reservas.
@@ -1470,7 +1480,7 @@ const TripDetailScreen = ({ route, navigation }) => {
       {/* Atajo flotante para pagar la seña: al abrir el detalle está a la vista sin scrollear,
           y se va apenas el pasajero baja (ya vio el botón del footer). Lleva directo a la
           pantalla de pago, igual que el botón de abajo. */}
-      {!isOwnTrip && userBooking?.sena?.estado === 'esperando' && !scrolledPastTop && (
+      {!isOwnTrip && userBooking?.sena?.estado === 'esperando' && trip.status !== 'started' && !scrolledPastTop && (
         <TouchableOpacity
           style={[styles.jumpToSena, { backgroundColor: accent }]}
           onPress={() => navigation.navigate('PagarSena', { bookingId: userBooking._id, tripId })}

@@ -13,6 +13,7 @@ import { appendFile } from '../../../utils/formDataFile';
 import { useElegirFoto } from '../../../hooks/useElegirFoto';
 import { montoSena } from '../../../utils/sena';
 import { reportError } from '../../../utils/sentry';
+import PillButton from '../../../components/ui/PillButton';
 
 /**
  * "Tu reserva": el detalle completo de la reserva del pasajero — asientos, dónde sube y baja,
@@ -112,14 +113,23 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const estado = booking.sena?.estado;
   const yaConfirmada = estado === 'confirmada';
   const pideSena = trip.requiereSena || !!estado;
+  // Con el viaje ya en curso no tiene sentido seguir pidiendo o mostrando a dónde transferir:
+  // el lugar ya se resolvió con o sin la seña. Se arregla hablando con el conductor.
+  const viajeEnCurso = trip.status === 'started';
   const monto = montoSena(trip.driverPrice, asientos);
   const cobro = trip.driverDatosCobro;
   const vence = booking.sena?.venceAt ? new Date(booking.sena.venceAt) : null;
   const enviada = booking.sena?.enviadaAt ? new Date(booking.sena.enviadaAt) : null;
   const alConductor = (Number(trip.driverPrice) || 0) * asientos;
 
-  const sube = booking.seatReservation?.pickupLocation?.address;
-  const baja = booking.seatReservation?.dropoffLocation?.address;
+  // Si la reserva nació de una solicitud (postulación) no hay seatReservation — sus puntos
+  // quedaron como paradas del viaje, no acá. Sin este respaldo, a un pasajero que SÍ eligió
+  // dónde subir y bajar se le decía "no elegiste puntos", cuando sí lo hizo.
+  const paradaPropia = (kind) => trip.intermediateStops?.find(
+    (s) => s.kind === kind && String(s.passenger?._id || s.passenger) === String(booking.passenger?._id || booking.passenger),
+  );
+  const sube = booking.seatReservation?.pickupLocation?.address || paradaPropia('pickup')?.address;
+  const baja = booking.seatReservation?.dropoffLocation?.address || paradaPropia('dropoff')?.address;
 
   const senaTexto = {
     esperando: { icon: 'hourglass-outline', color: ui.textMuted, t: 'Falta que mandes la seña' },
@@ -223,65 +233,73 @@ const PagarSenaScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {estado === 'esperando' && !!vence && (
+          {estado === 'esperando' && viajeEnCurso ? (
+            // El viaje ya salió: ni transferir ni mandar comprobante tiene sentido ya —
+            // el lugar se resolvió con o sin la seña. Se arregla hablando con el conductor.
             <Text style={[styles.nota, { color: ui.textMuted }]}>
-              Tenés tiempo hasta el {fmtFecha(vence)} a las{' '}
-              {vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.
+              El viaje ya salió sin que llegaras a mandar la seña.
             </Text>
-          )}
-
-          {/* A dónde transferir — sólo mientras falta pagarla. */}
-          {!yaConfirmada && estado !== 'enviada' && ((cobro?.alias || cobro?.cvu) ? (
-            <>
-              <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>TRANSFERILE A</Text>
-              {!!cobro.titular && (
-                <Text style={[styles.nota, { color: ui.textMuted }]}>Titular: {cobro.titular}</Text>
-              )}
-              {!!cobro.alias && filaCopiable('Alias', cobro.alias)}
-              {!!cobro.cvu && filaCopiable('CVU / CBU', cobro.cvu)}
-            </>
           ) : (
-            <Text style={[styles.nota, { color: ui.textMuted }]}>
-              El conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale por
-              el chat a dónde transferirle.
-            </Text>
-          ))}
-
-          {estado === 'esperando' && (
             <>
-              <TouchableOpacity
-                style={[styles.boton, { backgroundColor: ui.invertBg }]}
-                onPress={mandarComprobante}
-                disabled={subiendo}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.botonText, { color: ui.invertText }]}>Mandar comprobante</Text>
-              </TouchableOpacity>
-              {!!errorEnvio && (
-                <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+              {estado === 'esperando' && !!vence && (
+                <Text style={[styles.nota, { color: ui.textMuted }]}>
+                  Tenés tiempo hasta el {fmtFecha(vence)} a las{' '}
+                  {vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.
+                </Text>
               )}
-            </>
-          )}
 
-          {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo.
-              No vive en el chat justamente para que no se borre. */}
-          {(estado === 'enviada' || yaConfirmada) && !!booking.sena?.comprobanteUrl && (
-            <>
-              <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>
-                TU COMPROBANTE{enviada ? ` · ${enviada.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : ''}
-              </Text>
-              <Image
-                source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
-                style={[styles.comprobante, { backgroundColor: ui.surface }]}
-                resizeMode="contain"
-              />
-              {estado === 'enviada' && (
-                <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>
-                  <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
-                </TouchableOpacity>
+              {/* A dónde transferir — sólo mientras falta pagarla. */}
+              {!yaConfirmada && estado !== 'enviada' && ((cobro?.alias || cobro?.cvu) ? (
+                <>
+                  <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>TRANSFERILE A</Text>
+                  {!!cobro.titular && (
+                    <Text style={[styles.nota, { color: ui.textMuted }]}>Titular: {cobro.titular}</Text>
+                  )}
+                  {!!cobro.alias && filaCopiable('Alias', cobro.alias)}
+                  {!!cobro.cvu && filaCopiable('CVU / CBU', cobro.cvu)}
+                </>
+              ) : (
+                <Text style={[styles.nota, { color: ui.textMuted }]}>
+                  El conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale
+                  por el chat a dónde transferirle.
+                </Text>
+              ))}
+
+              {estado === 'esperando' && (
+                <>
+                  <PillButton
+                    label={subiendo ? 'Enviando…' : 'Mandar comprobante'}
+                    onPress={mandarComprobante}
+                    loading={subiendo}
+                    style={{ marginTop: 20 }}
+                  />
+                  {!!errorEnvio && (
+                    <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+                  )}
+                </>
               )}
-              {!!errorEnvio && (
-                <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+
+              {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo.
+                  No vive en el chat justamente para que no se borre. */}
+              {(estado === 'enviada' || yaConfirmada) && !!booking.sena?.comprobanteUrl && (
+                <>
+                  <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>
+                    TU COMPROBANTE{enviada ? ` · ${enviada.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : ''}
+                  </Text>
+                  <Image
+                    source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
+                    style={[styles.comprobante, { backgroundColor: ui.surface }]}
+                    resizeMode="contain"
+                  />
+                  {estado === 'enviada' && (
+                    <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>
+                      <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
+                    </TouchableOpacity>
+                  )}
+                  {!!errorEnvio && (
+                    <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+                  )}
+                </>
               )}
             </>
           )}
@@ -330,8 +348,6 @@ const styles = StyleSheet.create({
   datoRotulo: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5 },
   datoValor: { fontSize: 17, fontFamily: 'Sora_600SemiBold', marginTop: 3 },
 
-  boton: { marginTop: 20, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  botonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   link: { fontSize: 13, fontFamily: 'Sora_600SemiBold', textAlign: 'center', marginTop: 14 },
   error: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center', marginTop: 10 },
 

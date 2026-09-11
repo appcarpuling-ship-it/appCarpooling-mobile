@@ -286,7 +286,9 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const seats = item.seats || item.seatsBooked || 1;
     const isActive = item.trip?.status === 'started';
     // Sólo 'esperando': una vez mandado el comprobante no hay nada más que hacer desde acá.
-    const faltaSena = item.sena?.estado === 'esperando';
+    // Con el viaje ya en curso no tiene sentido seguir ofreciendo pagar la seña: si no la
+    // mandó a tiempo, se resuelve con el conductor, no transfiriendo a último momento.
+    const faltaSena = item.sena?.estado === 'esperando' && item.trip?.status !== 'started';
     const activeTxt     = isActive ? '#FFFFFF' : textPrimary;
     const activeMuted   = isActive ? 'rgba(255,255,255,0.5)' : textSecondary;
 
