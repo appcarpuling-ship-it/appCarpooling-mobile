@@ -914,7 +914,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 {request.createdTrip?.requiereSena
                   ? (isPassenger
                     ? 'Elegiste conductor. Falta la seña — revisá "Mis Reservas".'
-                    : 'Te eligieron. Falta que transfiera la seña.')
+                    : 'Te eligieron como conductor para este viaje.')
                   : (isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Viaje confirmado. Aparece en "Mis viajes".')}
               </Text>
             </View>
@@ -930,18 +930,20 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Cancelar viaje (driver aceptado, paid) */}
+          {/* Cancelar viaje (driver aceptado, paid). Destructiva y no se deshace: rojo sólido
+              como "Cancelar solicitud" más abajo, no un outline gris que se leía como una
+              acción cualquiera. */}
           {isAcceptedDriver && request.status === 'paid' && (
             <View style={[styles.footerRow, { marginTop: 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancelTrip}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
-                  ? <ActivityIndicator size="small" color={ui.textMuted} />
-                  : <Text style={[styles.footerBtnOutlineText, { color: ui.textMuted }]}>Cancelar viaje</Text>
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar viaje</Text>
                 }
               </TouchableOpacity>
             </View>
