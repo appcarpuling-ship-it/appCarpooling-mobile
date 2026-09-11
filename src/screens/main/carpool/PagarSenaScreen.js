@@ -41,6 +41,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const [trip, setTrip] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState('');
 
   const cargar = useCallback(async () => {
     try {
@@ -72,17 +73,18 @@ const PagarSenaScreen = ({ route, navigation }) => {
 
   const mandarComprobante = () => {
     elegirFoto(async (uri) => {
+      setErrorEnvio('');
       setSubiendo(true);
       try {
         const fd = new FormData();
         await appendFile(fd, 'comprobante', uri, 'comprobante.jpg');
         const res = await put_withauth_formdata(`/bookings/${bookingId}/sena`, fd);
         if (!res?.success) throw new Error(res?.message || 'No se pudo enviar el comprobante');
+        // Sin alert: el estado de la seña de abajo pasa solo a "enviada" y avisa lo mismo.
         setBooking((b) => (b ? { ...b, sena: res.data } : b));
-        showAlert('Listo', 'Le avisamos al conductor. Te confirma cuando vea la transferencia.');
       } catch (e) {
         reportError(e, { screen: 'ReservaDetalle', action: 'mandarComprobante' });
-        showAlert('Ocurrió algo', 'No pudimos enviar el comprobante. Probá de nuevo.');
+        setErrorEnvio('No pudimos enviar el comprobante. Probá de nuevo.');
       } finally {
         setSubiendo(false);
       }
@@ -148,6 +150,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
     );
 
   return (
+    <View style={{ flex: 1, backgroundColor: ui.bg }}>
     <ScrollView
       style={{ backgroundColor: ui.bg }}
       contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
@@ -243,16 +246,19 @@ const PagarSenaScreen = ({ route, navigation }) => {
           ))}
 
           {estado === 'esperando' && (
-            <TouchableOpacity
-              style={[styles.boton, { backgroundColor: ui.invertBg }]}
-              onPress={mandarComprobante}
-              disabled={subiendo}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.botonText, { color: ui.invertText }]}>
-                {subiendo ? 'Enviando…' : 'Mandar comprobante'}
-              </Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.boton, { backgroundColor: ui.invertBg }]}
+                onPress={mandarComprobante}
+                disabled={subiendo}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.botonText, { color: ui.invertText }]}>Mandar comprobante</Text>
+              </TouchableOpacity>
+              {!!errorEnvio && (
+                <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+              )}
+            </>
           )}
 
           {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo.
@@ -269,16 +275,27 @@ const PagarSenaScreen = ({ route, navigation }) => {
               />
               {estado === 'enviada' && (
                 <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>
-                  <Text style={[styles.link, { color: ui.text }]}>
-                    {subiendo ? 'Enviando…' : 'Mandar otra foto'}
-                  </Text>
+                  <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
                 </TouchableOpacity>
+              )}
+              {!!errorEnvio && (
+                <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
               )}
             </>
           )}
         </View>
       )}
     </ScrollView>
+
+      {/* Bloquea la pantalla mientras sube: sin esto se podía scrollear, copiar el alias o
+          volver atrás a mitad de la subida. */}
+      {subiendo && (
+        <View style={[styles.overlay, { backgroundColor: ui.bg }]}>
+          <ActivityIndicator size="small" color={ui.text} />
+          <Text style={[styles.overlayText, { color: ui.textMuted }]}>Enviando comprobante…</Text>
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -314,6 +331,13 @@ const styles = StyleSheet.create({
   boton: { marginTop: 20, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   botonText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   link: { fontSize: 13, fontFamily: 'Sora_600SemiBold', textAlign: 'center', marginTop: 14 },
+  error: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center', marginTop: 10 },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center', justifyContent: 'center', gap: 10,
+  },
+  overlayText: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
   comprobante: { width: '100%', height: 260, borderRadius: 14, marginTop: 4 },
 
