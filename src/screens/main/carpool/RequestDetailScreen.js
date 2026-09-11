@@ -189,8 +189,9 @@ const RequestDetailScreen = ({ route, navigation }) => {
 
         {/* El comprobante que subió el pasajero. Una captura se edita, así que no prueba nada
             por sí sola: sirve para que el conductor sepa qué buscar en su cuenta. Quien
-            confirma es él. */}
-        {sena === 'enviada' && !!request.sena?.comprobanteUrl && (
+            confirma es él. Se queda visible después de confirmada — antes desaparecía justo
+            cuando más servía como registro de lo que pagó. */}
+        {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
           <View style={{ gap: 8 }}>
             <Text style={[styles.puntoRotulo, { color: ui.textMuted }]}>Comprobante</Text>
             <Image
@@ -205,6 +206,15 @@ const RequestDetailScreen = ({ route, navigation }) => {
           <Text style={[styles.rechazo, { color: ui.textMuted, borderColor: ui.border }]}>
             Ya lo aceptaste. Te avisamos cuando suba el comprobante de la seña.
           </Text>
+        )}
+
+        {sena === 'confirmada' && (
+          <View style={[styles.senaConfirmada, { borderColor: ui.border }]}>
+            <Ionicons name="checkmark-circle-outline" size={17} color="#10B981" />
+            <Text style={[styles.senaConfirmadaText, { color: ui.textMuted }]}>
+              Confirmaste que te llegó la seña.
+            </Text>
+          </View>
         )}
 
         {pendiente && (
@@ -276,6 +286,11 @@ const styles = StyleSheet.create({
     fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19,
     borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
   },
+  senaConfirmada: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
+  },
+  senaConfirmadaText: { flex: 1, fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19 },
 
   acciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
   // Rechazar con contorno en vez de gris sobre gris: como estaba parecía deshabilitado.
