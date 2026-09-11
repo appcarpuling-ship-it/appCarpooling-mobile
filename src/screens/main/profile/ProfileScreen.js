@@ -137,7 +137,6 @@ const ProfileScreen = () => {
       onPress: () => navigation.navigate('DatosCobro'),
       badge: (user?.datosCobro?.alias || user?.datosCobro?.cvu) ? null : 'Sin cargar',
     },
-    { id: 5, title: 'Ayuda',         icon: 'help-circle-outline', onPress: () => navigation.navigate('Help') },
   ];
 
   const menuSections = [
@@ -150,6 +149,7 @@ const ProfileScreen = () => {
     {
       title: 'Información',
       items: [
+        { id: 5,  title: 'Ayuda', subtitle: 'Preguntas frecuentes y contacto', icon: 'help-circle-outline', onPress: () => navigation.navigate('Help') },
         { id: 4,  title: 'Términos y Condiciones',  subtitle: 'Leé nuestras políticas de uso',      icon: 'document-text-outline', onPress: () => navigation.navigate('Terms') },
         { id: 11, title: 'Política de Privacidad', subtitle: 'Cómo usamos tus datos personales',  icon: 'shield-outline',        onPress: () => navigation.navigate('Privacy') },
         { id: 12, title: 'Cookies',                subtitle: 'Información sobre almacenamiento', icon: 'information-circle-outline', onPress: () => navigation.navigate('Cookies') },
