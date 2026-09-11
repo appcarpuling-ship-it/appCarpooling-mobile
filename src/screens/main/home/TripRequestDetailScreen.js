@@ -28,7 +28,7 @@ import Rating from '../../../components/ui/Rating';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
-import { recorridoElegido, armarTripParaMapa, armarRecorrido, ofertaDelConductor } from '../../../utils/postulacionTrip';
+import { recorridoElegido, armarRecorrido, ofertaDelConductor } from '../../../utils/postulacionTrip';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -184,13 +184,10 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const miPostulacion = request?.applications?.find(
     (a) => String(a.driver?._id || a.driver) === String(user?._id || user?.id),
   );
-  // Detalle de la propia oferta: mismo tramo o recorrido propio, y el mapa para verlo.
+  // Detalle de la propia oferta: mismo tramo o recorrido propio.
   // Antes, una vez postulado, sólo quedaba el precio — el conductor no tenía forma de
   // volver a ver por dónde había dicho que iba a pasar.
   const miEleccion = miPostulacion ? recorridoElegido(miPostulacion) : null;
-  const miTripParaMapa = miPostulacion
-    ? armarTripParaMapa(miPostulacion, request, user, miPostulacion.vehicleSnapshot)
-    : null;
   // Todo lo que mandaste al postularte, para el modal de detalle: precio/modalidad y el
   // recorrido completo, punto por punto (mismas funciones que usa el pasajero para ver la
   // postulación de un conductor — es la misma información, sólo que ahora es la tuya).
@@ -700,23 +697,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   <Text style={[styles.miPropuestaMonto, { color: ui.text }]}>
                     ${Number(miPostulacion.driverPrice).toLocaleString('es-AR')}
                   </Text>
-                  <Text style={[styles.miPropuestaPie, { color: ui.textMuted, marginBottom: miEleccion ? 14 : 0 }]}>por asiento</Text>
+                  <Text style={[styles.miPropuestaPie, { color: ui.textMuted }]}>por asiento</Text>
                 </>
               ) : (
-                <Text style={[styles.miPropuestaModo, { color: ui.text, marginBottom: miEleccion ? 14 : 0 }]}>
+                <Text style={[styles.miPropuestaModo, { color: ui.text }]}>
                   {miPostulacion?.sinPrecioFijo ? 'Gastos compartidos' : 'Ya te postulaste'}
                 </Text>
-              )}
-
-              {/* Qué recorrido ofreciste: mismo tramo o propio. Sin esto, una vez postulado
-                  había que acordarse de memoria por dónde ibas a pasar. */}
-              {miEleccion && (
-                <View style={[styles.miDetalleFila, { paddingHorizontal: 0, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ui.border }]}>
-                  <Ionicons name={miEleccion.icono} size={15} color={ui.textMuted} />
-                  <Text style={[styles.miPropuestaRecorridoText, { color: ui.textMuted }]}>
-                    {miEleccion.texto}
-                  </Text>
-                </View>
               )}
             </TouchableOpacity>
           )}
@@ -1150,6 +1136,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
               {miRecorridoCompleto.length > 0 && (
                 <View>
                   <Text style={[styles.sheetLabel, { color: ui.textMuted }]}>Recorrido</Text>
+                  {/* Qué elegiste al postularte: mismo tramo o recorrido propio. Va arriba de
+                      los puntos porque es el encuadre de lo que sigue. */}
+                  {!!miEleccion && (
+                    <View style={styles.sheetEleccion}>
+                      <Ionicons name={miEleccion.icono} size={15} color={ui.text} />
+                      <Text style={[styles.sheetEleccionText, { color: ui.text }]}>{miEleccion.texto}</Text>
+                    </View>
+                  )}
                   {miRecorridoCompleto.map((punto, i) => (
                     <View key={`${punto.etiqueta}-${i}`} style={styles.sheetRecorridoFila}>
                       <View style={styles.sheetRecorridoLinea}>
@@ -1170,17 +1164,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                 </View>
               )}
 
-              {!!miTripParaMapa && (
-                <TouchableOpacity
-                  style={styles.sheetMapLink}
-                  onPress={() => { setMiDetalleVisible(false); navigation.navigate('TripMap', { trip: miTripParaMapa }); }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="map-outline" size={18} color={ui.text} />
-                  <Text style={{ flex: 1, color: ui.text, fontSize: 14, fontFamily: 'Sora_600SemiBold' }}>Ver en el mapa</Text>
-                  <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
-                </TouchableOpacity>
-              )}
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -1207,11 +1190,12 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 17, fontFamily: 'Sora_700Bold' },
   sheetContent: { paddingHorizontal: 20, paddingBottom: 30 },
   sheetLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  sheetEleccion: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 14 },
+  sheetEleccionText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   sheetRecorridoFila: { flexDirection: 'row', gap: 12 },
   sheetRecorridoLinea: { alignItems: 'center', width: 10 },
   sheetRecorridoPunto: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
   sheetRecorridoTramo: { width: StyleSheet.hairlineWidth, flex: 1, minHeight: 22 },
-  sheetMapLink: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, marginTop: 4 },
 
   // Status — exact match TripDetailScreen
   statusRow: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
@@ -1298,8 +1282,6 @@ const styles = StyleSheet.create({
   miPropuestaMonto: { fontSize: 34, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1.2, marginTop: 6 },
   miPropuestaPie:   { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: -2 },
   miPropuestaModo:  { fontSize: 19, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, marginTop: 6 },
-  miDetalleFila:  { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 14 },
-  miPropuestaRecorridoText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
 
   // Map preview
   mapPreviewWrap: { height: 200, marginTop: 16, marginHorizontal: 20, marginBottom: 12, borderRadius: 24, overflow: 'hidden' },
