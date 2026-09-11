@@ -201,41 +201,67 @@ const PagarSenaScreen = ({ route, navigation }) => {
         <Text style={[styles.sub, { color: subEstadoColor, marginTop: 3 }]}>{subEstado}</Text>
       )}
 
-      {/* El alias, como un botón — es el dato que hace falta ahora, no una fila más entre
-          otras. Copia al tocarlo. */}
-      {mostrarTransferirA && !!cobro?.alias && (
-        <TouchableOpacity
-          style={[styles.pillDato, { backgroundColor: ui.surface }]}
-          onPress={() => copiar('Alias', cobro.alias)}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="at-outline" size={16} color={ui.text} />
-          <Text style={[styles.pillDatoTexto, { color: ui.text }]}>{cobro.alias}</Text>
-          <Ionicons name="copy-outline" size={15} color={ui.textMuted} />
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.filas}>
-        {mostrarTransferirA && (
-          !cobro?.alias && !cobro?.cvu ? (
-            filaIcono('alert-circle-outline', 'El conductor todavía no cargó sus datos de cobro. Preguntale por el chat a dónde transferirle.')
+      {/* A dónde transferir, como una tarjeta — no filas sueltas flotando en la pantalla.
+          Cada dato se copia al tocarlo. */}
+      {mostrarTransferirA && (
+        <View style={[styles.card, { backgroundColor: ui.surface }]}>
+          {!cobro?.alias && !cobro?.cvu ? (
+            <View style={styles.filaIcono}>
+              <Ionicons name="alert-circle-outline" size={18} color={ui.textMuted} />
+              <Text style={[styles.filaIconoTexto, { color: ui.text }]}>
+                El conductor todavía no cargó sus datos de cobro. Preguntale por el chat a dónde transferirle.
+              </Text>
+            </View>
           ) : (
             <>
-              {!!cobro.titular && filaIcono('person-outline', cobro.titular)}
+              {!!cobro.titular && (
+                <View style={[styles.filaIcono, (cobro.alias || cobro.cvu) && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ui.border }]}>
+                  <Ionicons name="person-outline" size={18} color={ui.textMuted} />
+                  <Text style={[styles.filaIconoTexto, { color: ui.text }]}>{cobro.titular}</Text>
+                </View>
+              )}
+              {!!cobro.alias && (
+                <TouchableOpacity
+                  style={[styles.filaIcono, !!cobro.cvu && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ui.border }]}
+                  onPress={() => copiar('Alias', cobro.alias)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="at-outline" size={18} color={ui.textMuted} />
+                  <Text style={[styles.filaIconoTexto, { color: ui.text }]}>{cobro.alias}</Text>
+                  <Ionicons name="copy-outline" size={16} color={ui.textMuted} />
+                </TouchableOpacity>
+              )}
               {!!cobro.cvu && (
                 <TouchableOpacity style={styles.filaIcono} onPress={() => copiar('CVU', cobro.cvu)} activeOpacity={0.7}>
-                  <Ionicons name="card-outline" size={17} color={ui.textMuted} />
+                  <Ionicons name="card-outline" size={18} color={ui.textMuted} />
                   <Text style={[styles.filaIconoTexto, { color: ui.text }]}>{cobro.cvu}</Text>
-                  <Ionicons name="copy-outline" size={15} color={ui.textMuted} />
+                  <Ionicons name="copy-outline" size={16} color={ui.textMuted} />
                 </TouchableOpacity>
               )}
             </>
-          )
-        )}
-        {filaIcono('ellipse-outline', sube)}
-        {filaIcono('ellipse', baja)}
-        {!sube && !baja && filaIcono('information-circle-outline', 'No elegiste puntos de subida y bajada: coordinás con el conductor.')}
-      </View>
+          )}
+        </View>
+      )}
+
+      {/* El recorrido, como tarjeta también — mismo lenguaje de puntos y línea que el resto
+          de la app (detalle del viaje, ficha de la solicitud). */}
+      {(sube || baja) ? (
+        <View style={[styles.card, styles.rutaCard, { backgroundColor: ui.surface }]}>
+          <View style={styles.rutaFila}>
+            <View style={[styles.dotIni, { borderColor: ui.text }]} />
+            <Text style={[styles.filaIconoTexto, { color: ui.text, flex: 1 }]} numberOfLines={2}>{sube || 'Coordinás con el conductor'}</Text>
+          </View>
+          {!!(sube && baja) && <View style={[styles.rutaLinea, { backgroundColor: ui.border }]} />}
+          <View style={styles.rutaFila}>
+            <View style={[styles.dotFin, { backgroundColor: ui.text }]} />
+            <Text style={[styles.filaIconoTexto, { color: ui.text, flex: 1 }]} numberOfLines={2}>{baja || 'Coordinás con el conductor'}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.card, { backgroundColor: ui.surface }]}>
+          {filaIcono('information-circle-outline', 'No elegiste puntos de subida y bajada: coordinás con el conductor.')}
+        </View>
+      )}
 
       {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo. No vive
           en el chat justamente para que no se borre. */}
@@ -298,17 +324,18 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 25, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 30 },
   sub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 8, lineHeight: 18 },
 
-  pillDato: {
-    flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 8,
-    marginTop: 18, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
-  },
-  pillDatoTexto: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  // Tarjetas: a dónde transferir, y el recorrido. Le dan cuerpo a la pantalla en vez de
+  // dejar filas sueltas flotando en un fondo vacío — mismo lenguaje que usa el resto de la
+  // app (y Uber) para agrupar datos que van juntos.
+  card: { borderRadius: 18, marginTop: 16, overflow: 'hidden' },
+  filaIcono: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  filaIconoTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
 
-  // Filas de apoyo: separadas del título por aire, no por una línea — son datos, no otra
-  // sección con su propio rótulo.
-  filas: { marginTop: 22, gap: 2 },
-  filaIcono: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
-  filaIconoTexto: { flex: 1, fontSize: 13.5, fontFamily: 'Sora_500Medium', lineHeight: 18 },
+  rutaCard: { padding: 16, gap: 0 },
+  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  rutaLinea: { width: 1.5, height: 16, marginLeft: 4.25 },
+  dotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
+  dotFin: { width: 9, height: 9, borderRadius: 5 },
 
   nota: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 18, marginTop: 8 },
   link: { fontSize: 13, fontFamily: 'Sora_600SemiBold', textAlign: 'center', marginTop: 14 },
