@@ -46,6 +46,7 @@ const EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hora
 const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, onLongPress, onImagePress }) => {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const yaMontado = useRef(false);
+  const bubbleRef = useRef(null);
 
   // Un pequeño "pop" cuando cambia el contenido, la foto o pasa a editado/eliminado —
   // pero no en el montaje inicial (cuando se cargan los mensajes de siempre).
@@ -65,6 +66,14 @@ const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, on
   const scale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
   const highlight = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] });
 
+  // El menú de Editar/Eliminar nace de la burbuja, no del centro de la pantalla: se mide su
+  // posición real en pantalla para anclarlo ahí, como el menú contextual de WhatsApp.
+  const handleLongPress = () => {
+    bubbleRef.current?.measureInWindow((x, y, width, height) => {
+      onLongPress(item, { x, y, width, height });
+    });
+  };
+
   return (
     <Animated.View
       style={[
@@ -75,10 +84,13 @@ const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, on
     >
       <TouchableOpacity
         activeOpacity={canLongPress ? 0.7 : 1}
-        onLongPress={canLongPress ? () => onLongPress(item) : undefined}
+        onLongPress={canLongPress ? handleLongPress : undefined}
         delayLongPress={300}
       >
-        <View>
+        {/* `collapsable={false}`: sin esto Android puede optimizar esta View fuera del árbol
+            nativo y `measureInWindow` deja de encontrarla. Se mide una View de verdad (no el
+            TouchableOpacity) — es el host component que `measureInWindow` espera. */}
+        <View ref={bubbleRef} collapsable={false}>
           {isOwnMessage ? (
             <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
               {item.deleted ? (
@@ -614,15 +626,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // Long-press sobre un mensaje propio: menú Editar/Eliminar, como WhatsApp.
-  const handleLongPressMessage = (item) => {
+  // Long-press sobre un mensaje propio: menú Editar/Eliminar, como WhatsApp. `anchor` es la
+  // posición real de la burbuja en pantalla (medida en MessageBubble): el menú nace de ahí.
+  const handleLongPressMessage = (item, anchor) => {
     const senderId = item.sender?._id || item.sender;
     const isOwnMessage = senderId === user._id || senderId === user.id;
     if (!isOwnMessage || item.isTemp || item.deleted) return;
 
     // Sólo se edita texto (una foto no tiene qué editar) y sólo dentro de la primera hora.
     const dentroDeVentana = Date.now() - new Date(item.createdAt).getTime() < EDIT_WINDOW_MS;
-    setAccionesMensaje({ item, puedeEditar: !!item.content && dentroDeVentana });
+    setAccionesMensaje({ item, puedeEditar: !!item.content && dentroDeVentana, anchor });
   };
 
   const handleEditarDesdeAcciones = () => {
@@ -778,6 +791,28 @@ const ChatDetailScreen = ({ route, navigation }) => {
     );
   }
 
+  // Dónde va el menú de Editar/Eliminar: pegado a la burbuja que se tocó (su `anchor`, medido
+  // en MessageBubble), no centrado en la pantalla. Si no entra debajo (bubble cerca del
+  // teclado/composer), se dibuja arriba de ella en su lugar.
+  const ACCIONES_MENU_WIDTH = 200;
+  const accionesMenuPos = (() => {
+    const anchor = accionesMensaje?.anchor;
+    if (!anchor) return null;
+    const { width: screenW, height: screenH } = Dimensions.get('window');
+    const filas = accionesMensaje.puedeEditar ? 2 : 1;
+    const alto = filas * 48;
+    const espacio = 8;
+    const margen = 12;
+    let top = anchor.y + anchor.height + espacio;
+    if (top + alto > screenH - 90) top = anchor.y - alto - espacio;
+    top = Math.max(60, top);
+    const left = Math.min(
+      Math.max(anchor.x + anchor.width - ACCIONES_MENU_WIDTH, margen),
+      screenW - ACCIONES_MENU_WIDTH - margen,
+    );
+    return { top, left, width: ACCIONES_MENU_WIDTH };
+  })();
+
   // En Android el KAV no participa: desde SDK 54 (edge-to-edge) su cuenta de padding
   // se hace sobre el frame de la pantalla y no cerraba en ninguno de los dos estados.
   // Lo maneja el listener de keyboardDidShow con el alto real del teclado, mas arriba.
@@ -914,9 +949,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Editar/Eliminar un mensaje propio: hoja que sube desde abajo con ícono + rótulo por
-          opción, como el menú de un mensaje en WhatsApp — no el AlertModal genérico de
-          título+botones, que para un menú sin título se veía como pastillas vacías. */}
+      {/* Editar/Eliminar un mensaje propio: el menú nace de la burbuja que tocaste, anclado a
+          su posición real en pantalla (medida en MessageBubble), no un cuadro centrado — como
+          el menú contextual de WhatsApp. Tocar afuera lo cierra, no hace falta un "Cancelar". */}
       <Modal
         visible={!!accionesMensaje}
         transparent
@@ -924,25 +959,27 @@ const ChatDetailScreen = ({ route, navigation }) => {
         onRequestClose={() => setAccionesMensaje(null)}
       >
         <TouchableOpacity style={styles.accionesOverlay} activeOpacity={1} onPress={() => setAccionesMensaje(null)}>
-          <TouchableOpacity activeOpacity={1} style={[styles.accionesSheet, { backgroundColor: ui.card, borderColor: ui.border }]} onPress={() => {}}>
-            {accionesMensaje?.puedeEditar && (
-              <>
-                <TouchableOpacity style={styles.accionFila} onPress={handleEditarDesdeAcciones} activeOpacity={0.7}>
-                  <Ionicons name="create-outline" size={20} color={ui.text} />
-                  <Text style={[styles.accionTexto, { color: ui.text }]}>Editar</Text>
-                </TouchableOpacity>
-                <View style={[styles.accionDivider, { backgroundColor: ui.border }]} />
-              </>
-            )}
-            <TouchableOpacity style={styles.accionFila} onPress={handleEliminarDesdeAcciones} activeOpacity={0.7}>
-              <Ionicons name="trash-outline" size={20} color="#DC2626" />
-              <Text style={[styles.accionTexto, { color: '#DC2626' }]}>Eliminar</Text>
+          {!!accionesMenuPos && (
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[styles.accionesSheet, accionesMenuPos, { backgroundColor: ui.card, borderColor: ui.border }]}
+              onPress={() => {}}
+            >
+              {accionesMensaje?.puedeEditar && (
+                <>
+                  <TouchableOpacity style={styles.accionFila} onPress={handleEditarDesdeAcciones} activeOpacity={0.7}>
+                    <Ionicons name="create-outline" size={19} color={ui.text} />
+                    <Text style={[styles.accionTexto, { color: ui.text }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <View style={[styles.accionDivider, { backgroundColor: ui.border }]} />
+                </>
+              )}
+              <TouchableOpacity style={styles.accionFila} onPress={handleEliminarDesdeAcciones} activeOpacity={0.7}>
+                <Ionicons name="trash-outline" size={19} color="#DC2626" />
+                <Text style={[styles.accionTexto, { color: '#DC2626' }]}>Eliminar</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-            <View style={[styles.accionDivider, { backgroundColor: ui.border }]} />
-            <TouchableOpacity style={styles.accionFila} onPress={() => setAccionesMensaje(null)} activeOpacity={0.7}>
-              <Text style={[styles.accionTexto, styles.accionCancelar, { color: ui.textMuted }]}>Cancelar</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+          )}
         </TouchableOpacity>
       </Modal>
 
@@ -1055,13 +1092,15 @@ const styles = StyleSheet.create({
   fotoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   fotoAmpliada: { width: '100%', height: '80%' },
 
-  // Menú Editar/Eliminar de un mensaje: hoja angosta centrada, no a lo ancho — es un menú de
-  // 2-3 opciones, no un formulario.
-  accionesOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  accionesSheet: { width: '100%', maxWidth: 280, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  accionFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 15 },
-  accionTexto: { fontSize: 15, fontFamily: 'Sora_500Medium' },
-  accionCancelar: { flex: 1, textAlign: 'center', fontFamily: 'Sora_600SemiBold' },
+  // Menú Editar/Eliminar de un mensaje: nace anclado a la burbuja (`accionesMenuPos`, con
+  // top/left/width calculados en el render), no centrado en la pantalla.
+  accionesOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  accionesSheet: {
+    position: 'absolute', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
+  },
+  accionFila: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 13 },
+  accionTexto: { fontSize: 14, fontFamily: 'Sora_500Medium' },
   accionDivider: { height: StyleSheet.hairlineWidth },
   messageText: {
     fontSize: 15,
