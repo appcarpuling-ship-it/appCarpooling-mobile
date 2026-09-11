@@ -161,11 +161,16 @@ const PagarSenaScreen = ({ route, navigation }) => {
       </View>
     );
 
+  // El botón principal, si corresponde mostrarlo: se saca del flujo de bloques para poder
+  // pegarlo siempre al final de la pantalla (ver el bloque con marginTop:'auto' más abajo),
+  // en vez de quedar enterrado adentro del bloque de la seña.
+  const mostrarBotonComprobante = pideSena && estado === 'esperando' && !viajeEnCurso;
+
   return (
     <View style={{ flex: 1, backgroundColor: ui.bg }}>
     <ScrollView
       style={{ backgroundColor: ui.bg }}
-      contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
+      contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32, flexGrow: 1 }]}
     >
       {/* Viaje */}
       <View style={[styles.bloque, { borderBottomColor: ui.border }]}>
@@ -197,8 +202,11 @@ const PagarSenaScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Qué paga */}
-      <View style={[styles.bloque, { borderBottomColor: ui.border }]}>
+      {/* Pago: cuánto le pagás y, si el viaje pide seña, en qué anda y a dónde transferirla —
+          es el mismo tema (la plata), separarlo en dos secciones repetía el rótulo sin
+          necesidad. Es el último bloque de la pantalla: sin borderBottomColor, styles.bloque
+          dibujaba su hairlineWidth en negro (el default de RN sin color propio). */}
+      <View style={[styles.bloque, { borderBottomWidth: 0, marginBottom: 0 }]}>
         <Text style={[styles.rotuloSeccion, { color: ui.textMuted }]}>PAGO</Text>
         {trip.sinPrecioFijo ? (
           <Text style={[styles.linea, { color: ui.text }]}>
@@ -219,91 +227,89 @@ const PagarSenaScreen = ({ route, navigation }) => {
             </Text>
           </>
         )}
+
+        {pideSena && (
+          <View style={{ marginTop: 18 }}>
+            {!!senaTexto && (
+              <View style={styles.senaEstado}>
+                <Ionicons name={senaTexto.icon} size={17} color={senaTexto.color} />
+                <Text style={[styles.senaEstadoText, { color: ui.text }]}>{senaTexto.t}</Text>
+              </View>
+            )}
+
+            {estado === 'esperando' && viajeEnCurso ? (
+              // El viaje ya salió: ni transferir ni mandar comprobante tiene sentido ya —
+              // el lugar se resolvió con o sin la seña. Se arregla hablando con el conductor.
+              <Text style={[styles.nota, { color: ui.textMuted }]}>
+                El viaje ya salió sin que llegaras a mandar la seña.
+              </Text>
+            ) : (
+              <>
+                {estado === 'esperando' && !!vence && (
+                  <Text style={[styles.nota, { color: ui.textMuted }]}>
+                    Tenés tiempo hasta el {fmtFecha(vence)} a las{' '}
+                    {vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.
+                  </Text>
+                )}
+
+                {/* A dónde transferir — sólo mientras falta pagarla. */}
+                {!yaConfirmada && estado !== 'enviada' && ((cobro?.alias || cobro?.cvu) ? (
+                  <>
+                    <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>TRANSFERILE A</Text>
+                    {!!cobro.titular && (
+                      <Text style={[styles.nota, { color: ui.textMuted }]}>Titular: {cobro.titular}</Text>
+                    )}
+                    {!!cobro.alias && filaCopiable('Alias', cobro.alias)}
+                    {!!cobro.cvu && filaCopiable('CVU / CBU', cobro.cvu)}
+                  </>
+                ) : (
+                  <Text style={[styles.nota, { color: ui.textMuted }]}>
+                    El conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale
+                    por el chat a dónde transferirle.
+                  </Text>
+                ))}
+
+                {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo.
+                    No vive en el chat justamente para que no se borre. */}
+                {(estado === 'enviada' || yaConfirmada) && !!booking.sena?.comprobanteUrl && (
+                  <>
+                    <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>
+                      TU COMPROBANTE{enviada ? ` · ${enviada.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : ''}
+                    </Text>
+                    <Image
+                      source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
+                      style={[styles.comprobante, { backgroundColor: ui.surface }]}
+                      resizeMode="contain"
+                    />
+                    {estado === 'enviada' && (
+                      <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>
+                        <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
+                      </TouchableOpacity>
+                    )}
+                    {!!errorEnvio && (
+                      <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </View>
+        )}
       </View>
 
-      {/* Seña — es el último bloque de la pantalla: sin borderBottomColor, styles.bloque
-          dibujaba su hairlineWidth en negro (el default de RN sin color propio) justo abajo
-          del botón. Sin borde: no hace falta separar de nada, no hay nada después. */}
-      {pideSena && (
-        <View style={[styles.bloque, { borderBottomWidth: 0, marginBottom: 0 }]}>
-          <Text style={[styles.rotuloSeccion, { color: ui.textMuted }]}>SEÑA</Text>
-
-          {!!senaTexto && (
-            <View style={styles.senaEstado}>
-              <Ionicons name={senaTexto.icon} size={17} color={senaTexto.color} />
-              <Text style={[styles.senaEstadoText, { color: ui.text }]}>{senaTexto.t}</Text>
-            </View>
-          )}
-
-          {estado === 'esperando' && viajeEnCurso ? (
-            // El viaje ya salió: ni transferir ni mandar comprobante tiene sentido ya —
-            // el lugar se resolvió con o sin la seña. Se arregla hablando con el conductor.
-            <Text style={[styles.nota, { color: ui.textMuted }]}>
-              El viaje ya salió sin que llegaras a mandar la seña.
-            </Text>
-          ) : (
-            <>
-              {estado === 'esperando' && !!vence && (
-                <Text style={[styles.nota, { color: ui.textMuted }]}>
-                  Tenés tiempo hasta el {fmtFecha(vence)} a las{' '}
-                  {vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.
-                </Text>
-              )}
-
-              {/* A dónde transferir — sólo mientras falta pagarla. */}
-              {!yaConfirmada && estado !== 'enviada' && ((cobro?.alias || cobro?.cvu) ? (
-                <>
-                  <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>TRANSFERILE A</Text>
-                  {!!cobro.titular && (
-                    <Text style={[styles.nota, { color: ui.textMuted }]}>Titular: {cobro.titular}</Text>
-                  )}
-                  {!!cobro.alias && filaCopiable('Alias', cobro.alias)}
-                  {!!cobro.cvu && filaCopiable('CVU / CBU', cobro.cvu)}
-                </>
-              ) : (
-                <Text style={[styles.nota, { color: ui.textMuted }]}>
-                  El conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale
-                  por el chat a dónde transferirle.
-                </Text>
-              ))}
-
-              {estado === 'esperando' && (
-                <>
-                  <PillButton
-                    label={subiendo ? 'Enviando…' : 'Mandar comprobante'}
-                    onPress={mandarComprobante}
-                    loading={subiendo}
-                    style={{ marginTop: 20 }}
-                  />
-                  {!!errorEnvio && (
-                    <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
-                  )}
-                </>
-              )}
-
-              {/* El comprobante que mandó, guardado: es su prueba si después hay un reclamo.
-                  No vive en el chat justamente para que no se borre. */}
-              {(estado === 'enviada' || yaConfirmada) && !!booking.sena?.comprobanteUrl && (
-                <>
-                  <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 16 }]}>
-                    TU COMPROBANTE{enviada ? ` · ${enviada.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : ''}
-                  </Text>
-                  <Image
-                    source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
-                    style={[styles.comprobante, { backgroundColor: ui.surface }]}
-                    resizeMode="contain"
-                  />
-                  {estado === 'enviada' && (
-                    <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>
-                      <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
-                    </TouchableOpacity>
-                  )}
-                  {!!errorEnvio && (
-                    <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
-                  )}
-                </>
-              )}
-            </>
+      {/* Al final del contenido y no en un footer fijo: con `flexGrow:1` en el scroll y
+          `marginTop:'auto'` acá, el botón queda pegado abajo cuando la pantalla es corta
+          (como un footer fijo) y después del contenido cuando hay que scrollear — nunca
+          flotando encima de él. Mismo patrón que "Tu precio" al publicar un viaje. */}
+      {mostrarBotonComprobante && (
+        <View style={{ marginTop: 'auto', paddingTop: 20 }}>
+          <PillButton
+            label={subiendo ? 'Enviando…' : 'Mandar comprobante'}
+            onPress={mandarComprobante}
+            loading={subiendo}
+          />
+          {!!errorEnvio && (
+            <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>
           )}
         </View>
       )}
