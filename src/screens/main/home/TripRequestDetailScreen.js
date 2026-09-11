@@ -668,66 +668,53 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             El cartel de "ya te eligieron" queda abajo, pegado al botón de cancelar. */}
         <View style={[styles.section, { gap: 12 }]}>
           {isDriver && !!miPostulacion && (
-            <View style={{ gap: 12 }}>
-              {/* El precio, solo: es lo que se vino a mirar, no tiene que compartir caja
-                  con el recorrido ni el link al mapa — eran 3 datos distintos apretados
-                  en una sola tarjeta con líneas finas, que se leía como una cosa recargada. */}
-              <View style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-                <View style={styles.miPropuestaTop}>
-                  <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
-                  {!!miEstadoBadge && (
+            /* Una sola tarjeta tocable: precio, estado (si hay algo que decir más allá de
+               "la mandaste", que ya se ve solo) y recorrido, con la flecha como única
+               entrada al detalle completo — el mapa con tu recorrido. Antes eran dos
+               tarjetas y un "Enviada" que no decía nada que la tarjeta ya no dijera. */
+            <TouchableOpacity
+              style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}
+              onPress={() => miTripParaMapa && navigation.navigate('TripMap', { trip: miTripParaMapa })}
+              activeOpacity={miTripParaMapa ? 0.7 : 1}
+              disabled={!miTripParaMapa}
+            >
+              <View style={styles.miPropuestaTop}>
+                <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
+                <View style={styles.miPropuestaTopRight}>
+                  {!!miEstadoBadge && miEstadoBadge.label !== 'Enviada' && (
                     <View style={styles.miPropuestaEstado}>
                       <Ionicons name={miEstadoBadge.icono} size={14} color={ui.text} />
                       <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>{miEstadoBadge.label}</Text>
                     </View>
                   )}
+                  {!!miTripParaMapa && <Ionicons name="chevron-forward" size={18} color={ui.textMuted} />}
                 </View>
-
-                {miPostulacion?.driverPrice > 0 ? (
-                  <>
-                    <Text style={[styles.miPropuestaMonto, { color: ui.text }]}>
-                      ${Number(miPostulacion.driverPrice).toLocaleString('es-AR')}
-                    </Text>
-                    <Text style={[styles.miPropuestaPie, { color: ui.textMuted }]}>por asiento</Text>
-                  </>
-                ) : (
-                  <Text style={[styles.miPropuestaModo, { color: ui.text }]}>
-                    {miPostulacion?.sinPrecioFijo ? 'Gastos compartidos' : 'Ya te postulaste'}
-                  </Text>
-                )}
               </View>
 
-              {/* El recorrido y el mapa son detalle de apoyo, no el titular: van en su
-                  propia tarjeta, más chica y liviana, separada por aire real en vez de
-                  un divisor fino compartiendo la caja de arriba. */}
-              {(miEleccion || miTripParaMapa) && (
-                <View style={[styles.miDetalle, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-                  {/* Qué recorrido ofreciste: mismo tramo o propio. Sin esto, una vez
-                      postulado había que acordarse de memoria por dónde ibas a pasar. */}
-                  {miEleccion && (
-                    <View style={[styles.miDetalleFila, miTripParaMapa && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ui.border }]}>
-                      <Ionicons name={miEleccion.icono} size={15} color={ui.textMuted} />
-                      <Text style={[styles.miPropuestaRecorridoText, { color: ui.textMuted }]}>
-                        {miEleccion.texto}
-                      </Text>
-                    </View>
-                  )}
+              {miPostulacion?.driverPrice > 0 ? (
+                <>
+                  <Text style={[styles.miPropuestaMonto, { color: ui.text }]}>
+                    ${Number(miPostulacion.driverPrice).toLocaleString('es-AR')}
+                  </Text>
+                  <Text style={[styles.miPropuestaPie, { color: ui.textMuted, marginBottom: miEleccion ? 14 : 0 }]}>por asiento</Text>
+                </>
+              ) : (
+                <Text style={[styles.miPropuestaModo, { color: ui.text, marginBottom: miEleccion ? 14 : 0 }]}>
+                  {miPostulacion?.sinPrecioFijo ? 'Gastos compartidos' : 'Ya te postulaste'}
+                </Text>
+              )}
 
-                  {miTripParaMapa && (
-                    <TouchableOpacity
-                      style={styles.miDetalleFila}
-                      onPress={() => navigation.navigate('TripMap', { trip: miTripParaMapa })}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.miPropuestaVerMapaText, { color: ui.text, flex: 1 }]}>
-                        Ver mi recorrido en el mapa
-                      </Text>
-                      <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
-                    </TouchableOpacity>
-                  )}
+              {/* Qué recorrido ofreciste: mismo tramo o propio. Sin esto, una vez postulado
+                  había que acordarse de memoria por dónde ibas a pasar. */}
+              {miEleccion && (
+                <View style={[styles.miDetalleFila, { paddingHorizontal: 0, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ui.border }]}>
+                  <Ionicons name={miEleccion.icono} size={15} color={ui.textMuted} />
+                  <Text style={[styles.miPropuestaRecorridoText, { color: ui.textMuted }]}>
+                    {miEleccion.texto}
+                  </Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -1017,23 +1004,22 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
             <>
-              {/* Retirar: hasta acá, una postulación era irreversible desde la app. Sigue
-                  siendo la única acción en rojo —es destructiva y no se deshace— pero como
-                  texto y no como botón sólido: al lado de la tarjeta, un bloque rojo lleno
-                  pesaba más que la propuesta misma, que es lo que se vino a mirar.
+              {/* Retirar: es destructiva y no se deshace, mismo rojo sólido que "Cancelar
+                  viaje" — antes era texto suelto y se leía como algo secundario, no como la
+                  acción que en realidad es.
 
                   Sólo mientras se pueda retirar de verdad: con el pasajero ya pagando o pago,
                   el compromiso está tomado y se cancela desde el viaje, no desde acá. */}
               {alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) && (
                 <TouchableOpacity
-                  style={[styles.retirar, retirando && { opacity: 0.6 }]}
+                  style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444' }, retirando && { opacity: 0.6 }]}
                   onPress={handleRetirarPostulacion}
                   disabled={retirando}
-                  activeOpacity={0.7}
+                  activeOpacity={0.85}
                 >
                   {retirando
-                    ? <ActivityIndicator size="small" color="#EF4444" />
-                    : <Text style={styles.retirarText}>Retirar postulación</Text>
+                    ? <ActivityIndicator size="small" color="#FFFFFF" />
+                    : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Retirar postulación</Text>
                   }
                 </TouchableOpacity>
               )}
@@ -1186,28 +1172,21 @@ const styles = StyleSheet.create({
   statusFooter:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12 },
   statusFooterText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
 
-  // Tu propuesta ya enviada. Una tarjeta con el precio como protagonista, y el recorrido y el
-  // mapa colgando de él separados por líneas en vez de por márgenes sueltos.
-  miPropuesta:      { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, paddingHorizontal: 18, paddingTop: 14 },
+  // Tu propuesta ya enviada. Una sola tarjeta tocable: precio como protagonista y el
+  // recorrido colgando de él separado por una línea, con la flecha como toda la
+  // affordance de "hay más detalle acá" (el mapa).
+  miPropuesta:      { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14 },
   miPropuestaTop:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  miPropuestaTopRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   miPropuestaLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.6 },
   miPropuestaEstado:{ flexDirection: 'row', alignItems: 'center', gap: 4 },
   miPropuestaEstadoText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
   // El número es el dato que se vino a mirar: el mismo cuerpo que usa el campo al proponerlo.
   miPropuestaMonto: { fontSize: 34, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1.2, marginTop: 6 },
-  miPropuestaPie:   { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: -2, marginBottom: 14 },
-  miPropuestaModo:  { fontSize: 19, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, marginTop: 6, marginBottom: 14 },
-  // Recorrido + mapa: tarjeta propia y más chica, separada de la del precio por aire real
-  // (el `gap` del contenedor) en vez de un divisor fino compartiendo la misma caja.
-  miDetalle:      { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, overflow: 'hidden' },
-  miDetalleFila:  { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 15, paddingHorizontal: 18 },
+  miPropuestaPie:   { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: -2 },
+  miPropuestaModo:  { fontSize: 19, fontFamily: 'Sora_700Bold', letterSpacing: -0.4, marginTop: 6 },
+  miDetalleFila:  { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 14 },
   miPropuestaRecorridoText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
-  miPropuestaVerMapaText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-
-  // Destructiva y sin vuelta atrás, pero secundaria: en rojo para que no se confunda con las
-  // demás acciones, y sin relleno para que no pese más que la propuesta.
-  retirar:          { alignItems: 'center', paddingVertical: 14, marginTop: 4 },
-  retirarText:      { fontSize: 14, fontFamily: 'Sora_600SemiBold', color: '#EF4444' },
 
   // Map preview
   mapPreviewWrap: { height: 200, marginTop: 16, marginHorizontal: 20, marginBottom: 12, borderRadius: 24, overflow: 'hidden' },
