@@ -122,7 +122,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const viajeEnCurso = trip.status === 'started';
   const monto = montoSena(trip.driverPrice, asientos);
   const cobro = trip.driverDatosCobro;
-  const vence = booking.sena?.venceAt ? new Date(booking.sena.venceAt) : null;
   const enviada = booking.sena?.enviadaAt ? new Date(booking.sena.enviadaAt) : null;
   const alConductor = (Number(trip.driverPrice) || 0) * asientos;
   const nombreConductor = [trip.driver?.firstName, trip.driver?.lastName].filter(Boolean).join(' ') || 'Tu conductor';
@@ -137,10 +136,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
   );
   const sube = booking.seatReservation?.pickupLocation?.address || paradaPropia('pickup')?.address;
   const baja = booking.seatReservation?.dropoffLocation?.address || paradaPropia('dropoff')?.address;
-
-  const venceCorto = vence
-    ? `${vence.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' })} ${vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`
-    : '';
 
   const senaResuelta = pideSena && monto > 0 && !(estado === 'esperando' && viajeEnCurso);
   const mostrarTransferirA = senaResuelta && !yaConfirmada && estado !== 'enviada';
@@ -165,7 +160,11 @@ const PagarSenaScreen = ({ route, navigation }) => {
             esperando: {
               rotulo: 'Transferile ahora',
               monto: pesos(monto),
-              chip: venceCorto ? { icon: 'hourglass-outline', t: `Vence ${venceCorto}` } : null,
+              // Sin "vence el ...": `sena.venceAt` no lo hace cumplir nadie (no hay job que
+              // venza una seña impaga). Lo real es que al salir el viaje la reserva se cierra,
+              // y la fecha de salida ya está abajo — prometer una hora exacta que el backend
+              // no respeta era peor que no decir nada.
+              chip: null,
               pie: `${pesos(alConductor - monto)} al subir · ${pesos(alConductor)} en total`,
             },
             enviada: {
