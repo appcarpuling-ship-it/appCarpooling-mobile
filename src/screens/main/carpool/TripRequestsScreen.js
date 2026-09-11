@@ -142,12 +142,16 @@ const TripRequestsScreen = ({ route }) => {
         setTrips((prev) => (append ? [...prev, ...rows] : rows));
         setTripsPage(pageNum);
         setTripsHasMore(response.hasMore === true);
+        let willAutoSelect = false;
         setSelectedTripId((cur) => {
           if (cur) return cur;
-          if (rows.length === 1) return rows[0]._id;
+          if (rows.length === 1) { willAutoSelect = true; return rows[0]._id; }
           return cur;
         });
-        await enrichPendingForTrips(rows);
+        // Con un solo viaje activo se auto-selecciona y la lista de tarjetas (donde va el
+        // badge de pendientes) nunca se llega a mostrar: pedir el conteo ahí es una request
+        // duplicada de la que ya hace loadRequests para ese mismo viaje.
+        if (!willAutoSelect) await enrichPendingForTrips(rows);
       } else if (!append) {
         setTrips([]);
         setTripsHasMore(false);
