@@ -954,8 +954,24 @@ const TripDetailScreen = ({ route, navigation }) => {
             ni verla; lo que sí paga (el precio del conductor) ya está arriba, en la cabecera. */}
         {userBooking && (
           <View style={[styles.section]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Tu reserva</Text>
-            <View style={styles.myBookingRow}>
+            {/* Si hubo seña, "Tu reserva" abre la pantalla de la seña: el monto, a dónde se
+                transfirió y —una vez confirmada— el comprobante guardado. Sin seña no hay
+                nada más que lo que ya se ve acá abajo, así que no lleva flecha. */}
+            {userBooking.sena?.estado ? (
+              <TouchableOpacity
+                style={styles.vehicleHeaderRow}
+                onPress={() => navigation.navigate('PagarSena', { bookingId: userBooking._id, tripId })}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel="Ver el detalle de la seña"
+              >
+                <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 0 }]}>Tu reserva</Text>
+                <Ionicons name="chevron-forward" size={18} color={textMuted} />
+              </TouchableOpacity>
+            ) : (
+              <Text style={[styles.sectionLabel, { color: textMuted }]}>Tu reserva</Text>
+            )}
+            <View style={[styles.myBookingRow, userBooking.sena?.estado && { marginTop: 14 }]}>
               <View style={styles.myBookingItem}>
                 <Ionicons name="person-outline" size={16} color={textMuted} />
                 <Text style={[styles.myBookingValue, { color: textPrimary }]}>

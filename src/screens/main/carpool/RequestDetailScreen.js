@@ -223,7 +223,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
-                  {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
+                  {sena === 'enviada' ? 'Aceptar' : 'AceptarR'}
                 </Text>
               </TouchableOpacity>
             )}

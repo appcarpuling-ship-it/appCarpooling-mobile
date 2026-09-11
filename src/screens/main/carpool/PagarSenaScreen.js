@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
@@ -27,7 +27,7 @@ import { reportError } from '../../../utils/sentry';
  * Los datos de cobro NO vienen con la reserva: los adjunta `getTripById` (`driverDatosCobro`)
  * y sólo a un pasajero de un viaje que pida seña, así que la pantalla pide el viaje aparte.
  */
-const PagarSenaScreen = ({ route }) => {
+const PagarSenaScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
@@ -56,6 +56,13 @@ const PagarSenaScreen = ({ route }) => {
 
   // Al entrar y al volver de la cámara: el conductor pudo confirmar mientras tanto.
   useFocusEffect(useCallback(() => { cargar(); }, [cargar]));
+
+  // Ya confirmada, la pantalla es el registro de la seña, no un formulario de pago.
+  useEffect(() => {
+    navigation.setOptions({
+      title: booking?.sena?.estado === 'confirmada' ? 'Seña' : 'Pagar la seña',
+    });
+  }, [navigation, booking?.sena?.estado]);
 
   const copiar = async (que, valor) => {
     if (!valor) return;
@@ -102,6 +109,8 @@ const PagarSenaScreen = ({ route }) => {
   const monto = montoSena(trip.driverPrice, asientos);
   const cobro = trip.driverDatosCobro;
   const vence = booking.sena?.venceAt ? new Date(booking.sena.venceAt) : null;
+  const enviada = booking.sena?.enviadaAt ? new Date(booking.sena.enviadaAt) : null;
+  const yaConfirmada = estado === 'confirmada';
 
   const fila = (rotulo, valor) => (
     <TouchableOpacity
@@ -141,21 +150,22 @@ const PagarSenaScreen = ({ route }) => {
         )}
       </View>
 
-      {(cobro?.alias || cobro?.cvu) ? (
+      {/* Una vez confirmada no hace falta a dónde transferir: ya está hecho. */}
+      {!yaConfirmada && ((cobro?.alias || cobro?.cvu) ? (
         <>
           <Text style={[styles.rotuloSeccion, { color: ui.textMuted }]}>TRANSFERILE A</Text>
-          {!!cobro.alias && fila('Alias', cobro.alias)}
-          {!!cobro.cvu && fila('CVU / CBU', cobro.cvu)}
           {!!cobro.titular && (
             <Text style={[styles.nota, { color: ui.textMuted }]}>Titular: {cobro.titular}</Text>
           )}
+          {!!cobro.alias && fila('Alias', cobro.alias)}
+          {!!cobro.cvu && fila('CVU / CBU', cobro.cvu)}
         </>
       ) : (
         <Text style={[styles.nota, { color: ui.textMuted }]}>
           El conductor pide seña pero todavía no cargó sus datos de cobro. Preguntale por el
           chat a dónde transferirle.
         </Text>
-      )}
+      ))}
 
       {estado === 'esperando' && (
         <TouchableOpacity
@@ -194,21 +204,30 @@ const PagarSenaScreen = ({ route }) => {
         </>
       )}
 
-      {estado === 'confirmada' && (
-        <View style={[styles.aviso, { borderColor: ui.border }]}>
-          <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
-          <Text style={[styles.avisoText, { color: ui.textMuted }]}>
-            El conductor confirmó la seña. Tu lugar está reservado.
-          </Text>
-        </View>
+      {yaConfirmada && (
+        <>
+          <View style={[styles.aviso, { borderColor: ui.border }]}>
+            <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
+            <Text style={[styles.avisoText, { color: ui.textMuted }]}>
+              El conductor confirmó que recibió la seña. Tu lugar está reservado.
+            </Text>
+          </View>
+          {/* El comprobante que mandaste, guardado: es tu prueba si después hay algún
+              reclamo. No vive en el chat justamente para que no se borre. */}
+          {!!booking.sena?.comprobanteUrl && (
+            <>
+              <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginTop: 20 }]}>
+                TU COMPROBANTE{enviada ? ` · ${enviada.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : ''}
+              </Text>
+              <Image
+                source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
+                style={[styles.comprobante, { backgroundColor: ui.surface, marginTop: 4 }]}
+                resizeMode="contain"
+              />
+            </>
+          )}
+        </>
       )}
-
-      <View style={[styles.aviso, { borderColor: ui.border }]}>
-        <Ionicons name="information-circle-outline" size={18} color={ui.textMuted} />
-        <Text style={[styles.avisoText, { color: ui.textMuted }]}>
-          La plata va directo a la cuenta del conductor. Carpuling no la toca ni la retiene.
-        </Text>
-      </View>
     </ScrollView>
   );
 };
