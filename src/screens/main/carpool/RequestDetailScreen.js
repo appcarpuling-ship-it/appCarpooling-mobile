@@ -166,10 +166,10 @@ const RequestDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Quién pide, cuánto ocupa y cuánto paga: una sola tarjeta. Antes el precio quedaba
-            suelto en su propia fila sin fondo ni margen, como un dato huérfano flotando entre
-            la tarjeta del pasajero y la de la seña — acá se lee como una sola cosa. */}
-        <View style={[styles.passengerCard, { backgroundColor: ui.surface }]}>
+        {/* Una sola tarjeta para todo, en vez de una pila de cards con su propio fondo cada
+            una (pasajero / recorrido / seña): eso se leía recargado. Ahora es una tarjeta con
+            secciones separadas por una línea fina, como el resto de la app. */}
+        <View style={[styles.card, { backgroundColor: ui.surface }]}>
           <TouchableOpacity
             style={styles.passengerRow}
             activeOpacity={0.7}
@@ -201,150 +201,154 @@ const RequestDetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
 
           {(!pendiente || (!trip?.sinPrecioFijo && alConductor > 0)) && (
-            <View style={[styles.passengerCardFooter, { borderTopColor: ui.border }]}>
-              {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
-                  abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
-              {!pendiente ? (
-                <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.bg }]}>
-                  <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
-                    {status.label}
-                  </Text>
-                </View>
-              ) : <View />}
-              {!trip?.sinPrecioFijo && alConductor > 0 && (
-                <View>
-                  <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
-                  <Text style={[styles.precio, { color: ui.text }]}>
-                    ${alConductor.toLocaleString('es-AR')}
+            <View style={[styles.section, { borderTopColor: ui.border }]}>
+              <View style={styles.passengerCardFooter}>
+                {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
+                    abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
+                {!pendiente ? (
+                  <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.bg }]}>
+                    <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
+                      {status.label}
+                    </Text>
+                  </View>
+                ) : <View />}
+                {!trip?.sinPrecioFijo && alConductor > 0 && (
+                  <View>
+                    <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
+                    <Text style={[styles.precio, { color: ui.text }]}>
+                      ${alConductor.toLocaleString('es-AR')}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {!!request.message && (
+            <View style={[styles.section, { borderTopColor: ui.border }]}>
+              <Text style={[styles.mensaje, { color: ui.textMuted }]}>"{request.message}"</Text>
+            </View>
+          )}
+
+          {puntos.length > 0 && (
+            <View style={[styles.section, { borderTopColor: ui.border }]}>
+              {puntos.map(({ punto, rotulo, fin }, i) => {
+                const hasCoords = punto.coordinates?.latitude != null;
+                return (
+                  <View key={rotulo}>
+                    <View style={styles.rutaFila}>
+                      <View style={fin ? [styles.dotFin, { backgroundColor: ui.text }] : [styles.dotIni, { borderColor: ui.text }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.puntoRotulo, { color: ui.textMuted }]}>{rotulo}</Text>
+                        <Text style={[styles.puntoDir, { color: ui.text }]}>{punto.address}</Text>
+                      </View>
+                      {hasCoords && (
+                        <TouchableOpacity
+                          style={[styles.mapBtn, { backgroundColor: ui.bg, borderColor: ui.border }]}
+                          onPress={() =>
+                            navigation.navigate('PickupMap', {
+                              coordinates: punto.coordinates,
+                              address: punto.address,
+                              label: rotulo,
+                            })
+                          }
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Ver ${rotulo} en el mapa`}
+                        >
+                          <Ionicons name="map-outline" size={18} color={ui.textMuted} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {i < puntos.length - 1 && <View style={[styles.rutaDivider, { backgroundColor: ui.bg }]} />}
+                  </View>
+                );
+              })}
+
+              {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
+                  conductor si no conoce el barrio: este número es lo que le permite decidir. */}
+              {!!request.desvioEtiqueta && (
+                <View style={[styles.desvio, { borderTopColor: ui.bg }]}>
+                  <Ionicons
+                    name={request.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
+                    size={14}
+                    color={request.desvioKm > 2 ? ui.textMuted : '#10B981'}
+                  />
+                  <Text style={[styles.desvioText, { color: request.desvioKm > 2 ? ui.textMuted : '#10B981' }]}>
+                    {request.desvioEtiqueta}
                   </Text>
                 </View>
               )}
             </View>
           )}
-        </View>
 
-        {!!request.message && (
-          <Text style={[styles.mensaje, { color: ui.textMuted, borderColor: ui.border }]}>
-            "{request.message}"
-          </Text>
-        )}
+          {request.status === 'rejected' && !!request.rejectionReason && (
+            <View style={[styles.section, { borderTopColor: ui.border }]}>
+              <Text style={[styles.rechazo, { color: ui.textMuted }]}>
+                Motivo del rechazo: {request.rejectionReason}
+              </Text>
+            </View>
+          )}
 
-        {puntos.length > 0 && (
-          <View style={[styles.rutaCard, { backgroundColor: ui.surface }]}>
-            {puntos.map(({ punto, rotulo, fin }, i) => {
-              const hasCoords = punto.coordinates?.latitude != null;
-              return (
-                <View key={rotulo}>
-                  <View style={styles.rutaFila}>
-                    <View style={fin ? [styles.dotFin, { backgroundColor: ui.text }] : [styles.dotIni, { borderColor: ui.text }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.puntoRotulo, { color: ui.textMuted }]}>{rotulo}</Text>
-                      <Text style={[styles.puntoDir, { color: ui.text }]}>{punto.address}</Text>
-                    </View>
-                    {hasCoords && (
-                      <TouchableOpacity
-                        style={[styles.mapBtn, { backgroundColor: ui.bg, borderColor: ui.border }]}
-                        onPress={() =>
-                          navigation.navigate('PickupMap', {
-                            coordinates: punto.coordinates,
-                            address: punto.address,
-                            label: rotulo,
-                          })
-                        }
-                        activeOpacity={0.7}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Ver ${rotulo} en el mapa`}
-                      >
-                        <Ionicons name="map-outline" size={18} color={ui.textMuted} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  {i < puntos.length - 1 && <View style={[styles.rutaDivider, { backgroundColor: ui.bg }]} />}
-                </View>
-              );
-            })}
-
-            {/* Cuánto lo saca de su camino. Las dos direcciones solas no le dicen nada al
-                conductor si no conoce el barrio: este número es lo que le permite decidir. */}
-            {!!request.desvioEtiqueta && (
-              <View style={[styles.desvio, { borderTopColor: ui.bg }]}>
-                <Ionicons
-                  name={request.desvioKm > 2 ? 'git-branch-outline' : 'checkmark-circle-outline'}
-                  size={14}
-                  color={request.desvioKm > 2 ? ui.textMuted : '#10B981'}
-                />
-                <Text style={[styles.desvioText, { color: request.desvioKm > 2 ? ui.textMuted : '#10B981' }]}>
-                  {request.desvioEtiqueta}
-                </Text>
+          {/* Seña: cuánto es, en qué anda, y el comprobante — sigue visible después de
+              confirmada, como registro de lo que el pasajero transfirió. */}
+          {pideSena && (
+            <View style={[styles.section, styles.senaCard, { borderTopColor: ui.border }]}>
+              <View style={styles.senaHeader}>
+                <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginBottom: 0 }]}>SEÑA</Text>
+                {monto > 0 && (
+                  <Text style={[styles.senaMonto, { color: ui.text }]}>${monto.toLocaleString('es-AR')}</Text>
+                )}
               </View>
-            )}
-          </View>
-        )}
 
-        {request.status === 'rejected' && !!request.rejectionReason && (
-          <Text style={[styles.rechazo, { color: ui.textMuted, borderColor: ui.border }]}>
-            Motivo del rechazo: {request.rejectionReason}
-          </Text>
-        )}
+              {sena === 'esperando' && (
+                <View style={styles.senaEstado}>
+                  <Ionicons name="hourglass-outline" size={16} color={ui.textMuted} />
+                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                    Ya lo aceptaste. Avisamos cuando suba el comprobante.
+                  </Text>
+                </View>
+              )}
 
-        {/* Seña: cuánto es, en qué anda, y el comprobante — sigue visible después de
-            confirmada, como registro de lo que el pasajero transfirió. */}
-        {pideSena && (
-          <View style={[styles.senaCard, { backgroundColor: ui.surface }]}>
-            <View style={styles.senaHeader}>
-              <Text style={[styles.rotuloSeccion, { color: ui.textMuted, marginBottom: 0 }]}>SEÑA</Text>
-              {monto > 0 && (
-                <Text style={[styles.senaMonto, { color: ui.text }]}>${monto.toLocaleString('es-AR')}</Text>
+              {sena === 'enviada' && (
+                <View style={styles.senaEstado}>
+                  <Ionicons name="time-outline" size={16} color={ui.textMuted} />
+                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                    Mandó el comprobante{request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Confirmá si te llegó.
+                  </Text>
+                </View>
+              )}
+
+              {sena === 'confirmada' && (
+                <View style={styles.senaEstado}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
+                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
+                    Confirmaste que te llegó{request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.
+                  </Text>
+                </View>
+              )}
+
+              {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
+                  conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
+              {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
+                <TouchableOpacity
+                  onPress={() => setFotoAmpliada(true)}
+                  activeOpacity={0.85}
+                  style={styles.comprobanteTouch}
+                >
+                  <Image
+                    source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
+                    style={[styles.comprobante, { backgroundColor: ui.bg }]}
+                    resizeMode="cover"
+                  />
+                  <View style={[styles.comprobanteZoom, { backgroundColor: ui.bg }]}>
+                    <Ionicons name="expand-outline" size={15} color={ui.text} />
+                  </View>
+                </TouchableOpacity>
               )}
             </View>
-
-            {sena === 'esperando' && (
-              <View style={styles.senaEstado}>
-                <Ionicons name="hourglass-outline" size={16} color={ui.textMuted} />
-                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                  Ya lo aceptaste. Avisamos cuando suba el comprobante.
-                </Text>
-              </View>
-            )}
-
-            {sena === 'enviada' && (
-              <View style={styles.senaEstado}>
-                <Ionicons name="time-outline" size={16} color={ui.textMuted} />
-                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                  Mandó el comprobante{request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Confirmá si te llegó.
-                </Text>
-              </View>
-            )}
-
-            {sena === 'confirmada' && (
-              <View style={styles.senaEstado}>
-                <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
-                <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                  Confirmaste que te llegó{request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.
-                </Text>
-              </View>
-            )}
-
-            {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
-                conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
-            {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
-              <TouchableOpacity
-                onPress={() => setFotoAmpliada(true)}
-                activeOpacity={0.85}
-                style={styles.comprobanteTouch}
-              >
-                <Image
-                  source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
-                  style={[styles.comprobante, { backgroundColor: ui.bg }]}
-                  resizeMode="cover"
-                />
-                <View style={[styles.comprobanteZoom, { backgroundColor: ui.bg }]}>
-                  <Ionicons name="expand-outline" size={15} color={ui.text} />
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          )}
+        </View>
 
         {pendiente && (
           <View style={styles.acciones}>
@@ -408,12 +412,12 @@ const styles = StyleSheet.create({
   ruta: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 },
   rutaSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3, textTransform: 'capitalize' },
 
-  passengerCard: { borderRadius: 18, padding: 14 },
+  // Una sola tarjeta para todo el contenido; cada sub-bloque de acá para abajo es una
+  // `section` separada por una línea fina, no una caja aparte.
+  card: { borderRadius: 18, padding: 14 },
+  section: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
   passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  passengerCardFooter: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth,
-  },
+  passengerCardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   avatar: { width: 46, height: 46, borderRadius: 23 },
   avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
@@ -425,12 +429,8 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   precio: { fontSize: 17, fontFamily: 'Sora_700Bold', textAlign: 'right', marginTop: 1 },
 
-  mensaje: {
-    fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic',
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
-  },
+  mensaje: { fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic' },
 
-  rutaCard: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
   rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   puntoRotulo: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.3 },
   puntoDir: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19, marginTop: 1 },
@@ -441,12 +441,9 @@ const styles = StyleSheet.create({
   desvio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
   desvioText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
-  rechazo: {
-    fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19,
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 14,
-  },
+  rechazo: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19 },
 
-  senaCard: { borderRadius: 18, padding: 16, gap: 12 },
+  senaCard: { gap: 12 },
   senaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rotuloSeccion: { fontSize: 11, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5 },
   senaMonto: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
