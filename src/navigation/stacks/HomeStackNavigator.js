@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import HomeScreen from '../../screens/main/home/HomeScreen';
 import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
 import VehicleDetailScreen from '../../screens/main/common/VehicleDetailScreen';
+import PagarSenaScreen from '../../screens/main/carpool/PagarSenaScreen';
 import SearchTripsScreen from '../../screens/main/home/SearchTripsScreen';
 import SearchResultsScreen from '../../screens/main/home/SearchResultsScreen';
 import BookingScreen from '../../screens/main/home/BookingScreen';
@@ -75,6 +76,11 @@ const HomeStackNavigator = () => {
         name="SearchResults"
         component={SearchResultsScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PagarSena"
+        component={PagarSenaScreen}
+        options={{ title: 'Pagar la seña' }}
       />
       <Stack.Screen
         name="VehicleDetail"

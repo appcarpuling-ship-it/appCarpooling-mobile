@@ -88,9 +88,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [mapPreviewAncho, setMapPreviewAncho] = useState(0);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   const previewMapRef = useRef(null);
-  const mainScrollRef = useRef(null);
-  // La flecha que baja al botón de "Pagar la seña": se muestra al abrir la pantalla y se va
-  // apenas el pasajero scrollea (ya se dio cuenta de que hay algo abajo).
+  // El atajo flotante para pagar la seña: visible al abrir el detalle, se oculta apenas el
+  // pasajero scrollea (ya vio el botón del footer).
   const [scrolledPastTop, setScrolledPastTop] = useState(false);
   /**
    * Los puntos que tiene que entrar el encuadre. Se calculan bien abajo (necesitan `trip`, que
@@ -719,7 +718,6 @@ const TripDetailScreen = ({ route, navigation }) => {
         // Sin style el alto queda sin acotar y en web la rueda no encuentra
         // contenedor scrolleable. Es el único ScrollView principal de la app
         // que no lo tenía.
-        ref={mainScrollRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -1457,19 +1455,19 @@ const TripDetailScreen = ({ route, navigation }) => {
         <View style={{ height: 32 }} />
       </ScrollView>
 
-      {/* Flecha flotante hacia el botón de la seña. Sólo mientras la seña está pendiente y el
-          pasajero todavía no scrolleó: es un empujón para que no se pierda el botón, no un
-          control permanente. */}
+      {/* Atajo flotante para pagar la seña: al abrir el detalle está a la vista sin scrollear,
+          y se va apenas el pasajero baja (ya vio el botón del footer). Lleva directo a la
+          pantalla de pago, igual que el botón de abajo. */}
       {!isOwnTrip && userBooking?.sena?.estado === 'esperando' && !scrolledPastTop && (
         <TouchableOpacity
           style={[styles.jumpToSena, { backgroundColor: accent }]}
-          onPress={() => mainScrollRef.current?.scrollToEnd({ animated: true })}
+          onPress={() => navigation.navigate('PagarSena', { bookingId: userBooking._id, tripId })}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Ir al botón de pagar la seña"
+          accessibilityLabel="Pagar la seña"
         >
           <Text style={[styles.jumpToSenaText, { color: accentInverse }]}>Pagar la seña</Text>
-          <Ionicons name="arrow-down" size={16} color={accentInverse} />
+          <Ionicons name="arrow-forward" size={16} color={accentInverse} />
         </TouchableOpacity>
       )}
 
