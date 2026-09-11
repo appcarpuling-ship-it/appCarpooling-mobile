@@ -126,6 +126,8 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const enviada = booking.sena?.enviadaAt ? new Date(booking.sena.enviadaAt) : null;
   const alConductor = (Number(trip.driverPrice) || 0) * asientos;
   const nombreConductor = trip.driver?.firstName || 'el conductor';
+  const avatarUrl = trip.driver?.avatar ? buildImageUri(trip.driver.avatar) : null;
+  const iniciales = `${trip.driver?.firstName?.[0] || ''}${trip.driver?.lastName?.[0] || ''}` || '?';
 
   // Si la reserva nació de una solicitud (postulación) no hay seatReservation — sus puntos
   // quedaron como paradas del viaje, no acá. Sin este respaldo, a un pasajero que SÍ eligió
@@ -192,8 +194,18 @@ const PagarSenaScreen = ({ route, navigation }) => {
       style={{ backgroundColor: ui.bg }}
       contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32, flexGrow: 1 }]}
     >
-      {/* Título: una sola frase con la acción y con quién. Todo lo demás es apoyo chico. */}
-      <Text style={[styles.titulo, { color: ui.text }]}>{titulo}</Text>
+      {/* Título: una sola frase con la acción y con quién, y la cara de quién — el avatar
+          hace de contrapeso visual, como la foto del conductor en la ficha de un viaje. */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.titulo, { color: ui.text, flex: 1 }]}>{titulo}</Text>
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: ui.surface }]}>
+            <Text style={[styles.avatarIniciales, { color: ui.textMuted }]}>{iniciales}</Text>
+          </View>
+        )}
+      </View>
       <Text style={[styles.sub, { color: ui.textMuted }]}>
         {trip.origin?.city} → {trip.destination?.city} · {asientos} asiento{asientos !== 1 ? 's' : ''} · {fmtFecha(trip.departureDate)}{trip.departureTime ? ` · ${trip.departureTime}` : ''}
       </Text>
@@ -321,18 +333,22 @@ const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: 24 },
 
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titulo: { fontSize: 25, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6, lineHeight: 30 },
+  avatar: { width: 46, height: 46, borderRadius: 23 },
+  avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+  avatarIniciales: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   sub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 8, lineHeight: 18 },
 
   // Tarjetas: a dónde transferir, y el recorrido. Le dan cuerpo a la pantalla en vez de
   // dejar filas sueltas flotando en un fondo vacío — mismo lenguaje que usa el resto de la
   // app (y Uber) para agrupar datos que van juntos.
-  card: { borderRadius: 18, marginTop: 16, overflow: 'hidden' },
-  filaIcono: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  card: { borderRadius: 22, marginTop: 16, overflow: 'hidden' },
+  filaIcono: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 16 },
   filaIconoTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
 
-  rutaCard: { padding: 16, gap: 0 },
-  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  rutaCard: { padding: 18 },
+  rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 7 },
   rutaLinea: { width: 1.5, height: 16, marginLeft: 4.25 },
   dotIni: { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
   dotFin: { width: 9, height: 9, borderRadius: 5 },
