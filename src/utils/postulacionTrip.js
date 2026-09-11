@@ -11,6 +11,12 @@
 const { metersBetween } = require('./routePoints');
 const { senaLegible } = require('./sena');
 
+// Menos de 150m se toma como "el mismo lugar": un conductor que declaró recorrido propio
+// pero cuyo origen/destino coincide con el del pasajero (lo tocó sin cambiarlo, por ejemplo)
+// no está viniendo de más lejos ni siguiendo más allá — mostrarlo como una parada propia
+// aparte repetía la misma dirección dos veces sin decir nada nuevo.
+const mismoPunto = (a, b) => metersBetween(a?.coordinates, b?.coordinates) < 150;
+
 // Dirección (línea principal) + ciudad/provincia (línea chica), cuando no son lo mismo.
 // Antes era sólo `address || city`: las puntas del conductor tienen una dirección de calle
 // sin ciudad al lado, y quedaban sin poder saber en qué ciudad caían.
@@ -35,6 +41,9 @@ const dir = (p) => {
  */
 const armarRecorrido = (app, tramo) => {
   if (!tramo?.origin || !tramo?.destination) return [];
+
+  const origenPropio = app.driverOrigin && !mismoPunto(app.driverOrigin, tramo.origin);
+  const destinoPropio = app.driverDestination && !mismoPunto(app.driverDestination, tramo.destination);
 
   const medio = [
     ...(app.driverStops || []).map((p) => ({ tipo: 'driverStop', punto: p })),
@@ -68,9 +77,9 @@ const armarRecorrido = (app, tramo) => {
   });
 
   return [
-    app.driverOrigin && { etiqueta: 'Sale desde', ...dir(app.driverOrigin), delConductor: true },
+    origenPropio && { etiqueta: 'Sale desde', ...dir(app.driverOrigin), delConductor: true },
     ...filasMedio,
-    app.driverDestination && { etiqueta: 'Sigue hasta', ...dir(app.driverDestination), delConductor: true },
+    destinoPropio && { etiqueta: 'Sigue hasta', ...dir(app.driverDestination), delConductor: true },
   ].filter((p) => p && p.texto);
 };
 
@@ -82,10 +91,13 @@ const armarRecorrido = (app, tramo) => {
  * el tramo pedido" de "no sabemos por dónde va", que es la diferencia que la pregunta vino a
  * responder.
  */
-const recorridoElegido = (app) =>
-  app.driverOrigin || app.driverDestination || (app.driverStops || []).length > 0
+const recorridoElegido = (app, tramo) => {
+  const origenPropio = app.driverOrigin && !(tramo?.origin && mismoPunto(app.driverOrigin, tramo.origin));
+  const destinoPropio = app.driverDestination && !(tramo?.destination && mismoPunto(app.driverDestination, tramo.destination));
+  return origenPropio || destinoPropio || (app.driverStops || []).length > 0
     ? { texto: 'Viene de más lejos o sigue más allá', icono: 'git-branch-outline' }
     : { texto: 'Hace tu mismo tramo', icono: 'swap-horizontal-outline' };
+};
 
 /**
  * Mismo recorrido que `armarRecorrido`, pero con la forma de `trip` que espera TripMapScreen:

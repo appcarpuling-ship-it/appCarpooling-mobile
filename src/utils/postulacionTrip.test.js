@@ -8,7 +8,7 @@
  * imposible.
  */
 const assert = require('assert');
-const { armarRecorrido } = require('./postulacionTrip');
+const { armarRecorrido, recorridoElegido } = require('./postulacionTrip');
 
 const C = (lat, lng) => ({ latitude: lat, longitude: lng });
 // Coordenadas aproximadas reales
@@ -54,5 +54,19 @@ assert.deepStrictEqual(nums, nums.slice().sort(), `las Parada N tienen que queda
 // Sin recorrido propio del conductor: sólo las dos puntas del pasajero.
 const simple = armarRecorrido({}, { origin: tramo.origin, destination: tramo.destination });
 assert.deepStrictEqual(simple.map((f) => f.etiqueta), ['Te subís en', 'Te deja en']);
+
+// Un "destino propio" que en realidad es el mismo lugar que el del pasajero (a metros de
+// distancia, no a kilómetros) no cuenta como recorrido propio: ni aparece como fila repetida
+// ni dice "viene de más lejos o sigue más allá".
+const mismoDestino = {
+  driverDestination: { address: 'Mendoza Capital (otra entrada)', city: 'Mendoza', province: 'Mendoza', coordinates: C(-32.8901, -68.8401) },
+};
+const conMismoDestino = armarRecorrido(mismoDestino, { origin: tramo.origin, destination: tramo.destination });
+assert.deepStrictEqual(conMismoDestino.map((f) => f.etiqueta), ['Te subís en', 'Te deja en'],
+  'un destino a metros del pedido no debería agregar una fila "Sigue hasta" repetida');
+assert.strictEqual(
+  recorridoElegido(mismoDestino, { origin: tramo.origin, destination: tramo.destination }).texto,
+  'Hace tu mismo tramo',
+);
 
 console.log('✅ postulacionTrip: recorrido ordenado por el camino');

@@ -187,7 +187,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   // Detalle de la propia oferta: mismo tramo o recorrido propio.
   // Antes, una vez postulado, sólo quedaba el precio — el conductor no tenía forma de
   // volver a ver por dónde había dicho que iba a pasar.
-  const miEleccion = miPostulacion ? recorridoElegido(miPostulacion) : null;
+  const miEleccion = miPostulacion ? recorridoElegido(miPostulacion, request) : null;
   // Todo lo que mandaste al postularte, para el modal de detalle: precio/modalidad y el
   // recorrido completo, punto por punto (mismas funciones que usa el pasajero para ver la
   // postulación de un conductor — es la misma información, sólo que ahora es la tuya).

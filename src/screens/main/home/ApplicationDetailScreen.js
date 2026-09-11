@@ -39,7 +39,7 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const driver = app.driverSnapshot || {};
   const vehicle = app.vehicleSnapshot || {};
   const recorrido = armarRecorrido(app, tramoPasajero);
-  const eleccion = recorridoElegido(app);
+  const eleccion = recorridoElegido(app, tramoPasajero);
   const oferta = ofertaDelConductor(app, seatsNeeded);
   const tripParaMapa = armarTripParaMapa(app, tramoPasajero, driver, vehicle);
 
@@ -233,7 +233,22 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
                     { backgroundColor: punto.delConductor ? textMuted : accent },
                   ]} />
                   {i < recorridoVisible.length - 1 && (
-                    <View style={[styles.recorridoTramo, { backgroundColor: divider }]} />
+                    <View style={[styles.recorridoTramo, { backgroundColor: divider }]}>
+                      {/* Los puntitos también abren las paradas: misma acción que la
+                          flechita de arriba, por si a alguien se le ocurre tocar acá. */}
+                      {!recorridoAbierto && hayParadasIntermedias && (
+                        <TouchableOpacity
+                          style={[styles.railPuntos, { backgroundColor: bg }]}
+                          onPress={() => setRecorridoAbierto((v) => !v)}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          activeOpacity={0.6}
+                          accessibilityRole="button"
+                          accessibilityLabel="Ver paradas intermedias"
+                        >
+                          <Ionicons name="ellipsis-vertical" size={13} color={textMuted} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   )}
                 </View>
                 <View style={styles.recorridoTexto}>
@@ -395,6 +410,13 @@ const styles = StyleSheet.create({
   recorridoLinea: { alignItems: 'center', width: 10 },
   recorridoPunto: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
   recorridoTramo: { width: StyleSheet.hairlineWidth, flex: 1, minHeight: 22 },
+  // Los puntitos se centran sobre la línea desbordando a los lados (left negativo y ancho
+  // fijo); el fondo de la pantalla los recorta contra la línea, mismo truco que en
+  // TripDetailScreen.
+  railPuntos: {
+    position: 'absolute', top: '50%', marginTop: -11, left: -6.25,
+    width: 14, alignItems: 'center', paddingVertical: 3,
+  },
   recorridoTexto: { flex: 1, paddingBottom: 14 },
   recorridoEtiqueta: { fontSize: 11, fontFamily: 'Sora_500Medium', marginBottom: 2 },
   recorridoDireccion: { fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19 },
