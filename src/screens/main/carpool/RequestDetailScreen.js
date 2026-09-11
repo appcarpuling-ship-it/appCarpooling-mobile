@@ -197,22 +197,26 @@ const RequestDetailScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
 
-        <View style={styles.filaEntre}>
-          {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
-              abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
-          {!pendiente ? (
-            <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.surface }]}>
-              <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
-                {status.label}
-              </Text>
-            </View>
-          ) : <View />}
-          {!trip?.sinPrecioFijo && alConductor > 0 && (
+        {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar abajo,
+            un cartel que diga "esperando tu aprobación" no agrega nada. */}
+        {!pendiente && (
+          <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.surface }]}>
+            <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
+              {status.label}
+            </Text>
+          </View>
+        )}
+
+        {/* Con etiqueta siempre: un número solo, suelto a la derecha (y encima descentrado
+            cuando no había pill al lado), no decía nada por sí mismo. */}
+        {!trip?.sinPrecioFijo && alConductor > 0 && (
+          <View style={styles.precioRow}>
+            <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
             <Text style={[styles.precio, { color: ui.text }]}>
               ${alConductor.toLocaleString('es-AR')}
             </Text>
-          )}
-        </View>
+          </View>
+        )}
 
         {!!request.message && (
           <Text style={[styles.mensaje, { color: ui.textMuted, borderColor: ui.border }]}>
@@ -406,7 +410,8 @@ const styles = StyleSheet.create({
   passengerName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   reqSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
 
-  filaEntre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -6 },
+  precioRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -6 },
+  precioLabel: { fontSize: 13, fontFamily: 'Sora_400Regular' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   precio: { fontSize: 17, fontFamily: 'Sora_700Bold' },
