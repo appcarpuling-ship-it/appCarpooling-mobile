@@ -139,99 +139,104 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* La ruta que venís de elegir en el mapa. Antes eran dos líneas sueltas —origen y
-              destino, sin rótulo— y las paradas ni figuraban: sólo un "N paradas en el camino"
-              al pie, así que no había forma de ver DÓNDE eran. Ahora cada punto es una fila
-              con su círculo al lado de su texto, igual que en el resto de la app. */}
-          <Text style={[styles.label, { color: textMuted, marginTop: 4 }]}>Tu recorrido</Text>
-          <View style={[styles.card, styles.routeCard, { backgroundColor: cardBg, borderColor: border }]}>
-            {puntos.map((punto, i) => (
-              <View key={`punto-${i}`} style={styles.routePoint}>
-                <View style={styles.routeRail}>
-                  {punto.tipo === 'origen'
-                    ? <View style={[styles.dot, { borderColor: textPrimary }]} />
-                    : punto.tipo === 'destino'
-                      ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
-                      : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
-                  {i < puntos.length - 1 && (
-                    <View style={[styles.railLine, { backgroundColor: border }]} />
-                  )}
-                </View>
-                <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
-                  <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
-                  <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-                    {punto.direccion}
-                  </Text>
-                  {!!punto.ciudad && (
-                    <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
-                      {punto.ciudad}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Fecha y hora juntas: son una sola decisión y separadas en dos tarjetas sueltas
-              dejaban la pantalla con más aire que contenido. */}
-          <Text style={[styles.label, { color: textMuted }]}>¿Cuándo salís?</Text>
+          {/* Una sola tarjeta para todo el formulario, con cada bloque separado por una
+              línea fina en vez de tres cajas sueltas con su propio fondo y borde — eso se
+              leía como una pantalla partida en pedazos. */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-            <TouchableOpacity
-              style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
-              onPress={() => { setTempDate(date); setShowDatePicker(true); }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="calendar-outline" size={19} color={textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
-                <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.pickRow}
-              onPress={() => { setTempTime(time); setShowTimePicker(true); }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="time-outline" size={19} color={textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
-                <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={textMuted} />
-            </TouchableOpacity>
-          </View>
 
-          {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/- solo
-              en el medio de una tarjeta vacía. */}
-          <Text style={[styles.label, { color: textMuted }]}>¿Cuántos viajan?</Text>
-          <View style={[styles.card, styles.seatsCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.pickValue, { color: textPrimary }]}>
-                {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''}
-              </Text>
-              <Text style={[styles.pickLabel, { color: textMuted, marginTop: 2 }]}>
-                Los que necesitás para vos y quien te acompañe
-              </Text>
+            {/* La ruta que venís de elegir en el mapa. Antes eran dos líneas sueltas —origen y
+                destino, sin rótulo— y las paradas ni figuraban: sólo un "N paradas en el
+                camino" al pie, así que no había forma de ver DÓNDE eran. Ahora cada punto es
+                una fila con su círculo al lado de su texto, igual que en el resto de la app. */}
+            <View style={styles.routeCard}>
+              <Text style={[styles.label, { color: textMuted }]}>Tu recorrido</Text>
+              {puntos.map((punto, i) => (
+                <View key={`punto-${i}`} style={styles.routePoint}>
+                  <View style={styles.routeRail}>
+                    {punto.tipo === 'origen'
+                      ? <View style={[styles.dot, { borderColor: textPrimary }]} />
+                      : punto.tipo === 'destino'
+                        ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
+                        : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
+                    {i < puntos.length - 1 && (
+                      <View style={[styles.railLine, { backgroundColor: border }]} />
+                    )}
+                  </View>
+                  <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
+                    <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
+                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+                      {punto.direccion}
+                    </Text>
+                    {!!punto.ciudad && (
+                      <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
+                        {punto.ciudad}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
             </View>
-            <View style={styles.seatsRow}>
+
+            {/* Fecha y hora juntas: son una sola decisión. */}
+            <View style={[styles.section, { borderTopColor: border }]}>
+              <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>¿Cuándo salís?</Text>
               <TouchableOpacity
-                style={[styles.seatsBtn, { borderColor: border }, seatsNeeded <= 1 && { opacity: 0.35 }]}
-                onPress={() => setSeatsNeeded(s => Math.max(1, s - 1))}
-                disabled={seatsNeeded <= 1}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
+                onPress={() => { setTempDate(date); setShowDatePicker(true); }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="remove" size={20} color={textPrimary} />
+                <Ionicons name="calendar-outline" size={19} color={textMuted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
+                  <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={textMuted} />
               </TouchableOpacity>
-              <Text style={[styles.seatsNum, { color: textPrimary }]}>{seatsNeeded}</Text>
               <TouchableOpacity
-                style={[styles.seatsBtn, { borderColor: border }, seatsNeeded >= 4 && { opacity: 0.35 }]}
-                onPress={() => setSeatsNeeded(s => Math.min(4, s + 1))}
-                disabled={seatsNeeded >= 4}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={styles.pickRow}
+                onPress={() => { setTempTime(time); setShowTimePicker(true); }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="add" size={20} color={textPrimary} />
+                <Ionicons name="time-outline" size={19} color={textMuted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
+                  <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={textMuted} />
               </TouchableOpacity>
+            </View>
+
+            {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/-
+                solo en el medio de una tarjeta vacía. */}
+            <View style={[styles.section, styles.seatsCard, { borderTopColor: border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: textMuted, marginTop: 0, marginBottom: 6 }]}>¿Cuántos viajan?</Text>
+                <Text style={[styles.pickValue, { color: textPrimary }]}>
+                  {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''}
+                </Text>
+                <Text style={[styles.pickLabel, { color: textMuted, marginTop: 2 }]}>
+                  Los que necesitás para vos y quien te acompañe
+                </Text>
+              </View>
+              <View style={styles.seatsRow}>
+                <TouchableOpacity
+                  style={[styles.seatsBtn, { borderColor: border }, seatsNeeded <= 1 && { opacity: 0.35 }]}
+                  onPress={() => setSeatsNeeded(s => Math.max(1, s - 1))}
+                  disabled={seatsNeeded <= 1}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="remove" size={20} color={textPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.seatsNum, { color: textPrimary }]}>{seatsNeeded}</Text>
+                <TouchableOpacity
+                  style={[styles.seatsBtn, { borderColor: border }, seatsNeeded >= 4 && { opacity: 0.35 }]}
+                  onPress={() => setSeatsNeeded(s => Math.min(4, s + 1))}
+                  disabled={seatsNeeded >= 4}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="add" size={20} color={textPrimary} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -325,20 +330,22 @@ const styles = StyleSheet.create({
   safe:   { flex: 1 },
   scroll: { padding: 16 },
   label: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 26,
-    marginBottom: 8,
-    marginLeft: 4,
+    marginTop: 14,
+    marginBottom: 10,
   },
   card: {
     borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    paddingHorizontal: 16,
   },
-  routeCard: { paddingHorizontal: 16, paddingVertical: 16 },
+  // Cada bloque de acá para abajo, separado del anterior por una línea fina.
+  section: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 4, paddingBottom: 14 },
+  routeCard: { paddingTop: 16, paddingBottom: 14 },
   routePoint: { flexDirection: 'row', gap: 12 },
   routeRail: { width: 9, alignItems: 'center', paddingTop: 5 },
   dot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
@@ -353,10 +360,10 @@ const styles = StyleSheet.create({
   },
   routeText: { fontSize: 15, fontFamily: 'Sora_600SemiBold', lineHeight: 20 },
   routeCity: { fontSize: 13, marginTop: 1 },
-  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
   pickLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', letterSpacing: 0.3, textTransform: 'uppercase' },
   pickValue: { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
-  seatsCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  seatsCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   seatsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   seatsBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
