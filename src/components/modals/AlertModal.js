@@ -106,6 +106,11 @@ const AlertModal = ({
                         numberOfLines={1}
                         style={[
                           styles.buttonText,
+                          // width + textAlign y no depender del alignItems del botón: en
+                          // react-native-web, numberOfLines mete un -webkit-box que, sin
+                          // ancho propio dentro de un flex centrado, colapsa a 0 y el texto
+                          // desaparece (pastillas vacías en la captura del usuario).
+                          { width: '100%', textAlign: 'center' },
                           { color: ui.text },
                           esCancelar && { color: ui.textMuted, fontFamily: 'Sora_500Medium' },
                           esDestructivo && { color: '#FFFFFF' },
