@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Image, RefreshControl, Platform
+  ActivityIndicator, Image, RefreshControl, Platform, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +28,7 @@ import Rating from '../../../components/ui/Rating';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { reportError } from '../../../utils/sentry';
-import { recorridoElegido, armarTripParaMapa, ofertaDelConductor } from '../../../utils/postulacionTrip';
+import { recorridoElegido, armarTripParaMapa, armarRecorrido, ofertaDelConductor } from '../../../utils/postulacionTrip';
 
 const STATUS_MAP = {
   open:             { label: 'Abierta',       solid: true },
@@ -191,6 +191,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const miTripParaMapa = miPostulacion
     ? armarTripParaMapa(miPostulacion, request, user, miPostulacion.vehicleSnapshot)
     : null;
+  // Todo lo que mandaste al postularte, para el modal de detalle: precio/modalidad y el
+  // recorrido completo, punto por punto (mismas funciones que usa el pasajero para ver la
+  // postulación de un conductor — es la misma información, sólo que ahora es la tuya).
+  const miOferta = miPostulacion ? ofertaDelConductor(miPostulacion, request?.seatsNeeded) : null;
+  const miRecorridoCompleto = miPostulacion ? armarRecorrido(miPostulacion, request) : [];
+  const [miDetalleVisible, setMiDetalleVisible] = useState(false);
 
   const loadVehicles = async () => {
     try {
@@ -669,14 +675,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         <View style={[styles.section, { gap: 12 }]}>
           {isDriver && !!miPostulacion && (
             /* Una sola tarjeta tocable: precio, estado (si hay algo que decir más allá de
-               "la mandaste", que ya se ve solo) y recorrido, con la flecha como única
-               entrada al detalle completo — el mapa con tu recorrido. Antes eran dos
-               tarjetas y un "Enviada" que no decía nada que la tarjeta ya no dijera. */
+               "la mandaste", que ya se ve solo) y recorrido, con la flecha como entrada al
+               detalle completo de tu postulación (un modal, no el mapa directo). */
             <TouchableOpacity
               style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}
-              onPress={() => miTripParaMapa && navigation.navigate('TripMap', { trip: miTripParaMapa })}
-              activeOpacity={miTripParaMapa ? 0.7 : 1}
-              disabled={!miTripParaMapa}
+              onPress={() => setMiDetalleVisible(true)}
+              activeOpacity={0.7}
             >
               <View style={styles.miPropuestaTop}>
                 <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
@@ -687,7 +691,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                       <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>{miEstadoBadge.label}</Text>
                     </View>
                   )}
-                  {!!miTripParaMapa && <Ionicons name="chevron-forward" size={18} color={ui.textMuted} />}
+                  <Ionicons name="chevron-forward" size={18} color={ui.textMuted} />
                 </View>
               </View>
 
@@ -1091,6 +1095,97 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
         reservationId={requestId}
       />
 
+      {/* Detalle de tu postulación: precio, recorrido punto por punto y el vehículo con el
+          que te ofreciste. Una hoja que sube desde abajo en vez de otra pantalla o el mapa
+          directo — mismo patrón que el detalle de tarifa/viaje de apps como Uber. */}
+      <Modal
+        visible={miDetalleVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMiDetalleVisible(false)}
+      >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMiDetalleVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.sheetBox, { backgroundColor: ui.bg }]} onPress={() => {}}>
+            <View style={[styles.sheetHandle, { backgroundColor: ui.border }]} />
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: ui.text }]}>Tu postulación</Text>
+              <TouchableOpacity onPress={() => setMiDetalleVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={ui.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+              {!!miOferta && (
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={[styles.sheetLabel, { color: ui.textMuted }]}>{miOferta.etiqueta}</Text>
+                  <Text style={{ color: ui.text, fontSize: miOferta.esPrecio ? 30 : 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1 }}>
+                    {miOferta.texto}
+                  </Text>
+                  {!miOferta.esPrecio && (
+                    <Text style={{ color: ui.textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
+                      {miOferta.detalle}
+                    </Text>
+                  )}
+                  {!!miOferta.sena && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                      <Ionicons name="shield-checkmark-outline" size={15} color={ui.textMuted} />
+                      <Text style={{ color: ui.textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, flex: 1 }}>
+                        Pedís {miOferta.sena} de seña por adelantado.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {!!miPostulacion?.vehicleSnapshot && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                  <Ionicons name="car-outline" size={19} color={ui.textMuted} />
+                  <Text style={{ color: ui.text, fontSize: 14, fontFamily: 'Sora_600SemiBold' }}>
+                    {miPostulacion.vehicleSnapshot.brand} {miPostulacion.vehicleSnapshot.model}
+                    {miPostulacion.vehicleSnapshot.licensePlate ? ` · ${miPostulacion.vehicleSnapshot.licensePlate}` : ''}
+                  </Text>
+                </View>
+              )}
+
+              {miRecorridoCompleto.length > 0 && (
+                <View>
+                  <Text style={[styles.sheetLabel, { color: ui.textMuted }]}>Recorrido</Text>
+                  {miRecorridoCompleto.map((punto, i) => (
+                    <View key={`${punto.etiqueta}-${i}`} style={styles.sheetRecorridoFila}>
+                      <View style={styles.sheetRecorridoLinea}>
+                        <View style={[styles.sheetRecorridoPunto, { backgroundColor: punto.delConductor ? ui.textMuted : ui.invertBg }]} />
+                        {i < miRecorridoCompleto.length - 1 && (
+                          <View style={[styles.sheetRecorridoTramo, { backgroundColor: ui.border }]} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1, paddingBottom: 14 }}>
+                        <Text style={{ color: ui.textMuted, fontSize: 11, fontFamily: 'Sora_500Medium', marginBottom: 2 }}>{punto.etiqueta}</Text>
+                        <Text style={{ color: ui.text, fontSize: 14, fontFamily: 'Sora_600SemiBold', lineHeight: 19 }}>{punto.texto}</Text>
+                        {!!punto.ciudad && (
+                          <Text style={{ color: ui.textMuted, fontSize: 12, marginTop: 1 }}>{punto.ciudad}</Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {!!miTripParaMapa && (
+                <TouchableOpacity
+                  style={styles.sheetMapLink}
+                  onPress={() => { setMiDetalleVisible(false); navigation.navigate('TripMap', { trip: miTripParaMapa }); }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="map-outline" size={18} color={ui.text} />
+                  <Text style={{ flex: 1, color: ui.text, fontSize: 14, fontFamily: 'Sora_600SemiBold' }}>Ver en el mapa</Text>
+                  <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -1099,6 +1194,24 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered:  { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 15 },
+
+  // Detalle de "tu postulación": hoja que sube desde abajo, como el detalle de tarifa/viaje
+  // de apps como Uber, en vez de una pantalla nueva o el mapa directo.
+  sheetOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheetBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingTop: 10 },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+  sheetHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 14,
+  },
+  sheetTitle: { fontSize: 17, fontFamily: 'Sora_700Bold' },
+  sheetContent: { paddingHorizontal: 20, paddingBottom: 30 },
+  sheetLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  sheetRecorridoFila: { flexDirection: 'row', gap: 12 },
+  sheetRecorridoLinea: { alignItems: 'center', width: 10 },
+  sheetRecorridoPunto: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
+  sheetRecorridoTramo: { width: StyleSheet.hairlineWidth, flex: 1, minHeight: 22 },
+  sheetMapLink: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, marginTop: 4 },
 
   // Status — exact match TripDetailScreen
   statusRow: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
