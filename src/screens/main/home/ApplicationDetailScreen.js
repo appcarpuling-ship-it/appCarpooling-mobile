@@ -15,6 +15,8 @@ import { useUI } from '../../../theme/ui';
 import Rating from '../../../components/ui/Rating';
 import PillButton from '../../../components/ui/PillButton';
 import { armarRecorrido, recorridoElegido, armarTripParaMapa, ofertaDelConductor } from '../../../utils/postulacionTrip';
+import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
+import VehicleDetailModal from '../../../components/vehicle/VehicleDetailModal';
 
 const ApplicationDetailScreen = ({ route, navigation }) => {
   const { app, requestId, tramoPasajero, seatsNeeded = 1 } = route.params;
@@ -31,6 +33,8 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
   const [accepting, setAccepting] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState({ visible: false, paymentUrl: null });
+  const [recorridoAbierto, setRecorridoAbierto] = useState(false);
+  const [vehiculoModalVisible, setVehiculoModalVisible] = useState(false);
 
   const driver = app.driverSnapshot || {};
   const vehicle = app.vehicleSnapshot || {};
@@ -39,21 +43,17 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
   const oferta = ofertaDelConductor(app, seatsNeeded);
   const tripParaMapa = armarTripParaMapa(app, tramoPasajero, driver, vehicle);
 
-  // Las fotos: la principal es `photo`, y `photos` puede repetirla. Se deduplica para no
-  // mostrar la misma imagen dos veces, y se corta en 3 secundarias.
-  const todasLasFotos = [vehicle.photo, ...(vehicle.photos || [])].filter(Boolean);
-  const fotosUnicas = [...new Set(todasLasFotos)];
-  const fotoPrincipal = fotosUnicas[0] || null;
-  const fotosSecundarias = fotosUnicas.slice(1, 4);
+  // Apilado por defecto, igual que en el detalle del viaje: con paradas la lista completa
+  // empujaba el vehículo y el botón de elegir conductor fuera de la primera pantalla.
+  const cantidadParadas = Math.max(0, recorrido.length - 2);
+  const hayParadasIntermedias = cantidadParadas > 0;
+  const recorridoVisible = recorridoAbierto || !hayParadasIntermedias
+    ? recorrido
+    : [recorrido[0], recorrido[recorrido.length - 1]];
 
-  // Sólo las que están en true. Las postulaciones viejas no traen `features` en el snapshot.
-  const chipsVehiculo = [
-    { key: 'ac', label: 'Aire', icon: 'snow-outline' },
-    { key: 'music', label: 'Música', icon: 'musical-notes-outline' },
-    { key: 'luggage', label: 'Equipaje', icon: 'bag-outline' },
-    { key: 'pets', label: 'Mascotas', icon: 'paw-outline' },
-    { key: 'smoking', label: 'Se puede fumar', icon: 'flame-outline' },
-  ].filter((c) => vehicle.features?.[c.key]);
+  // Fotos del vehículo, para la tira chica: el resto (color, patente, características) vive
+  // en el modal, no acá.
+  const fotosVehiculo = collectVehiclePhotoPaths(vehicle);
 
   const handleAccept = () => {
     navigation.navigate('Confirm', {
@@ -195,7 +195,9 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Recorrido: lo que el pasajero necesita para decidir si le sirve este conductor.
-            Sin esto sólo veía el auto y la calificación, y no por dónde pasa. */}
+            Sin esto sólo veía el auto y la calificación, y no por dónde pasa. Apilado por
+            defecto, igual que en el detalle del viaje: con paradas la lista completa
+            empujaba el vehículo y el botón de elegir conductor fuera de la primera pantalla. */}
         {recorrido.length > 0 && (
           <View style={[styles.card]}>
             <Text style={[styles.sectionLabel, { color: textMuted }]}>Recorrido</Text>
@@ -207,14 +209,30 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.recorridoElegidoText, { color: textPrimary }]}>{eleccion.texto}</Text>
             </View>
 
-            {recorrido.map((punto, i) => (
+            {hayParadasIntermedias && (
+              <TouchableOpacity
+                style={styles.paradasToggle}
+                onPress={() => setRecorridoAbierto((v) => !v)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: recorridoAbierto }}
+                accessibilityLabel={recorridoAbierto ? 'Ocultar paradas intermedias' : 'Ver paradas intermedias'}
+              >
+                <Text style={[styles.paradasToggleText, { color: textMuted }]}>
+                  {recorridoAbierto ? 'Ocultar paradas' : `${cantidadParadas} parada${cantidadParadas !== 1 ? 's' : ''} en el camino`}
+                </Text>
+                <Ionicons name={recorridoAbierto ? 'chevron-up' : 'chevron-down'} size={16} color={textMuted} />
+              </TouchableOpacity>
+            )}
+
+            {recorridoVisible.map((punto, i) => (
               <View key={`${punto.etiqueta}-${i}`} style={styles.recorridoFila}>
                 <View style={styles.recorridoLinea}>
                   <View style={[
                     styles.recorridoPunto,
                     { backgroundColor: punto.delConductor ? textMuted : accent },
                   ]} />
-                  {i < recorrido.length - 1 && (
+                  {i < recorridoVisible.length - 1 && (
                     <View style={[styles.recorridoTramo, { backgroundColor: divider }]} />
                   )}
                 </View>
@@ -243,71 +261,49 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Vehicle info */}
+        {/* Vehículo — nombre + fotos, y la flecha abre un modal con el resto (color, patente,
+            capacidad, características). Antes todo eso estaba acá y alargaba la pantalla con
+            datos que casi nadie mira antes de elegir conductor. Mismo patrón compacto que usa
+            TripDetailScreen para el vehículo del viaje ya confirmado. */}
         {Object.keys(vehicle).length > 0 && (
           <View style={[styles.card]}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Vehículo</Text>
+            <TouchableOpacity
+              style={styles.vehicleHeaderRow}
+              onPress={() => setVehiculoModalVisible(true)}
+              activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel="Ver todos los detalles del vehículo"
+            >
+              <Text style={[styles.sectionLabel, { color: textMuted, marginBottom: 0 }]}>Vehículo</Text>
+              <Ionicons name="chevron-forward" size={18} color={textMuted} />
+            </TouchableOpacity>
 
-            {/* La principal grande y hasta 3 más en fila abajo. El tope es a propósito: con seis
-                fotos la ficha se volvía un scroll de fotos y tapaba los datos del auto. */}
-            {fotoPrincipal ? (
-              <Image source={{ uri: buildImageUri(fotoPrincipal) }} style={styles.vehiclePhoto} />
-            ) : null}
-            {fotosSecundarias.length > 0 && (
-              <View style={styles.fotosFila}>
-                {fotosSecundarias.map((f) => (
-                  <Image key={f} source={{ uri: buildImageUri(f) }} style={styles.fotoChica} />
-                ))}
-              </View>
-            )}
-
-            {/* Las características van con la foto y no sueltas: son parte de "cómo es el auto".
-                Las postulaciones viejas no las traen en el snapshot, y ahí no se muestra nada. */}
-            {chipsVehiculo.length > 0 && (
-              <View style={styles.featuresRow}>
-                {chipsVehiculo.map((c) => (
-                  <View key={c.label} style={[styles.featureChip, { backgroundColor: bg }]}>
-                    <Ionicons name={c.icon} size={14} color={textPrimary} />
-                    <Text style={[styles.featureChipText, { color: textPrimary }]}>{c.label}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <View style={styles.vehicleRow}>
-              <Ionicons name="car-outline" size={20} color={textMuted} />
+            <View style={styles.vehicleNameRow}>
               <Text style={[styles.vehicleMain, { color: textPrimary }]}>
-                {vehicle.brand} {vehicle.model} {vehicle.year}
+                {vehicle.brand} {vehicle.model}{vehicle.year ? ` (${vehicle.year})` : ''}
               </Text>
             </View>
-            <View style={[styles.dividerLine, { backgroundColor: divider }]} />
-            {vehicle.color ? (
-              <View style={styles.vehicleDetail}>
-                <Text style={[styles.vehicleDetailLabel, { color: textMuted }]}>Color</Text>
-                <Text style={[styles.vehicleDetailValue, { color: textPrimary }]}>{vehicle.color}</Text>
-              </View>
+
+            {fotosVehiculo.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[styles.fotosFila, { marginTop: 12 }]}
+              >
+                {fotosVehiculo.map((f) => (
+                  <Image key={f} source={{ uri: buildImageUri(f) }} style={styles.fotoChica} />
+                ))}
+              </ScrollView>
             ) : null}
-            {vehicle.licensePlate ? (
-              <View style={styles.vehicleDetail}>
-                <Text style={[styles.vehicleDetailLabel, { color: textMuted }]}>Patente</Text>
-                <Text style={[styles.vehicleDetailValue, { color: textPrimary }]}>{vehicle.licensePlate}</Text>
-              </View>
-            ) : null}
-            {vehicle.capacity != null ? (
-              <View style={styles.vehicleDetail}>
-                <Text style={[styles.vehicleDetailLabel, { color: textMuted }]}>Capacidad</Text>
-                <Text style={[styles.vehicleDetailValue, { color: textPrimary }]}>
-                  {vehicle.capacity} asiento{vehicle.capacity !== 1 ? 's' : ''}
-                </Text>
-              </View>
-            ) : null}
-            {/* Sin "Tipo": mostraba `vehicle.vehicleType` crudo, o sea la clave interna del
-                modelo ("sedan", "hatchback"), que en ningún otro lado de la app se ve — el
-                formulario las agrupa y las muestra como "Auto" / "Camioneta". Y para elegir
-                conductor no aporta nada que marca, modelo y capacidad no digan ya. */}
           </View>
         )}
       </ScrollView>
+
+      <VehicleDetailModal
+        visible={vehiculoModalVisible}
+        vehicle={vehicle}
+        onClose={() => setVehiculoModalVisible(false)}
+      />
 
       {/* Checkout WebView */}
       <CheckoutWebView
@@ -380,24 +376,20 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { fontSize: 13 },
   sectionLabel: { fontSize: 11, fontFamily: 'Sora_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
-  vehiclePhoto: { width: '100%', height: 160, borderRadius: 10, marginBottom: 12 },
-  vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  // Vehículo: nombre + fotos, compacto — el resto vive en VehicleDetailModal.
+  vehicleHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  vehicleNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
   vehicleMain: { fontSize: 16, fontFamily: 'Sora_700Bold' },
-  dividerLine: { height: StyleSheet.hairlineWidth, marginBottom: 12 },
-  vehicleDetail: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  vehicleDetailLabel: { fontSize: 13 },
-  vehicleDetailValue: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   // El punto del pasajero va en negro pleno y el del conductor en gris: de un vistazo se ve
   // cuál es "mi" tramo dentro del recorrido más largo.
   recorridoElegido: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 12 },
   recorridoElegidoText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  // Mismo toggle que TripDetailScreen para apilar paradas intermedias.
+  paradasToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  paradasToggleText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
 
-  fotosFila: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  fotoChica: { flex: 1, height: 64, borderRadius: 10, backgroundColor: '#00000010' },
-
-  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  featureChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  featureChipText: { fontSize: 12, fontFamily: 'Sora_500Medium' },
+  fotosFila: { flexDirection: 'row', gap: 8 },
+  fotoChica: { width: 110, height: 74, borderRadius: 10, backgroundColor: '#00000010' },
 
   recorridoFila: { flexDirection: 'row', gap: 12 },
   recorridoLinea: { alignItems: 'center', width: 10 },

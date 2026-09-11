@@ -43,6 +43,7 @@ import { reportError } from '../../../utils/sentry';
 import TripCostBreakdown from '../../../components/modals/TripCostBreakdown';
 import Rating from '../../../components/ui/Rating';
 import { collectVehiclePhotoPaths } from '../../../utils/vehiclePhotos';
+import VehicleDetailModal from '../../../components/vehicle/VehicleDetailModal';
 import { useTripRoute } from '../../../hooks/useTripRoute';
 
 const TripDetailScreen = ({ route, navigation }) => {
@@ -224,6 +225,8 @@ const TripDetailScreen = ({ route, navigation }) => {
   // Apiladas por defecto: en un viaje con paradas, la lista completa empujaba el precio, el
   // conductor y el botón de reservar fuera de la primera pantalla.
   const [paradasAbiertas, setParadasAbiertas] = useState(false);
+  // El detalle del vehículo ahora es un modal, no una pantalla nueva.
+  const [vehiculoModalVisible, setVehiculoModalVisible] = useState(false);
 
   // El número que se muestra es la posición REAL en el recorrido, no el índice de la lista
   // visible: apilado, el destino tiene que seguir diciendo 4 y no 2.
@@ -1091,16 +1094,17 @@ const TripDetailScreen = ({ route, navigation }) => {
           ))}
         </View>
 
-        {/* Vehículo — nombre + fotos, y la flecha abre VehicleDetailScreen con el resto
-            (color, patente, asientos, documentación, características). Antes todo eso estaba
-            acá y alargaba la pantalla con datos que casi nadie mira antes de reservar. */}
+        {/* Vehículo — nombre + fotos, y la flecha abre un modal con el resto (color, patente,
+            asientos, documentación, características). Antes todo eso estaba acá y alargaba
+            la pantalla con datos que casi nadie mira antes de reservar; después navegaba a
+            una pantalla nueva, ahora es una hoja que sube desde abajo. */}
         {trip.vehicle && (() => {
           const vehiclePaths = collectVehiclePhotoPaths(trip.vehicle);
           return (
             <View style={[styles.section]}>
               <TouchableOpacity
                 style={styles.vehicleHeaderRow}
-                onPress={() => navigation.navigate('VehicleDetail', { vehicle: trip.vehicle })}
+                onPress={() => setVehiculoModalVisible(true)}
                 activeOpacity={0.6}
                 accessibilityRole="button"
                 accessibilityLabel="Ver todos los detalles del vehículo"
@@ -1539,6 +1543,12 @@ const TripDetailScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </Modal>
+
+      <VehicleDetailModal
+        visible={vehiculoModalVisible}
+        vehicle={trip.vehicle}
+        onClose={() => setVehiculoModalVisible(false)}
+      />
 
     </View>
   );
