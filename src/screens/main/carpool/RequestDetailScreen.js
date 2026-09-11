@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { buildImageUri } from '../../../services/apiService';
+import { buildImageUri, put_withauth } from '../../../services/apiService';
+import { approveOrRejectReservation } from '../../../services/seatReservationService';
 import { useUI } from '../../../theme/ui';
 import { montoSena } from '../../../utils/sena';
 import {
@@ -31,15 +32,18 @@ const fmtFechaHora = (d) =>
  *     request     la solicitud tal como la devuelve /bookings/trip/:id
  *     trip        el viaje (selectedTrip de la bandeja) — para el contexto y el precio/seña
  *     tripId      para poder abrir el perfil del pasajero en el contexto de este viaje
- *     onAceptar   () => void, lo resuelve la bandeja (abre el diálogo de confirmación)
- *     onRechazar  () => void, ídem (abre el cuadro del motivo)
- *     onConfirmarSena () => void, ídem — sólo si el viaje pide seña y el pasajero ya la mandó
+ *     onAceptar        () => void, aceptar y confirmar la seña se resuelven ACÁ mismo (sin
+ *     onConfirmarSena     pantalla de confirmación aparte); sólo refrescan la bandeja al volver
+ *     onRechazar       () => void, éste sí lo resuelve la bandeja: abre el cuadro del motivo,
+ *                          que necesita un campo de texto que esta pantalla no tiene
  */
 const RequestDetailScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const { request, trip, tripId, onAceptar, onRechazar, onConfirmarSena } = route.params || {};
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [errorConfirmar, setErrorConfirmar] = useState('');
 
   if (!request) {
     return (
@@ -75,6 +79,60 @@ const RequestDetailScreen = ({ route, navigation }) => {
   const salirY = (fn) => () => {
     navigation.goBack();
     fn?.();
+  };
+
+  /**
+   * El conductor ya vio el comprobante en esta misma pantalla: pedirle un "¿confirmás?" en
+   * otra pantalla aparte era una vuelta de más para lo mismo. Se confirma acá directo, y
+   * recién al terminar se vuelve a la bandeja (que `onConfirmarSena` refresca).
+   */
+  const confirmarSena = async () => {
+    const requestId = request._id || request.id;
+    setErrorConfirmar('');
+    setConfirmando(true);
+    try {
+      const res = await put_withauth(`/bookings/${requestId}/sena`);
+      if (!res.success) throw new Error(res.message || 'No se pudo confirmar la seña');
+      if (res.confirmarReserva) {
+        const conf = await put_withauth(`/bookings/${requestId}/confirm`);
+        if (!conf.success) throw new Error(conf.message || 'No se pudo confirmar la reserva');
+      }
+      navigation.goBack();
+      onConfirmarSena?.();
+    } catch (e) {
+      setErrorConfirmar(e.message || 'No se pudo confirmar la seña');
+    } finally {
+      setConfirmando(false);
+    }
+  };
+
+  /**
+   * Aceptar, directo: ya se ve en esta misma pantalla cuántos asientos son y quién pide, así
+   * que el "¿Aceptar 2 asientos?" en OTRA pantalla era la misma pregunta dos veces. Un toque
+   * menos para el conductor, que en este flujo ya toca bastante (acepta, y después confirma
+   * la seña por separado — eso sí es necesario, es él quien mira su banco).
+   */
+  const confirmarAceptar = async () => {
+    const requestId = request._id || request.id;
+    const isSeatReservation = request.bookingType === 'seat_reservation';
+    const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
+    setErrorConfirmar('');
+    setConfirmando(true);
+    try {
+      if (isSeatReservation && seatReservationId) {
+        const res = await approveOrRejectReservation(seatReservationId, 'approve');
+        if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
+      } else {
+        const res = await put_withauth(`/bookings/${requestId}/confirm`);
+        if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
+      }
+      navigation.goBack();
+      onAceptar?.();
+    } catch (e) {
+      setErrorConfirmar(e.message || 'No se pudo aprobar la solicitud');
+    } finally {
+      setConfirmando(false);
+    }
   };
 
   return (
@@ -285,21 +343,31 @@ const RequestDetailScreen = ({ route, navigation }) => {
               style={[styles.btnReject, { borderColor: ui.border }]}
               onPress={salirY(onRechazar)}
               activeOpacity={0.7}
+              disabled={confirmando}
             >
               <Text style={[styles.btnRejectText, { color: ui.text }]}>Rechazar</Text>
             </TouchableOpacity>
             {sena !== 'esperando' && (
               <TouchableOpacity
                 style={[styles.btnAccept, { backgroundColor: ui.invertBg }]}
-                onPress={salirY(sena === 'enviada' ? onConfirmarSena : onAceptar)}
+                onPress={sena === 'enviada' ? confirmarSena : confirmarAceptar}
                 activeOpacity={0.8}
+                disabled={confirmando}
               >
-                <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
-                  {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
-                </Text>
+                {confirmando ? (
+                  <ActivityIndicator size="small" color={ui.invertText} />
+                ) : (
+                  <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
+                    {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           </View>
+        )}
+
+        {!!errorConfirmar && (
+          <Text style={[styles.error, { color: '#DC2626' }]}>{errorConfirmar}</Text>
         )}
       </ScrollView>
 
@@ -384,6 +452,7 @@ const styles = StyleSheet.create({
   btnRejectText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   btnAccept: { flex: 1.4, height: 48, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
   btnAcceptText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  error: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center', marginTop: -6 },
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   overlayImg: { width: '100%', height: '80%' },

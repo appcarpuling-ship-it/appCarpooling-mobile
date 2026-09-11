@@ -88,7 +88,9 @@ const PagarSenaScreen = ({ route, navigation }) => {
       } finally {
         setSubiendo(false);
       }
-    }, { titulo: 'Comprobante de la seña', mensaje: '¿De dónde la querés sacar?' });
+    // Directo a la galería: el comprobante casi siempre es una captura de la app del banco,
+    // no algo que se fotografía en el momento. Un paso menos que elegir "Galería" en un menú.
+    }, { soloGaleria: true });
   };
 
   if (cargando) {

@@ -38,10 +38,14 @@ export const useElegirFoto = () => {
   /**
    * @param {(uri: string) => void} onElegida
    * @param {object}   [opts]
-   * @param {string}   [opts.titulo]     título del selector
+   * @param {string}   [opts.titulo]      título del selector
    * @param {string}   [opts.mensaje]
-   * @param {boolean}  [opts.recortar]   deja recortar antes de confirmar
-   * @param {Function} [opts.onEmpezar]  para prender un spinner mientras comprime
+   * @param {boolean}  [opts.recortar]    deja recortar antes de confirmar
+   * @param {boolean}  [opts.soloGaleria] salta el menú Cámara/Galería y abre la galería
+   *                                      directo — para cuando la foto casi siempre ya está
+   *                                      sacada (comprobantes de transferencia: son capturas
+   *                                      de la app del banco, no algo que se fotografía).
+   * @param {Function} [opts.onEmpezar]   para prender un spinner mientras comprime
    * @param {Function} [opts.onTerminar]
    */
   return (onElegida, opts = {}) => {
@@ -49,6 +53,7 @@ export const useElegirFoto = () => {
       titulo = 'Subir foto',
       mensaje = '¿De dónde la querés sacar?',
       recortar = false,
+      soloGaleria = false,
       onEmpezar,
       onTerminar,
     } = opts;
@@ -63,6 +68,27 @@ export const useElegirFoto = () => {
       }
     };
 
+    const abrirGaleria = async () => {
+      const hasPermission = await handlePermissionRequest();
+      if (!hasPermission) return;
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: false,
+          allowsEditing: recortar,
+          quality: 0.85,
+        });
+        if (!result.canceled) await usar(result.assets?.[0]?.uri);
+      } catch {
+        showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
+      }
+    };
+
+    if (soloGaleria) {
+      abrirGaleria();
+      return;
+    }
+
     showAlert(titulo, mensaje, [
       {
         text: 'Cámara',
@@ -71,24 +97,7 @@ export const useElegirFoto = () => {
           await usar(asset?.uri);
         },
       },
-      {
-        text: 'Galería',
-        onPress: async () => {
-          const hasPermission = await handlePermissionRequest();
-          if (!hasPermission) return;
-          try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              allowsMultipleSelection: false,
-              allowsEditing: recortar,
-              quality: 0.85,
-            });
-            if (!result.canceled) await usar(result.assets?.[0]?.uri);
-          } catch {
-            showAlert('Ocurrió algo', 'No pudimos abrir esa imagen.');
-          }
-        },
-      },
+      { text: 'Galería', onPress: abrirGaleria },
       { text: 'Cancelar', style: 'cancel' },
     ]);
   };

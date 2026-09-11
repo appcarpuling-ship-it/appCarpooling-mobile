@@ -92,6 +92,18 @@ function navigateToMyBookings(navigation, useMainStack) {
   }
 }
 
+/** Directo a "Tu reserva"/pagar la seña — un toque menos que aterrizar en la lista y buscar
+ * la tarjeta. Usado por los avisos de seña (ver actionUrl en el backend). */
+function navigateToPagarSena(navigation, bookingId, tripId, useMainStack) {
+  if (!bookingId) return;
+  const params = { screen: 'PagarSena', params: { bookingId, tripId }, initial: false };
+  if (useMainStack) {
+    navigation.navigate('Main', { screen: 'CarpoolingsTab', params });
+  } else {
+    navigation.navigate('CarpoolingsTab', params);
+  }
+}
+
 function navigateToMySeatReservations(navigation, useMainStack) {
   const params = { screen: 'MySeatReservations', initial: false };
   if (useMainStack) {
@@ -210,6 +222,11 @@ export function navigateFromNotification(navigation, notification, options = {})
       return;
     }
     if (path.startsWith('bookings/')) {
+      // /bookings/<id>/sena/<tripId> -> directo a pagar/ver la seña, no a la lista.
+      if (parts[2] === 'sena' && parts[1] && parts[3]) {
+        navigateToPagarSena(navigation, parts[1], parts[3], useMainStack);
+        return;
+      }
       navigateToMyBookings(navigation, useMainStack);
       return;
     }

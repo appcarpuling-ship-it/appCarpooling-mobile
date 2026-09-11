@@ -97,7 +97,6 @@ const TripRequestsScreen = ({ route }) => {
   const reqFetchLock = useRef(false);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [acceptingRequestId, setAcceptingRequestId] = useState(null);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -229,71 +228,9 @@ const TripRequestsScreen = ({ route }) => {
     loadUserTrips(tripsPage + 1, { append: true });
   };
 
-  const handleAccept = (request) => {
-    const requestId = request._id || request.id;
-    const isSeatReservation = request.bookingType === 'seat_reservation';
-    const seatReservationId = request.seatReservation?._id || request.seatReservation?.id;
-
-    const pideSena = selectedTrip?.requiereSena || request.sena?.estado === 'esperando';
-    const successParams = pideSena
-      ? { title: 'Aceptaste', message: 'Le avisamos al pasajero que te mande la seña. Te confirma cuando la veas en tu cuenta.' }
-      : isSeatReservation && seatReservationId
-        ? { title: 'Aprobado', message: 'El pasajero recibirá una notificación para completar el pago.' }
-        : { title: 'Solicitud aceptada', message: 'La solicitud fue aceptada correctamente.' };
-
-    navigation.navigate('Confirm', {
-      title: 'Aceptar solicitud',
-      message: `¿Aceptar ${seatsLabelEs(request.seatsBooked || request.seatsRequested)}?`,
-      confirmLabel: 'Aceptar',
-      onConfirm: async () => {
-        setAcceptingRequestId(requestId);
-        try {
-          if (isSeatReservation && seatReservationId) {
-            const res = await approveOrRejectReservation(seatReservationId, 'approve');
-            if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
-          } else {
-            const res = await put_withauth(`/bookings/${requestId}/confirm`);
-            if (!res.success) throw new Error(res.message || 'No se pudo aprobar la solicitud');
-          }
-          loadRequests(1, { append: false });
-        } finally {
-          setAcceptingRequestId(null);
-        }
-      },
-      successParams,
-      errorParams: { title: 'Error' },
-    });
-  };
-
-  /**
-   * El conductor dice que la transferencia le llegó. Recién ahí se confirma la reserva: el
-   * `/confirm` de arriba, con seña de por medio, sólo abre la ventana para pagarla. La app
-   * nunca ve la plata — ver `Booking.sena` en el backend.
-   */
-  const handleConfirmarSena = (request) => {
-    const requestId = request._id || request.id;
-    navigation.navigate('Confirm', {
-      title: 'Confirmar la seña',
-      message: '¿Ya viste la transferencia en tu cuenta? El lugar le queda reservado.',
-      confirmLabel: 'Sí, me llegó',
-      onConfirm: async () => {
-        setAcceptingRequestId(requestId);
-        try {
-          const res = await put_withauth(`/bookings/${requestId}/sena`);
-          if (!res.success) throw new Error(res.message || 'No se pudo confirmar la seña');
-          if (res.confirmarReserva) {
-            const conf = await put_withauth(`/bookings/${requestId}/confirm`);
-            if (!conf.success) throw new Error(conf.message || 'No se pudo confirmar la reserva');
-          }
-          loadRequests(1, { append: false });
-        } finally {
-          setAcceptingRequestId(null);
-        }
-      },
-      successParams: { title: 'Listo', message: 'La reserva quedó confirmada.' },
-      errorParams: { title: 'Error' },
-    });
-  };
+  // Aceptar y confirmar la seña ya no pasan por acá: RequestDetailScreen los hace directo,
+  // sin una pantalla de "¿confirmás?" aparte — ahí ya se ve todo lo que hace falta para
+  // decidir. Los callbacks que se le pasan sólo refrescan la lista cuando la ficha vuelve.
 
   const handleReject = async () => {
     try {
@@ -502,9 +439,9 @@ const TripRequestsScreen = ({ route }) => {
             trip: selectedTrip,
             // Los resuelve la bandeja y no la ficha: el diálogo de confirmar y el cuadro del
             // motivo viven acá, con el estado de la lista que hay que recargar después.
-            onAceptar: () => handleAccept(item),
+            onAceptar: () => loadRequests(1, { append: false }),
             onRechazar: () => { setSelectedRequest(id); setRejectModalVisible(true); },
-            onConfirmarSena: () => handleConfirmarSena(item),
+            onConfirmarSena: () => loadRequests(1, { append: false }),
           })
         }
         activeOpacity={0.6}
