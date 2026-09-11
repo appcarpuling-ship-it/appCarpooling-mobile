@@ -792,7 +792,9 @@ const styles = StyleSheet.create({
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   // El chip apagado va sobre el fondo de pagina: la card ya es `surface`, pintarlo
   // del mismo color lo dejaba invisible.
-  statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
+  // Sin `alignSelf: 'flex-start'`: pisaba el `alignItems: 'center'` de la fila y dejaba el
+  // chip un par de píxeles más arriba que la flecha de al lado.
+  statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
   // El recorrido de la solicitud, en su propia sub-tarjeta: se distingue del resto de la card.
