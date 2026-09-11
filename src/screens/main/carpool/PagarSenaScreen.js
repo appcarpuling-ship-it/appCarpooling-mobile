@@ -131,10 +131,18 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const sube = booking.seatReservation?.pickupLocation?.address || paradaPropia('pickup')?.address;
   const baja = booking.seatReservation?.dropoffLocation?.address || paradaPropia('dropoff')?.address;
 
+  // El vencimiento va pegado al estado, en la misma línea, en vez de una oración aparte
+  // debajo — son el mismo dato ("todavía falta, y hasta cuándo hay tiempo").
+  const venceCorto = vence
+    ? `${vence.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' })} ${vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`
+    : '';
   const senaTexto = {
-    esperando: { icon: 'hourglass-outline', color: ui.textMuted, t: 'Falta que mandes la seña' },
-    enviada: { icon: 'time-outline', color: ui.textMuted, t: 'Comprobante enviado — falta que el conductor lo confirme' },
-    confirmada: { icon: 'checkmark-circle-outline', color: '#10B981', t: 'El conductor confirmó que recibió la seña' },
+    esperando: {
+      icon: 'hourglass-outline', color: ui.textMuted,
+      t: venceCorto ? `Falta la seña — vence el ${venceCorto}` : 'Falta que mandes la seña',
+    },
+    enviada: { icon: 'time-outline', color: ui.textMuted, t: 'Comprobante enviado, falta que lo confirmen' },
+    confirmada: { icon: 'checkmark-circle-outline', color: '#10B981', t: 'El conductor confirmó que le llegó' },
   }[estado];
 
   const filaCopiable = (rotulo, valor) => (
@@ -179,12 +187,8 @@ const PagarSenaScreen = ({ route, navigation }) => {
         </Text>
         <Text style={[styles.sub, { color: ui.textMuted }]}>
           {fmtFecha(trip.departureDate)}{trip.departureTime ? ` · ${trip.departureTime}` : ''}
+          {trip.driver?.firstName ? ` · ${trip.driver.firstName} ${trip.driver.lastName || ''}`.trimEnd() : ''}
         </Text>
-        {!!trip.driver?.firstName && (
-          <Text style={[styles.sub, { color: ui.textMuted }]}>
-            Conductor: {trip.driver.firstName} {trip.driver.lastName || ''}
-          </Text>
-        )}
       </View>
 
       {/* Asientos + puntos */}
@@ -222,7 +226,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
             </View>
             <Text style={[styles.nota, { color: ui.textMuted }]}>
               {pideSena && monto > 0
-                ? `Seña de $${monto.toLocaleString('es-AR')} por adelantado, el resto ($${(alConductor - monto).toLocaleString('es-AR')}) al subir.`
+                ? `$${monto.toLocaleString('es-AR')} de seña ahora, el resto al subir.`
                 : 'Se lo pagás directo a él al subir, no por la app.'}
             </Text>
           </>
@@ -245,13 +249,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
               </Text>
             ) : (
               <>
-                {estado === 'esperando' && !!vence && (
-                  <Text style={[styles.nota, { color: ui.textMuted }]}>
-                    Tenés tiempo hasta el {fmtFecha(vence)} a las{' '}
-                    {vence.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.
-                  </Text>
-                )}
-
                 {/* A dónde transferir — sólo mientras falta pagarla. */}
                 {!yaConfirmada && estado !== 'enviada' && ((cobro?.alias || cobro?.cvu) ? (
                   <>
