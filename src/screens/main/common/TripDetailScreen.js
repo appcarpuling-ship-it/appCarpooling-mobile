@@ -88,6 +88,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [mapPreviewAncho, setMapPreviewAncho] = useState(0);
   const [mapPreviewDotsVivos, setMapPreviewDotsVivos] = useState(true);
   const previewMapRef = useRef(null);
+  const mainScrollRef = useRef(null);
+  // La flecha que baja al botón de "Pagar la seña": se muestra al abrir la pantalla y se va
+  // apenas el pasajero scrollea (ya se dio cuenta de que hay algo abajo).
+  const [scrolledPastTop, setScrolledPastTop] = useState(false);
   /**
    * Los puntos que tiene que entrar el encuadre. Se calculan bien abajo (necesitan `trip`, que
    * recién ahí está garantizado) y se depositan acá durante el render, que corre antes que los
@@ -715,9 +719,15 @@ const TripDetailScreen = ({ route, navigation }) => {
         // Sin style el alto queda sin acotar y en web la rueda no encuentra
         // contenedor scrolleable. Es el único ScrollView principal de la app
         // que no lo tenía.
+        ref={mainScrollRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={64}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          setScrolledPastTop((prev) => (prev === y > 120 ? prev : y > 120));
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1447,6 +1457,21 @@ const TripDetailScreen = ({ route, navigation }) => {
         <View style={{ height: 32 }} />
       </ScrollView>
 
+      {/* Flecha flotante hacia el botón de la seña. Sólo mientras la seña está pendiente y el
+          pasajero todavía no scrolleó: es un empujón para que no se pierda el botón, no un
+          control permanente. */}
+      {!isOwnTrip && userBooking?.sena?.estado === 'esperando' && !scrolledPastTop && (
+        <TouchableOpacity
+          style={[styles.jumpToSena, { backgroundColor: accent }]}
+          onPress={() => mainScrollRef.current?.scrollToEnd({ animated: true })}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Ir al botón de pagar la seña"
+        >
+          <Text style={[styles.jumpToSenaText, { color: accentInverse }]}>Pagar la seña</Text>
+          <Ionicons name="arrow-down" size={16} color={accentInverse} />
+        </TouchableOpacity>
+      )}
 
       {/* Payment Options Modal */}
       <Modal
@@ -1502,6 +1527,13 @@ const TripDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  jumpToSena: {
+    position: 'absolute', alignSelf: 'center', bottom: 28,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 12, paddingHorizontal: 20, borderRadius: 999,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
+  jumpToSenaText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 15 },
 
