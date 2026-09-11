@@ -645,6 +645,93 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* El estado de pago/completado y tu propuesta van acá, pegados al mapa: es lo primero
+            que hay que saber al abrir esta pantalla. El cartel de "ya te eligieron" queda
+            abajo, pegado al botón de cancelar, no acá arriba. */}
+        <View style={[styles.section, { gap: 12 }]}>
+          {/* Esperando que el pasajero confirme (driver). No se nombra ningún pago: el
+              conductor no paga nada acá y lo que cobra se lo paga el pasajero directo. */}
+          {isAcceptedDriver && request.status === 'awaiting_payment' && (
+            <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
+              <Ionicons name="hourglass-outline" size={17} color={ui.invertText} />
+              <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
+                ¡Te eligieron! Falta que el pasajero confirme el viaje.
+              </Text>
+            </View>
+          )}
+
+          {/* Completado */}
+          {(isPassenger || isAcceptedDriver) && request.status === 'completed' && (
+            <View style={[styles.statusFooter, { backgroundColor: ui.surface }]}>
+              <Ionicons name="checkmark-done-circle-outline" size={17} color={ui.textMuted} />
+              <Text style={[styles.statusFooterText, { color: ui.textMuted }]}>
+                Viaje completado.
+              </Text>
+            </View>
+          )}
+
+          {isDriver && !!miPostulacion && (
+            <View style={{ gap: 12 }}>
+              {/* El precio, solo: es lo que se vino a mirar, no tiene que compartir caja
+                  con el recorrido ni el link al mapa — eran 3 datos distintos apretados
+                  en una sola tarjeta con líneas finas, que se leía como una cosa recargada. */}
+              <View style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+                <View style={styles.miPropuestaTop}>
+                  <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
+                  <View style={styles.miPropuestaEstado}>
+                    <Ionicons name="checkmark-circle" size={14} color={ui.text} />
+                    <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>Enviada</Text>
+                  </View>
+                </View>
+
+                {miPostulacion?.driverPrice > 0 ? (
+                  <>
+                    <Text style={[styles.miPropuestaMonto, { color: ui.text }]}>
+                      ${Number(miPostulacion.driverPrice).toLocaleString('es-AR')}
+                    </Text>
+                    <Text style={[styles.miPropuestaPie, { color: ui.textMuted }]}>por asiento</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.miPropuestaModo, { color: ui.text }]}>
+                    {miPostulacion?.sinPrecioFijo ? 'Gastos compartidos' : 'Ya te postulaste'}
+                  </Text>
+                )}
+              </View>
+
+              {/* El recorrido y el mapa son detalle de apoyo, no el titular: van en su
+                  propia tarjeta, más chica y liviana, separada por aire real en vez de
+                  un divisor fino compartiendo la caja de arriba. */}
+              {(miEleccion || miTripParaMapa) && (
+                <View style={[styles.miDetalle, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+                  {/* Qué recorrido ofreciste: mismo tramo o propio. Sin esto, una vez
+                      postulado había que acordarse de memoria por dónde ibas a pasar. */}
+                  {miEleccion && (
+                    <View style={[styles.miDetalleFila, miTripParaMapa && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ui.border }]}>
+                      <Ionicons name={miEleccion.icono} size={15} color={ui.textMuted} />
+                      <Text style={[styles.miPropuestaRecorridoText, { color: ui.textMuted }]}>
+                        {miEleccion.texto}
+                      </Text>
+                    </View>
+                  )}
+
+                  {miTripParaMapa && (
+                    <TouchableOpacity
+                      style={styles.miDetalleFila}
+                      onPress={() => navigation.navigate('TripMap', { trip: miTripParaMapa })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.miPropuestaVerMapaText, { color: ui.text, flex: 1 }]}>
+                        Ver mi recorrido en el mapa
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* Route */}
         <View style={[styles.section]}>
           {/* Sin línea que separe esto del mapa/status de arriba, el label chico hace ese
@@ -890,17 +977,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          {/* Esperando que el pasajero confirme (driver). No se nombra ningún pago: el
-              conductor no paga nada acá y lo que cobra se lo paga el pasajero directo. */}
-          {isAcceptedDriver && request.status === 'awaiting_payment' && (
-            <View style={[styles.statusFooter, { backgroundColor: ui.invertBg }]}>
-              <Ionicons name="hourglass-outline" size={17} color={ui.invertText} />
-              <Text style={[styles.statusFooterText, { color: ui.invertText }]}>
-                ¡Te eligieron! Falta que el pasajero confirme el viaje.
-              </Text>
-            </View>
-          )}
-
           {/* Confirmado — o, si el conductor elegido pide seña, todavía falta transferirla:
               'paid' acá significa "ya no hay más postulaciones que mirar", no "confirmado". */}
           {(isPassenger || isAcceptedDriver) && request.status === 'paid' && (
@@ -916,16 +992,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                     ? 'Elegiste conductor. Falta la seña — revisá "Mis Reservas".'
                     : 'Te eligieron como conductor para este viaje.')
                   : (isPassenger ? 'Viaje confirmado. Aparece en "Mis reservas".' : 'Viaje confirmado. Aparece en "Mis viajes".')}
-              </Text>
-            </View>
-          )}
-
-          {/* Completado */}
-          {(isPassenger || isAcceptedDriver) && request.status === 'completed' && (
-            <View style={[styles.statusFooter, { backgroundColor: ui.surface }]}>
-              <Ionicons name="checkmark-done-circle-outline" size={17} color={ui.textMuted} />
-              <Text style={[styles.statusFooterText, { color: ui.textMuted }]}>
-                Viaje completado.
               </Text>
             </View>
           )}
@@ -952,78 +1018,6 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {/* Ofrecer viaje (driver) */}
           {isDriver && (
             <>
-              {/* Tu propuesta, en UNA tarjeta. Antes eran cuatro bloques sueltos apilados con
-                  margen —una barra negra, una fila de texto huérfana y dos botones— y no se
-                  leía como una sola cosa. Lo que importa es el número que ofreciste, así que
-                  manda la jerarquía: precio grande, el resto alrededor.
-                  El backend le manda al conductor SÓLO su propia postulación.
-
-                  Se muestra SIEMPRE que exista la postulación, sin mirar el estado de la
-                  solicitud. Antes estaba atada a la misma condición que "Retirar postulación",
-                  así que en cuanto el pasajero te elegía (awaiting_payment / paid) la tarjeta
-                  desaparecía entera: justo cuando el viaje ya es tuyo, dejabas de poder ver qué
-                  precio ofreciste y por dónde dijiste que ibas a pasar. */}
-              {!!miPostulacion && (
-                <View style={{ gap: 12 }}>
-                  {/* El precio, solo: es lo que se vino a mirar, no tiene que compartir caja
-                      con el recorrido ni el link al mapa — eran 3 datos distintos apretados
-                      en una sola tarjeta con líneas finas, que se leía como una cosa recargada. */}
-                  <View style={[styles.miPropuesta, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-                    <View style={styles.miPropuestaTop}>
-                      <Text style={[styles.miPropuestaLabel, { color: ui.textMuted }]}>TU PROPUESTA</Text>
-                      <View style={styles.miPropuestaEstado}>
-                        <Ionicons name="checkmark-circle" size={14} color={ui.text} />
-                        <Text style={[styles.miPropuestaEstadoText, { color: ui.text }]}>Enviada</Text>
-                      </View>
-                    </View>
-
-                    {miPostulacion?.driverPrice > 0 ? (
-                      <>
-                        <Text style={[styles.miPropuestaMonto, { color: ui.text }]}>
-                          ${Number(miPostulacion.driverPrice).toLocaleString('es-AR')}
-                        </Text>
-                        <Text style={[styles.miPropuestaPie, { color: ui.textMuted }]}>por asiento</Text>
-                      </>
-                    ) : (
-                      <Text style={[styles.miPropuestaModo, { color: ui.text }]}>
-                        {miPostulacion?.sinPrecioFijo ? 'Gastos compartidos' : 'Ya te postulaste'}
-                      </Text>
-                    )}
-                  </View>
-
-                  {/* El recorrido y el mapa son detalle de apoyo, no el titular: van en su
-                      propia tarjeta, más chica y liviana, separada por aire real en vez de
-                      un divisor fino compartiendo la caja de arriba. */}
-                  {(miEleccion || miTripParaMapa) && (
-                    <View style={[styles.miDetalle, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-                      {/* Qué recorrido ofreciste: mismo tramo o propio. Sin esto, una vez
-                          postulado había que acordarse de memoria por dónde ibas a pasar. */}
-                      {miEleccion && (
-                        <View style={[styles.miDetalleFila, miTripParaMapa && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ui.border }]}>
-                          <Ionicons name={miEleccion.icono} size={15} color={ui.textMuted} />
-                          <Text style={[styles.miPropuestaRecorridoText, { color: ui.textMuted }]}>
-                            {miEleccion.texto}
-                          </Text>
-                        </View>
-                      )}
-
-                      {miTripParaMapa && (
-                        <TouchableOpacity
-                          style={styles.miDetalleFila}
-                          onPress={() => navigation.navigate('TripMap', { trip: miTripParaMapa })}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.miPropuestaVerMapaText, { color: ui.text, flex: 1 }]}>
-                            Ver mi recorrido en el mapa
-                          </Text>
-                          <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </View>
-              )}
-
               {/* Retirar: hasta acá, una postulación era irreversible desde la app. Sigue
                   siendo la única acción en rojo —es destructiva y no se deshace— pero como
                   texto y no como botón sólido: al lado de la tarjeta, un bloque rojo lleno

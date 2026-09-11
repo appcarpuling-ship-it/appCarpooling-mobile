@@ -34,6 +34,115 @@ import { reportError } from '../../../utils/sentry';
 /** Misma distancia borde superior del compositor ↔ cabecera del input, e input ↔ teclado (teclado abierto). */
 const COMPOSER_VERTICAL_INSET = 12;
 
+/** Igual que del lado del server (chatController.EDIT_WINDOW_MS): sólo para no mostrar
+ * "Editar" cuando ya va a fallar. El backend es quien lo hace cumplir de verdad. */
+const EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hora
+
+/**
+ * Burbuja de un mensaje. Componente propio (y no una función inline dentro del render de
+ * la pantalla) para que cada mensaje tenga SU animación al editarse/eliminarse — un solo
+ * Animated.Value compartido no puede distinguir "este mensaje cambió" de "otro cambió".
+ */
+const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, onLongPress, onImagePress }) => {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const yaMontado = useRef(false);
+
+  // Un pequeño "pop" cuando cambia el contenido, la foto o pasa a editado/eliminado —
+  // pero no en el montaje inicial (cuando se cargan los mensajes de siempre).
+  useEffect(() => {
+    if (!yaMontado.current) {
+      yaMontado.current = true;
+      return;
+    }
+    pulseAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 140, useNativeDriver: true }),
+      Animated.spring(pulseAnim, { toValue: 0, friction: 4, tension: 80, useNativeDriver: true }),
+    ]).start();
+  }, [item.content, item.edited, item.deleted, item.imageUrl, pulseAnim]);
+
+  const canLongPress = isOwnMessage && !item.isTemp && !item.deleted;
+  const scale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
+  const highlight = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] });
+
+  return (
+    <Animated.View
+      style={[
+        styles.messageContainer,
+        isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
+        { opacity: fadeAnim, transform: [{ scale }] }
+      ]}
+    >
+      <TouchableOpacity
+        activeOpacity={canLongPress ? 0.7 : 1}
+        onLongPress={canLongPress ? () => onLongPress(item) : undefined}
+        delayLongPress={300}
+      >
+        <View>
+          {isOwnMessage ? (
+            <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
+              {item.deleted ? (
+                <Text style={[styles.messageText, styles.deletedText, { color: ui.invertText, opacity: 0.7 }]}>
+                  Mensaje eliminado
+                </Text>
+              ) : (
+                <>
+                  {item.imageUrl ? (
+                    <TouchableOpacity onPress={() => onImagePress(item.imageUrl)} activeOpacity={0.9}>
+                      <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ) : null}
+                  {item.content ? (
+                  <Text style={[styles.messageText, { color: ui.invertText }]}>
+                    {item.content}
+                  </Text>
+                  ) : null}
+                </>
+              )}
+              <Text style={[styles.messageTime, { color: ui.invertText, opacity: 0.6 }]}>
+                {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
+              </Text>
+            </View>
+          ) : (
+            <View style={[
+              styles.messageBubble,
+              styles.otherMessage,
+              { backgroundColor: ui.surface }
+            ]}>
+              {item.deleted ? (
+                <Text style={[styles.messageText, styles.deletedText, { color: ui.textMuted, opacity: 0.7 }]}>
+                  Mensaje eliminado
+                </Text>
+              ) : (
+                <>
+                  {item.imageUrl ? (
+                    <TouchableOpacity onPress={() => onImagePress(item.imageUrl)} activeOpacity={0.9}>
+                      <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ) : null}
+                  {item.content ? (
+                  <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
+                    {item.content}
+                  </Text>
+                  ) : null}
+                </>
+              )}
+              <Text style={[styles.messageTime, styles.otherMessageTime, { color: ui.textMuted }]}>
+                {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
+              </Text>
+            </View>
+          )}
+          {/* Destello breve encima de la burbuja al editar/eliminar, como confirmación visual. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.pulseOverlay, { backgroundColor: ui.text, opacity: highlight }]}
+          />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 const ChatDetailScreen = ({ route, navigation }) => {
   const params = route.params ?? {};
   const rawConversation = params.conversation;
@@ -478,7 +587,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
       setNewMessage('');
     } catch (error) {
       reportError(error, { screen: 'ChatDetailScreen', action: 'editMessage' });
-      showAlert('Ocurrió algo', 'No pudimos editar el mensaje. Probá de nuevo.');
+      showAlert('Ocurrió algo', error?.response?.data?.message || 'No pudimos editar el mensaje. Probá de nuevo.');
     } finally {
       setSending(false);
     }
@@ -508,8 +617,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
     if (!isOwnMessage || item.isTemp || item.deleted) return;
 
     const buttons = [];
-    // Sólo se edita texto: un mensaje que es sólo una foto no tiene qué editar.
-    if (item.content) {
+    // Sólo se edita texto (una foto no tiene qué editar) y sólo dentro de la primera hora.
+    const dentroDeVentana = Date.now() - new Date(item.createdAt).getTime() < EDIT_WINDOW_MS;
+    if (item.content && dentroDeVentana) {
       buttons.push({ text: 'Editar', onPress: () => { setEditingMessage({ _id: item._id }); setNewMessage(item.content); } });
     }
     buttons.push({
@@ -629,76 +739,16 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const renderMessage = ({ item }) => {
     const senderId = item.sender?._id || item.sender;
     const isOwnMessage = senderId === user._id || senderId === user.id;
-    const canLongPress = isOwnMessage && !item.isTemp && !item.deleted;
-
     return (
-      <Animated.View
-        style={[
-          styles.messageContainer,
-          isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
-          { opacity: fadeAnim }
-        ]}
-      >
-        <TouchableOpacity
-          activeOpacity={canLongPress ? 0.7 : 1}
-          onLongPress={canLongPress ? () => handleLongPressMessage(item) : undefined}
-          delayLongPress={300}
-        >
-        {isOwnMessage ? (
-          <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
-            {item.deleted ? (
-              <Text style={[styles.messageText, styles.deletedText, { color: ui.invertText, opacity: 0.7 }]}>
-                Mensaje eliminado
-              </Text>
-            ) : (
-              <>
-                {item.imageUrl ? (
-                  <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-                  </TouchableOpacity>
-                ) : null}
-                {item.content ? (
-                <Text style={[styles.messageText, { color: ui.invertText }]}>
-                  {item.content}
-                </Text>
-                ) : null}
-              </>
-            )}
-            <Text style={[styles.messageTime, { color: ui.invertText, opacity: 0.6 }]}>
-              {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
-            </Text>
-          </View>
-        ) : (
-          <View style={[
-            styles.messageBubble,
-            styles.otherMessage,
-            { backgroundColor: ui.surface }
-          ]}>
-            {item.deleted ? (
-              <Text style={[styles.messageText, styles.deletedText, { color: ui.textMuted, opacity: 0.7 }]}>
-                Mensaje eliminado
-              </Text>
-            ) : (
-              <>
-                {item.imageUrl ? (
-                  <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-                  </TouchableOpacity>
-                ) : null}
-                {item.content ? (
-                <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
-                  {item.content}
-                </Text>
-                ) : null}
-              </>
-            )}
-            <Text style={[styles.messageTime, styles.otherMessageTime, { color: ui.textMuted }]}>
-              {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
-            </Text>
-          </View>
-        )}
-        </TouchableOpacity>
-      </Animated.View>
+      <MessageBubble
+        item={item}
+        isOwnMessage={isOwnMessage}
+        ui={ui}
+        fadeAnim={fadeAnim}
+        formatMessageTime={formatMessageTime}
+        onLongPress={handleLongPressMessage}
+        onImagePress={setFotoAmpliada}
+      />
     );
   };
 
@@ -973,6 +1023,9 @@ const styles = StyleSheet.create({
   },
   deletedText: {
     fontStyle: 'italic'
+  },
+  pulseOverlay: {
+    borderRadius: 18
   },
   editingBanner: {
     flexDirection: 'row',
