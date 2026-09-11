@@ -166,57 +166,62 @@ const RequestDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Quién pide. Toca y vas a su perfil. */}
-        <TouchableOpacity
-          style={[styles.passengerRow, { backgroundColor: ui.surface }]}
-          activeOpacity={0.7}
-          onPress={() =>
-            navigation.navigate('UserProfile', { userId: request.passenger?._id, tripId })
-          }
-          disabled={!request.passenger?._id}
-        >
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
-              <Text style={[styles.avatarInitials, { color: ui.textMuted }]}>
-                {request.passenger?.firstName?.[0]}{request.passenger?.lastName?.[0]}
+        {/* Quién pide, cuánto ocupa y cuánto paga: una sola tarjeta. Antes el precio quedaba
+            suelto en su propia fila sin fondo ni margen, como un dato huérfano flotando entre
+            la tarjeta del pasajero y la de la seña — acá se lee como una sola cosa. */}
+        <View style={[styles.passengerCard, { backgroundColor: ui.surface }]}>
+          <TouchableOpacity
+            style={styles.passengerRow}
+            activeOpacity={0.7}
+            onPress={() =>
+              navigation.navigate('UserProfile', { userId: request.passenger?._id, tripId })
+            }
+            disabled={!request.passenger?._id}
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: ui.bg }]}>
+                <Text style={[styles.avatarInitials, { color: ui.textMuted }]}>
+                  {request.passenger?.firstName?.[0]}{request.passenger?.lastName?.[0]}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.passengerName, { color: ui.text }]} numberOfLines={1}>
+                {request.passenger?.firstName} {request.passenger?.lastName}
+              </Text>
+              <Text style={[styles.reqSub, { color: ui.textMuted }]} numberOfLines={1}>
+                {seatsLabelEs(seats)} · pidió {fmtCuando(request.createdAt)}
               </Text>
             </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.passengerName, { color: ui.text }]} numberOfLines={1}>
-              {request.passenger?.firstName} {request.passenger?.lastName}
-            </Text>
-            <Text style={[styles.reqSub, { color: ui.textMuted }]} numberOfLines={1}>
-              {seatsLabelEs(seats)} · pidió {fmtCuando(request.createdAt)}
-            </Text>
-          </View>
-          {!!request.passenger?._id && (
-            <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
-          )}
-        </TouchableOpacity>
+            {!!request.passenger?._id && (
+              <Ionicons name="chevron-forward" size={16} color={ui.textMuted} />
+            )}
+          </TouchableOpacity>
 
-        {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar abajo,
-            un cartel que diga "esperando tu aprobación" no agrega nada. */}
-        {!pendiente && (
-          <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.surface }]}>
-            <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
-              {status.label}
-            </Text>
-          </View>
-        )}
-
-        {/* Con etiqueta siempre: un número solo, suelto a la derecha (y encima descentrado
-            cuando no había pill al lado), no decía nada por sí mismo. */}
-        {!trip?.sinPrecioFijo && alConductor > 0 && (
-          <View style={styles.precioRow}>
-            <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
-            <Text style={[styles.precio, { color: ui.text }]}>
-              ${alConductor.toLocaleString('es-AR')}
-            </Text>
-          </View>
-        )}
+          {(!pendiente || (!trip?.sinPrecioFijo && alConductor > 0)) && (
+            <View style={[styles.passengerCardFooter, { borderTopColor: ui.border }]}>
+              {/* El estado sólo cuando NO es "esperando": con los botones Aceptar y Rechazar
+                  abajo, un cartel que diga "esperando tu aprobación" no agrega nada. */}
+              {!pendiente ? (
+                <View style={[styles.statusPill, { backgroundColor: status.solid ? ui.invertBg : ui.bg }]}>
+                  <Text style={[styles.statusPillText, { color: status.solid ? ui.invertText : ui.textMuted }]}>
+                    {status.label}
+                  </Text>
+                </View>
+              ) : <View />}
+              {!trip?.sinPrecioFijo && alConductor > 0 && (
+                <View>
+                  <Text style={[styles.precioLabel, { color: ui.textMuted }]}>Le paga al conductor</Text>
+                  <Text style={[styles.precio, { color: ui.text }]}>
+                    ${alConductor.toLocaleString('es-AR')}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
 
         {!!request.message && (
           <Text style={[styles.mensaje, { color: ui.textMuted, borderColor: ui.border }]}>
@@ -403,18 +408,22 @@ const styles = StyleSheet.create({
   ruta: { fontSize: 20, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 },
   rutaSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3, textTransform: 'capitalize' },
 
-  passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },
+  passengerCard: { borderRadius: 18, padding: 14 },
+  passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  passengerCardFooter: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth,
+  },
   avatar: { width: 46, height: 46, borderRadius: 23 },
   avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   passengerName: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
   reqSub: { fontSize: 13, fontFamily: 'Sora_400Regular', marginTop: 3 },
 
-  precioRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -6 },
-  precioLabel: { fontSize: 13, fontFamily: 'Sora_400Regular' },
+  precioLabel: { fontSize: 12, fontFamily: 'Sora_400Regular', textAlign: 'right' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
-  precio: { fontSize: 17, fontFamily: 'Sora_700Bold' },
+  precio: { fontSize: 17, fontFamily: 'Sora_700Bold', textAlign: 'right', marginTop: 1 },
 
   mensaje: {
     fontSize: 13.5, fontFamily: 'Sora_400Regular', lineHeight: 20, fontStyle: 'italic',

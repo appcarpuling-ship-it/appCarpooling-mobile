@@ -127,6 +127,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
   // Envío de fotos: comprobantes de seña, capturas, el punto de encuentro.
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
+  // Mensaje propio en edición (como WhatsApp): al tocar "Editar" se precarga el compositor
+  // con su texto y, al mandar, se hace PUT en vez de crear un mensaje nuevo.
+  const [editingMessage, setEditingMessage] = useState(null);
   const [typing, setTyping] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -356,6 +359,17 @@ const ChatDetailScreen = ({ route, navigation }) => {
       setTimeout(() => loadUnreadCount(), 500);
     };
 
+    // Mensaje propio editado o eliminado (en cualquiera de los dos dispositivos/pestañas):
+    // se reemplaza in place, nunca se agrega ni se saca de la lista.
+    const handleMessageEdited = (message) => {
+      if (String(message.conversation) !== String(conversationId)) return;
+      setMessages(prev => prev.map(m => (m._id === message._id ? message : m)));
+    };
+    const handleMessageDeleted = (message) => {
+      if (String(message.conversation) !== String(conversationId)) return;
+      setMessages(prev => prev.map(m => (m._id === message._id ? message : m)));
+    };
+
     // Escuchar cuando el otro usuario está escribiendo
     const handleTyping = (data) => {
       const userId = user?._id || user?.id;
@@ -373,6 +387,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
     };
 
     socketService.onMessageReceived(handleMessageReceived);
+    socketService.onMessageEdited(handleMessageEdited);
+    socketService.onMessageDeleted(handleMessageDeleted);
     socketService.onTyping(handleTyping);
     socketService.onConversationClosed(handleConversationClosed);
 
@@ -380,6 +396,8 @@ const ChatDetailScreen = ({ route, navigation }) => {
       // Con el callback: el contador global de no leídos (useUnreadMessages) escucha el mismo
       // `message:received`, y sin identificar cuál sacar se llevaba puesto el suyo también.
       socketService.removeListener('message:received', handleMessageReceived);
+      socketService.removeListener('message:edited', handleMessageEdited);
+      socketService.removeListener('message:deleted', handleMessageDeleted);
       socketService.removeListener('typing:user', handleTyping);
       socketService.removeListener('conversation:closed', handleConversationClosed);
     };
@@ -446,7 +464,72 @@ const ChatDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleSaveEdit = async () => {
+    const content = newMessage.trim();
+    if (!content || sending) return;
+    const messageId = editingMessage._id;
+    setSending(true);
+    try {
+      const response = await apiService.put(`/chat/message/${messageId}`, { content });
+      if (response.data?.success) {
+        setMessages(prev => prev.map(m => (m._id === messageId ? response.data.data : m)));
+      }
+      setEditingMessage(null);
+      setNewMessage('');
+    } catch (error) {
+      reportError(error, { screen: 'ChatDetailScreen', action: 'editMessage' });
+      showAlert('Ocurrió algo', 'No pudimos editar el mensaje. Probá de nuevo.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingMessage(null);
+    setNewMessage('');
+  };
+
+  const deleteMessage = async (messageId) => {
+    try {
+      const response = await apiService.delete(`/chat/message/${messageId}`);
+      if (response.data?.success) {
+        setMessages(prev => prev.map(m => (m._id === messageId ? response.data.data : m)));
+      }
+    } catch (error) {
+      reportError(error, { screen: 'ChatDetailScreen', action: 'deleteMessage' });
+      showAlert('Ocurrió algo', 'No pudimos eliminar el mensaje. Probá de nuevo.');
+    }
+  };
+
+  // Long-press sobre un mensaje propio: menú Editar/Eliminar, como WhatsApp.
+  const handleLongPressMessage = (item) => {
+    const senderId = item.sender?._id || item.sender;
+    const isOwnMessage = senderId === user._id || senderId === user.id;
+    if (!isOwnMessage || item.isTemp || item.deleted) return;
+
+    const buttons = [];
+    // Sólo se edita texto: un mensaje que es sólo una foto no tiene qué editar.
+    if (item.content) {
+      buttons.push({ text: 'Editar', onPress: () => { setEditingMessage({ _id: item._id }); setNewMessage(item.content); } });
+    }
+    buttons.push({
+      text: 'Eliminar',
+      style: 'destructive',
+      onPress: () => showAlert(
+        'Eliminar mensaje',
+        'Se eliminará para todos en la conversación.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Eliminar', style: 'destructive', onPress: () => deleteMessage(item._id) },
+        ]
+      ),
+    });
+    buttons.push({ text: 'Cancelar', style: 'cancel' });
+    showAlert(null, null, buttons);
+  };
+
   const handleSendMessage = async () => {
+    if (editingMessage) return handleSaveEdit();
     if (!newMessage.trim() || sending) return;
 
     const messageText = newMessage.trim();
@@ -546,6 +629,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
   const renderMessage = ({ item }) => {
     const senderId = item.sender?._id || item.sender;
     const isOwnMessage = senderId === user._id || senderId === user.id;
+    const canLongPress = isOwnMessage && !item.isTemp && !item.deleted;
 
     return (
       <Animated.View
@@ -555,20 +639,33 @@ const ChatDetailScreen = ({ route, navigation }) => {
           { opacity: fadeAnim }
         ]}
       >
+        <TouchableOpacity
+          activeOpacity={canLongPress ? 0.7 : 1}
+          onLongPress={canLongPress ? () => handleLongPressMessage(item) : undefined}
+          delayLongPress={300}
+        >
         {isOwnMessage ? (
           <View style={[styles.messageBubble, styles.ownMessage, { backgroundColor: ui.invertBg }]}>
-            {item.imageUrl ? (
-              <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
-                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-              </TouchableOpacity>
-            ) : null}
-            {item.content ? (
-            <Text style={[styles.messageText, { color: ui.invertText }]}>
-              {item.content}
-            </Text>
-            ) : null}
+            {item.deleted ? (
+              <Text style={[styles.messageText, styles.deletedText, { color: ui.invertText, opacity: 0.7 }]}>
+                Mensaje eliminado
+              </Text>
+            ) : (
+              <>
+                {item.imageUrl ? (
+                  <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
+                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+                  </TouchableOpacity>
+                ) : null}
+                {item.content ? (
+                <Text style={[styles.messageText, { color: ui.invertText }]}>
+                  {item.content}
+                </Text>
+                ) : null}
+              </>
+            )}
             <Text style={[styles.messageTime, { color: ui.invertText, opacity: 0.6 }]}>
-              {formatMessageTime(item.createdAt)}
+              {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
             </Text>
           </View>
         ) : (
@@ -577,21 +674,30 @@ const ChatDetailScreen = ({ route, navigation }) => {
             styles.otherMessage,
             { backgroundColor: ui.surface }
           ]}>
-            {item.imageUrl ? (
-              <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
-                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-              </TouchableOpacity>
-            ) : null}
-            {item.content ? (
-            <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
-              {item.content}
-            </Text>
-            ) : null}
+            {item.deleted ? (
+              <Text style={[styles.messageText, styles.deletedText, { color: ui.textMuted, opacity: 0.7 }]}>
+                Mensaje eliminado
+              </Text>
+            ) : (
+              <>
+                {item.imageUrl ? (
+                  <TouchableOpacity onPress={() => setFotoAmpliada(item.imageUrl)} activeOpacity={0.9}>
+                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+                  </TouchableOpacity>
+                ) : null}
+                {item.content ? (
+                <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>
+                  {item.content}
+                </Text>
+                ) : null}
+              </>
+            )}
             <Text style={[styles.messageTime, styles.otherMessageTime, { color: ui.textMuted }]}>
-              {formatMessageTime(item.createdAt)}
+              {item.edited && !item.deleted ? 'Editado · ' : ''}{formatMessageTime(item.createdAt)}
             </Text>
           </View>
         )}
+        </TouchableOpacity>
       </Animated.View>
     );
   };
@@ -665,6 +771,17 @@ const ChatDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {editingMessage && (
+          <View style={[styles.editingBanner, { backgroundColor: ui.surface, borderTopColor: ui.border }]}>
+            <Text style={[styles.editingBannerText, { color: ui.text }]} numberOfLines={1}>
+              Editando mensaje
+            </Text>
+            <TouchableOpacity onPress={cancelEdit} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Cancelar edición">
+              <Ionicons name="close" size={20} color={ui.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Animated.View style={[
           styles.inputContainer,
           {
@@ -676,7 +793,9 @@ const ChatDetailScreen = ({ route, navigation }) => {
         ]}>
           {/* Adjuntar foto: el mismo selector Cámara/Galería/Cancelar del resto de la app.
               Es lo que hace usable la seña — el pasajero transfiere y manda el comprobante
-              acá mismo, en el chat del viaje. */}
+              acá mismo, en el chat del viaje. Oculto mientras se edita un mensaje: no se
+              adjunta una foto a un mensaje de texto ya enviado. */}
+          {!editingMessage && (
           <TouchableOpacity
             onPress={handleEnviarFoto}
             disabled={subiendoFoto || sending}
@@ -689,6 +808,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
               ? <ActivityIndicator size="small" color={ui.text} />
               : <Ionicons name="camera-outline" size={20} color={ui.text} />}
           </TouchableOpacity>
+          )}
           <TextInput
             style={[
               styles.input,
@@ -719,7 +839,7 @@ const ChatDetailScreen = ({ route, navigation }) => {
               {sending ? (
                 <ActivityIndicator size="small" color={ui.invertText} />
               ) : (
-                <Ionicons name="send" size={22} color={(!newMessage.trim()) ? ui.textMuted : ui.invertText} />
+                <Ionicons name={editingMessage ? 'checkmark' : 'send'} size={22} color={(!newMessage.trim()) ? ui.textMuted : ui.invertText} />
               )}
             </View>
           </TouchableOpacity>
@@ -850,6 +970,22 @@ const styles = StyleSheet.create({
   },
   otherMessageText: {
     // Color dinámico aplicado en JSX
+  },
+  deletedText: {
+    fontStyle: 'italic'
+  },
+  editingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  editingBannerText: {
+    fontSize: 13,
+    fontFamily: 'Sora_500Medium',
+    flex: 1,
   },
   messageTime: {
     fontSize: 10,

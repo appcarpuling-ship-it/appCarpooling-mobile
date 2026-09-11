@@ -208,6 +208,20 @@ class SocketService {
   }
 
   /**
+   * Escuchar edición de un mensaje propio
+   */
+  onMessageEdited(callback) {
+    this.registerListener('message:edited', callback);
+  }
+
+  /**
+   * Escuchar eliminación de un mensaje propio
+   */
+  onMessageDeleted(callback) {
+    this.registerListener('message:deleted', callback);
+  }
+
+  /**
    * Escuchar cuando alguien está escribiendo
    */
   onTyping(callback) {
