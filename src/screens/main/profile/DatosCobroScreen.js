@@ -94,61 +94,61 @@ const DatosCobroScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        style={[styles.screen, { backgroundColor: ui.bg }]}
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={[styles.intro, { color: ui.textMuted }]}>
-          Es a dónde te transfiere el pasajero cuando pedís seña. La plata va directo a tu
-          cuenta — Carpuling no la toca.
-        </Text>
-
-        {campo('alias', 'ALIAS', alias, setAlias, {
-          placeholder: 'tu.alias.mp',
-          autoCapitalize: 'none',
-          autoCorrect: false,
-          maxLength: 40,
-        })}
-
-        {campo('cvu', 'CVU / CBU', agrupar(cvuDigitos), (v) => setCvu(soloDigitos(v)), {
-          placeholder: '22 dígitos',
-          keyboardType: 'number-pad',
-          maxLength: 27, // 22 dígitos + 5 espacios
-        })}
-        {cvuIncompleto && (
-          <Text style={[styles.error, { color: '#B45309' }]}>
-            Van {cvuDigitos.length} de 22 dígitos.
+      <View style={[styles.screen, { backgroundColor: ui.bg }]}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <Text style={[styles.intro, { color: ui.textMuted }]}>
+            Es a dónde te transfiere el pasajero cuando pedís seña. La plata va directo a tu
+            cuenta — Carpuling no la toca.
           </Text>
-        )}
 
-        {campo('titular', 'TITULAR DE LA CUENTA', titular, setTitular, {
-          placeholder: 'Como figura en el banco',
-          maxLength: 80,
-        })}
+          {campo('alias', 'ALIAS', alias, setAlias, {
+            placeholder: 'tu.alias.mp',
+            autoCapitalize: 'none',
+            autoCorrect: false,
+            maxLength: 40,
+          })}
 
-        <View style={[styles.aviso, { borderColor: ui.border }]}>
-          <Ionicons name="eye-off-outline" size={18} color={ui.textMuted} />
-          <Text style={[styles.avisoText, { color: ui.textMuted }]}>
-            Sólo los ve el pasajero de un viaje tuyo que pida seña. No aparecen en tu perfil
-            público.
-          </Text>
-        </View>
+          {campo('cvu', 'CVU / CBU', agrupar(cvuDigitos), (v) => setCvu(soloDigitos(v)), {
+            placeholder: '22 dígitos',
+            keyboardType: 'number-pad',
+            maxLength: 27, // 22 dígitos + 5 espacios
+          })}
+          {cvuIncompleto && (
+            <Text style={[styles.error, { color: '#B45309' }]}>
+              Van {cvuDigitos.length} de 22 dígitos.
+            </Text>
+          )}
 
-        <View style={{ marginTop: 24 }}>
+          {campo('titular', 'TITULAR DE LA CUENTA', titular, setTitular, {
+            placeholder: 'Como figura en el banco',
+            maxLength: 80,
+          })}
+
+          <View style={[styles.aviso, { borderColor: ui.border }]}>
+            <Ionicons name="eye-off-outline" size={18} color={ui.textMuted} />
+            <Text style={[styles.avisoText, { color: ui.textMuted }]}>
+              Sólo los ve el pasajero de un viaje tuyo que pida seña. No aparecen en tu perfil
+              público.
+            </Text>
+          </View>
+
+          {!hayAlgo && (
+            <Text style={[styles.pie, { color: ui.textMuted }]}>
+              Con el alias alcanza. El CVU es por si el pasajero prefiere ese.
+            </Text>
+          )}
+        </ScrollView>
+
+        {/* Fuera del scroll y no al final del contenido: mismo patrón que "Mi saldo", el
+            botón queda siempre pegado abajo aunque el formulario sea corto. */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <PillButton
             label={guardando ? 'Guardando…' : 'Guardar'}
             onPress={guardar}
             disabled={guardando || cvuIncompleto}
           />
         </View>
-
-        {!hayAlgo && (
-          <Text style={[styles.pie, { color: ui.textMuted }]}>
-            Con el alias alcanza. El CVU es por si el pasajero prefiere ese.
-          </Text>
-        )}
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -156,6 +156,7 @@ const DatosCobroScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { padding: 24 },
+  footer: { paddingHorizontal: 24, paddingTop: 10 },
   intro: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginBottom: 20 },
 
   campo: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 },

@@ -100,6 +100,15 @@ const MyApplicationsScreen = ({ navigation }) => {
       weekday: 'short', day: '2-digit', month: '2-digit',
     });
 
+  // Dirección como línea principal y ciudad/provincia como línea chica debajo, cuando no son
+  // lo mismo. Antes sólo se mostraba la ciudad ("Concordia" / "Mendoza") y no había forma de
+  // saber en qué parte de esa ciudad era.
+  const puntoDeRuta = (p) => {
+    const principal = p?.address || p?.city || '';
+    const ciudad = [p?.city, p?.province].filter(Boolean).join(', ');
+    return { principal, ciudad: ciudad && ciudad !== principal ? ciudad : '' };
+  };
+
   const renderItem = ({ item }) => {
     const appStatus = APP_STATUS[item.myApplication?.status] || { label: item.myApplication?.status, solid: false };
     const passenger = item.passenger;
@@ -111,6 +120,8 @@ const MyApplicationsScreen = ({ navigation }) => {
     // es `surface` y pintar el chip del mismo color lo dejaba invisible.
     const chipBg = appStatus.solid ? ui.invertBg : bg;
     const chipFg = appStatus.solid ? ui.invertText : textMuted;
+    const origen = puntoDeRuta(item.origin);
+    const destino = puntoDeRuta(item.destination);
 
     return (
       <TouchableOpacity
@@ -144,16 +155,28 @@ const MyApplicationsScreen = ({ navigation }) => {
           <View style={styles.routeBlock}>
             <View style={styles.routeDots}>
               <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
-              <View style={[styles.routeConnector, { backgroundColor: divider }]} />
+              {/* La misma que los puntos: en oscuro `divider` (negro sobre negro) quedaba
+                  invisible sobre la card. */}
+              <View style={[styles.routeConnector, { backgroundColor: textPrimary }]} />
               <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
             </View>
             <View style={styles.routeLabels}>
-              <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
-                {item.origin.city}
-              </Text>
-              <Text style={[styles.cityText, { color: textPrimary, marginTop: 10 }]} numberOfLines={1}>
-                {item.destination.city}
-              </Text>
+              <View>
+                <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
+                  {origen.principal}
+                </Text>
+                {!!origen.ciudad && (
+                  <Text style={[styles.cityCity, { color: textMuted }]} numberOfLines={1}>{origen.ciudad}</Text>
+                )}
+              </View>
+              <View style={{ marginTop: 10 }}>
+                <Text style={[styles.cityText, { color: textPrimary }]} numberOfLines={1}>
+                  {destino.principal}
+                </Text>
+                {!!destino.ciudad && (
+                  <Text style={[styles.cityCity, { color: textMuted }]} numberOfLines={1}>{destino.ciudad}</Text>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -282,13 +305,16 @@ const styles = StyleSheet.create({
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start' },
   statusPillText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
 
-  routeBlock: { flexDirection: 'row', gap: 10, alignItems: 'center', flex: 1 },
-  routeDots: { width: 14, alignItems: 'center', paddingVertical: 2 },
+  // Sin alto fijo: la línea se estira con el contenido (la ciudad/provincia de abajo puede
+  // sumar una segunda línea de texto y antes se quedaba corta).
+  routeBlock: { flexDirection: 'row', gap: 10, flex: 1 },
+  routeDots: { width: 14, alignItems: 'center', paddingTop: 4 },
   dotOrigin: { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
-  routeConnector: { width: 1.5, height: 16, marginVertical: 2 },
+  routeConnector: { width: 1.5, flex: 1, marginVertical: 3, minHeight: 16 },
   dotDest: { width: 9, height: 9, borderRadius: 2 },
   routeLabels: { flex: 1 },
   cityText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  cityCity: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 1 },
 
   metaRow: {
     flexDirection: 'row',
