@@ -221,9 +221,11 @@ const PagarSenaScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Seña */}
+      {/* Seña — es el último bloque de la pantalla: sin borderBottomColor, styles.bloque
+          dibujaba su hairlineWidth en negro (el default de RN sin color propio) justo abajo
+          del botón. Sin borde: no hace falta separar de nada, no hay nada después. */}
       {pideSena && (
-        <View style={styles.bloque}>
+        <View style={[styles.bloque, { borderBottomWidth: 0, marginBottom: 0 }]}>
           <Text style={[styles.rotuloSeccion, { color: ui.textMuted }]}>SEÑA</Text>
 
           {!!senaTexto && (
