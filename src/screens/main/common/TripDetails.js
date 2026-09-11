@@ -431,34 +431,25 @@ const TripDetails = ({ navigation, route }) => {
                                 <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
 
+                            {/* Solo la placa y las características en una línea: ya es SU vehículo,
+                                no hace falta que decida nada con este dato acá — los chips con
+                                ícono y fondo propio pesaban más de lo que aportaban. */}
                             {selectedVehicle && (
                                 <View style={[styles.vehicleExtra, { borderTopColor: divider }]}>
-                                    <Text style={[styles.vehiclePlate, { color: textMuted }]}>
+                                    <Text style={[styles.vehiclePlate, { color: textMuted }]} numberOfLines={1}>
                                         {selectedVehicle.licensePlate}
                                         {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
+                                        {(() => {
+                                            const f = selectedVehicle.features || {};
+                                            const activas = [
+                                                f.ac      && 'A/C',
+                                                f.music   && 'Música',
+                                                f.luggage && 'Equipaje',
+                                                f.pets    && 'Mascotas',
+                                            ].filter(Boolean);
+                                            return activas.length ? `  ·  ${activas.join(' · ')}` : '';
+                                        })()}
                                     </Text>
-                                    <Text style={[styles.chipText, { color: textMuted, marginBottom: 4 }]}>Características</Text>
-                                    {(() => {
-                                        const f = selectedVehicle.features || {};
-                                        const activeFeatures = [
-                                            f.ac      && { label: 'A/C',      icon: 'snow-outline' },
-                                            f.music   && { label: 'Música',   icon: 'musical-notes-outline' },
-                                            f.luggage && { label: 'Equipaje', icon: 'bag-handle-outline' },
-                                            f.pets    && { label: 'Mascotas', icon: 'paw-outline' },
-                                        ].filter(Boolean);
-                                        return activeFeatures.length > 0 ? (
-                                            <View style={styles.chips}>
-                                                {activeFeatures.map(feat => (
-                                                    <View key={feat.label} style={[styles.chip, { backgroundColor: divider, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                                                        <Ionicons name={feat.icon} size={12} color={textPrimary} />
-                                                        <Text style={[styles.chipText, { color: textPrimary }]}>{feat.label}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        ) : (
-                                            <Text style={[styles.chipText, { color: textMuted }]}>Sin características registradas</Text>
-                                        );
-                                    })()}
                                 </View>
                             )}
                         </View>
@@ -518,8 +509,8 @@ const TripDetails = ({ navigation, route }) => {
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
                                         {formData.sinPrecioFijo
-                                            ? 'Sin precio fijo: arreglás los gastos del viaje (nafta, peajes) directo con tus pasajeros. Carpuling te cobra $2.000 por asiento ocupado, aparte.'
-                                            : 'Vos fijás cuánto cobra cada asiento y el pasajero te paga directo a vos. Carpuling te cobra $2.000 por asiento ocupado.'}
+                                            ? 'Arreglás los gastos directo con tus pasajeros.'
+                                            : 'Vos fijás el precio y te pagan directo a vos.'} Carpuling cobra $2.000 por asiento aparte.
                                     </Text>
                                 </View>
                             </TouchableOpacity>
@@ -582,8 +573,8 @@ const TripDetails = ({ navigation, route }) => {
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
                                         {senaPreview
-                                            ? `El pasajero paga ${senaPreview} por asiento por la seña, y el resto al subir.`
-                                            : 'El pasajero te adelanta la mitad para reservar, y te paga el resto al subir. Poné el precio por asiento para ver cuánto es.'}
+                                            ? `Te adelanta ${senaPreview} por asiento; el resto, al subir.`
+                                            : 'Te adelanta la mitad para reservar; el resto, al subir.'}
                                     </Text>
                                     {/* Tocable: sin esto el conductor lee "cargá tu CVU" y tiene
                                         que salir a buscar dónde. Lleva derecho a la pantalla. */}
@@ -926,19 +917,6 @@ const styles = StyleSheet.create({
     },
     vehiclePlate: {
         fontSize: 13,
-    },
-    chips: {
-        flexDirection: 'row',
-        gap: 6,
-    },
-    chip: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    chipText: {
-        fontSize: 12,
-        fontFamily: 'Sora_500Medium',
     },
 
     // Input row
