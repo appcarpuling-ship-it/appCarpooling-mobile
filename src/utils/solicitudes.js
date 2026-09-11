@@ -74,8 +74,17 @@ export const partirDesvio = (etiqueta) => {
  * Ver `Booking.sena` en el backend.
  */
 export const getStatusConSena = (item) => {
-  const sena = item?.sena?.estado;
-  if (sena === 'esperando') return { solid: false, label: 'Esperando la seña' };
-  if (sena === 'enviada') return { solid: true, label: 'Mandó la seña' };
-  return getStatus(estadoDe(item));
+  const rs = estadoDe(item);
+  // Si la reserva ya terminó (rechazada/cancelada/vencida), eso manda: al aceptar y después
+  // rechazar puede quedar un `sena.estado` viejo en 'esperando' que si no mostraría
+  // "Esperando la seña" sobre una solicitud ya cerrada.
+  const terminada =
+    ['rejected', 'cancelled', 'expired', 'trip_completed'].includes(rs) ||
+    ['rejected', 'cancelled', 'completed'].includes(item?.status);
+  if (!terminada) {
+    const sena = item?.sena?.estado;
+    if (sena === 'esperando') return { solid: false, label: 'Esperando la seña' };
+    if (sena === 'enviada') return { solid: true, label: 'Mandó la seña' };
+  }
+  return getStatus(rs);
 };

@@ -205,12 +205,19 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     const positivo = { color: ui.invertText, bg: ui.invertBg, text: 'Reserva aprobada' };
     const neutro = (text) => ({ color: ui.textMuted, bg: 'transparent', borde: ui.border, text });
 
-    // El conductor ya te aceptó pero falta la plata: decirle "Pendiente" es esconderle que
-    // la pelota está de su lado. Ver Booking.sena en el backend.
-    if (item.sena?.estado === 'esperando') return neutro('Falta la seña');
-    if (item.sena?.estado === 'enviada') return neutro('Seña enviada');
-
     const rs = item.seatReservation?.reservationStatus;
+
+    // El conductor ya te aceptó pero falta la plata: decirle "Pendiente" es esconderle que
+    // la pelota está de su lado. Ver Booking.sena en el backend. Pero si la reserva ya se
+    // canceló/rechazó, eso manda — puede quedar un sena.estado viejo.
+    const terminada =
+      ['cancelled', 'rejected', 'expired'].includes(rs) ||
+      ['cancelled', 'rejected', 'completed'].includes(item.status);
+    if (!terminada) {
+      if (item.sena?.estado === 'esperando') return neutro('Falta la seña');
+      if (item.sena?.estado === 'enviada') return neutro('Seña enviada');
+    }
+
     if (rs === 'pending_approval') return neutro('Pendiente');
     if (rs === 'pending_payment')  return neutro('Pendiente de pago');
     // "Aprobada" y no "paga": con el modelo actual el pasajero no le paga nada a la app, le

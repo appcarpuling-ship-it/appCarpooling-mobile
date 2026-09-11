@@ -1214,14 +1214,14 @@ const TripMapScreen = ({ route, navigation }) => {
               <Text style={[styles.sheetTagText, { color: textPrimary }]}>{precioTag.texto}</Text>
             </View>
           )}
-          {trip?.requiereSena && (
+          {/* {trip?.requiereSena && (
             <View style={[styles.sheetTag, { backgroundColor: ui.bg }]}>
               <Ionicons name="shield-checkmark-outline" size={13} color={textPrimary} />
               <Text style={[styles.sheetTagText, { color: textPrimary }]}>
                 {senaLegible(trip?.driverPrice) ? `Seña ${senaLegible(trip?.driverPrice)}` : 'Con seña'}
               </Text>
             </View>
-          )}
+          )} */}
         </View>
 
         {/* El recorrido, con la MISMA numeración que los pines del mapa (routePoints), para
