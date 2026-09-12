@@ -228,6 +228,8 @@ const CarpoolingsScreen = ({ navigation }) => {
             <Image source={conductorSenas.image} style={styles.tileBigIcon} resizeMode="contain" />
             <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{conductorSenas.title}</Text>
           </TouchableOpacity>
+          {/* Espacio vacío, mismo flex: queda del ancho de "Crear Viaje" (1 de 2), no de toda la fila. */}
+          <View style={{ flex: 1 }} />
         </View>
 
         <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como pasajero</Text>
@@ -253,6 +255,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             <Image source={pasajeroSenas.image} style={styles.tileBigIcon} resizeMode="contain" />
             <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{pasajeroSenas.title}</Text>
           </TouchableOpacity>
+          <View style={{ flex: 1 }} />
         </View>
 
         {/* Banners */}

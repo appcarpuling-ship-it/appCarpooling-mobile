@@ -46,7 +46,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const [trip, setTrip] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
-  const [errorEnvio, setErrorEnvio] = useState('');
 
   const cargar = useCallback(async () => {
     try {
@@ -78,18 +77,25 @@ const PagarSenaScreen = ({ route, navigation }) => {
 
   const mandarComprobante = () => {
     elegirFoto(async (uri) => {
-      setErrorEnvio('');
       setSubiendo(true);
       try {
         const fd = new FormData();
         await appendFile(fd, 'comprobante', uri, 'comprobante.jpg');
         const res = await put_withauth_formdata(`/bookings/${bookingId}/sena`, fd);
         if (!res?.success) throw new Error(res?.message || 'No se pudo enviar el comprobante');
-        // Sin alert: el estado de la seña de arriba pasa solo a "enviada" y avisa lo mismo.
-        setBooking((b) => (b ? { ...b, sena: res.data } : b));
+        navigation.navigate('Result', {
+          type: 'success',
+          title: '¡Comprobante enviado!',
+          message: 'Tu conductor va a confirmar cuando le llegue la seña.',
+        });
       } catch (e) {
-        reportError(e, { screen: 'ReservaDetalle', action: 'mandarComprobante' });
-        setErrorEnvio('No pudimos enviar el comprobante. Probá de nuevo.');
+        // El Result de error lo reporta a Sentry solo (ver ResultScreen), no hace falta acá.
+        navigation.navigate('Result', {
+          type: 'error',
+          title: 'No se pudo enviar',
+          message: 'No pudimos enviar el comprobante. Probá de nuevo.',
+          error: e,
+        });
       } finally {
         setSubiendo(false);
       }
@@ -290,7 +296,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
               <Text style={[styles.link, { color: ui.text }]}>Mandar otra foto</Text>
             </TouchableOpacity>
           )}
-          {!!errorEnvio && <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>}
         </View>
       )}
 
@@ -329,7 +334,6 @@ const PagarSenaScreen = ({ route, navigation }) => {
             onPress={mandarComprobante}
             loading={subiendo}
           />
-          {!!errorEnvio && <Text style={[styles.error, { color: '#DC2626' }]}>{errorEnvio}</Text>}
         </View>
       )}
     </ScrollView>
@@ -390,7 +394,6 @@ const styles = StyleSheet.create({
   dotFin: { width: 10, height: 10, borderRadius: 5 },
 
   link: { fontSize: 13, fontFamily: 'Sora_600SemiBold', textAlign: 'center', marginTop: 14 },
-  error: { fontSize: 12, fontFamily: 'Sora_500Medium', textAlign: 'center', marginTop: 10 },
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
