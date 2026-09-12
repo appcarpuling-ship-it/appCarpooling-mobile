@@ -418,7 +418,7 @@ const TripDetails = ({ navigation, route }) => {
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>VEHÍCULO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             <TouchableOpacity
-                                style={styles.selectRow}
+                                style={styles.vehicleRow}
                                 onPress={() => navigation.navigate('VehiclePicker', {
                                     vehicles,
                                     selectedId: formData.vehicle,
@@ -426,39 +426,27 @@ const TripDetails = ({ navigation, route }) => {
                                 })}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="car-outline" size={19} color={textPrimary} />
-                                <Text style={[
-                                    styles.selectText,
-                                    { color: formData.vehicle ? textPrimary : textMuted },
-                                ]}>
-                                    {selectedVehicle
-                                        ? `${selectedVehicle.brand} ${selectedVehicle.model}`
-                                        : 'Seleccionar vehículo'}
-                                </Text>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[
+                                        styles.vehicleName,
+                                        { color: formData.vehicle ? textPrimary : textMuted },
+                                    ]}>
+                                        {selectedVehicle
+                                            ? `${selectedVehicle.brand} ${selectedVehicle.model}`
+                                            : 'Seleccionar vehículo'}
+                                    </Text>
+                                    {/* La placa y los asientos alcanzan para reconocer el auto: ya
+                                        es el SUYO, no hace falta que decida nada más con este dato —
+                                        las características (A/C, música, etc.) no aportaban acá. */}
+                                    {selectedVehicle && (
+                                        <Text style={[styles.vehicleSub, { color: textMuted }]} numberOfLines={1}>
+                                            {selectedVehicle.licensePlate}
+                                            {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
+                                        </Text>
+                                    )}
+                                </View>
                                 <Ionicons name="chevron-forward" size={16} color={textPrimary} />
                             </TouchableOpacity>
-
-                            {/* Solo la placa y las características en una línea: ya es SU vehículo,
-                                no hace falta que decida nada con este dato acá — los chips con
-                                ícono y fondo propio pesaban más de lo que aportaban. */}
-                            {selectedVehicle && (
-                                <View style={[styles.vehicleExtra, { borderTopColor: divider }]}>
-                                    <Text style={[styles.vehiclePlate, { color: textMuted }]} numberOfLines={1}>
-                                        {selectedVehicle.licensePlate}
-                                        {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
-                                        {(() => {
-                                            const f = selectedVehicle.features || {};
-                                            const activas = [
-                                                f.ac      && 'A/C',
-                                                f.music   && 'Música',
-                                                f.luggage && 'Equipaje',
-                                                f.pets    && 'Mascotas',
-                                            ].filter(Boolean);
-                                            return activas.length ? `  ·  ${activas.join(' · ')}` : '';
-                                        })()}
-                                    </Text>
-                                </View>
-                            )}
                         </View>
 
                         {/* Detalles */}
@@ -931,15 +919,22 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
 
-    // Vehicle extra info
-    vehicleExtra: {
+    // Vehicle row
+    vehicleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
-        paddingBottom: 14,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        gap: 8,
+        paddingVertical: 16,
+        gap: 12,
     },
-    vehiclePlate: {
+    vehicleName: {
+        fontSize: 17,
+        fontFamily: 'Sora_700Bold',
+    },
+    vehicleSub: {
         fontSize: 13,
+        fontFamily: 'Sora_500Medium',
+        marginTop: 2,
     },
 
     // Input row
