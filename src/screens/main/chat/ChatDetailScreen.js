@@ -1175,6 +1175,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 8,
     fontSize: 15,
+    // minHeight: en nativo un TextInput multiline vacío ya se acomoda solo a una línea,
+    // pero react-native-web renderiza el <textarea> con una altura por defecto bastante
+    // más alta que eso — sin este piso explícito, el input vacío se veía enorme en web.
+    minHeight: 44,
     maxHeight: 120,
     textAlignVertical: 'top',
   },
