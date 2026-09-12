@@ -413,7 +413,11 @@ const TripMapScreen = ({ route, navigation }) => {
       } else {
         socketService.socket?.off('connect', reenviarAlConectar);
       }
-      locationWatchRef.current?.remove?.();
+      // try/catch: en web, el .remove() de watchPositionAsync tira "removeSubscription is
+      // not a function" (falta esa pieza en el polyfill de expo-location) — sin atajarlo,
+      // ese error al desmontar quedaba sin manejar y React tiraba abajo toda la pantalla
+      // (pantalla en blanco al volver de "Completar viaje").
+      try { locationWatchRef.current?.remove?.(); } catch {}
       locationWatchRef.current = null;
       if (!isDriver) {
         socketService.leaveTripTracking(trip._id);
