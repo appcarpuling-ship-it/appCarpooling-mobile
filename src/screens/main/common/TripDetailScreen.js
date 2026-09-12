@@ -1337,7 +1337,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Footer — passenger */}
         {!isOwnTrip && (
-          <View style={[styles.footer, { borderTopColor: divider, gap: 0 }]}>
+          <View style={[styles.footer, { borderTopWidth: 0, gap: 0 }]}>
             {userBooking ? (
               (userBooking.seatReservation?.reservationStatus === 'cancelled' || userBooking.status === 'cancelled') ? (
                 <View style={[styles.statusFooter, { backgroundColor: cardBg }]}>

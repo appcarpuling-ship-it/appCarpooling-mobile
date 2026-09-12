@@ -352,13 +352,13 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
 
       {/* Footer CTA */}
       {app.status === 'pending' && (
-        <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
+        <View style={[styles.footer, { backgroundColor: bg, borderTopWidth: 0 }]}>
           <PillButton label="Elegir este conductor" onPress={handleAccept} loading={accepting} />
         </View>
       )}
 
       {app.status === 'accepted' && (
-        <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
+        <View style={[styles.footer, { backgroundColor: bg, borderTopWidth: 0 }]}>
           <View style={[styles.acceptedBadge, { backgroundColor: ui.invertBg }]}>
             <Ionicons name="checkmark-circle" size={16} color={ui.invertText} />
             <Text style={{ color: ui.invertText, fontWeight: '700', fontSize: 14 }}>Conductor seleccionado</Text>

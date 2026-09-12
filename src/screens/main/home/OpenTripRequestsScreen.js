@@ -299,7 +299,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         </View>
 
         {/* Footer: asientos + precio */}
-        <View style={[styles.footer, { borderTopColor: divider }]}>
+        <View style={[styles.footer, { borderTopWidth: 0 }]}>
           <View style={styles.footerItem}>
             <Ionicons name="person-outline" size={13} color={tripRouteMuted} />
             <Text style={[styles.footerText, { color: tripRouteMuted }]}>

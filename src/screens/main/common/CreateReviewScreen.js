@@ -159,7 +159,7 @@ const CreateReviewScreen = ({ route, navigation }) => {
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { borderTopColor: ui.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.footer, { borderTopWidth: 0, paddingBottom: Math.max(insets.bottom, 16) }]}>
           <PillButton
             label="Enviar calificación"
             onPress={enviar}

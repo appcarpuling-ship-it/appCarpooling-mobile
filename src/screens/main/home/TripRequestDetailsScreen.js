@@ -277,7 +277,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
           {/* marginTop:'auto' sobre un contentContainer con flexGrow:1: con contenido corto
               (sin paradas) el botón se pega abajo en vez de dejar un hueco vacío colgando
               entre el resumen y un footer fijo aparte. */}
-          <View style={[styles.footer, { borderTopColor: border }]}>
+          <View style={[styles.footer, { borderTopWidth: 0 }]}>
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: accent }, loading && { opacity: 0.6 }]}
               onPress={handleSubmit}
