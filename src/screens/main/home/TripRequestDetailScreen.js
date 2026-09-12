@@ -926,8 +926,13 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Footer */}
-        <View style={styles.footer}>
+      </ScrollView>
+
+      {/* Footer: fuera del ScrollView y pegado siempre abajo de la pantalla, no colgando
+          justo después del contenido — a pedido, mismo lugar fijo que el botón de "Mi
+          saldo"/"Datos de cobro". El SafeAreaView de arriba (edges=['bottom']) ya reserva
+          el inset, no hace falta sumarlo acá. */}
+      <View style={styles.footer}>
 
           {/* Pago pendiente (passenger) */}
           {isPassenger && request.status === 'awaiting_payment' && request.paymentData?.paymentUrl && (
@@ -1046,9 +1051,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
             </View>
           )}
 
-        </View>
-
-      </ScrollView>
+      </View>
 
       {/* Checkout WebView */}
       <CheckoutWebView
