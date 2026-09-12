@@ -212,8 +212,6 @@ const OpenTripRequestsScreen = ({ navigation }) => {
     const totalApps = item.applicationCount ?? item.applications?.length ?? 0;
     const isOwn     = passenger._id === user?._id;
 
-    const totalPrice = (item.pricePerSeat || 0) * (item.seatsNeeded || 1);
-
     // El recorrido completo, con las paradas — mismo armado que en el detalle de la solicitud.
     const puntos = [
       { tipo: 'origen', label: 'Origen', loc: item.origin },
@@ -298,7 +296,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Footer: asientos + precio */}
+        {/* Footer: asientos */}
         <View style={[styles.footer, { borderTopWidth: 0 }]}>
           <View style={styles.footerItem}>
             <Ionicons name="person-outline" size={13} color={tripRouteMuted} />
@@ -306,14 +304,6 @@ const OpenTripRequestsScreen = ({ navigation }) => {
               {item.seatsNeeded} asiento{item.seatsNeeded !== 1 ? 's' : ''}
             </Text>
           </View>
-          {isOwn && totalPrice > 0 && (
-            <View style={styles.footerItem}>
-              <Ionicons name="cash-outline" size={13} color={tripRouteMuted} />
-              <Text style={[styles.footerText, { color: tripRouteMuted }]}>
-                ${totalPrice.toLocaleString('es-AR')}
-              </Text>
-            </View>
-          )}
           {totalApps > 0 && (
             <View style={styles.footerItem}>
               <Ionicons name="people-outline" size={13} color={tripRouteMuted} />

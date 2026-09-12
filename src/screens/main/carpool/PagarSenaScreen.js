@@ -14,6 +14,7 @@ import { useElegirFoto } from '../../../hooks/useElegirFoto';
 import { montoSena } from '../../../utils/sena';
 import { reportError } from '../../../utils/sentry';
 import PillButton from '../../../components/ui/PillButton';
+import Skeleton from '../../../components/ui/Skeleton';
 
 /**
  * "Tu reserva": qué tenés que hacer con esta reserva (transferir la seña, si el viaje la
@@ -46,6 +47,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const [trip, setTrip] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
+  const [comprobanteListo, setComprobanteListo] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -286,10 +288,14 @@ const PagarSenaScreen = ({ route, navigation }) => {
           en el chat justamente para que no se borre. */}
       {mostrarComprobante && (
         <View style={styles.comprobanteBloque}>
+          {!comprobanteListo && (
+            <Skeleton width="100%" height={220} radius={22} style={StyleSheet.absoluteFill} />
+          )}
           <Image
             source={{ uri: buildImageUri(booking.sena.comprobanteUrl) }}
-            style={[styles.comprobante, { backgroundColor: ui.surface }]}
+            style={[styles.comprobante, { backgroundColor: ui.surface }, !comprobanteListo && { opacity: 0 }]}
             resizeMode="cover"
+            onLoadEnd={() => setComprobanteListo(true)}
           />
           {estado === 'enviada' && (
             <TouchableOpacity onPress={mandarComprobante} disabled={subiendo} activeOpacity={0.7}>

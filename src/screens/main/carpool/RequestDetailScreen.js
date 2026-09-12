@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { buildImageUri, put_withauth } from '../../../services/apiService';
 import { approveOrRejectReservation } from '../../../services/seatReservationService';
 import { useUI } from '../../../theme/ui';
+import Skeleton from '../../../components/ui/Skeleton';
 import { montoSena } from '../../../utils/sena';
 import {
   getStatusConSena,
@@ -42,6 +43,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { request, trip, tripId, onAceptar, onRechazar, onConfirmarSena } = route.params || {};
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
+  const [comprobanteListo, setComprobanteListo] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [errorConfirmar, setErrorConfirmar] = useState('');
 
@@ -338,20 +340,32 @@ const RequestDetailScreen = ({ route, navigation }) => {
               {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
                   conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
               {!!request.sena?.comprobanteUrl && (sena === 'enviada' || sena === 'confirmada') && (
-                <TouchableOpacity
-                  onPress={() => setFotoAmpliada(true)}
-                  activeOpacity={0.85}
-                  style={styles.comprobanteTouch}
-                >
-                  <Image
-                    source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
-                    style={[styles.comprobante, { backgroundColor: ui.bg }]}
-                    resizeMode="cover"
-                  />
-                  <View style={[styles.comprobanteZoom, { backgroundColor: ui.bg }]}>
-                    <Ionicons name="expand-outline" size={15} color={ui.text} />
-                  </View>
-                </TouchableOpacity>
+                <View style={styles.comprobanteTouch}>
+                  {/* Skeleton mientras carga la imagen: sin esto quedaba un hueco en blanco
+                      (o el fondo `ui.bg` pelado) hasta que la foto terminaba de bajar. */}
+                  {!comprobanteListo && (
+                    <Skeleton
+                      width="100%"
+                      height={220}
+                      radius={14}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setFotoAmpliada(true)}
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{ uri: buildImageUri(request.sena.comprobanteUrl) }}
+                      style={[styles.comprobante, { backgroundColor: ui.bg }, !comprobanteListo && { opacity: 0 }]}
+                      resizeMode="cover"
+                      onLoadEnd={() => setComprobanteListo(true)}
+                    />
+                    <View style={[styles.comprobanteZoom, { backgroundColor: ui.bg }]}>
+                      <Ionicons name="expand-outline" size={15} color={ui.text} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           )}
