@@ -49,13 +49,16 @@ const conductorSmall = [
   { id: 'c4', title: 'Ver solicitudes abiertas', image: require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png'), screen: 'OpenTripRequests', tab: 'HomeTab' },
   { id: 'c5', title: 'Mis postulaciones', image: require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png'), screen: 'MyApplications', tab: 'HomeTab' },
 ];
-// Pasajero son sólo 3: no alcanza para justificar grande+chico (quedaba 1 tile chico
-// solo, colgado). Van los 3 juntos, mismo tamaño, en una fila.
+// La seña tiene dos puntas (la que mandás, la que te mandan): una mitad va acá abajo,
+// en su propia fila dentro de "Como conductor", y la otra en pasajeroSenas — no una
+// sección aparte para las dos.
+const conductorSenas = { id: 'c6', title: 'Señas Recibidas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MisSenas', params: { tab: 'recibidas' } };
 const pasajeroSmall = [
   { id: 'p2', title: 'Crear Solicitud', image: require('../../../../assets/tabsIcons/publica-solicitud.png'), screen: 'CreateTripRequest', tab: 'HomeTab' },
   { id: 'p1', title: 'Mis Reservas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MyBookings' },
   { id: 'p3', title: 'Mis Solicitudes', image: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), screen: 'MyTripRequests', tab: 'HomeTab' },
 ];
+const pasajeroSenas = { id: 'p4', title: 'Señas Enviadas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MisSenas', params: { tab: 'enviadas' } };
 
 const CarpoolingsScreen = ({ navigation }) => {
   const screenW = useScreenWidth();
@@ -186,7 +189,7 @@ const CarpoolingsScreen = ({ navigation }) => {
           <Text style={[styles.title, { color: textPrimary }]}>
             <Text style={styles.titleStrong}>Traslados</Text>
           </Text>
-          <Text style={[styles.subtitle, { color: textSecondary }]}>Como conductor o como pasajero.</Text>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>Servicios que facilitan los desplazamientos.</Text>
         </View>
 
         <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como conductor</Text>
@@ -203,12 +206,12 @@ const CarpoolingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={styles.smallRow}>
+        <View style={[styles.smallRow, styles.smallRowTight]}>
           {conductorSmall.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params }) : navigation.navigate(item.screen, item.params)}
               activeOpacity={0.7}
             >
               <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
@@ -216,14 +219,24 @@ const CarpoolingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
+        <View style={styles.bigRow}>
+          <TouchableOpacity
+            style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
+            onPress={() => navigation.navigate(conductorSenas.screen, conductorSenas.params)}
+            activeOpacity={0.7}
+          >
+            <Image source={conductorSenas.image} style={styles.tileBigIcon} resizeMode="contain" />
+            <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{conductorSenas.title}</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como pasajero</Text>
-        <View style={styles.smallRow}>
+        <View style={[styles.smallRow, styles.smallRowTight]}>
           {pasajeroSmall.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params }) : navigation.navigate(item.screen, item.params)}
               activeOpacity={0.7}
             >
               <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
@@ -231,18 +244,14 @@ const CarpoolingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* No es del conductor ni del pasajero: son las dos puntas de la misma seña
-            (la que mandaste y la que te mandaron), por eso va sola y no en ninguna
-            de las dos secciones de arriba. */}
         <View style={styles.bigRow}>
           <TouchableOpacity
             style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
-            onPress={() => navigation.navigate('MisSenas')}
+            onPress={() => navigation.navigate(pasajeroSenas.screen, pasajeroSenas.params)}
             activeOpacity={0.7}
           >
-            <Image source={require('../../../../assets/tabsIcons/mis-reservas.png')} style={styles.tileBigIcon} resizeMode="contain" />
-            <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>Mis señas</Text>
+            <Image source={pasajeroSenas.image} style={styles.tileBigIcon} resizeMode="contain" />
+            <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{pasajeroSenas.title}</Text>
           </TouchableOpacity>
         </View>
 
@@ -335,6 +344,10 @@ const styles = StyleSheet.create({
   tileBigTitle: { fontFamily: 'Sora_700Bold', fontSize: 14, lineHeight: 18, marginTop: 18 },
 
   smallRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginBottom: 28 },
+  // 28 es el salto a la ETIQUETA de la siguiente sección ("Como pasajero"), con su propio
+  // texto de por medio. Cuando abajo sigue directo otra fila de la MISMA sección (la seña,
+  // sin etiqueta), ese mismo margen se leía como un hueco de más — acá va más ajustado.
+  smallRowTight: { marginBottom: 10 },
   // minHeight fijo: sin esto, un tile con título de 1 línea ("Mis Reservas") queda más
   // bajo que uno con título de 2 ("Reservas Recibidas") — el gap no reserva alto,
   // achica según el contenido. Con esto, las dos filas de "chicos" quedan iguales.

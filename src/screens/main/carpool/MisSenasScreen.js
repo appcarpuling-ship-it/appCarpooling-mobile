@@ -31,18 +31,20 @@ const chipSena = (estado, soyConductor) => {
   if (estado === 'enviada') {
     return soyConductor
       ? { label: 'Mandó la seña', solid: true }
-      : { label: 'Esperando confirmación', solid: true };
+      : { label: 'Enviada', solid: true };
   }
   return soyConductor
     ? { label: 'Esperando la seña', solid: false }
     : { label: 'Falta enviarla', solid: false };
 };
 
-const MisSenasScreen = () => {
+const MisSenasScreen = ({ route }) => {
   const navigation = useNavigation();
   const ui = useUI();
   const { showAlert } = useAlert();
-  const [tab, setTab] = useState('enviadas');
+  // Se entra directo a la pestaña del tile que se tocó (Reservas Recibidas → Recibidas,
+  // Mis Reservas → Enviadas), pero se puede cambiar una vez adentro.
+  const [tab, setTab] = useState(route?.params?.tab === 'recibidas' ? 'recibidas' : 'enviadas');
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -137,8 +139,13 @@ const MisSenasScreen = () => {
             {persona?.firstName} {persona?.lastName}
           </Text>
           <Text style={[styles.sub, { color: textMuted }]} numberOfLines={1}>
-            {trip?.origin?.city} → {trip?.destination?.city} · {trip?.departureDate ? fmtDate(trip.departureDate) : ''}
+            {trip?.origin?.city} → {trip?.destination?.city}
           </Text>
+          {!!trip?.departureDate && (
+            <Text style={[styles.fecha, { color: textMuted }]} numberOfLines={1}>
+              {fmtDate(trip.departureDate)}
+            </Text>
+          )}
         </View>
 
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -233,10 +240,11 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   avatarInitials: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   nombre: { fontFamily: 'Sora_600SemiBold', fontSize: 14.5 },
-  sub: { fontFamily: 'Sora_400Regular', fontSize: 11.5, marginTop: 2 },
+  sub: { fontFamily: 'Sora_500Medium', fontSize: 12.5, marginTop: 2 },
+  fecha: { fontFamily: 'Sora_400Regular', fontSize: 11, marginTop: 1 },
   monto: { fontFamily: 'Sora_700Bold', fontSize: 14 },
-  chip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
-  chipText: { fontSize: 10.5, fontFamily: 'Sora_600SemiBold' },
+  chip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20 },
+  chipText: { fontSize: 9.5, fontFamily: 'Sora_600SemiBold' },
 
   emptyIconWrap: {
     width: 88, height: 88, borderRadius: 44, borderWidth: 1,
