@@ -854,19 +854,13 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
 
   // ─── Early returns ────────────────────────────────────────────────────────
 
-  if (!sinVehiculos && loadingVehicles) {
-    return (
-      <View style={{ flex: 1, backgroundColor: bg }}>
-        {renderEarlyExitHeader()}
-        <View style={[styles.emptyContainer, { flex: 1 }]}>
-          <ActivityIndicator size="large" color={textPrimary} />
-          <Text style={[styles.emptyText, { color: textMuted }]}>Verificando vehículos...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!sinVehiculos && !vehicles?.length) {
+  // Antes esto bloqueaba TODA la pantalla (mapa incluido) mientras se verificaban los
+  // vehículos: se veía como una pantalla negra antes del mapa, y sólo en este modo —
+  // "Crear Solicitud"/"apply" nunca revisan vehículos y el mapa siempre salía al toque.
+  // El mapa no necesita esos datos para nada; sólo "Continuar" los usa (y ya los
+  // vuelve a chequear en handleContinueToDetails). Alcanza con esperar a que termine
+  // de cargar antes de decidir si mostrar el aviso de "sin vehículos".
+  if (!sinVehiculos && !loadingVehicles && !vehicles?.length) {
     return (
       <View style={{ flex: 1, backgroundColor: bg }}>
         {renderEarlyExitHeader()}
