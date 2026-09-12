@@ -578,7 +578,7 @@ const TripDetails = ({ navigation, route }) => {
                                 <View style={{ flex: 1 }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
-                                            Pido seña
+                                            Pedir seña
                                         </Text>
                                         <View style={[
                                             styles.toggle,
@@ -593,8 +593,8 @@ const TripDetails = ({ navigation, route }) => {
                                     </View>
                                     <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
                                         {senaPreview
-                                            ? `Te adelanta ${senaPreview} por asiento; el resto, al subir.`
-                                            : 'Te adelanta la mitad para reservar; el resto, al subir.'}
+                                            ? `Te adelanta ${senaPreview} por asiento, el resto, al subir.`
+                                            : 'Te adelanta la mitad para reservar, el resto, al subir.'}
                                     </Text>
                                     {/* Tocable: sin esto el conductor lee "cargá tu CVU" y tiene
                                         que salir a buscar dónde. Lleva derecho a la pantalla. */}

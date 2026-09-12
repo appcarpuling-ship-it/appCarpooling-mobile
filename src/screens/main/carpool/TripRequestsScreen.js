@@ -316,7 +316,7 @@ const TripRequestsScreen = ({ route }) => {
           <Text style={[styles.tripContextLine, { color: textPrimary }]}>
             Cargando ruta del viaje…
           </Text>
-          {activeTrips.length > 1 ? (
+          {/* {activeTrips.length > 1 ? (
             <TouchableOpacity
               onPress={() => setSelectedTripId(null)}
               style={styles.tripContextSwitchBtn}
@@ -324,7 +324,7 @@ const TripRequestsScreen = ({ route }) => {
             >
               <Text style={[styles.tripContextSwitchText, { color: accent }]}>Cambiar de viaje</Text>
             </TouchableOpacity>
-          ) : null}
+          ) : null} */}
         </View>
       );
     }
@@ -358,7 +358,7 @@ const TripRequestsScreen = ({ route }) => {
             Salida: {fmtDate(selectedTrip.departureDate)} · {selectedTrip.departureTime || '—'}
           </Text>
         </View>
-        {activeTrips.length > 1 ? (
+        {/* {activeTrips.length > 1 ? (
           <TouchableOpacity
             onPress={() => setSelectedTripId(null)}
             style={styles.tripContextSwitchBtn}
@@ -366,7 +366,7 @@ const TripRequestsScreen = ({ route }) => {
           >
             <Text style={[styles.tripContextSwitchText, { color: accent }]}>Cambiar de viaje</Text>
           </TouchableOpacity>
-        ) : null}
+        ) : null} */}
       </View>
     );
   };
