@@ -27,7 +27,7 @@ const SHOW_RUMBO = false;
 // que la última card se pueda scrollear por encima de la barra.
 export const TAB_BAR_SPACE = 104;
 
-const FloatingTabBar = ({ state, descriptors, navigation }) => {
+const FloatingTabBar = ({ state, descriptors, navigation, badges = {} }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
 
@@ -82,6 +82,7 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
             }
 
             const [outline, solid] = ICONS[route.name] ?? ICONS.HomeTab;
+            const badgeCount = badges[route.name] || 0;
 
           return (
             <TouchableOpacity
@@ -102,6 +103,11 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
                     size={20}
                     color={isFocused ? activeFg : inactiveFg}
                   />
+                  {badgeCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
+                    </View>
+                  )}
                 </View>
                 <Text
                   style={[styles.tabLabel, { color: isFocused ? activeFg : inactiveFg }]}
@@ -160,6 +166,12 @@ const styles = StyleSheet.create({
   // Solo posiciona el ícono y le da lugar al badge; ya no pinta nada.
   iconSlot:  { width: 32, height: 22, alignItems: 'center', justifyContent: 'center' },
   tabLabel:  { fontFamily: 'Sora_500Medium', fontSize: 10, marginTop: 2 },
+  badge: {
+    position: 'absolute', top: -4, right: 2,
+    minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
+    backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 9.5, fontFamily: 'Sora_700Bold' },
 
   fabSpacer: { width: 54 },
 

@@ -4,6 +4,7 @@ import { Keyboard, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useNotifications } from '../context/NotificationContext';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import FloatingTabBar from '../components/ui/FloatingTabBar';
 
 // Stack Navigators
@@ -29,6 +30,9 @@ const TAB_ROOT = {
 
 const MainTabNavigator = () => {
   const { unreadCount: unreadNotifications = 0 } = useNotifications();
+  // Mensajes sin leer (chat), no notificaciones: el hook ya se mantiene al día solo,
+  // por websocket (message:received/conversation:updated/messages:read).
+  const { unreadCount: unreadMessages = 0 } = useUnreadMessages();
   const { tutorialReady, tutorialCompleted, completeTutorial } = useTutorial();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
@@ -48,7 +52,7 @@ const MainTabNavigator = () => {
     <>
     <Tab.Navigator
       id="MainTabs"
-      tabBar={(props) => <FloatingTabBar {...props} />}
+      tabBar={(props) => <FloatingTabBar {...props} badges={{ ProfileTab: unreadMessages }} />}
       screenOptions={({ route }) => {
         // La barra vive solo en la raíz de cada tab. Adentro de un stack
         // (detalle, formulario, mapa) estorba: tapa el final del scroll y
