@@ -246,21 +246,22 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
             Los conductores que hagan ese viaje van a poder ofrecerte lugar.
           </Text>
 
-          <View style={{ height: 24 }} />
+          {/* marginTop:'auto' sobre un contentContainer con flexGrow:1: con contenido corto
+              (sin paradas) el botón se pega abajo en vez de dejar un hueco vacío colgando
+              entre el resumen y un footer fijo aparte. */}
+          <View style={[styles.footer, { borderTopColor: border }]}>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: accent }, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color={accentInverse} />
+                : <Text style={[styles.btnText, { color: accentInverse }]}>Publicar solicitud</Text>
+              }
+            </TouchableOpacity>
+          </View>
         </ScrollView>
-
-        <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: accent }, loading && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color={accentInverse} />
-              : <Text style={[styles.btnText, { color: accentInverse }]}>Publicar solicitud</Text>
-            }
-          </TouchableOpacity>
-        </View>
       </KeyboardAvoidingView>
 
       {/* Date Picker */}
@@ -328,7 +329,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  scroll: { padding: 16 },
+  scroll: { padding: 16, flexGrow: 1 },
   label: {
     fontSize: 11,
     fontFamily: 'Sora_600SemiBold',
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   seatsBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
   resumen: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 24, paddingHorizontal: 4 },
-  footer: { padding: 16, paddingBottom: 24, borderTopWidth: StyleSheet.hairlineWidth },
+  footer: { marginTop: 'auto', paddingTop: 24, borderTopWidth: StyleSheet.hairlineWidth },
   btn:     { borderRadius: 999, paddingVertical: 17, alignItems: 'center' },
   btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   // Pickers
