@@ -84,8 +84,11 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
           if (res.data?.requiereSena) {
             return {
               title: 'Elegiste a tu conductor',
+              // Aclarar "por los N asientos" cuando son más de uno: sin esto, un pasajero
+              // que pidió 2 asientos veía la seña dar el mismo número que "por asiento" y
+              // parecía un error (es la mitad de los 2, no de 1 — coincide por casualidad).
               message: oferta?.sena
-                ? `Transferile la seña de ${oferta.sena} para confirmar tu lugar.`
+                ? `Transferile la seña de ${oferta.sena}${seatsNeeded > 1 ? ` (por los ${seatsNeeded} asientos)` : ''} para confirmar tu lugar.`
                 : 'Transferile la seña para confirmar tu lugar.',
               primaryLabel: 'Ir a pagar la seña',
               // ApplicationDetailScreen vive en el stack raíz, no en el de un tab: PagarSena
@@ -187,7 +190,8 @@ const ApplicationDetailScreen = ({ route, navigation }) => {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                 <Ionicons name="shield-checkmark-outline" size={15} color={textMuted} />
                 <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, flex: 1 }}>
-                  Pide {oferta.sena} de seña por adelantado para reservar.
+                  Pide {oferta.sena} de seña por adelantado para reservar
+                  {seatsNeeded > 1 ? ` los ${seatsNeeded} asientos` : ''}.
                 </Text>
               </View>
             ) : null}
