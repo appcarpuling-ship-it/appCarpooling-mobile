@@ -215,9 +215,18 @@ const ProfileScreen = () => {
                 <Text style={[styles.name, { color: textPrimary }]} numberOfLines={2}>
                   {user?.firstName} {user?.lastName}
                 </Text>
-                <View style={styles.ratingRow}>
+                <TouchableOpacity
+                  style={styles.ratingRow}
+                  onPress={() => navigation.navigate('UserReviews', {
+                    userId: user?._id || user?.id,
+                    userName: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+                  })}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                >
                   <Rating rating={user?.rating} count={user?.ratingCount} size={14} />
-                </View>
+                  <Ionicons name="chevron-forward" size={14} color={textMuted} />
+                </TouchableOpacity>
               </>
             )}
             {/* Comentado a pedido: por ahora no se muestra el badge de descuento activo.
