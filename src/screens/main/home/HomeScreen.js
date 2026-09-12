@@ -434,7 +434,10 @@ const HomeScreen = ({ navigation, route }) => {
         {[
           { label: 'Crear Viaje', icon: require('../../../../assets/tabsIcons/crear-viaje.png'), onPress: () => navigation.navigate('CreateTrip') },
           { label: 'Crear Solicitud', icon: require('../../../../assets/tabsIcons/publica-solicitud.png'), onPress: () => navigation.navigate('CreateTripRequest') },
-          { label: 'Mis Viajes', icon: require('../../../../assets/tabsIcons/mis-viajes.png'), onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips' }) },
+          // initial:false: sin esto, MyTrips queda como raíz del stack de Traslados
+          // (nunca visitado desde Inicio) y no aparece la flecha para volver. Ver
+          // utils/notificationNavigation.js.
+          { label: 'Mis Viajes', icon: require('../../../../assets/tabsIcons/mis-viajes.png'), onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', initial: false }) },
           { label: 'Mis Solicitudes', icon: require('../../../../assets/tabsIcons/mis-reservas-solicitudes.png'), onPress: () => navigation.navigate('MyTripRequests') },
         ].map((item) => (
           <TouchableOpacity key={item.label} style={styles.quickItem} onPress={item.onPress} activeOpacity={0.75}>

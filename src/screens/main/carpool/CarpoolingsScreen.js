@@ -196,7 +196,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             <TouchableOpacity
               key={item.id}
               style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen }) : navigation.navigate(item.screen)}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, initial: false }) : navigation.navigate(item.screen)}
               activeOpacity={0.7}
             >
               <Image source={item.image} style={styles.tileBigIcon} resizeMode="contain" />
@@ -209,7 +209,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             <TouchableOpacity
               key={item.id}
               style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params }) : navigation.navigate(item.screen, item.params)}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params, initial: false }) : navigation.navigate(item.screen, item.params)}
               activeOpacity={0.7}
             >
               <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
@@ -224,7 +224,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             <TouchableOpacity
               key={item.id}
               style={[styles.tileSmall, { backgroundColor: cardBg, borderColor: border }]}
-              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params }) : navigation.navigate(item.screen, item.params)}
+              onPress={() => item.tab ? navigation.navigate(item.tab, { screen: item.screen, params: item.params, initial: false }) : navigation.navigate(item.screen, item.params)}
               activeOpacity={0.7}
             >
               <Image source={item.image} style={styles.tileSmallIcon} resizeMode="contain" />
