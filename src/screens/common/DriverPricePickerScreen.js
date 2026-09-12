@@ -90,7 +90,9 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
             onPress={() => { setSinPrecioFijo((v) => !v); if (error) setError(''); }}
             activeOpacity={0.7}
           >
-            <Ionicons name="pricetags-outline" size={19} color={ui.text} style={{ marginTop: 2 }} />
+            <View style={[styles.iconBadge, { backgroundColor: ui.border }]}>
+              <Ionicons name="pricetags-outline" size={17} color={ui.text} />
+            </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={{ color: ui.text, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
@@ -113,13 +115,10 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
           </TouchableOpacity>
 
           {!sinPrecioFijo && (
-            <>
-              <Text style={[styles.intro, { color: ui.textMuted }]}>
-                ¿Cuánto le cobrás a cada pasajero?
-              </Text>
-
-              <View style={[styles.card, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-                <Text style={[styles.cardLabel, { color: ui.textMuted }]}>POR ASIENTO</Text>
+              /* Hero centrado y sin tarjeta, como el monto de "Tu reserva": es lo único
+                  grande de la pantalla, no una caja más entre las demás. */
+              <View style={styles.precioHero}>
+                <Text style={[styles.precioRotulo, { color: ui.textMuted }]}>POR ASIENTO</Text>
                 <TextInput
                   style={[styles.input, { color: valor > 0 ? ui.text : ui.textMuted }]}
                   placeholder="$0"
@@ -133,15 +132,13 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
                     if (error) setError('');
                   }}
                 />
+                {/* El total sólo si pidió más de un asiento: con uno solo repetiría el mismo número. */}
+                {valor > 0 && asientos > 1 && (
+                  <Text style={[styles.total, { color: ui.textMuted }]}>
+                    Son {asientos} asientos: cobrás ${formatMiles(valor * asientos)} en total.
+                  </Text>
+                )}
               </View>
-
-              {/* El total sólo si pidió más de un asiento: con uno solo repetiría el mismo número. */}
-              {valor > 0 && asientos > 1 && (
-                <Text style={[styles.total, { color: ui.textMuted }]}>
-                  Son {asientos} asientos: cobrás ${formatMiles(valor * asientos)} en total.
-                </Text>
-              )}
-            </>
           )}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -154,7 +151,9 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
             onPress={() => setRequiereSena((v) => !v)}
             activeOpacity={0.7}
           >
-            <Ionicons name="shield-checkmark-outline" size={19} color={ui.text} style={{ marginTop: 2 }} />
+            <View style={[styles.iconBadge, { backgroundColor: ui.border }]}>
+              <Ionicons name="shield-checkmark-outline" size={17} color={ui.text} />
+            </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={{ color: ui.text, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
@@ -202,25 +201,27 @@ const styles = StyleSheet.create({
   // siempre abajo, como el resto de los footers de la app — el espacio vacío en pantallas
   // cortas es preferible a que "Enviar propuesta" ande flotando a mitad de pantalla.
   bodyInner: { gap: 12, flexGrow: 1 },
-  intro: { fontFamily: 'Sora_400Regular', fontSize: 14, lineHeight: 20, marginBottom: 4 },
 
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     borderWidth: StyleSheet.hairlineWidth, borderRadius: 18,
     paddingHorizontal: 18, paddingVertical: 16,
   },
+  iconBadge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   toggle: { width: 46, height: 26, borderRadius: 13, padding: 2, justifyContent: 'center' },
   toggleCircle: { width: 22, height: 22, borderRadius: 11 },
   toggleOn: { alignSelf: 'flex-end' },
 
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16 },
-  cardLabel: { fontFamily: 'Sora_600SemiBold', fontSize: 12, letterSpacing: 0.3 },
-  // lineHeight explícito: sin esto Sora_800ExtraBold a 38px se recortaba arriba y abajo
+  // Hero del precio: centrado y sin tarjeta, como el monto de "Tu reserva" — es lo único
+  // grande de la pantalla, no una caja más entre las demás.
+  precioHero: { alignItems: 'center', paddingVertical: 20 },
+  precioRotulo: { fontFamily: 'Sora_600SemiBold', fontSize: 11, letterSpacing: 1.1, textAlign: 'center' },
+  // lineHeight explícito: sin esto Sora_800ExtraBold a 56px se recortaba arriba y abajo
   // dentro del TextInput (el "$0" se veía cortado/superpuesto).
-  input: { fontFamily: 'Sora_800ExtraBold', fontSize: 38, lineHeight: 46, letterSpacing: -1.2, paddingVertical: 6, marginTop: 2 },
+  input: { fontFamily: 'Sora_800ExtraBold', fontSize: 56, lineHeight: 64, letterSpacing: -1.8, textAlign: 'center', marginTop: 6 },
 
   error: { color: '#EF4444', fontSize: 13, fontFamily: 'Sora_400Regular', paddingHorizontal: 4 },
-  total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
+  total: { fontFamily: 'Sora_500Medium', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 8 },
 
   footer: { paddingTop: 16, marginTop: 'auto' },
 });
