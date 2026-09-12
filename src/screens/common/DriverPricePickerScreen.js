@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Keyboard,
-  TouchableWithoutFeedback, LayoutAnimation, Platform, UIManager,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import PillButton from '../../components/ui/PillButton';
 import { senaLegible } from '../../utils/sena';
-
-// En Android con la arquitectura vieja, LayoutAnimation viene apagado por defecto.
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 /**
  * Último paso al postularse a una solicitud: cuánto cobra el conductor por asiento, o si
@@ -126,12 +118,7 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
               número que no se usa. */}
           <TouchableOpacity
             style={[styles.row, { backgroundColor: ui.surface, borderColor: ui.border }]}
-            onPress={() => {
-              // Sin esto, el precio y "Pido seña" aparecían/desaparecían de un salto seco.
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setSinPrecioFijo((v) => !v);
-              if (error) setError('');
-            }}
+            onPress={() => { setSinPrecioFijo((v) => !v); if (error) setError(''); }}
             activeOpacity={0.7}
           >
             <View style={[styles.iconBadge, { backgroundColor: ui.border }]}>

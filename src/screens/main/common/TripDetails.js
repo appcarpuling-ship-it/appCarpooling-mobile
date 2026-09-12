@@ -537,16 +537,20 @@ const TripDetails = ({ navigation, route }) => {
 
                             {/* El precio va pegado a los asientos porque es "por asiento" igual que
                                 ellos. Es libre: es con lo que el conductor compite contra los otros
-                                viajes, y el pasajero lo ve antes de reservar. Desaparece en gastos
-                                compartidos: ahí no hay precio a propósito. */}
-                            {!formData.sinPrecioFijo && (
-                            <View style={styles.inputRow}>
+                                viajes, y el pasajero lo ve antes de reservar. Con gastos compartidos
+                                se deshabilita en vez de desaparecer: sacarlo de golpe del layout
+                                hacía que todo lo de abajo saltara feo al tocar el toggle. */}
+                            <View
+                                style={[styles.inputRow, formData.sinPrecioFijo && { opacity: 0.4 }]}
+                                pointerEvents={formData.sinPrecioFijo ? 'none' : 'auto'}
+                            >
                                 <Ionicons name="cash-outline" size={19} color={textPrimary} />
                                 <TextInput
                                     style={[styles.input, { color: textPrimary }]}
                                     placeholder="Precio por pasajero *"
                                     placeholderTextColor={textMuted}
                                     value={formData.driverPrice ? `$${formData.driverPrice}` : ''}
+                                    editable={!formData.sinPrecioFijo}
                                     onFocus={scrollFieldAboveKeyboard}
                                     onChangeText={v => {
                                         const digits = v.replace(/\D/g, '');
@@ -560,19 +564,19 @@ const TripDetails = ({ navigation, route }) => {
                                     // arriba); el de keyboardDidShow, el de abrirlo desde cero.
                                 />
                             </View>
-                            )}
 
                             {/* Seña: el pasajero adelanta la mitad para reservar. Es el
                                 compromiso contra el que se baja a último momento, cuando el
                                 conductor ya contaba con esa plata.
-                                No aparece con "Gastos compartidos": sin precio por asiento no
-                                hay mitad que calcular (el server lo fuerza igual, ver
-                                utils/sena.js — esconderlo acá es sólo no ofrecer algo roto). */}
-                            {!formData.sinPrecioFijo && (
+                                Se deshabilita con "Gastos compartidos" en vez de desaparecer
+                                (sin precio por asiento no hay mitad que calcular; el server lo
+                                fuerza igual, ver utils/sena.js) — mismo criterio que el precio,
+                                para que el toggle no haga saltar todo el formulario. */}
                             <TouchableOpacity
-                                style={[styles.inputRow, { alignItems: 'flex-start' }]}
+                                style={[styles.inputRow, { alignItems: 'flex-start' }, formData.sinPrecioFijo && { opacity: 0.4 }]}
                                 onPress={() => handleChange('requiereSena', !formData.requiereSena)}
                                 activeOpacity={0.7}
+                                disabled={formData.sinPrecioFijo}
                             >
                                 <Ionicons name="shield-checkmark-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
                                 <View style={{ flex: 1 }}>
@@ -612,7 +616,6 @@ const TripDetails = ({ navigation, route }) => {
                                     )}
                                 </View>
                             </TouchableOpacity>
-                            )}
                         </View>
                         {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
                             <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
