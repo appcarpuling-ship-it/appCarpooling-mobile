@@ -337,12 +337,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 11,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 15,
+    borderRadius: 999,
     gap: 6,
   },
-  footerBtnOutlineText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
+  footerBtnOutlineText: { fontSize: 15, fontFamily: 'Sora_700Bold' },
 });
 
 export default MyApplicationsScreen;
