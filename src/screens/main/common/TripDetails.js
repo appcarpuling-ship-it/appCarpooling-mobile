@@ -428,8 +428,8 @@ const TripDetails = ({ navigation, route }) => {
                             >
                                 <View style={{ flex: 1 }}>
                                     <Text style={[
-                                        styles.vehicleName,
-                                        { color: formData.vehicle ? textPrimary : textMuted },
+                                        selectedVehicle ? styles.vehicleName : styles.selectText,
+                                        { color: selectedVehicle ? textPrimary : textMuted },
                                     ]}>
                                         {selectedVehicle
                                             ? `${selectedVehicle.brand} ${selectedVehicle.model}`
