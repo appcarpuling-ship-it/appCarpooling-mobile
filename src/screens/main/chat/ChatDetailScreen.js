@@ -82,8 +82,13 @@ const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, on
         { opacity: fadeAnim, transform: [{ scale }] }
       ]}
     >
+      {/* onPress (ver la foto) y onLongPress (menú Editar/Eliminar) van en el MISMO
+          Touchable: antes la foto tenía su propio TouchableOpacity anidado adentro de
+          éste, y ese gesto interno le ganaba la posta al onLongPress de afuera —
+          mantener presionada una foto nunca abría el menú de eliminar. */}
       <TouchableOpacity
-        activeOpacity={canLongPress ? 0.7 : 1}
+        activeOpacity={canLongPress || (item.imageUrl && !item.deleted) ? 0.85 : 1}
+        onPress={item.imageUrl && !item.deleted ? () => onImagePress(item.imageUrl) : undefined}
         onLongPress={canLongPress ? handleLongPress : undefined}
         delayLongPress={300}
       >
@@ -100,9 +105,7 @@ const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, on
               ) : (
                 <>
                   {item.imageUrl ? (
-                    <TouchableOpacity onPress={() => onImagePress(item.imageUrl)} activeOpacity={0.9}>
-                      <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-                    </TouchableOpacity>
+                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
                   ) : null}
                   {item.content ? (
                   <Text style={[styles.messageText, { color: ui.invertText }]}>
@@ -128,9 +131,7 @@ const MessageBubble = ({ item, isOwnMessage, ui, fadeAnim, formatMessageTime, on
               ) : (
                 <>
                   {item.imageUrl ? (
-                    <TouchableOpacity onPress={() => onImagePress(item.imageUrl)} activeOpacity={0.9}>
-                      <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-                    </TouchableOpacity>
+                    <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
                   ) : null}
                   {item.content ? (
                   <Text style={[styles.messageText, styles.otherMessageText, { color: ui.text }]}>

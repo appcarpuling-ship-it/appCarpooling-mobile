@@ -636,6 +636,34 @@ const ChatsScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
+            {!!chatActionsTarget?.conversation?.trip?._id && (
+              <>
+                <View
+                  style={[
+                    styles.chatActionDivider,
+                    { backgroundColor: ui.border },
+                  ]}
+                />
+                <TouchableOpacity
+                  style={styles.chatActionRow}
+                  onPress={() => {
+                    const tripId = chatActionsTarget?.conversation?.trip?._id;
+                    closeChatActions();
+                    // Cruza a Inicio: la ficha del viaje vive ahí, no en el stack de Chat.
+                    // initial:false para que quede apilada sobre Home y no como raíz sin
+                    // flecha de volver (mismo bug/fix que notificationNavigation.js).
+                    navigation.navigate('HomeTab', { screen: 'TripDetail', params: { tripId }, initial: false });
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="car-outline" size={22} color={ui.text} />
+                  <Text style={[styles.chatActionLabel, { color: ui.text }]}>
+                    Ver el viaje
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             <View
               style={[
                 styles.chatActionDivider,
