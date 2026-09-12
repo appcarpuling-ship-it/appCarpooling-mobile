@@ -308,32 +308,32 @@ const RequestDetailScreen = ({ route, navigation }) => {
                 )}
               </View>
 
-              {sena === 'esperando' && (
+              {/* {sena === 'esperando' && (
                 <View style={styles.senaEstado}>
                   <Ionicons name="hourglass-outline" size={16} color={ui.textMuted} />
                   <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                    Ya lo aceptaste. Avisamos cuando suba el comprobante.
+                    Esperando comprobante del pasajero.
                   </Text>
                 </View>
-              )}
+              )} */}
 
-              {sena === 'enviada' && (
+              {/* {sena === 'enviada' && (
                 <View style={styles.senaEstado}>
                   <Ionicons name="time-outline" size={16} color={ui.textMuted} />
                   <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
                     Mandó el comprobante{request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Confirmá si te llegó.
                   </Text>
                 </View>
-              )}
+              )} */}
 
-              {sena === 'confirmada' && (
+              {/* {sena === 'confirmada' && (
                 <View style={styles.senaEstado}>
                   <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
                   <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
                     Confirmaste que te llegó{request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.
                   </Text>
                 </View>
-              )}
+              )} */}
 
               {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
                   conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
@@ -378,7 +378,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
                   <ActivityIndicator size="small" color={ui.invertText} />
                 ) : (
                   <Text style={[styles.btnAcceptText, { color: ui.invertText }]}>
-                    {sena === 'enviada' ? 'Me llegó la seña' : 'Aceptar'}
+                    {sena === 'enviada' ? 'Confirmar seña' : 'Aceptar'}
                   </Text>
                 )}
               </TouchableOpacity>

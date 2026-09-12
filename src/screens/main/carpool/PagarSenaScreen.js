@@ -175,19 +175,19 @@ const PagarSenaScreen = ({ route, navigation }) => {
               // y la fecha de salida ya está abajo — prometer una hora exacta que el backend
               // no respeta era peor que no decir nada.
               chip: null,
-              pie: `${pesos(alConductor - monto)} al subir · ${pesos(alConductor)} en total`,
+              pie: `Total del viaje: ${pesos(alConductor)}`,
             },
             enviada: {
               rotulo: 'Seña enviada',
               monto: pesos(monto),
-              chip: { icon: 'time-outline', t: 'Esperando que la confirme' },
-              pie: `${pesos(alConductor - monto)} al subir · ${pesos(alConductor)} en total`,
+              chip: { icon: 'time-outline', t: 'Esperando confirmación' },
+              pie: `Total del viaje: ${pesos(alConductor)}`,
             },
             confirmada: {
               rotulo: 'Seña confirmada',
               monto: pesos(monto),
               chip: { icon: 'checkmark-circle', t: 'Ya le llegó', color: '#10B981' },
-              pie: `${pesos(alConductor - monto)} al subir · ${pesos(alConductor)} en total`,
+              pie: `Total del viaje: ${pesos(alConductor)}`,
             },
           }[estado];
 
