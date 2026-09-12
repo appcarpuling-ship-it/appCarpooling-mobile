@@ -90,6 +90,11 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
 
   useFocusEffect(
     useCallback(() => {
+      // Sin esto, al cambiar de pestaña `bookings` seguía teniendo los de la pestaña
+      // anterior hasta que llegaba la respuesta nueva: el filtro daba vacío con el criterio
+      // de la pestaña recién elegida y el EmptyState aparecía un instante antes de que las
+      // cards correctas lo reemplazaran. Mismo fix que MyTripsScreen.
+      setLoading(true);
       loadMyBookings(1, true, { force: true });
     }, [activeTab])
   );
@@ -288,7 +293,12 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
     // Sólo 'esperando': una vez mandado el comprobante no hay nada más que hacer desde acá.
     // Con el viaje ya en curso no tiene sentido seguir ofreciendo pagar la seña: si no la
     // mandó a tiempo, se resuelve con el conductor, no transfiriendo a último momento.
-    const faltaSena = item.sena?.estado === 'esperando' && item.trip?.status !== 'started';
+    // Si la reserva ya se cerró (cancelada, rechazada o completada) no hay nada que pagar:
+    // sin este chequeo, una reserva cancelada por no mandar la seña a tiempo se quedaba
+    // ofreciendo "Pagar la seña" para siempre (sena.estado le queda en 'esperando').
+    const faltaSena = item.sena?.estado === 'esperando'
+      && item.trip?.status !== 'started'
+      && !['cancelled', 'rejected', 'completed'].includes(item.status);
     const activeTxt     = isActive ? '#FFFFFF' : textPrimary;
     const activeMuted   = isActive ? 'rgba(255,255,255,0.5)' : textSecondary;
 
