@@ -33,23 +33,33 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
   const [error, setError] = useState('');
   const [sinPrecioFijo, setSinPrecioFijo] = useState(false);
   const [requiereSena, setRequiereSena] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   const valor = parseInt(String(precio).replace(/\./g, ''), 10) || 0;
   const asientos = Math.max(1, Number(seatsNeeded) || 1);
   // La mitad de lo que va a pagar ESE pasajero (precio × asientos que pidió).
   const senaTexto = senaLegible(valor, asientos);
 
-  const confirmar = () => {
+  const confirmar = async () => {
     if (!sinPrecioFijo && valor <= 0) {
       setError('Poné cuánto cobrás por asiento, o activá "Gastos compartidos"');
       return;
     }
-    navigation.goBack();
-    onDone?.({
-      driverPrice: sinPrecioFijo ? 0 : valor,
-      sinPrecioFijo,
-      requiereSena: !sinPrecioFijo && requiereSena,
-    });
+    // Antes el goBack pasaba ACÁ, antes de mandar la postulación (que es async): mientras
+    // esperaba la respuesta del servidor quedaba a la vista la pantalla de atrás (el
+    // recorrido) un instante, y recién ahí aparecía "Enviado" — un flash feo. Ahora se
+    // espera a onDone (que hace el submit y navega a Result solo) sin desapilar antes:
+    // esta pantalla se queda a la vista, con su propio loading, hasta que haya respuesta.
+    setEnviando(true);
+    try {
+      await onDone?.({
+        driverPrice: sinPrecioFijo ? 0 : valor,
+        sinPrecioFijo,
+        requiereSena: !sinPrecioFijo && requiereSena,
+      });
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -179,7 +189,7 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
           )}
 
           <View style={styles.footer}>
-            <PillButton label="Enviar propuesta" onPress={confirmar} />
+            <PillButton label="Enviar propuesta" onPress={confirmar} loading={enviando} disabled={enviando} />
           </View>
         </View>
         </TouchableWithoutFeedback>
