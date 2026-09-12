@@ -228,6 +228,28 @@ const TripRequestsScreen = ({ route }) => {
     }
   }, [trips, tripsPage, tripsHasMore, loadingTrips, loadingMoreTrips, selectedTripId]);
 
+  // Al entrar desde una notificación ("Nueva solicitud recibida"), selectedTripId llega
+  // directo por route.params — sin pasar por la lista paginada de arriba. Si ese viaje no
+  // está en la página 1 (uno viejo, o simplemente no le tocó), nunca aparecía en `trips` y
+  // el encabezado se quedaba para siempre en "Cargando ruta del viaje…". Se lo pide aparte,
+  // por id, en cuanto se sabe que no vino en la lista general.
+  useEffect(() => {
+    if (!selectedTripId || loadingTrips || selectedTrip) return;
+    if (trips.some((t) => String(t._id) === String(selectedTripId))) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const response = await get_withauth(ENDPOINTS.GET_TRIP(selectedTripId));
+        if (!cancelado && response.success && response.data) {
+          setTrips((prev) => [response.data, ...prev]);
+        }
+      } catch (error) {
+        reportError(error, { screen: 'TripRequestsScreen', action: 'loadSelectedTrip' });
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [selectedTripId, loadingTrips, selectedTrip, trips]);
+
   const onRefresh = () => {
     setRefreshing(true);
     if (selectedTripId) loadRequests(1, { append: false, isRefresh: true });
