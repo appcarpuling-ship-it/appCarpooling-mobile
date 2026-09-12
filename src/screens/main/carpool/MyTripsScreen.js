@@ -398,7 +398,15 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
                 <TouchableOpacity
                   key={tab}
                   style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => {
+                    // Mismo motivo que MyBookingsScreen: el useFocusEffect corre DESPUÉS
+                    // del primer render con la pestaña nueva, dejando un frame con trips
+                    // viejos que no matchean el filtro nuevo (EmptyState) antes del
+                    // skeleton. Poniendo loading acá, en el mismo evento, ese frame no
+                    // llega a pintarse.
+                    if (tab !== activeTab) setLoading(true);
+                    setActiveTab(tab);
+                  }}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>

@@ -451,7 +451,16 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
                 <TouchableOpacity
                   key={tab}
                   style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => {
+                    // setLoading ACÁ y no sólo en el useFocusEffect: ese corre DESPUÉS del
+                    // primer render con la pestaña nueva, así que había un frame con
+                    // activeTab nuevo pero bookings/loading viejos — se veía el EmptyState
+                    // (bookings viejos no matchean el filtro nuevo) antes del skeleton.
+                    // Poniendo los dos setState juntos, en el mismo evento, ese frame nunca
+                    // se llega a pintar.
+                    if (tab !== activeTab) setLoading(true);
+                    setActiveTab(tab);
+                  }}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>

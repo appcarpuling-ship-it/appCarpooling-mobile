@@ -200,7 +200,12 @@ const MyTripRequestsScreen = ({ navigation }) => {
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && { backgroundColor: ui.invertBg }]}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => {
+                // Mismo motivo que MyBookingsScreen/MyTripsScreen: sin esto, el
+                // useFocusEffect pone el loading un frame después del cambio de pestaña.
+                if (tab !== activeTab) setLoading(true);
+                setActiveTab(tab);
+              }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, { color: activeTab === tab ? ui.invertText : ui.textMuted }]}>

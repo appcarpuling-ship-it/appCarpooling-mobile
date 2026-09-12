@@ -25,6 +25,7 @@ import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
 import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 import {
@@ -336,12 +337,16 @@ const TripRequestsScreen = ({ route }) => {
     if (!selectedTripId) return null;
 
     if (!selectedTrip) {
+      // Skeleton y no texto ("Cargando ruta del viaje…"): mismo criterio que el resto de
+      // la app — cualquier espera de datos se muestra con la forma aproximada de lo que
+      // va a aparecer, no con un cartel.
       return (
         <View style={[styles.tripContextEmbedded, { borderBottomColor: divider }]}>
           <Text style={[styles.tripContextLabel, { color: textMuted }]}>VIAJE</Text>
-          <Text style={[styles.tripContextLine, { color: textPrimary }]}>
-            Cargando ruta del viaje…
-          </Text>
+          <Skeleton width="70%" height={21} radius={5} />
+          <View style={[styles.tripContextMetaRow, { marginTop: 12 }]}>
+            <Skeleton width="45%" height={13} radius={4} />
+          </View>
           {/* {activeTrips.length > 1 ? (
             <TouchableOpacity
               onPress={() => setSelectedTripId(null)}
