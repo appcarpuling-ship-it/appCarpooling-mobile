@@ -277,9 +277,13 @@ const MyBookingsScreen = ({ navigation, historyMode = false }) => {
       item.status === 'confirmed'
     );
 
+  // !item.sena?.estado: si la reserva tiene seña (esperando/enviada/confirmada), el único
+  // botón de pago valido es "Pagar la seña" (faltaSena, más abajo) y nada una vez mandada.
+  // Sin este chequeo, mandar la seña no cambia booking.status (sigue 'pending' hasta que el
+  // conductor confirma), así que "Ir a pagar" seguía apareciendo con la seña ya enviada.
   const canPay = (item) =>
     item.seatReservation?.reservationStatus === 'pending_payment' ||
-    (item.status === 'pending' && !item.seatReservation);
+    (item.status === 'pending' && !item.seatReservation && !item.sena?.estado);
 
   // Mismo lenguaje visual que la tarjeta de viaje (ícono + ruta), con el ícono de reserva.
   const BOOKING_ICON = require('../../../../assets/tabsIcons/mis-reservas.png');
