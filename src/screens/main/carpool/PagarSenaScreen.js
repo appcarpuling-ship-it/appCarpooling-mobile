@@ -310,6 +310,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
 
         {!!(sube || baja) && (
           <View style={styles.ruta}>
+            <Text style={[styles.montoRotulo, styles.rutaRotulo, { color: ui.textMuted }]}>TU RECORRIDO</Text>
             <View style={styles.rutaFila}>
               <View style={[styles.dotIni, { borderColor: ui.textMuted }]} />
               <Text style={[styles.rutaTexto, { color: ui.text }]} numberOfLines={2}>{sube}</Text>
@@ -387,6 +388,7 @@ const styles = StyleSheet.create({
   viajeRuta: { fontSize: 17, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 },
   viajeMeta: { fontSize: 12.5, fontFamily: 'Sora_400Regular', marginTop: 4 },
   ruta: { marginTop: 16 },
+  rutaRotulo: { marginBottom: 12 },
   rutaFila: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   rutaTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
   rutaLinea: { width: 1.5, height: 18, marginLeft: 4.25, marginVertical: 3 },
