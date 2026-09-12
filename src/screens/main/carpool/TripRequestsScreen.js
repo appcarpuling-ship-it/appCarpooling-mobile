@@ -281,7 +281,14 @@ const TripRequestsScreen = ({ route }) => {
     return s || city || '';
   };
 
-  const activeTrips = trips.filter((t) => t.status === 'active' || t.status === 'started');
+  // Los viajes con alguna solicitud pendiente van primero: son los que necesitan que el
+  // conductor actúe, no algo que haya que ir a buscar más abajo en la lista. sort() es
+  // estable, así que entre viajes con o sin pendientes el orden que trajo el backend
+  // no se altera.
+  const activeTrips = useMemo(() => {
+    const activos = trips.filter((t) => t.status === 'active' || t.status === 'started');
+    return [...activos].sort((a, b) => (pendingCounts[b._id] ? 1 : 0) - (pendingCounts[a._id] ? 1 : 0));
+  }, [trips, pendingCounts]);
 
   const pendientes = useMemo(
     () => requests.filter((r) => esperandoRespuesta(estadoDe(r))),
