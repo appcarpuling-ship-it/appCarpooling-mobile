@@ -82,9 +82,40 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
         >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.bodyInner}>
+          {!sinPrecioFijo && (
+              /* Hero centrado y sin tarjeta, como el monto de "Tu reserva": es lo único
+                  grande de la pantalla, no una caja más entre las demás. Va primero, antes
+                  que los toggles, tal cual la maqueta aprobada. */
+              <View style={styles.precioHero}>
+                <Text style={[styles.precioRotulo, { color: ui.textMuted }]}>POR ASIENTO</Text>
+                <TextInput
+                  style={[styles.input, { color: valor > 0 ? ui.text : ui.textMuted }]}
+                  placeholder="$0"
+                  placeholderTextColor={ui.textMuted}
+                  keyboardType="number-pad"
+                  autoFocus
+                  value={precio ? `$${precio}` : ''}
+                  onChangeText={(v) => {
+                    const digits = v.replace(/\D/g, '');
+                    setPrecio(digits ? formatMiles(Number(digits)) : '');
+                    if (error) setError('');
+                  }}
+                />
+                {/* El total sólo si pidió más de un asiento: con uno solo repetiría el mismo número. */}
+                {valor > 0 && asientos > 1 && (
+                  <Text style={[styles.total, { color: ui.textMuted }]}>
+                    Son {asientos} asientos: cobrás ${formatMiles(valor * asientos)} en total.
+                  </Text>
+                )}
+              </View>
+          )}
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
           {/* Mismo toggle que en TripDetails: con precio fijo no hay nada que "compartir", y
-              con gastos compartidos no hay precio que fijar. El campo de abajo desaparece
-              cuando esto se prende, en vez de quedar pidiendo un número que no se usa. */}
+              con gastos compartidos no hay precio que fijar. El precio de arriba y la seña
+              de abajo desaparecen cuando esto se prende, en vez de quedar pidiendo un
+              número que no se usa. */}
           <TouchableOpacity
             style={[styles.row, { backgroundColor: ui.surface, borderColor: ui.border }]}
             onPress={() => { setSinPrecioFijo((v) => !v); if (error) setError(''); }}
@@ -113,35 +144,6 @@ const DriverPricePickerScreen = ({ route, navigation }) => {
               </Text>
             </View>
           </TouchableOpacity>
-
-          {!sinPrecioFijo && (
-              /* Hero centrado y sin tarjeta, como el monto de "Tu reserva": es lo único
-                  grande de la pantalla, no una caja más entre las demás. */
-              <View style={styles.precioHero}>
-                <Text style={[styles.precioRotulo, { color: ui.textMuted }]}>POR ASIENTO</Text>
-                <TextInput
-                  style={[styles.input, { color: valor > 0 ? ui.text : ui.textMuted }]}
-                  placeholder="$0"
-                  placeholderTextColor={ui.textMuted}
-                  keyboardType="number-pad"
-                  autoFocus
-                  value={precio ? `$${precio}` : ''}
-                  onChangeText={(v) => {
-                    const digits = v.replace(/\D/g, '');
-                    setPrecio(digits ? formatMiles(Number(digits)) : '');
-                    if (error) setError('');
-                  }}
-                />
-                {/* El total sólo si pidió más de un asiento: con uno solo repetiría el mismo número. */}
-                {valor > 0 && asientos > 1 && (
-                  <Text style={[styles.total, { color: ui.textMuted }]}>
-                    Son {asientos} asientos: cobrás ${formatMiles(valor * asientos)} en total.
-                  </Text>
-                )}
-              </View>
-          )}
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {/* Seña: mismo concepto que al publicar un viaje. No aparece con "gastos
               compartidos" porque sin precio por asiento no hay mitad que calcular. */}
