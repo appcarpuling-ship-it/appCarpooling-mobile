@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Platform, KeyboardAvoidingView, Modal,
+  Platform, KeyboardAvoidingView, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +10,12 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
 import { useUI } from '../../../theme/ui';
+import PillButton from '../../../components/ui/PillButton';
+import DateTimeRow from '../../../components/ui/DateTimeRow';
 
 const pad = (n) => String(n).padStart(2, '0');
 const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const formatDateInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 // "mar 11 de agosto" se lee de un vistazo; 11/08/2026 hay que descifrarlo.
 const fechaLarga = (d) =>
@@ -51,8 +54,6 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const border   = ui.border;  const divider  = ui.bg;
   const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const accent      = ui.invertBg;
-  const accentInverse = ui.invertText;
 
   const tomorrow = new Date(Date.now() + 86400000);
   tomorrow.setHours(8, 0, 0, 0);
@@ -207,30 +208,68 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
             {/* Fecha y hora juntas: son una sola decisión. */}
             <View style={[styles.section, sinParadas && { borderTopWidth: 0 }, { borderTopColor: border }]}>
               <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>¿Cuándo salís?</Text>
-              <TouchableOpacity
-                style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
-                onPress={() => { setTempDate(date); setShowDatePicker(true); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="calendar-outline" size={19} color={textMuted} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
-                  <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.pickRow}
-                onPress={() => { setTempTime(time); setShowTimePicker(true); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="time-outline" size={19} color={textMuted} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
-                  <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={textMuted} />
-              </TouchableOpacity>
+              {/* @react-native-community/datetimepicker no corre en web: mismo patrón que
+                  TripDetails.js (Crear Viaje), un <input type="date|time"> real del
+                  navegador en vez de un picker que ahí no hace nada. */}
+              {Platform.OS === 'web' ? (
+                <>
+                  <DateTimeRow
+                    mode="date"
+                    icon="calendar-outline"
+                    value={formatDateInput(date)}
+                    min={formatDateInput(new Date())}
+                    onChange={(v) => {
+                      const [y, m, d] = v.split('-').map(Number);
+                      if (!y || !m || !d) return;
+                      const nueva = new Date(date);
+                      nueva.setFullYear(y, m - 1, d);
+                      setDate(nueva);
+                    }}
+                    colors={{ textPrimary, textMuted, divider: border, isDark: dark }}
+                  />
+                  <DateTimeRow
+                    mode="time"
+                    icon="time-outline"
+                    value={formatTime(time)}
+                    onChange={(v) => {
+                      const [h, mi] = v.split(':').map(Number);
+                      if (Number.isNaN(h) || Number.isNaN(mi)) return;
+                      const nueva = new Date(time);
+                      nueva.setHours(h, mi, 0, 0);
+                      setTime(nueva);
+                    }}
+                    isLast
+                    colors={{ textPrimary, textMuted, divider: border, isDark: dark }}
+                  />
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
+                    onPress={() => { setTempDate(date); setShowDatePicker(true); }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="calendar-outline" size={19} color={textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
+                      <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.pickRow}
+                    onPress={() => { setTempTime(time); setShowTimePicker(true); }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="time-outline" size={19} color={textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
+                      <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
 
             {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/-
@@ -278,16 +317,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
               (sin paradas) el botón se pega abajo en vez de dejar un hueco vacío colgando
               entre el resumen y un footer fijo aparte. */}
           <View style={[styles.footer, { borderTopWidth: 0 }]}>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: accent }, loading && { opacity: 0.6 }]}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading
-                ? <ActivityIndicator color={accentInverse} />
-                : <Text style={[styles.btnText, { color: accentInverse }]}>Publicar solicitud</Text>
-              }
-            </TouchableOpacity>
+            <PillButton label="Publicar solicitud" onPress={handleSubmit} loading={loading} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -409,8 +439,6 @@ const styles = StyleSheet.create({
   seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
   resumen: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 24, paddingHorizontal: 4 },
   footer: { marginTop: 'auto', paddingTop: 24, borderTopWidth: StyleSheet.hairlineWidth },
-  btn:     { borderRadius: 999, paddingVertical: 17, alignItems: 'center' },
-  btnText: { fontSize: 16, fontFamily: 'Sora_700Bold' },
   // Pickers
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   pickerBox:     { borderRadius: 14, margin: 20, minWidth: 300, overflow: 'hidden' },

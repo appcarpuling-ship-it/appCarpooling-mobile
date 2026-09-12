@@ -2,6 +2,23 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// El navegador ya le pone su propio ícono de calendario/reloj al <input> nativo, así que
+// con el Ionicon de la izquierda quedaban dos íconos por fila. Se lo oculta con CSS (no hay
+// forma de sacarlo por prop): opacity:0 y no display:none, para que el área siga
+// respondiendo al click y siga abriendo el picker nativo.
+if (typeof document !== 'undefined' && !document.getElementById('date-time-row-hide-native-icon')) {
+  const style = document.createElement('style');
+  style.id = 'date-time-row-hide-native-icon';
+  style.textContent = `
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      opacity: 0;
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 /**
  * Fila de fecha u hora para web. @react-native-community/datetimepicker no corre en web,
  * así que se usa el <input type="date|time"> nativo del navegador — que además devuelve
