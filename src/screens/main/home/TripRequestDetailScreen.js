@@ -66,6 +66,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   const [refreshing,     setRefreshing]     = useState(false);
   const [accepting,      setAccepting]      = useState(null);
   const [vehicles,       setVehicles]       = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [applying,       setApplying]       = useState(false);
   const [canApply,       setCanApply]       = useState(canApplyParam ?? false);
   const [alreadyApplied, setAlreadyApplied] = useState(alreadyAppliedParam ?? false);
@@ -200,6 +201,7 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
       const res = await get_withauth(ENDPOINTS.MY_VEHICLES);
       if (res.success) setVehicles(res.data || []);
     } catch { /* no-op */ }
+    finally { setLoadingVehicles(false); }
   };
 
   const load = async (isRefreshing = false) => {
@@ -293,6 +295,12 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
   };
 
   const handleApplyPress = () => {
+    // Sin esto, tocar "Ofrecer viaje" apenas se abre la pantalla (antes de que
+    // loadVehicles termine) mostraba "Sin vehículos" con un conductor que sí tiene uno
+    // registrado — `vehicles` todavía estaba en su [] inicial.
+    if (loadingVehicles) {
+      return showAlert('Un momento', 'Estamos verificando tus vehículos...');
+    }
     if (vehicles.length === 0) {
       return showAlert(
         'Sin vehículos',
