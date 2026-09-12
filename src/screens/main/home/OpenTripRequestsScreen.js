@@ -16,6 +16,8 @@ import { getOpenTripRequests, getMyTripRequests } from '../../../services/tripRe
 import { buildImageUri } from '../../../services/apiService';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 
 const OpenTripRequestsScreen = ({ navigation }) => {
@@ -40,6 +42,7 @@ const OpenTripRequestsScreen = ({ navigation }) => {
   const [page,       setPage]       = useState(1);
   const [hasMore,    setHasMore]    = useState(true);
   const [loading,    setLoading]    = useState(true);
+  const showSkeleton = useMinDuration(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fetchingRef = useRef(false);
@@ -397,10 +400,8 @@ const OpenTripRequestsScreen = ({ navigation }) => {
         </ScrollView>
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={textMuted} />
-        </View>
+      {showSkeleton ? (
+        <TripListSkeleton />
       ) : requests.length === 0 ? (
         <View style={styles.center}>
           <EmptyState

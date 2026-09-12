@@ -16,6 +16,8 @@ import { ENDPOINTS } from '../../../config/api';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 import { montoSena } from '../../../utils/sena';
 import { fmtDate } from '../../../utils/solicitudes';
@@ -49,6 +51,7 @@ const MisSenasScreen = ({ route }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinDuration(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fetchingRef = useRef(false);
@@ -166,10 +169,8 @@ const MisSenasScreen = ({ route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="small" color={textMuted} />
-        </View>
+      {showSkeleton ? (
+        <TripListSkeleton />
       ) : items.length > 0 ? (
         <FlatList
           data={items}

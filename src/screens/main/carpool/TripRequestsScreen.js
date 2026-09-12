@@ -24,6 +24,8 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 import {
   getStatusConSena,
@@ -88,6 +90,7 @@ const TripRequestsScreen = ({ route }) => {
   const [tripsPage, setTripsPage] = useState(1);
   const [tripsHasMore, setTripsHasMore] = useState(true);
   const [loadingTrips, setLoadingTrips] = useState(true);
+  const showTripsSkeleton = useMinDuration(loadingTrips);
   const [loadingMoreTrips, setLoadingMoreTrips] = useState(false);
   const tripsFetchLock = useRef(false);
 
@@ -96,6 +99,7 @@ const TripRequestsScreen = ({ route }) => {
   const [reqPage, setReqPage] = useState(1);
   const [reqHasMore, setReqHasMore] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const showRequestsSkeleton = useMinDuration(loadingRequests);
   const [loadingMoreRequests, setLoadingMoreRequests] = useState(false);
   const reqFetchLock = useRef(false);
 
@@ -523,10 +527,10 @@ const TripRequestsScreen = ({ route }) => {
     ) : null;
 
   // ─── Loading ──────────────────────────────────────────────────────────────
-  if (!selectedTripId && loadingTrips && !refreshing) {
+  if (!selectedTripId && showTripsSkeleton && !refreshing) {
     return (
-      <View style={[styles.centered, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={textMuted} />
+      <View style={[styles.container, { backgroundColor: bg }]}>
+        <TripListSkeleton />
       </View>
     );
   }
@@ -572,10 +576,8 @@ const TripRequestsScreen = ({ route }) => {
               el encabezado y la ruta (ya los tenemos en `trips`) se ven al toque, y sólo la
               lista de abajo espera. Antes se tapaba todo con un spinner de pantalla completa
               apenas se abría — un parpadeo "viaje → pantalla en blanco → viaje" por nada. */}
-          {loadingRequests && !refreshing && requests.length === 0 ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={textMuted} />
-            </View>
+          {showRequestsSkeleton && !refreshing && requests.length === 0 ? (
+            <TripListSkeleton />
           ) : requests.length === 0 ? (
             <EmptyState
               image={require('../../../../assets/icons/pngwing.com (20).png')}

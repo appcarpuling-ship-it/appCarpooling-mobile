@@ -11,6 +11,8 @@ import { getMyTripRequests, cancelTripRequest } from '../../../services/tripRequ
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 
 const STATUS_LABELS = {
@@ -49,6 +51,7 @@ const MyTripRequestsScreen = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinDuration(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -208,10 +211,8 @@ const MyTripRequestsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={textMuted} />
-        </View>
+      {showSkeleton ? (
+        <TripListSkeleton />
       ) : (
         <FlatList
           data={filteredRequests}

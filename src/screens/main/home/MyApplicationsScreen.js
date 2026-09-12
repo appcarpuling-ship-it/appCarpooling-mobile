@@ -11,6 +11,8 @@ import { getMyApplications, cancelTripRequestApplication } from '../../../servic
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { useUI } from '../../../theme/ui';
 import EmptyState from '../../../components/ui/EmptyState';
+import { TripListSkeleton } from '../../../components/ui/TripCardSkeleton';
+import { useMinDuration } from '../../../hooks/useMinDuration';
 import { reportError } from '../../../utils/sentry';
 
 // Sin color: aceptado y pendiente siguen en juego y llevan badge solido;
@@ -35,6 +37,7 @@ const MyApplicationsScreen = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinDuration(loading);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(null);
@@ -235,10 +238,8 @@ const MyApplicationsScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={textMuted} />
-        </View>
+      {showSkeleton ? (
+        <TripListSkeleton />
       ) : (
         <FlatList
           data={items}
