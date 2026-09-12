@@ -357,7 +357,6 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
                 style={[styles.footerBtn, { backgroundColor: '#FFFFFF', flex: 1 }]}
                 onPress={() => handleCompleteTrip(item._id)}
               >
-                <Ionicons name="checkmark-circle-outline" size={15} color="#000000" />
                 <Text style={[styles.footerBtnText, { color: '#000000' }]}>Completar viaje</Text>
               </TouchableOpacity>
             </View>
