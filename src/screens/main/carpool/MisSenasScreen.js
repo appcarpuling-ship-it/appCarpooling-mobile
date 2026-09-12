@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,9 +42,9 @@ const MisSenasScreen = ({ route }) => {
   const navigation = useNavigation();
   const ui = useUI();
   const { showAlert } = useAlert();
-  // Se entra directo a la pestaña del tile que se tocó (Reservas Recibidas → Recibidas,
-  // Mis Reservas → Enviadas), pero se puede cambiar una vez adentro.
-  const [tab, setTab] = useState(route?.params?.tab === 'recibidas' ? 'recibidas' : 'enviadas');
+  // Fija, no un switch: "Señas Recibidas" es recibidas y "Señas Enviadas" es enviadas,
+  // sin forma de cruzar de una a la otra desde acá adentro.
+  const tab = route?.params?.tab === 'recibidas' ? 'recibidas' : 'enviadas';
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -79,6 +79,10 @@ const MisSenasScreen = ({ route }) => {
       setRefreshing(false);
     }
   }, [showAlert]);
+
+  useEffect(() => {
+    navigation.setOptions({ title: tab === 'recibidas' ? 'Señas recibidas' : 'Señas enviadas' });
+  }, [navigation, tab]);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,23 +166,6 @@ const MisSenasScreen = ({ route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
-      <View style={styles.tabsContainer}>
-        <View style={[styles.tabPill, { backgroundColor: ui.surface }]}>
-          {['enviadas', 'recibidas'].map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.tab, tab === t && { backgroundColor: ui.invertBg }]}
-              onPress={() => { if (t !== tab) { setItems([]); setTab(t); } }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabText, { color: tab === t ? ui.invertText : ui.textMuted }]}>
-                {t === 'enviadas' ? 'Enviadas' : 'Recibidas'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="small" color={textMuted} />
@@ -188,6 +175,7 @@ const MisSenasScreen = ({ route }) => {
           data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
@@ -222,11 +210,7 @@ const MisSenasScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  tabsContainer: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
-  tabPill: { flexDirection: 'row', borderRadius: 999, padding: 5 },
-  tab: { flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center' },
-  tabText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+  listContent: { paddingTop: 8 },
 
   fila: {
     flexDirection: 'row',
