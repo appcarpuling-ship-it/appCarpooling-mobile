@@ -66,6 +66,16 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
   const [seatsNeeded, setSeatsNeeded] = useState(1);
   const [loading, setLoading]         = useState(false);
 
+  // Apiladas, con varias paradas la lista se hacía larguísima. Igual que en Detalles del
+  // viaje: colapsadas se ven sólo las dos puntas, y los puntitos en la línea + la flechita
+  // avisan que hay algo más en el medio sin ocultarlo del todo.
+  const [paradasAbiertas, setParadasAbiertas] = useState(false);
+  const cantidadParadas = puntos.length - 2;
+  const hayParadasIntermedias = cantidadParadas > 0;
+  const puntosVisibles = paradasAbiertas || !hayParadasIntermedias
+    ? puntos
+    : [puntos[0], puntos[puntos.length - 1]];
+
   const onDateChange = (_, selected) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
@@ -148,7 +158,28 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
             <View style={styles.routeCard}>
               <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>Tu recorrido</Text>
-              {puntos.map((punto, i) => (
+
+              {hayParadasIntermedias && (
+                <TouchableOpacity
+                  style={styles.paradasToggle}
+                  onPress={() => setParadasAbiertas((v) => !v)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: paradasAbiertas }}
+                  accessibilityLabel={paradasAbiertas ? 'Ocultar paradas intermedias' : 'Ver paradas intermedias'}
+                >
+                  <Text style={[styles.paradasToggleText, { color: textMuted }]}>
+                    {paradasAbiertas ? 'Ocultar paradas' : `${cantidadParadas} parada${cantidadParadas !== 1 ? 's' : ''} en el camino`}
+                  </Text>
+                  <Ionicons
+                    name={paradasAbiertas ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={textMuted}
+                  />
+                </TouchableOpacity>
+              )}
+
+              {puntosVisibles.map((punto, i) => (
                 <View key={`punto-${i}`} style={styles.routePoint}>
                   <View style={styles.routeRail}>
                     {punto.tipo === 'origen'
@@ -156,11 +187,24 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                       : punto.tipo === 'destino'
                         ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
                         : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
-                    {i < puntos.length - 1 && (
-                      <View style={[styles.railLine, { backgroundColor: border }]} />
+                    {i < puntosVisibles.length - 1 && (
+                      <View style={[styles.railLine, { backgroundColor: border }]}>
+                        {!paradasAbiertas && hayParadasIntermedias && (
+                          <TouchableOpacity
+                            style={[styles.railPuntos, { backgroundColor: cardBg }]}
+                            onPress={() => setParadasAbiertas((v) => !v)}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                            activeOpacity={0.6}
+                            accessibilityRole="button"
+                            accessibilityLabel="Ver paradas intermedias"
+                          >
+                            <Ionicons name="ellipsis-vertical" size={13} color={textMuted} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     )}
                   </View>
-                  <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
+                  <View style={[styles.routeBody, i < puntosVisibles.length - 1 && styles.routeBodyGap]}>
                     <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
                     <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
                       {punto.direccion}
@@ -373,14 +417,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   // Cada bloque de acá para abajo, separado del anterior por una línea fina.
-  section: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 4, paddingBottom: 14 },
+  section: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 18, paddingBottom: 14 },
   routeCard: { paddingTop: 16, paddingBottom: 14 },
+  paradasToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14 },
+  paradasToggleText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
   routePoint: { flexDirection: 'row', gap: 12 },
   routeRail: { width: 9, alignItems: 'center', paddingTop: 5 },
   dot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
   dotFilled: { width: 9, height: 9, borderRadius: 5 },
   dotParada: { width: 7, height: 7, borderRadius: 4, marginVertical: 1 },
   railLine: { width: 1.5, flex: 1, minHeight: 18, marginVertical: 4 },
+  // Los puntitos se centran sobre la línea desbordando a los lados (left negativo, ancho
+  // fijo) — si no quedarían recortados. El fondo de la card los recorta contra la línea.
+  railPuntos: {
+    position: 'absolute', top: '50%', marginTop: -11, left: -6.25,
+    width: 14, alignItems: 'center', paddingVertical: 3,
+  },
   routeBody: { flex: 1 },
   routeBodyGap: { paddingBottom: 16 },
   routeLabel: {
