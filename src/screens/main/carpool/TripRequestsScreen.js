@@ -35,6 +35,9 @@ import {
   partirDesvio,
 } from '../../../utils/solicitudes';
 
+// Mismo ícono que usa la tarjeta de "Próximos viajes" en Inicio para un viaje propio.
+const TRIP_ICON = require('../../../../assets/tabsIcons/mis-viajes.png');
+
 const TripRequestsScreen = ({ route }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -360,49 +363,45 @@ const TripRequestsScreen = ({ route }) => {
       </View>
     );
   };
+  // Mismo lenguaje que la tarjeta de "Próximos viajes" en Inicio (ícono + ruta en una línea +
+  // un dato a la derecha + chip de paradas abajo): antes esta pantalla tenía su propia tarjeta
+  // más pesada (rail de puntos, direcciones completas en dos columnas, footer con divisor).
   const renderTripCard = ({ item }) => {
     const pending = pendingCounts[item._id] || 0;
+    const hasStops = item.intermediateStops?.length > 0;
     return (
       <TouchableOpacity
-        style={[styles.tripCard, { backgroundColor: cardBg, borderColor: border }]}
+        style={[styles.tripCard, { backgroundColor: cardBg }]}
         onPress={() => setSelectedTripId(item._id)}
         activeOpacity={0.7}
       >
-        {/* Route */}
-        <View style={styles.routeBlock}>
-          <View style={styles.routeDotsCol}>
-            <View style={[styles.dotOrigin, { borderColor: accent }]} />
-            <View style={[styles.routeLine, { backgroundColor: isDarkMode ? '#444' : '#D0D0D0' }]} />
-            <View style={[styles.dotDest, { backgroundColor: accent }]} />
-          </View>
-          <View style={styles.routeTextCol}>
-            <Text style={[styles.routeTextLabel, { color: textMuted }]}>Origen</Text>
-            <Text style={[styles.routeTextValue, { color: textPrimary }]} numberOfLines={2}>
-              {fmtAddress(item.origin?.address, item.origin?.city)}
-            </Text>
-            <View style={{ height: 14 }} />
-            <Text style={[styles.routeTextLabel, { color: textMuted }]}>Destino</Text>
-            <Text style={[styles.routeTextValue, { color: textPrimary }]} numberOfLines={2}>
-              {fmtAddress(item.destination?.address, item.destination?.city)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Footer */}
-        <View style={[styles.tripCardFooter, { borderTopColor: divider }]}>
-          <View style={styles.tripCardMeta}>
-            <Ionicons name="calendar-outline" size={13} color={textMuted} />
-            <Text style={[styles.tripCardMetaText, { color: textMuted }]}>
+        <View style={styles.tripHeaderRow}>
+          <Image source={TRIP_ICON} style={styles.tripIconBox} resizeMode="contain" />
+          <View style={styles.tripInfoColumn}>
+            <View style={styles.routeLine}>
+              <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{item.origin?.city}</Text>
+              <Text style={[styles.routeConnector, { color: textMuted }]}>{hasStops ? '···' : '→'}</Text>
+              <Text style={[styles.routeCity, { color: textPrimary }]} numberOfLines={1}>{item.destination?.city}</Text>
+            </View>
+            <Text style={[styles.tripMeta, { color: textMuted }]} numberOfLines={1}>
               {fmtDate(item.departureDate)} · {item.departureTime}
             </Text>
           </View>
           {pending > 0 ? (
-            <View style={[styles.pendingBadge, { backgroundColor: ui.invertBg }]}>
-              <Text style={[styles.pendingBadgeText, { color: ui.invertText }]}>{pending} pendiente{pending > 1 ? 's' : ''}</Text>
+            <View style={styles.priceBox}>
+              <Text style={[styles.priceValue, { color: textPrimary }]}>{pending}</Text>
+              <Text style={[styles.priceLabel, { color: textMuted }]}>pendiente{pending > 1 ? 's' : ''}</Text>
             </View>
           ) : (
-            <Ionicons name="chevron-forward" size={16} color={textMuted} />
+            <Ionicons name="chevron-forward" size={16} color={textMuted} style={{ alignSelf: 'center' }} />
           )}
+        </View>
+
+        <View style={[styles.stopChip, { backgroundColor: bg, borderColor: divider }]}>
+          <Ionicons name="git-branch-outline" size={13} color={textMuted} />
+          <Text style={[styles.stopChipText, { color: textMuted }]}>
+            {hasStops ? `${item.intermediateStops.length} parada${item.intermediateStops.length !== 1 ? 's' : ''}` : 'Sin paradas'}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -525,14 +524,6 @@ const TripRequestsScreen = ({ route }) => {
     );
   }
 
-  if (selectedTripId && loadingRequests && !refreshing && requests.length === 0) {
-    return (
-      <View style={[styles.centered, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={textMuted} />
-      </View>
-    );
-  }
-
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -570,7 +561,15 @@ const TripRequestsScreen = ({ route }) => {
         >
           {renderTripContextBlock()}
 
-          {requests.length === 0 ? (
+          {/* El loader va ACÁ adentro, no reemplazando toda la pantalla: al tocar un viaje,
+              el encabezado y la ruta (ya los tenemos en `trips`) se ven al toque, y sólo la
+              lista de abajo espera. Antes se tapaba todo con un spinner de pantalla completa
+              apenas se abría — un parpadeo "viaje → pantalla en blanco → viaje" por nada. */}
+          {loadingRequests && !refreshing && requests.length === 0 ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={textMuted} />
+            </View>
+          ) : requests.length === 0 ? (
             <EmptyState
               image={require('../../../../assets/icons/pngwing.com (20).png')}
               title="Sin solicitudes"
@@ -666,12 +665,29 @@ const styles = StyleSheet.create({
   screenHeader:      { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 22 },
   screenTitle:       { fontFamily: 'Sora_300Light', fontSize: 32, lineHeight: 40, letterSpacing: -1 },
   screenTitleStrong: { fontFamily: 'Sora_800ExtraBold' },
+  // Mismo lenguaje que la tarjeta de "Próximos viajes" en Inicio: ícono + ruta en una línea +
+  // un dato a la derecha, y el chip de paradas abajo.
   tripCard: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 18,
     marginBottom: 12,
-    overflow: 'hidden',
+    padding: 16,
+    gap: 10,
   },
+  tripHeaderRow: { flexDirection: 'row', gap: 14 },
+  tripIconBox:   { width: 52, height: 52 },
+  tripInfoColumn:{ flex: 1, minWidth: 0, justifyContent: 'center', gap: 4 },
+  routeLine:      { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
+  routeCity:      { fontSize: 15, fontFamily: 'Sora_700Bold', flexShrink: 1 },
+  routeConnector: { fontSize: 15, fontFamily: 'Sora_700Bold' },
+  tripMeta:       { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
+  priceBox:   { flexShrink: 0, alignSelf: 'center', alignItems: 'flex-end' },
+  priceValue: { fontSize: 15, fontFamily: 'Sora_800ExtraBold' },
+  priceLabel: { fontSize: 10, fontFamily: 'Sora_600SemiBold' },
+  stopChip: {
+    flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 5,
+    borderRadius: 999, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 10,
+  },
+  stopChipText: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
   // Bandeja: un grupo por estado, y dentro una lista de filas separadas por un pelo.
   grupo: { marginBottom: 22 },
   grupoHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, paddingHorizontal: 4 },
@@ -731,51 +747,6 @@ const styles = StyleSheet.create({
   tripContextSwitchBtn: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 },
   tripContextSwitchText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
 
-  routeBlock: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 14,
-  },
-  routeDotsCol: {
-    width: 18,
-    alignItems: 'center',
-    paddingTop: 18,
-  },
-  dotOrigin: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-  },
-  routeLine: {
-    width: 1.5,
-    height: 28,
-    marginVertical: 4,
-  },
-  dotDest: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routeTextCol:   { flex: 1 },
-  routeTextLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  routeTextValue: { fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 20 },
-  tripCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  tripCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tripCardMetaText: { fontSize: 13 },
-  pendingBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  pendingBadgeText: { fontSize: 12, fontFamily: 'Sora_600SemiBold' },
 
   avatar: {
     width: 46,
