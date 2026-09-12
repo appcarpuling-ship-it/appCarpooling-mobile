@@ -1262,7 +1262,7 @@ const TripDetailScreen = ({ route, navigation }) => {
 
         {/* Footer — driver */}
         {isOwnTrip && (trip.status === 'active' || trip.status === 'started' || trip.status === 'pending') && (
-          <View style={[styles.footer, { borderTopColor: divider }]}>
+          <View style={[styles.footer, { borderTopWidth: 0 }]}>
             {trip.status === 'active' && (
               <>
                 {isTripToday(trip.departureDate) && (
@@ -1287,13 +1287,13 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                   */}
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
+                    style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
                     disabled={cancellingTrip}
                   >
                     {cancellingTrip
-                      ? <ActivityIndicator size="small" color={textMuted} />
-                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Cancelar</Text>
+                      ? <ActivityIndicator size="small" color="#FFFFFF" />
+                      : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar</Text>
                     }
                   </TouchableOpacity>
                 </View>
@@ -1320,13 +1320,13 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
                   <TouchableOpacity
-                    style={[styles.footerBtnOutline, { borderColor: ui.border, flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
+                    style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancellingTrip && { opacity: 0.6 }]}
                     onPress={handleCancelTrip}
                     disabled={cancellingTrip}
                   >
                     {cancellingTrip
-                      ? <ActivityIndicator size="small" color={textMuted} />
-                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Cancelar</Text>
+                      ? <ActivityIndicator size="small" color="#FFFFFF" />
+                      : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar</Text>
                     }
                   </TouchableOpacity>
                 </View>
