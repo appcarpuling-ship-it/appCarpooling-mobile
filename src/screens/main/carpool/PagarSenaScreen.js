@@ -186,13 +186,13 @@ const PagarSenaScreen = ({ route, navigation }) => {
             enviada: {
               rotulo: 'Seña enviada',
               monto: pesos(monto),
-              chip: { icon: 'time-outline', t: 'Esperando confirmación' },
+              // chip: { icon: 'time-outline', t: 'Esperando confirmación' },
               pie: `Total del viaje: ${pesos(alConductor)}`,
             },
             confirmada: {
               rotulo: 'Seña confirmada',
               monto: pesos(monto),
-              chip: { icon: 'checkmark-circle', t: 'Ya le llegó', color: '#10B981' },
+              // chip: { icon: 'checkmark-circle', t: 'Ya le llegó', color: '#10B981' },
               pie: `Total del viaje: ${pesos(alConductor)}`,
             },
           }[estado];
