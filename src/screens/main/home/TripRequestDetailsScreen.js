@@ -38,6 +38,9 @@ const armarPuntos = (origin, destination, waypoints) => [
 const TripRequestDetailsScreen = ({ route, navigation }) => {
   const { origin, destination, waypoints } = route.params || {};
   const puntos = armarPuntos(origin, destination, waypoints);
+  // El "hero" de ruta (ciudades grandes lado a lado) sólo funciona con dos puntas; con
+  // paradas en el medio, el riel vertical de siempre sigue siendo lo único que escala.
+  const sinParadas = puntos.length === 2;
   const { isDarkMode } = useTheme();
   const { showAlert } = useAlert();
 
@@ -139,46 +142,70 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* Una sola tarjeta para todo el formulario, con cada bloque separado por una
-              línea fina en vez de tres cajas sueltas con su propio fondo y borde — eso se
-              leía como una pantalla partida en pedazos. */}
+          {/* Ruta grande arriba, sin tarjeta: llena el espacio que antes quedaba vacío y da
+              contexto de un vistazo. Sólo para el caso común (sin paradas) — con paradas en
+              el medio, el riel vertical de siempre es lo único que sigue entrando bien. */}
+          {sinParadas ? (
+            <View style={styles.rutaHero}>
+              <View style={styles.rutaHeroPunto}>
+                <View style={[styles.heroDot, { borderColor: textPrimary }]} />
+                <Text style={[styles.heroCiudad, { color: textPrimary }]} numberOfLines={2}>
+                  {origin?.city || origin?.address}
+                </Text>
+              </View>
+              <View style={styles.heroLineaWrap}>
+                <View style={[styles.heroLinea, { backgroundColor: border }]} />
+              </View>
+              <View style={styles.rutaHeroPunto}>
+                <View style={[styles.heroDotFin, { backgroundColor: textPrimary }]} />
+                <Text style={[styles.heroCiudad, { color: textPrimary }]} numberOfLines={2}>
+                  {destination?.city || destination?.address}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Una sola tarjeta para el resto del formulario, con cada bloque separado por una
+              línea fina en vez de cajas sueltas con su propio fondo y borde — eso se leía
+              como una pantalla partida en pedazos. */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
 
-            {/* La ruta que venís de elegir en el mapa. Antes eran dos líneas sueltas —origen y
-                destino, sin rótulo— y las paradas ni figuraban: sólo un "N paradas en el
-                camino" al pie, así que no había forma de ver DÓNDE eran. Ahora cada punto es
-                una fila con su círculo al lado de su texto, igual que en el resto de la app. */}
-            <View style={styles.routeCard}>
-              <Text style={[styles.label, { color: textMuted }]}>Tu recorrido</Text>
-              {puntos.map((punto, i) => (
-                <View key={`punto-${i}`} style={styles.routePoint}>
-                  <View style={styles.routeRail}>
-                    {punto.tipo === 'origen'
-                      ? <View style={[styles.dot, { borderColor: textPrimary }]} />
-                      : punto.tipo === 'destino'
-                        ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
-                        : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
-                    {i < puntos.length - 1 && (
-                      <View style={[styles.railLine, { backgroundColor: border }]} />
-                    )}
-                  </View>
-                  <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
-                    <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
-                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-                      {punto.direccion}
-                    </Text>
-                    {!!punto.ciudad && (
-                      <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
-                        {punto.ciudad}
+            {/* Con paradas, la ruta completa vuelve al riel vertical de siempre: cada punto
+                es una fila con su círculo al lado de su texto, igual que en el resto de la
+                app — el hero de arriba sólo funciona con dos puntas. */}
+            {!sinParadas && (
+              <View style={styles.routeCard}>
+                <Text style={[styles.label, { color: textMuted }]}>Tu recorrido</Text>
+                {puntos.map((punto, i) => (
+                  <View key={`punto-${i}`} style={styles.routePoint}>
+                    <View style={styles.routeRail}>
+                      {punto.tipo === 'origen'
+                        ? <View style={[styles.dot, { borderColor: textPrimary }]} />
+                        : punto.tipo === 'destino'
+                          ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
+                          : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
+                      {i < puntos.length - 1 && (
+                        <View style={[styles.railLine, { backgroundColor: border }]} />
+                      )}
+                    </View>
+                    <View style={[styles.routeBody, i < puntos.length - 1 && styles.routeBodyGap]}>
+                      <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
+                      <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
+                        {punto.direccion}
                       </Text>
-                    )}
+                      {!!punto.ciudad && (
+                        <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
+                          {punto.ciudad}
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
 
             {/* Fecha y hora juntas: son una sola decisión. */}
-            <View style={[styles.section, { borderTopColor: border }]}>
+            <View style={[styles.section, sinParadas && { borderTopWidth: 0 }, { borderTopColor: border }]}>
               <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>¿Cuándo salís?</Text>
               <TouchableOpacity
                 style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
@@ -209,6 +236,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
             {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/-
                 solo en el medio de una tarjeta vacía. */}
             <View style={[styles.section, styles.seatsCard, { borderTopColor: border }]}>
+              <Ionicons name="people-outline" size={19} color={textMuted} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { color: textMuted, marginTop: 0, marginBottom: 6 }]}>¿Cuántos viajan?</Text>
                 <Text style={[styles.pickValue, { color: textPrimary }]}>
@@ -344,6 +372,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 16,
   },
+  // Hero de ruta: origen y destino lado a lado, sin tarjeta, arriba de todo.
+  rutaHero: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', paddingVertical: 20, paddingHorizontal: 4, gap: 12 },
+  rutaHeroPunto: { flex: 1, alignItems: 'center', gap: 10, minWidth: 0 },
+  heroDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5 },
+  heroDotFin: { width: 14, height: 14, borderRadius: 7 },
+  heroCiudad: { fontSize: 15, fontFamily: 'Sora_700Bold', textAlign: 'center', letterSpacing: -0.2 },
+  // padding-bottom para alinear la línea con el centro de los círculos (14px) y no con
+  // el texto de la ciudad, que puede ocupar 1 o 2 líneas.
+  heroLineaWrap: { paddingTop: 5, paddingBottom: 24 },
+  heroLinea: { width: 36, height: 2 },
+
   // Cada bloque de acá para abajo, separado del anterior por una línea fina.
   section: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 4, paddingBottom: 14 },
   routeCard: { paddingTop: 16, paddingBottom: 14 },
