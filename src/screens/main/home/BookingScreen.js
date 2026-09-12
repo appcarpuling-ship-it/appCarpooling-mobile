@@ -95,6 +95,7 @@ const BookingScreen = ({ route, navigation }) => {
   const textMuted = colors.textMuted;
 
   const ui = useUI();  const divider = ui.bg;
+  const border = ui.border;
   const accent = ui.invertBg;
   const accentInverse = ui.invertText;
   const sectionLabelColor = dark ? textMuted : '#374151';
@@ -557,7 +558,7 @@ const BookingScreen = ({ route, navigation }) => {
             })}
 
             {/* Date & Time */}
-            <View style={[styles.metaRow, { borderTopColor: divider }]}>
+            <View style={[styles.metaRow, { borderTopColor: border }]}>
               <View style={styles.metaItem}>
                 <Ionicons name="calendar-outline" size={15} color={textMuted} />
                 <Text style={[styles.metaText, { color: textMuted }]}>
@@ -566,12 +567,12 @@ const BookingScreen = ({ route, navigation }) => {
                   })}
                 </Text>
               </View>
-              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+              <View style={[styles.metaDivider, { backgroundColor: border }]} />
               <View style={styles.metaItem}>
                 <Ionicons name="time-outline" size={15} color={textMuted} />
                 <Text style={[styles.metaText, { color: textMuted }]}>{trip.departureTime || 'N/A'} hs</Text>
               </View>
-              <View style={[styles.metaDivider, { backgroundColor: divider }]} />
+              <View style={[styles.metaDivider, { backgroundColor: border }]} />
               <View style={styles.metaItem}>
                 <Ionicons name="people-outline" size={15} color={textMuted} />
                 <Text style={[styles.metaText, { color: textMuted }]}>
