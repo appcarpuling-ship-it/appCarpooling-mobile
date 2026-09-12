@@ -991,14 +991,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isAcceptedDriver && request.status === 'paid' && (
             <View style={[styles.footerRow, { marginTop: 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtn, { backgroundColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancelTrip}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
                   ? <ActivityIndicator size="small" color="#FFFFFF" />
-                  : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar viaje</Text>
+                  : <Text style={[styles.footerBtnText, { color: '#FFFFFF' }]}>Cancelar viaje</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -1015,14 +1015,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
                   el compromiso está tomado y se cancela desde el viaje, no desde acá. */}
               {alreadyApplied && !['paid', 'awaiting_payment'].includes(request.status) && (
                 <TouchableOpacity
-                  style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444' }, retirando && { opacity: 0.6 }]}
+                  style={[styles.footerBtn, { backgroundColor: '#EF4444' }, retirando && { opacity: 0.6 }]}
                   onPress={handleRetirarPostulacion}
                   disabled={retirando}
                   activeOpacity={0.85}
                 >
                   {retirando
                     ? <ActivityIndicator size="small" color="#FFFFFF" />
-                    : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Retirar postulación</Text>
+                    : <Text style={[styles.footerBtnText, { color: '#FFFFFF' }]}>Retirar postulación</Text>
                   }
                 </TouchableOpacity>
               )}
@@ -1046,14 +1046,14 @@ const TripRequestDetailScreen = ({ route, navigation }) => {
           {isPassenger && !effectivelyExpired && ['open', 'awaiting_payment', 'paid'].includes(request.status) && (
             <View style={[styles.footerRow, { marginTop: request.status === 'awaiting_payment' ? 0 : 10 }]}>
               <TouchableOpacity
-                style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
+                style={[styles.footerBtn, { backgroundColor: '#EF4444', flex: 1 }, cancelling && { opacity: 0.6 }]}
                 onPress={handleCancel}
                 activeOpacity={0.7}
                 disabled={cancelling}
               >
                 {cancelling
                   ? <ActivityIndicator size="small" color="#FFFFFF" />
-                  : <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Cancelar solicitud</Text>
+                  : <Text style={[styles.footerBtnText, { color: '#FFFFFF' }]}>Cancelar solicitud</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -1275,8 +1275,6 @@ const styles = StyleSheet.create({
   // Pill, como el resto de los botones de la app.
   footerBtn:        { borderRadius: 999, paddingVertical: 15, alignItems: 'center' },
   footerBtnText:    { fontSize: 15, fontFamily: 'Sora_700Bold' },
-  footerBtnOutline: { borderRadius: 999, paddingVertical: 14, alignItems: 'center', borderWidth: 1 },
-  footerBtnOutlineText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   statusFooter:     { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12 },
   statusFooterText: { fontSize: 13, fontFamily: 'Sora_500Medium', flex: 1 },
 
