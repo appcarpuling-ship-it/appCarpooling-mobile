@@ -44,15 +44,13 @@ const conductorBig = [
   { id: 'c1', title: 'Crear Viaje', image: require('../../../../assets/tabsIcons/crear-viaje.png'), screen: 'CreateTrip' },
   { id: 'c2', title: 'Mis Viajes', image: require('../../../../assets/tabsIcons/mis-viajes.png'), screen: 'MyTrips' },
 ];
+// "Ver solicitudes abiertas" sigue estando en Inicio (HomeScreen), así que sacarla de acá
+// no la deja huérfana. En su lugar va Señas Recibidas.
 const conductorSmall = [
   { id: 'c3', title: 'Reservas Recibidas', image: require('../../../../assets/tabsIcons/reservas-recibidas.png'), screen: 'TripRequests' },
-  { id: 'c4', title: 'Ver solicitudes abiertas', image: require('../../../../assets/tabsIcons/reservas-recibidas-solicitudes.png'), screen: 'OpenTripRequests', tab: 'HomeTab' },
+  { id: 'c6', title: 'Señas Recibidas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MisSenas', params: { tab: 'recibidas' } },
   { id: 'c5', title: 'Mis postulaciones', image: require('../../../../assets/tabsIcons/mis-viajes-solicitudes.png'), screen: 'MyApplications', tab: 'HomeTab' },
 ];
-// La seña tiene dos puntas (la que mandás, la que te mandan): una mitad va acá abajo,
-// en su propia fila dentro de "Como conductor", y la otra en pasajeroSenas — no una
-// sección aparte para las dos.
-const conductorSenas = { id: 'c6', title: 'Señas Recibidas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MisSenas', params: { tab: 'recibidas' } };
 const pasajeroSmall = [
   { id: 'p2', title: 'Crear Solicitud', image: require('../../../../assets/tabsIcons/publica-solicitud.png'), screen: 'CreateTripRequest', tab: 'HomeTab' },
   { id: 'p1', title: 'Mis Reservas', image: require('../../../../assets/tabsIcons/mis-reservas.png'), screen: 'MyBookings' },
@@ -206,7 +204,7 @@ const CarpoolingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={[styles.smallRow, styles.smallRowTight]}>
+        <View style={styles.smallRow}>
           {conductorSmall.map((item) => (
             <TouchableOpacity
               key={item.id}
@@ -218,18 +216,6 @@ const CarpoolingsScreen = ({ navigation }) => {
               <Text style={[styles.tileSmallTitle, { color: textPrimary }]} numberOfLines={2}>{item.title}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-        <View style={styles.bigRow}>
-          <TouchableOpacity
-            style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
-            onPress={() => navigation.navigate(conductorSenas.screen, conductorSenas.params)}
-            activeOpacity={0.7}
-          >
-            <Image source={conductorSenas.image} style={styles.tileBigIcon} resizeMode="contain" />
-            <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>{conductorSenas.title}</Text>
-          </TouchableOpacity>
-          {/* Espacio vacío, mismo flex: queda del ancho de "Crear Viaje" (1 de 2), no de toda la fila. */}
-          <View style={{ flex: 1 }} />
         </View>
 
         <Text style={[styles.sectionLabel, { color: textSecondary }]}>Como pasajero</Text>
