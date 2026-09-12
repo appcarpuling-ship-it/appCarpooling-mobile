@@ -15,6 +15,7 @@ import MySeatReservationsScreen from '../../screens/main/carpool/MySeatReservati
 import TripDetailScreen from '../../screens/main/common/TripDetailScreen';
 import VehicleDetailScreen from '../../screens/main/common/VehicleDetailScreen';
 import TripRequestsScreen from '../../screens/main/carpool/TripRequestsScreen';
+import MisSenasScreen from '../../screens/main/carpool/MisSenasScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import UserProfileScreen from '../../screens/main/common/UserProfileScreen';
@@ -106,6 +107,11 @@ const CarpoolingsStackNavigator = () => {
         name="TripRequests"
         component={TripRequestsScreen}
         options={{ title: 'Solicitudes de Reserva' }}
+      />
+      <Stack.Screen
+        name="MisSenas"
+        component={MisSenasScreen}
+        options={{ title: 'Mis señas' }}
       />
       <Stack.Screen
         name="CreateReviewFromTrip"

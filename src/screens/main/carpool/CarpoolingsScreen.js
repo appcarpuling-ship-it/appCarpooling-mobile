@@ -232,6 +232,20 @@ const CarpoolingsScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {/* No es del conductor ni del pasajero: son las dos puntas de la misma seña
+            (la que mandaste y la que te mandaron), por eso va sola y no en ninguna
+            de las dos secciones de arriba. */}
+        <View style={styles.bigRow}>
+          <TouchableOpacity
+            style={[styles.tileBig, { backgroundColor: cardBg, borderColor: border }]}
+            onPress={() => navigation.navigate('MisSenas')}
+            activeOpacity={0.7}
+          >
+            <Image source={require('../../../../assets/tabsIcons/mis-reservas.png')} style={styles.tileBigIcon} resizeMode="contain" />
+            <Text style={[styles.tileBigTitle, { color: textPrimary }]} numberOfLines={2}>Mis señas</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Banners */}
         {showBannerSkeleton ? (
           <View style={styles.bannerSection}>

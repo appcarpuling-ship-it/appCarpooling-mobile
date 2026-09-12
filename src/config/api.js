@@ -120,6 +120,7 @@ export const ENDPOINTS = {
   CREATE_BOOKING: '/bookings',
   GET_BOOKING: (id) => `/bookings/${id}`,
   MY_BOOKINGS: '/bookings/my-bookings',
+  SENAS_RECIBIDAS: '/bookings/senas-recibidas',
   CANCEL_BOOKING: (id) => `/bookings/${id}/cancel`,
   ACCEPT_BOOKING: (id) => `/bookings/${id}/accept`,
   REJECT_BOOKING: (id) => `/bookings/${id}/reject`,
