@@ -64,6 +64,11 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
 
   useFocusEffect(
     useCallback(() => {
+      // Sin esto, al cambiar de pestaña `trips` seguía teniendo los de la pestaña
+      // anterior hasta que llegaba la respuesta: getFilteredTrips() los filtraba con
+      // el criterio nuevo, daba vacío, y el EmptyState aparecía un instante antes de
+      // que se reemplazaran por los correctos. Mismo patrón que MyTripRequestsScreen.
+      setLoading(true);
       loadMyTrips(1, true);
     }, [activeTab])
   );
