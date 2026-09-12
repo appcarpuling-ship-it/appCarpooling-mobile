@@ -168,7 +168,7 @@ const PagarSenaScreen = ({ route, navigation }) => {
         ? { rotulo: 'Seña', monto: pesos(monto), chip: { icon: 'close-circle-outline', t: 'El viaje ya salió sin la seña' } }
         : {
             esperando: {
-              rotulo: 'Transferile ahora',
+              rotulo: 'Seña a pagar',
               monto: pesos(monto),
               // Sin "vence el ...": `sena.venceAt` no lo hace cumplir nadie (no hay job que
               // venza una seña impaga). Lo real es que al salir el viaje la reserva se cierra,
