@@ -128,14 +128,15 @@ export default function App() {
                 {appReady && <AppWithTheme />}
                 <OtaUpdateListener />
                 <PendingReviewGate />
-                {/* ponytail: splash desactivada a pedido, no se muestra. Reactivar sacando este comentario.
+                {/* Engancha a appReady, no a fontsLoaded crudo: si las fuentes nunca resuelven
+                    (Android viejo), sin esto quedaba pantalla negra hasta el timeout — con
+                    esto se ve la splash y a los 4s completa igual, entra con fuente de sistema. */}
                 {showSplash && (
                   <AnimatedSplash
-                    fontsLoaded={fontsLoaded}
+                    fontsLoaded={appReady}
                     onComplete={() => setShowSplash(false)}
                   />
                 )}
-                */}
               </NotificationProvider>
             </AuthProvider>
           </AlertProvider>
