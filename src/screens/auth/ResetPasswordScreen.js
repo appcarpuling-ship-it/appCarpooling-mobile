@@ -12,6 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { post_public } from '../../services/apiService';
 import { useAlert } from '../../context/AlertContext';
 import { ENDPOINTS } from '../../config/api';
@@ -27,6 +28,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
   const ui = useUI();
+  const insets = useSafeAreaInsets();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -90,7 +92,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: ui.bg }]}>
+    <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

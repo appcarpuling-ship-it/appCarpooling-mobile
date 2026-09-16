@@ -11,7 +11,7 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAlert } from '../../context/AlertContext';
@@ -41,6 +41,7 @@ const RegisterScreen = ({ navigation }) => {
   }, []);
 
   const { showAlert } = useAlert();
+  const insets = useSafeAreaInsets();
 
   const ui          = useUI();
   const bg          = ui.bg;
@@ -259,7 +260,7 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['top', 'bottom']}>
+    <View style={[styles.container, { backgroundColor: bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Sin TouchableWithoutFeedback envolviendo todo: con el teclado abierto se
           comia el primer tap para cerrarlo y el boton de abajo (fuera del
           ScrollView) nunca recibia su onPress.
@@ -368,7 +369,7 @@ const RegisterScreen = ({ navigation }) => {
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
