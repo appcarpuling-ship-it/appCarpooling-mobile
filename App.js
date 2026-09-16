@@ -72,6 +72,15 @@ export default function App() {
   const [fontsLoaded] = useFonts({ ...soraFonts, ...Ionicons.font });
   const [showSplash, setShowSplash] = useState(true);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
+  // Si useFonts no resuelve nunca (reportado: la app queda tildada), no bloquear el
+  // render de por vida — a los 4s se entra igual, con la fuente de sistema como fallback.
+  const [fontsTimedOut, setFontsTimedOut] = useState(false);
+  useEffect(() => {
+    if (fontsLoaded) return;
+    const t = setTimeout(() => setFontsTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, [fontsLoaded]);
+  const appReady = fontsLoaded || fontsTimedOut;
   // useEffect(() => {
   //   if (Platform.OS !== 'web') {
   //     const JailMonkey = require('jail-monkey').default;
@@ -116,7 +125,7 @@ export default function App() {
           <AlertProvider>
             <AuthProvider>
               <NotificationProvider>
-                {fontsLoaded && <AppWithTheme />}
+                {appReady && <AppWithTheme />}
                 <OtaUpdateListener />
                 <PendingReviewGate />
                 {/* ponytail: splash desactivada a pedido, no se muestra. Reactivar sacando este comentario.
