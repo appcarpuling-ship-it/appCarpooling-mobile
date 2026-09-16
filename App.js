@@ -119,12 +119,14 @@ export default function App() {
                 {fontsLoaded && <AppWithTheme />}
                 <OtaUpdateListener />
                 <PendingReviewGate />
+                {/* ponytail: splash desactivada a pedido, no se muestra. Reactivar sacando este comentario.
                 {showSplash && (
                   <AnimatedSplash
                     fontsLoaded={fontsLoaded}
                     onComplete={() => setShowSplash(false)}
                   />
                 )}
+                */}
               </NotificationProvider>
             </AuthProvider>
           </AlertProvider>
