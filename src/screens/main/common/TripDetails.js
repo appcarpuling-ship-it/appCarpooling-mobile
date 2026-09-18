@@ -150,6 +150,26 @@ const TripDetails = ({ navigation, route }) => {
 
     const esUltimoPaso = step === PASOS.length;
 
+    // Atajos de fecha: salir hoy o mañana es la mayoría de los viajes y abrir el calendario para
+    // eso es un paso de más. El calendario sigue ahí para cualquier otro día.
+    const isoDeHoyMas = (dias) => {
+        const d = new Date();
+        d.setDate(d.getDate() + dias);
+        return { d, iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` };
+    };
+    const elegirDia = (dias) => {
+        const { d, iso } = isoDeHoyMas(dias);
+        setDate(d);
+        handleChange('departureDate', iso);
+    };
+    const ATAJOS_DIA = [{ label: 'Hoy', dias: 0 }, { label: 'Mañana', dias: 1 }, { label: 'En 2 días', dias: 2 }];
+    // "sáb 19 de septiembre": se lee de un vistazo, 19/09/2026 hay que descifrarlo.
+    const diaLegible = (str) => {
+        if (!str) return '';
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' }).replace('.', '');
+    };
+
     const selectedVehicle = vehicles?.find(v => v?._id === formData.vehicle);
     /** Tope de asientos: los que tiene el auto elegido. Lo mismo lo revisa el backend. */
     const maxAsientos = Number(selectedVehicle?.capacity) || 0;
@@ -377,7 +397,22 @@ const TripDetails = ({ navigation, route }) => {
                             Paso {step} de {PASOS.length} · {PASOS[step - 1].titulo}
                         </Text>
 
-                        {/* Ruta */}
+                        {/* Ruta: completa en el primer paso; en los siguientes ya la conocés, así que
+                            queda en una línea y el paso tiene lugar en pantalla para lo que se decide. */}
+                        {step > 1 && (
+                            <View style={[styles.card, styles.rutaCompacta, { backgroundColor: cardBg, borderColor: border }]}>
+                                <Ionicons name="navigate-outline" size={17} color={textPrimary} />
+                                <Text style={[styles.rutaCompactaTexto, { color: textPrimary }]} numberOfLines={1}>
+                                    {origin?.city || origin?.address} → {destination?.city || destination?.address}
+                                </Text>
+                                {(waypoints || []).length > 0 && (
+                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_500Medium' }}>
+                                        +{waypoints.length} parada{waypoints.length !== 1 ? 's' : ''}
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+                        {step === 1 && (
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
                             {/* Cada punto es UNA fila con su círculo al lado de su texto, igual que en
                                 el detalle del viaje. Con la columna de círculos aparte —alto fijo— las
@@ -410,6 +445,7 @@ const TripDetails = ({ navigation, route }) => {
                                 </Text>
                             )}
                         </View>
+                        )}
 
 
                         {step === 1 && (
@@ -452,31 +488,37 @@ const TripDetails = ({ navigation, route }) => {
                         {/* Detalles */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASIENTOS Y PRECIO</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+                            {/* Asientos con - / + y no un campo de texto: son de 1 a pocos números, y así el
+                                tope del auto se respeta sin tener que validar lo que se escribe. */}
                             <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
                                 <Ionicons name="people-outline" size={19} color={textPrimary} />
-                                <TextInput
-                                    style={[styles.input, { color: textPrimary }]}
-                                    placeholder={
-                                        selectedVehicle
-                                            ? `Asientos disponibles * (hasta ${maxAsientos})`
-                                            : 'Primero elegí un vehículo'
-                                    }
-                                    placeholderTextColor={textMuted}
-                                    value={formData.availableSeats}
-                                    editable={!!selectedVehicle}
-                                    onFocus={scrollFieldAboveKeyboard}
-                                    // No se puede ofrecer más de lo que entra en el auto: el campo
-                                    // recorta al tope en vez de dejar escribir un número que el
-                                    // backend va a rechazar recién al publicar, tres pasos después.
-                                    onChangeText={(v) => {
-                                        const digitos = v.replace(/\D/g, '');
-                                        if (!digitos) return handleChange('availableSeats', '');
-                                        const n = Math.min(parseInt(digitos, 10), maxAsientos || 8);
-                                        handleChange('availableSeats', String(n));
-                                    }}
-                                    keyboardType="numeric"
-                                    maxLength={2}
-                                />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium' }}>Asientos para pasajeros</Text>
+                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 2 }}>
+                                        {selectedVehicle ? `Tu auto tiene ${maxAsientos}` : 'Primero elegí un vehículo'}
+                                    </Text>
+                                </View>
+                                <View style={styles.stepper}>
+                                    <TouchableOpacity
+                                        style={[styles.stepperBtn, { borderColor: border }, (!selectedVehicle || !(parseInt(formData.availableSeats, 10) > 1)) && { opacity: 0.35 }]}
+                                        disabled={!selectedVehicle || !(parseInt(formData.availableSeats, 10) > 1)}
+                                        onPress={() => handleChange('availableSeats', String(parseInt(formData.availableSeats, 10) - 1))}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Un asiento menos"
+                                    >
+                                        <Ionicons name="remove" size={20} color={textPrimary} />
+                                    </TouchableOpacity>
+                                    <Text style={[styles.stepperNum, { color: textPrimary }]}>{formData.availableSeats || '–'}</Text>
+                                    <TouchableOpacity
+                                        style={[styles.stepperBtn, { borderColor: border }, (!selectedVehicle || (parseInt(formData.availableSeats, 10) || 0) >= (maxAsientos || 8)) && { opacity: 0.35 }]}
+                                        disabled={!selectedVehicle || (parseInt(formData.availableSeats, 10) || 0) >= (maxAsientos || 8)}
+                                        onPress={() => handleChange('availableSeats', String((parseInt(formData.availableSeats, 10) || 0) + 1))}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Un asiento más"
+                                    >
+                                        <Ionicons name="add" size={20} color={textPrimary} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             {/* Cómo cobrás. Es una elección entre dos modalidades, no una
@@ -648,6 +690,23 @@ const TripDetails = ({ navigation, route }) => {
                                 </>
                             ) : (
                                 <>
+                            <View style={styles.atajos}>
+                                {ATAJOS_DIA.map((a) => {
+                                    const activo = formData.departureDate === isoDeHoyMas(a.dias).iso;
+                                    return (
+                                        <TouchableOpacity
+                                            key={a.label}
+                                            style={[styles.atajo, { borderColor: activo ? textPrimary : border }, activo && { backgroundColor: textPrimary }]}
+                                            onPress={() => elegirDia(a.dias)}
+                                            activeOpacity={0.8}
+                                            accessibilityRole="button"
+                                            accessibilityState={{ selected: activo }}
+                                        >
+                                            <Text style={{ color: activo ? ui.invertText : textPrimary, fontSize: 13, fontFamily: 'Sora_600SemiBold' }}>{a.label}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
                             <TouchableOpacity
                                 style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
                                 onPress={() => setShowDatePicker(true)}
@@ -679,6 +738,33 @@ const TripDetails = ({ navigation, route }) => {
 
                         {step === 3 && (
                             <>
+                        {/* Resumen: lo que se está por publicar, en limpio. Es la última parada antes de
+                            publicar y así no hay que acordarse de qué se puso dos pasos atrás. */}
+                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASÍ LO VAN A VER</Text>
+                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+                            {[
+                                { icon: 'calendar-outline', texto: `${diaLegible(formData.departureDate)} · ${formData.departureTime} hs` },
+                                { icon: 'car-outline', texto: `${selectedVehicle?.brand || ''} ${selectedVehicle?.model || ''} · ${formData.availableSeats} asiento${formData.availableSeats !== '1' ? 's' : ''} libre${formData.availableSeats !== '1' ? 's' : ''}` },
+                                {
+                                    icon: 'cash-outline',
+                                    texto: formData.sinPrecioFijo
+                                        ? 'Gastos compartidos: se arreglan con cada pasajero'
+                                        : `$${formData.driverPrice} por pasajero, se lo cobrás vos directo`,
+                                },
+                                ...(formData.requiereSena && !formData.sinPrecioFijo && senaPreview
+                                    ? [{ icon: 'shield-checkmark-outline', texto: `Seña de ${senaPreview} por asiento para reservar` }]
+                                    : []),
+                            ].map((f, i, arr) => (
+                                <View
+                                    key={f.icon}
+                                    style={[styles.resumenFila, i < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
+                                >
+                                    <Ionicons name={f.icon} size={18} color={textPrimary} />
+                                    <Text style={[styles.resumenTexto, { color: textPrimary }]}>{f.texto}</Text>
+                                </View>
+                            ))}
+                        </View>
+
                         {/* Preferencias */}
                         <Text style={[styles.sectionLabel, { color: textPrimary }]}>PREFERENCIAS</Text>
                         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
@@ -988,6 +1074,16 @@ const styles = StyleSheet.create({
     toggleOn: {
         alignSelf: 'flex-end',
     },
+
+    rutaCompacta: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
+    rutaCompactaTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_600SemiBold' },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stepperBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    stepperNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
+    atajos: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 2 },
+    atajo: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
+    resumenFila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+    resumenTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 19 },
 
     // Submit
     progreso: { flexDirection: 'row', gap: 6, marginTop: 18 },

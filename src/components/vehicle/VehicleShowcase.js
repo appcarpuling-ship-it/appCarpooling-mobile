@@ -82,6 +82,11 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
     { label: 'Cédula verde', ...estadoDoc(vehicle.registrationCardUrl, null) },
   ];
 
+  // El estado de los papeles a la vista, sobre la foto: publicar con un seguro vencido no se
+  // puede, y enterarse recién al scrollear hasta el final del detalle era enterarse tarde.
+  const faltan = docs.filter((d) => d.alerta).length;
+  const editar = acciones.find((a) => a.icon === 'create-outline')?.onPress;
+
   // Hasta 4 fotos entran repartidas a lo ancho de la pantalla, que se ven mejor que
   // amontonadas a la izquierda. De 5 para arriba no entrarían sin achicarse a nada: ahí pasa
   // a carrusel horizontal, con las miniaturas a tamaño fijo.
@@ -105,6 +110,21 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
           // y un sedán sin fotos se vieran idénticos.
           <Image source={imageForType(vehicle.type)} style={styles.heroFallback} resizeMode="contain" />
         )}
+
+        <TouchableOpacity
+          style={[styles.estadoDocs, { backgroundColor: ui.bg }]}
+          onPress={faltan > 0 ? editar : undefined}
+          disabled={faltan === 0 || !editar}
+          activeOpacity={0.8}
+          accessibilityRole={faltan > 0 && editar ? 'button' : 'text'}
+          accessibilityLabel={faltan === 0 ? 'Documentación al día' : `Documentación: ${faltan} para revisar. Tocá para completarla`}
+        >
+          <Ionicons name={faltan === 0 ? 'shield-checkmark' : 'alert-circle'} size={14} color={ui.text} />
+          <Text style={[styles.estadoDocsTexto, { color: ui.text }]}>
+            {faltan === 0 ? 'Papeles al día' : `${faltan} papel${faltan !== 1 ? 'es' : ''} para revisar`}
+          </Text>
+          {faltan > 0 && !!editar && <Ionicons name="chevron-forward" size={13} color={ui.text} />}
+        </TouchableOpacity>
 
         {acciones.length > 0 && (
           <View style={styles.acciones}>
@@ -215,6 +235,12 @@ const styles = StyleSheet.create({
   heroImg: { width: '100%', height: '100%' },
   heroFallback: { width: '100%', height: '100%', padding: 24 },
   acciones: { position: 'absolute', top: 12, right: 12, gap: 10 },
+  estadoDocs: {
+    position: 'absolute', left: 12, bottom: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+  },
+  estadoDocsTexto: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
   accionBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 
   detalle: { flex: 1 },

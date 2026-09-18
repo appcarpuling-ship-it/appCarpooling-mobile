@@ -324,8 +324,26 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
           {/* Cierra la pantalla con lo que estás por publicar, en una frase. */}
           <Text style={[styles.resumen, { color: textMuted }]}>
             Vas a pedir {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''} para el {fechaLarga(date)} a las {formatTime(time)}.
-            Los conductores que hagan ese viaje van a poder ofrecerte lugar.
           </Text>
+
+          {/* Lo que un usuario nuevo no sabe: pedir un viaje no es reservarlo. Se dice acá, antes
+              de publicar, en tres pasos — no hay que descubrirlo después esperando una respuesta. */}
+          <View style={styles.despues}>
+            <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>Qué pasa después</Text>
+            {[
+              { icon: 'megaphone-outline', t: 'Los conductores que hacen ese trayecto ven tu pedido.' },
+              { icon: 'people-outline', t: 'Hasta 5 se postulan con su precio y su vehículo.' },
+              { icon: 'checkmark-done-outline', t: 'Vos comparás y elegís uno. Recién ahí se arma el viaje.' },
+            ].map((p) => (
+              <View key={p.icon} style={styles.despuesFila}>
+                <Ionicons name={p.icon} size={18} color={textPrimary} />
+                <Text style={[styles.despuesTexto, { color: textPrimary }]}>{p.t}</Text>
+              </View>
+            ))}
+            <Text style={[styles.pickLabel, { color: textMuted, textTransform: 'none', marginTop: 6 }]}>
+              No pagás nada por pedirlo y podés cancelarlo cuando quieras.
+            </Text>
+          </View>
 
           {/* marginTop:'auto' sobre un contentContainer con flexGrow:1: con contenido corto
               (sin paradas) el botón se pega abajo en vez de dejar un hueco vacío colgando
@@ -449,6 +467,9 @@ const styles = StyleSheet.create({
   seatsBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
   resumen: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 24, paddingHorizontal: 4 },
+  despues: { marginTop: 20, paddingHorizontal: 4, gap: 12 },
+  despuesFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  despuesTexto: { flex: 1, fontSize: 14, fontFamily: 'Sora_500Medium', lineHeight: 20 },
   footer: { marginTop: 'auto', paddingTop: 24, borderTopWidth: StyleSheet.hairlineWidth },
   // Pickers
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
