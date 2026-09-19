@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,6 +7,9 @@ import {
     ScrollView,
     Modal,
     Platform,
+    Animated,
+    PanResponder,
+    useWindowDimensions,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -197,12 +200,13 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambi
 };
 
 /**
- * El recorrido de fondo. No se puede mover: es contexto, no un mapa para operar.
+ * El recorrido de fondo, y se puede mover: arrastrar, hacer zoom y mirar el camino de verdad.
+ * El botón de arriba a la derecha vuelve a encuadrar el viaje entero cuando te perdiste.
  *
  * Se desmonta al perder el foco (`useIsFocused`): el MapView nativo pesa cientos de MB y
  * apilar pantallas con mapa llevaba la RAM al límite hasta que iOS mataba la app.
  */
-export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 340 }) => {
+export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 340, topBoton = 0 }) => {
     const enfocada = useIsFocused();
     const mapaRef = useRef(null);
     const [listo, setListo] = useState(false);
@@ -223,18 +227,23 @@ export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 
     }, [puntos]);
 
     // En Android `initialRegion` se aplica antes de que la vista nativa mida y queda ignorada:
-    // el encuadre se pide cuando el mapa está listo Y ya tiene ancho. El `bottom` grande deja el
-    // recorrido en la franja que la hoja no tapa.
+    // el encuadre se pide cuando el mapa está listo Y ya tiene ancho. El `bottom` es el alto de
+    // la hoja, para que el recorrido caiga en la franja que queda a la vista.
     const cantidadDePuntos = puntos?.length || 0;
-    useEffect(() => {
-        if (!listo || !ancho || cantidadDePuntos < 2) return;
+    const encuadrar = useCallback((animado) => {
+        if (cantidadDePuntos < 2) return;
         mapaRef.current?.fitToCoordinates(puntos, {
             edgePadding: { top: 90, right: 50, bottom: aireAbajo, left: 50 },
-            animated: false,
+            animated: animado,
         });
         // `puntos` se arma nuevo en cada render: la dependencia es cuántos son.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [listo, ancho, cantidadDePuntos, aireAbajo]);
+    }, [cantidadDePuntos, aireAbajo]);
+
+    useEffect(() => {
+        if (!listo || !ancho) return;
+        encuadrar(false);
+    }, [listo, ancho, encuadrar]);
 
     // Al volver de otra pantalla el mapa se remonta y nace sin encuadrar: las señales se
     // reinician para que el efecto de arriba vuelva a correr.
@@ -245,13 +254,16 @@ export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 
     if (!enfocada || !region) return null;
 
     return (
+        <>
         <MapView
             ref={mapaRef}
             provider={MAP_PROVIDER}
             style={StyleSheet.absoluteFill}
             initialRegion={region}
-            scrollEnabled={false}
-            zoomEnabled={false}
+            // Se puede mirar el camino: mover y hacer zoom. Girar e inclinar quedan apagados
+            // porque desorientan y no aportan nada para ver una ruta entre ciudades.
+            scrollEnabled
+            zoomEnabled
             rotateEnabled={false}
             pitchEnabled={false}
             toolbarEnabled={false}
@@ -266,6 +278,77 @@ export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 
             {!!origin?.coordinates && <Marker coordinate={origin.coordinates} tracksViewChanges={false} />}
             {!!destination?.coordinates && <Marker coordinate={destination.coordinates} tracksViewChanges={false} />}
         </MapView>
+        {/* Volver al recorrido completo. Aparece sólo si hay algo que encuadrar. */}
+        {cantidadDePuntos >= 2 && (
+            <TouchableOpacity
+                style={[estilos.recentrar, { backgroundColor: ui.surface, top: topBoton }]}
+                onPress={() => encuadrar(true)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Ver el recorrido completo"
+            >
+                <Ionicons name="scan-outline" size={19} color={ui.text} />
+            </TouchableOpacity>
+        )}
+        </>
+    );
+};
+
+/**
+ * La hoja de abajo, arrastrable entre dos alturas.
+ *
+ * Arranca alta —con el viaje entero a la vista, que es a lo que se vino— y se puede bajar de un
+ * arrastre para mirar el mapa, que ahora se puede mover. Son dos posiciones y no libre: un sheet
+ * que queda a cualquier altura obliga a acomodarlo, y acá sólo hay dos cosas que mirar.
+ *
+ * La altura se anima sin native driver porque es `height` y no una transformación; el contenido
+ * scrollea adentro, así que el botón de publicar queda siempre a la vista.
+ */
+export const HojaArrastrable = ({ ui, insets, alta = 0.74, baja = 0.34, onAltura, children }) => {
+    const { height } = useWindowDimensions();
+    const ALTA = Math.round(height * alta);
+    const BAJA = Math.round(height * baja);
+
+    const alto = useRef(new Animated.Value(ALTA)).current;
+    const actual = useRef(ALTA);
+    // El PanResponder se crea una sola vez y no ve los valores de este render: los lee de refs.
+    const topes = useRef({ ALTA, BAJA });
+    topes.current = { ALTA, BAJA };
+    const avisar = useRef(onAltura);
+    avisar.current = onAltura;
+
+    useEffect(() => { avisar.current?.(ALTA); }, [ALTA]);
+
+    const pan = useRef(
+        PanResponder.create({
+            // Sólo si el gesto es claramente vertical: si no, se come los toques de las filas.
+            onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+            onPanResponderMove: (_, g) => {
+                const { ALTA: A, BAJA: B } = topes.current;
+                alto.setValue(Math.min(A, Math.max(B, actual.current - g.dy)));
+            },
+            onPanResponderRelease: (_, g) => {
+                const { ALTA: A, BAJA: B } = topes.current;
+                const donde = Math.min(A, Math.max(B, actual.current - g.dy));
+                // Un movimiento rápido manda aunque no haya llegado a la mitad.
+                const destino = g.vy > 0.5 ? B : g.vy < -0.5 ? A : (donde > (A + B) / 2 ? A : B);
+                actual.current = destino;
+                Animated.spring(alto, { toValue: destino, useNativeDriver: false, bounciness: 2, speed: 14 }).start();
+                avisar.current?.(destino);
+            },
+        }),
+    ).current;
+
+    return (
+        <Animated.View
+            style={[estilos.hoja, { height: alto, backgroundColor: ui.surface, paddingBottom: Math.max(insets.bottom, 14) + 6 }]}
+        >
+            {/* El área de arrastre es toda la franja de arriba, no la rayita de 4px. */}
+            <View {...pan.panHandlers} style={estilos.zonaAgarre} accessibilityRole="adjustable" accessibilityLabel="Arrastrá para ver el mapa">
+                <View style={[estilos.agarre, { backgroundColor: ui.border }]} />
+            </View>
+            {children}
+        </Animated.View>
     );
 };
 
@@ -295,16 +378,23 @@ export const estilos = StyleSheet.create({
     // hasta un tope, y de ahí en más la lista scrollea.
     hoja: {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 3,
-        maxHeight: '82%',
         borderTopLeftRadius: 26, borderTopRightRadius: 26,
-        paddingHorizontal: 18, paddingTop: 10,
+        paddingHorizontal: 18,
         shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 12,
     },
-    agarre: { width: 38, height: 4, borderRadius: 9, alignSelf: 'center', marginBottom: 12 },
+    agarre: { width: 38, height: 4, borderRadius: 9, alignSelf: 'center' },
+    // Franja de arriba de la hoja: es lo que se agarra para subirla o bajarla.
+    zonaAgarre: { paddingTop: 10, paddingBottom: 12, marginHorizontal: -18, alignItems: 'center' },
+    recentrar: {
+        position: 'absolute', right: 14, zIndex: 4,
+        width: 38, height: 38, borderRadius: 999,
+        alignItems: 'center', justifyContent: 'center',
+        shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    },
     encabezado: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
     titulo: { fontSize: 21, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.7 },
     ruta: { fontSize: 12, fontFamily: 'Sora_400Regular', flexShrink: 1, textAlign: 'right' },
-    lista: { flexGrow: 0 },
+    lista: { flex: 1 },
 
     fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
     filaRotulo: { fontSize: 13.5, fontFamily: 'Sora_500Medium', flexShrink: 1 },

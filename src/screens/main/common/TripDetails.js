@@ -22,7 +22,8 @@ import { ENDPOINTS } from '../../../config/api';
 import { imageForType } from '../../../utils/vehicleImage';
 import { reportError } from '../../../utils/sentry';
 import {
-    T, Toggle, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, estilos as hoja,
+    T, Toggle, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
+    estilos as hoja,
 } from '../../../components/hoja';
 import { isoDeFecha, horaDeFecha, fechaLegible, manianaALasOcho, conMiles, soloDigitos } from '../../../utils/fechaViaje';
 
@@ -66,6 +67,8 @@ const TripDetails = ({ navigation, route }) => {
         largeLuggageAllowed: false,
     });
     const [referencia, setReferencia] = useState(null); // { distanceKm, precioPorAsiento }
+    // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
+    const [altoHoja, setAltoHoja] = useState(0);
 
     const vehiculo = vehicles.find((v) => v._id === vehiculoId) || null;
     const capacidad = Number(vehiculo?.capacity) || 0;
@@ -253,12 +256,18 @@ const TripDetails = ({ navigation, route }) => {
 
     return (
         <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
-            <MapaDelRecorrido ui={ui} puntos={puntos} origin={origin} destination={destination} />
+            <MapaDelRecorrido
+                ui={ui}
+                puntos={puntos}
+                origin={origin}
+                destination={destination}
+                aireAbajo={altoHoja + 40}
+                topBoton={insets.top + 8}
+            />
             <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
 
-            {/* La hoja del viaje */}
-            <View style={[hoja.hoja, { backgroundColor: ui.surface, paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
-                <View style={[hoja.agarre, { backgroundColor: ui.border }]} />
+            {/* La hoja del viaje: arranca alta y se baja de un arrastre para mirar el mapa. */}
+            <HojaArrastrable ui={ui} insets={insets} onAltura={setAltoHoja}>
                 <View style={hoja.encabezado}>
                     <T style={[hoja.titulo, { color: ui.text }]}>Tu viaje</T>
                     <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
@@ -346,7 +355,7 @@ const TripDetails = ({ navigation, route }) => {
                         ? <ActivityIndicator color={ui.invertText} size="small" />
                         : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar viaje</T>}
                 </TouchableOpacity>
-            </View>
+            </HojaArrastrable>
 
             <SelectorDeCuando
                 ui={ui}

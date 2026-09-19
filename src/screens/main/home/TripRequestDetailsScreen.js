@@ -6,7 +6,8 @@ import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
 import {
-    T, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, estilos as hoja,
+    T, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
+    estilos as hoja,
 } from '../../../components/hoja';
 import { horaDeFecha, fechaLegible, manianaALasOcho } from '../../../utils/fechaViaje';
 
@@ -37,6 +38,8 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
     const [personas, setPersonas] = useState(1);
     const [loading, setLoading] = useState(false);
     const [selector, setSelector] = useState(null);
+    // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
+    const [altoHoja, setAltoHoja] = useState(0);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -103,11 +106,18 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
     return (
         <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
-            <MapaDelRecorrido ui={ui} puntos={puntos} origin={origin} destination={destination} aireAbajo={300} />
+            <MapaDelRecorrido
+                ui={ui}
+                puntos={puntos}
+                origin={origin}
+                destination={destination}
+                aireAbajo={altoHoja + 40}
+                topBoton={insets.top + 8}
+            />
             <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
 
-            <View style={[hoja.hoja, { backgroundColor: ui.surface, paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
-                <View style={[hoja.agarre, { backgroundColor: ui.border }]} />
+            {/* Arranca más baja que la de publicar: acá hay dos filas, no seis. */}
+            <HojaArrastrable ui={ui} insets={insets} alta={0.6} baja={0.3} onAltura={setAltoHoja}>
                 <View style={hoja.encabezado}>
                     <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
                     <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
@@ -162,7 +172,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                         ? <ActivityIndicator color={ui.invertText} size="small" />
                         : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar pedido</T>}
                 </TouchableOpacity>
-            </View>
+            </HojaArrastrable>
 
             <SelectorDeCuando
                 ui={ui}
