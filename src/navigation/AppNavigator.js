@@ -105,20 +105,8 @@ const AppNavigator = () => {
           <Stack.Screen
             name="TripRequestDetails"
             component={TripRequestDetailsScreen}
-            options={{
-              headerShown: true,
-              title: 'Detalles de la solicitud',
-              headerStyle: {
-                backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
-                elevation: 0,
-                shadowOpacity: 0,
-                borderBottomWidth: 1,
-                borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
-              },
-              headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
-              headerTitleStyle: { fontWeight: '600', fontSize: 18 },
-              headerBackTitleVisible: false,
-            }}
+            // Mismo caso que TripDetails: mapa a pantalla completa con la hoja del pedido.
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="TripRequestDetail"
@@ -186,24 +174,10 @@ const AppNavigator = () => {
           <Stack.Screen
             name="TripDetails"
             component={TripDetails}
-            options={{
-              headerShown: true,
-              title: 'Detalles del Viaje',
-              headerStyle: {
-                backgroundColor: isDarkMode ? '#0A0A0A' : '#FFFFFF',
-                elevation: 0,
-                shadowOpacity: 0,
-                borderBottomWidth: 1,
-                borderBottomColor: isDarkMode ? '#404040' : '#E5E7EB',
-              },
-              headerTintColor: isDarkMode ? '#FFFFFF' : '#1F2937',
-              headerTitleStyle: {
-                fontWeight: '600',
-                fontSize: 18,
-                color: isDarkMode ? '#FFFFFF' : '#1F2937',
-              },
-              headerBackTitleVisible: false,
-            }}
+            // Sin header: la pantalla es el mapa del recorrido a pantalla completa con la hoja
+            // del viaje encima, y volver es el botón flotante. Apagarlo acá y no con setOptions
+            // evita que el header se pinte un instante antes de desaparecer.
+            options={{ headerShown: false }}
           />
         </>
       )}
