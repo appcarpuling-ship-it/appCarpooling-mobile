@@ -275,7 +275,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
 
           {!!request.message && (
             <View style={[styles.section, { borderTopColor: ui.border }]}>
-              <Text style={[styles.mensaje, { color: ui.textMuted }]}>"{request.message}"</Text>
+              <Text style={[styles.mensaje, { color: ui.textMuted }]}>«{request.message}»</Text>
             </View>
           )}
 
