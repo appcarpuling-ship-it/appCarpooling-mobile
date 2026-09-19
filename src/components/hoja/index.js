@@ -10,6 +10,7 @@ import {
     Animated,
     PanResponder,
     useWindowDimensions,
+    KeyboardAvoidingView,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,11 @@ import { MAP_PROVIDER } from '../../utils/mapProvider';
 import RutaPolyline from '../map/RutaPolyline';
 import DateTimeRow from '../ui/DateTimeRow';
 import { horaDeFecha, mismoDia, conMayuscula, NOMBRE_MES } from '../../utils/fechaViaje';
+
+// Los mismos PNG que usa el mapa de elegir direcciones, para que el viaje se vea igual de
+// punta a punta.
+const MARCADOR_ORIGEN = require('../../../assets/marker-origin.png');
+const MARCADOR_DESTINO = require('../../../assets/marker-dest.png');
 
 /**
  * Las piezas de "una hoja sobre el mapa": el patrón con el que se arma un viaje, tanto cuando
@@ -71,7 +77,8 @@ export const Fila = ({ ui, rotulo, valor, sub, apagado, alerta, onPress, ultimo,
                 {!!sub && <T style={[estilos.filaSub, { color: ui.textMuted }]} numberOfLines={1}>{sub}</T>}
             </View>
         )}
-        {!!onPress && <Ionicons name="chevron-forward" size={17} color={ui.border} style={estilos.filaChevron} />}
+        {/* Sin flecha cuando la fila tiene un interruptor: la flecha promete que se abre algo. */}
+        {!!onPress && !children && <Ionicons name="chevron-forward" size={17} color={ui.border} style={estilos.filaChevron} />}
     </TouchableOpacity>
 );
 
@@ -79,6 +86,13 @@ export const Fila = ({ ui, rotulo, valor, sub, apagado, alerta, onPress, ultimo,
 export const Selector = ({ ui, insets, visible, titulo, sub, onClose, children }) => (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
         <TouchableOpacity style={estilos.velo} activeOpacity={1} onPress={onClose} accessibilityLabel="Cerrar" />
+        {/* El selector se apoya abajo, justo donde aparece el teclado: sin esto, al escribir el
+            precio el teclado tapaba el número que se estaba escribiendo. */}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={estilos.tecladoWrap}
+            pointerEvents="box-none"
+        >
         <View style={[estilos.selector, { backgroundColor: ui.surface, paddingBottom: Math.max(insets.bottom, 14) + 8 }]}>
             <View style={[estilos.agarre, { backgroundColor: ui.border }]} />
             <T style={[estilos.selectorTitulo, { color: ui.text }]}>{titulo}</T>
@@ -88,6 +102,7 @@ export const Selector = ({ ui, insets, visible, titulo, sub, onClose, children }
                 <T style={[estilos.botonTexto, { color: ui.invertText }]}>Listo</T>
             </TouchableOpacity>
         </View>
+        </KeyboardAvoidingView>
     </Modal>
 );
 
@@ -170,10 +185,14 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambi
                     colors={{ textPrimary: ui.text, textMuted: ui.textMuted, divider: ui.border, isDark: ui.isDarkMode }}
                 />
             ) : Platform.OS === 'ios' ? (
+                // `locale` es lo que saca el a.m./p.m.: sin esto la rueda sale en 12 horas según
+                // el idioma del teléfono, mientras el resto de la app muestra 24. El alto es
+                // explícito porque el spinner de iOS se recortaba arriba y abajo.
                 <DateTimePicker
                     value={cuando}
                     mode="time"
                     display="spinner"
+                    locale="es-AR"
                     onChange={onHora}
                     textColor={ui.text}
                     themeVariant={ui.isDarkMode ? 'dark' : 'light'}
@@ -275,8 +294,28 @@ export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 
             {cantidadDePuntos > 2 && (
                 <RutaPolyline coordinates={puntos} width={5} color={ui.isDarkMode ? '#FFFFFF' : '#111111'} />
             )}
-            {!!origin?.coordinates && <Marker coordinate={origin.coordinates} tracksViewChanges={false} />}
-            {!!destination?.coordinates && <Marker coordinate={destination.coordinates} tracksViewChanges={false} />}
+            {/* Los mismos marcadores que el mapa donde se eligieron las direcciones: el punto
+                negro con borde blanco, redondo el origen y cuadrado el destino. En Android van
+                como PNG porque la vista custom no sigue a la cámara y queda corrida del trazado
+                (mismo motivo que en CreateTripGoogleMaps). */}
+            {!!origin?.coordinates && (
+                Platform.OS === 'android'
+                    ? <Marker coordinate={origin.coordinates} anchor={{ x: 0.5, y: 0.5 }} image={MARCADOR_ORIGEN} />
+                    : (
+                        <Marker coordinate={origin.coordinates} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+                            <View style={estilos.marcadorOrigen}><View style={estilos.marcadorPunto} /></View>
+                        </Marker>
+                    )
+            )}
+            {!!destination?.coordinates && (
+                Platform.OS === 'android'
+                    ? <Marker coordinate={destination.coordinates} anchor={{ x: 0.5, y: 0.5 }} image={MARCADOR_DESTINO} />
+                    : (
+                        <Marker coordinate={destination.coordinates} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+                            <View style={estilos.marcadorDestino}><View style={estilos.marcadorPunto} /></View>
+                        </Marker>
+                    )
+            )}
         </MapView>
         {/* Volver al recorrido completo. Aparece sólo si hay algo que encuadrar. */}
         {cantidadDePuntos >= 2 && (
@@ -385,6 +424,9 @@ export const estilos = StyleSheet.create({
     agarre: { width: 38, height: 4, borderRadius: 9, alignSelf: 'center' },
     // Franja de arriba de la hoja: es lo que se agarra para subirla o bajarla.
     zonaAgarre: { paddingTop: 10, paddingBottom: 12, marginHorizontal: -18, alignItems: 'center' },
+    marcadorOrigen: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+    marcadorDestino: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+    marcadorPunto: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },
     recentrar: {
         position: 'absolute', right: 14, zIndex: 4,
         width: 38, height: 38, borderRadius: 999,
@@ -416,8 +458,8 @@ export const estilos = StyleSheet.create({
     toggleBolaOn: { alignSelf: 'flex-end' },
 
     velo: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+    tecladoWrap: { flex: 1, justifyContent: 'flex-end' },
     selector: {
-        position: 'absolute', left: 0, right: 0, bottom: 0,
         borderTopLeftRadius: 26, borderTopRightRadius: 26,
         paddingHorizontal: 18, paddingTop: 10, maxHeight: '86%',
     },
@@ -429,7 +471,7 @@ export const estilos = StyleSheet.create({
     dia: { width: 50, paddingVertical: 9, borderRadius: 14, alignItems: 'center' },
     diaSemana: { fontSize: 10, fontFamily: 'Sora_500Medium', textTransform: 'uppercase' },
     diaNumero: { fontSize: 16, fontFamily: 'Sora_700Bold', letterSpacing: -0.3, marginTop: 1 },
-    rueda: { alignSelf: 'stretch' },
+    rueda: { alignSelf: 'stretch', height: 190 },
     horaCaja: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginTop: 4 },
     horaTexto: { flex: 1, fontSize: 17, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 },
 

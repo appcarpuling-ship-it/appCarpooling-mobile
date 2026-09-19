@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decodePolyline } from '../../../utils/routePoints';
 import { senaLegible } from '../../../utils/sena';
-import { post_withauth, buildImageUri } from '../../../services/apiService';
+import { post_withauth, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
 import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
@@ -43,11 +43,31 @@ import { isoDeFecha, horaDeFecha, fechaLegible, manianaALasOcho, conMiles, soloD
 
 const ULTIMO_VEHICULO = '@carpuling:ultimo_vehiculo';
 
+/** Un asiento del auto. Tocarlo ofrece hasta ahí; tocar el último lo saca. */
+const AsientoTocable = ({ n, asientos, setAsientos, ui }) => {
+    const ofrecido = n <= asientos;
+    return (
+        <TouchableOpacity
+            style={[styles.asiento, { backgroundColor: ofrecido ? ui.text : ui.bg }]}
+            onPress={() => setAsientos(n === asientos ? n - 1 : n)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: ofrecido }}
+            accessibilityLabel={`Ofrecer ${n} asiento${n !== 1 ? 's' : ''}`}
+        >
+            <Ionicons name={ofrecido ? 'person' : 'person-outline'} size={17} color={ofrecido ? ui.invertText : ui.textMuted} />
+            <T style={[styles.asientoTexto, { color: ofrecido ? ui.invertText : ui.textMuted }]}>
+                {ofrecido ? 'LIBRE' : '—'}
+            </T>
+        </TouchableOpacity>
+    );
+};
+
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles = [] } = route.params;
     const insets = useSafeAreaInsets();
     const { showAlert } = useAlert();
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const ui = useUI();
 
     const [loading, setLoading] = useState(false);
@@ -67,12 +87,47 @@ const TripDetails = ({ navigation, route }) => {
         largeLuggageAllowed: false,
     });
     const [referencia, setReferencia] = useState(null); // { distanceKm, precioPorAsiento }
+    const [alias, setAlias] = useState(user?.datosCobro?.alias || '');
+    const [cvu, setCvu] = useState(user?.datosCobro?.cvu || '');
+    const [guardandoCobro, setGuardandoCobro] = useState(false);
     // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
     const [altoHoja, setAltoHoja] = useState(0);
 
     const vehiculo = vehicles.find((v) => v._id === vehiculoId) || null;
     const capacidad = Number(vehiculo?.capacity) || 0;
-    const cobroLegible = user?.datosCobro?.alias || user?.datosCobro?.cvu || '';
+    const cobroLegible = (alias || cvu || '').trim();
+
+    /**
+     * Guarda el alias y el CVU al cerrar el selector, con el mismo endpoint que la pantalla de
+     * datos de cobro del perfil. Se guarda al cerrar y no con un botón aparte: el botón de ese
+     * selector ya dice "Listo".
+     */
+    const guardarCobro = async () => {
+        setSelector(null);
+        const nuevoAlias = alias.trim();
+        const nuevoCvu = cvu.trim();
+        if (nuevoAlias === (user?.datosCobro?.alias || '') && nuevoCvu === (user?.datosCobro?.cvu || '')) return;
+        if (nuevoCvu && nuevoCvu.length !== 22) {
+            showAlert('Revisá el CVU', `Tiene que tener 22 dígitos y pusiste ${nuevoCvu.length}.`);
+            return;
+        }
+        setGuardandoCobro(true);
+        try {
+            const fd = new FormData();
+            // Se mandan siempre, incluso vacíos, para poder borrar un dato que ya no querés.
+            fd.append('datosCobro_alias', nuevoAlias);
+            fd.append('datosCobro_cvu', nuevoCvu);
+            fd.append('datosCobro_titular', user?.datosCobro?.titular || '');
+            const res = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
+            if (!res?.success) throw new Error(res?.message || 'No se pudo guardar');
+            await refreshUser();
+        } catch (e) {
+            reportError(e, { screen: 'TripDetails', action: 'guardarDatosCobro' });
+            showAlert('Ocurrió algo', 'No pudimos guardar tus datos de cobro. Probá de nuevo.');
+        } finally {
+            setGuardandoCobro(false);
+        }
+    };
 
     // Vehículo por defecto: el del último viaje que publicó, o el primero que tenga.
     useEffect(() => {
@@ -134,7 +189,6 @@ const TripDetails = ({ navigation, route }) => {
 
     // ── Publicar ────────────────────────────────────────────────────────────────────────
     const precioNumero = soloDigitos(precio);
-    const totalLleno = sinPrecioFijo ? 0 : precioNumero * (asientos || 0);
     const senaPreview = senaLegible(precioNumero);
 
     const faltaVehiculo = !vehiculo;
@@ -324,24 +378,24 @@ const TripDetails = ({ navigation, route }) => {
                             valor={cobroLegible || 'Cargá tu CVU o alias'}
                             apagado={!cobroLegible}
                             alerta={faltaCobro}
-                            onPress={() => navigation.navigate('ProfileTab', { screen: 'DatosCobro', initial: false })}
+                            // Se edita en esta misma pantalla: salir a Perfil desmontaba el
+                            // formulario y al volver había que rehacer el viaje entero.
+                            onPress={() => setSelector('cobro')}
                         />
                     )}
                     <Fila
                         ui={ui}
                         rotulo="Reglas del viaje"
-                        valor={reglasActivas.length ? reglasActivas.map((r) => r.label).join(' · ') : 'Ninguna'}
+                        // Contadas y no listadas: con tres reglas el texto se comía dos renglones
+                        // y desbordaba la fila. Cuáles son se ven al tocarla.
+                        valor={reglasActivas.length
+                            ? `${reglasActivas.length} ${reglasActivas.length === 1 ? 'regla' : 'reglas'}`
+                            : 'Ninguna'}
                         apagado={!reglasActivas.length}
                         onPress={() => setSelector('reglas')}
                         ultimo
                     />
 
-                    {!sinPrecioFijo && totalLleno > 0 && (
-                        <View style={[hoja.total, { backgroundColor: ui.bg }]}>
-                            <T style={[hoja.totalRotulo, { color: ui.textMuted }]}>Si viajás lleno cobrás</T>
-                            <T style={[hoja.totalMonto, { color: ui.text }]}>${conMiles(totalLleno)}</T>
-                        </View>
-                    )}
                 </ScrollView>
 
                 <TouchableOpacity
@@ -433,34 +487,29 @@ const TripDetails = ({ navigation, route }) => {
                 sub={vehiculo ? `Tu ${vehiculo.brand} ${vehiculo.model} tiene ${capacidad}` : undefined}
                 onClose={() => setSelector(null)}
             >
-                <View style={hoja.personas}>
-                    <View style={[hoja.persona, hoja.personaVolante, { borderColor: ui.border }]}>
-                        <Ionicons name="person" size={18} color={ui.textMuted} />
-                        <T style={[hoja.personaNum, { color: ui.textMuted }]}>VOS</T>
+                {/* El auto visto desde arriba: adelante el volante y el acompañante, atrás el
+                    resto. Los lugares se ofrecen en orden —primero el de adelante— porque el
+                    viaje guarda CUÁNTOS asientos hay libres, no cuáles. */}
+                <View style={styles.planoAuto}>
+                    <View style={styles.autoFila}>
+                        <View style={[styles.asiento, styles.asientoConductor, { borderColor: ui.border }]}>
+                            <Ionicons name="person" size={17} color={ui.textMuted} />
+                            <T style={[styles.asientoTexto, { color: ui.textMuted }]}>VOS</T>
+                        </View>
+                        {capacidad >= 1 && <AsientoTocable n={1} asientos={asientos} setAsientos={setAsientos} ui={ui} />}
                     </View>
-                    {Array.from({ length: capacidad }, (_, i) => i + 1).map((n) => {
-                        const ofrecido = n <= asientos;
-                        return (
-                            <TouchableOpacity
-                                key={n}
-                                style={[hoja.persona, { backgroundColor: ofrecido ? ui.text : ui.bg }]}
-                                // Tocar el último ofrecido lo saca; tocar cualquier otro ofrece hasta ahí.
-                                onPress={() => setAsientos(n === asientos ? n - 1 : n)}
-                                activeOpacity={0.8}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected: ofrecido }}
-                                accessibilityLabel={`Ofrecer ${n} asiento${n !== 1 ? 's' : ''}`}
-                            >
-                                <Ionicons name={ofrecido ? 'person' : 'person-outline'} size={18} color={ofrecido ? ui.invertText : ui.textMuted} />
-                                <T style={[hoja.personaNum, { color: ofrecido ? ui.invertText : ui.textMuted }]}>{n}</T>
-                            </TouchableOpacity>
-                        );
-                    })}
+                    {capacidad > 1 && (
+                        <View style={styles.autoFila}>
+                            {Array.from({ length: capacidad - 1 }, (_, i) => i + 2).map((n) => (
+                                <AsientoTocable key={n} n={n} asientos={asientos} setAsientos={setAsientos} ui={ui} />
+                            ))}
+                        </View>
+                    )}
                 </View>
                 <T style={[hoja.pie, { color: ui.textMuted }]}>
                     {asientos === capacidad
-                        ? 'Ofrecés todos los lugares del auto.'
-                        : `Ofrecés ${asientos} de ${capacidad}: ${capacidad - asientos} queda${capacidad - asientos !== 1 ? 'n' : ''} libre${capacidad - asientos !== 1 ? 's' : ''}.`}
+                        ? `Ofrecés los ${capacidad} lugares libres del auto.`
+                        : `Ofrecés ${asientos} de ${capacidad}. Los otros ${capacidad - asientos} te los guardás.`}
                 </T>
             </Selector>
 
@@ -523,6 +572,47 @@ const TripDetails = ({ navigation, route }) => {
                 )}
             </Selector>
 
+            {/* ── Dónde te pagan la seña ──────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'cobro'}
+                titulo="¿Dónde te pagan?"
+                sub="Es lo que ve el pasajero para transferirte"
+                onClose={guardarCobro}
+            >
+                <View style={[styles.campo, { backgroundColor: ui.bg }]}>
+                    <T style={[styles.campoRotulo, { color: ui.textMuted }]}>ALIAS</T>
+                    <TextInput
+                        style={[styles.campoInput, { color: ui.text }]}
+                        value={alias}
+                        onChangeText={setAlias}
+                        placeholder="tu.alias.mp"
+                        placeholderTextColor={ui.textMuted}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        maxFontSizeMultiplier={1.2}
+                    />
+                </View>
+                <View style={[styles.campo, { backgroundColor: ui.bg }]}>
+                    <T style={[styles.campoRotulo, { color: ui.textMuted }]}>CVU O CBU</T>
+                    <TextInput
+                        style={[styles.campoInput, { color: ui.text }]}
+                        value={cvu}
+                        onChangeText={(t) => setCvu(t.replace(/\D/g, '').slice(0, 22))}
+                        placeholder="22 dígitos"
+                        placeholderTextColor={ui.textMuted}
+                        keyboardType="number-pad"
+                        maxFontSizeMultiplier={1.2}
+                    />
+                </View>
+                <T style={[hoja.pie, { color: ui.textMuted }]}>
+                    {guardandoCobro
+                        ? 'Guardando…'
+                        : 'Con uno de los dos alcanza. Queda guardado en tu perfil.'}
+                </T>
+            </Selector>
+
             {/* ── Reglas ──────────────────────────────────────────────────────────────────── */}
             <Selector
                 ui={ui}
@@ -556,7 +646,19 @@ const TripDetails = ({ navigation, route }) => {
 
 // Sólo lo que es propio de publicar un viaje; el resto sale de `components/hoja`.
 const styles = StyleSheet.create({
-    listaAutos: { flexGrow: 0, marginTop: 12 },
+    // El auto visto desde arriba
+    planoAuto: { borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', padding: 12, marginTop: 14, gap: 10, alignSelf: 'center', borderColor: 'transparent' },
+    autoFila: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
+    asiento: { width: 66, paddingVertical: 11, borderRadius: 14, alignItems: 'center', gap: 3 },
+    asientoConductor: { borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: 'transparent' },
+    asientoTexto: { fontSize: 9.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.3 },
+
+    campo: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginTop: 10 },
+    campoRotulo: { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.6 },
+    campoInput: { fontSize: 16, fontFamily: 'Sora_600SemiBold', paddingVertical: 4, marginTop: 2 },
+
+    // Tope de alto: con muchos vehículos la lista empujaba el botón fuera de la pantalla.
+    listaAutos: { flexGrow: 0, maxHeight: 290, marginTop: 12 },
     auto: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 10, marginBottom: 8 },
     autoFoto: { width: 56, height: 42, borderRadius: 10 },
     autoTexto: { flex: 1, minWidth: 0 },
