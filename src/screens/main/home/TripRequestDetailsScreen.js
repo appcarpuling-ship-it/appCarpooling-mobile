@@ -9,6 +9,7 @@ import {
     T, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
     estilos as hoja,
 } from '../../../components/hoja';
+import { decodePolyline } from '../../../utils/routePoints';
 import { horaDeFecha, fechaLegible, manianaALasOcho } from '../../../utils/fechaViaje';
 
 /**
@@ -29,7 +30,7 @@ import { horaDeFecha, fechaLegible, manianaALasOcho } from '../../../utils/fecha
 const MAX_PERSONAS = 4;
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
-    const { origin, destination, waypoints } = route.params || {};
+    const { origin, destination, waypoints, routePolyline } = route.params || {};
     const insets = useSafeAreaInsets();
     const ui = useUI();
     const { showAlert } = useAlert();
@@ -49,12 +50,15 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         return () => sub.remove();
     }, [selector]);
 
-    // Sin trazado calculado: el recorrido de una solicitud son sus puntos, y el conductor que se
-    // postule propone el suyo.
-    const puntos = useMemo(() => [origin, ...(waypoints || []), destination]
-        .map((p) => p?.coordinates)
-        .filter((c) => Number.isFinite(c?.latitude) && Number.isFinite(c?.longitude)),
-    [origin, destination, waypoints]);
+    // El trazado que calculó el mapa del paso anterior; si por algo no llegó, al menos los
+    // puntos (origen, paradas y destino) para que el mapa encuadre el viaje.
+    const puntos = useMemo(() => {
+        const trazado = routePolyline ? decodePolyline(routePolyline) : [];
+        if (trazado.length > 2) return trazado;
+        return [origin, ...(waypoints || []), destination]
+            .map((pt) => pt?.coordinates)
+            .filter((c) => Number.isFinite(c?.latitude) && Number.isFinite(c?.longitude));
+    }, [routePolyline, origin, destination, waypoints]);
 
     const publicar = async () => {
         const salida = new Date(cuando);
@@ -117,7 +121,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
             <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
 
             {/* Arranca más baja que la de publicar: acá hay dos filas, no seis. */}
-            <HojaArrastrable ui={ui} insets={insets} alta={0.6} baja={0.3} onAltura={setAltoHoja}>
+            <HojaArrastrable ui={ui} insets={insets} alta={0.5} baja={0.3} onAltura={setAltoHoja}>
                 <View style={hoja.encabezado}>
                     <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
                     <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
@@ -142,23 +146,28 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                     />
 
                     {/* Lo más importante de la pantalla: qué es lo que está por pasar. Va ANTES del
-                        botón, no después, porque es lo que decide si el pedido tiene sentido. */}
-                    <View style={[styles.explica, { backgroundColor: ui.bg }]}>
+                        botón, no después, porque es lo que decide si el pedido tiene sentido.
+                        Tres pasos en una línea de tiempo, sin caja: cada uno cabe en un renglón. */}
+                    <View style={styles.pasos}>
                         {[
-                            { icon: 'megaphone-outline', t: 'Los conductores que hagan esta ruta ven tu pedido.' },
-                            { icon: 'people-outline', t: 'Hasta 5 se postulan, cada uno con su precio y su auto.' },
-                            { icon: 'checkmark-done-outline', t: 'Vos comparás y elegís uno. Recién ahí se arma el viaje.' },
-                        ].map((p) => (
-                            <View key={p.icon} style={styles.explicaFila}>
-                                <Ionicons name={p.icon} size={18} color={ui.text} />
-                                <T style={[styles.explicaTexto, { color: ui.text }]}>{p.t}</T>
+                            'Los conductores de tu ruta ven el pedido',
+                            'Hasta 5 se postulan con su precio y su auto',
+                            'Elegís uno y recién ahí se arma el viaje',
+                        ].map((texto, i, todos) => (
+                            <View key={texto} style={styles.paso}>
+                                <View style={styles.pasoRiel}>
+                                    <View style={[styles.pasoNumero, { backgroundColor: ui.text }]}>
+                                        <T style={[styles.pasoNumeroTexto, { color: ui.invertText }]}>{i + 1}</T>
+                                    </View>
+                                    {i < todos.length - 1 && <View style={[styles.pasoLinea, { backgroundColor: ui.border }]} />}
+                                </View>
+                                <T style={[styles.pasoTexto, { color: ui.text }]}>{texto}</T>
                             </View>
                         ))}
-                        <T style={[hoja.pie, { color: ui.textMuted, textAlign: 'left', marginTop: 10 }]}>
-                            No pagás nada por pedirlo y podés cancelarlo cuando quieras. El pedido queda
-                            publicado 48 horas.
-                        </T>
                     </View>
+                    <T style={[styles.gratis, { color: ui.textMuted }]}>
+                        Es gratis, dura 48 horas y podés cancelarlo cuando quieras.
+                    </T>
                 </ScrollView>
 
                 <TouchableOpacity
@@ -221,9 +230,15 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    explica: { borderRadius: 16, padding: 14, marginTop: 14, gap: 10 },
-    explicaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    explicaTexto: { flex: 1, fontSize: 13, fontFamily: 'Sora_500Medium', lineHeight: 19 },
+    pasos: { marginTop: 18 },
+    paso: { flexDirection: 'row', gap: 14 },
+    pasoRiel: { alignItems: 'center', width: 24 },
+    pasoNumero: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    pasoNumeroTexto: { fontSize: 11.5, fontFamily: 'Sora_700Bold' },
+    pasoLinea: { width: 2, flex: 1, minHeight: 14, marginVertical: 3, borderRadius: 1 },
+    // El texto va centrado con el número y deja aire abajo para que la línea llegue al siguiente.
+    pasoTexto: { flex: 1, fontSize: 13.5, fontFamily: 'Sora_500Medium', lineHeight: 20, paddingTop: 2, paddingBottom: 12 },
+    gratis: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 18, marginTop: 4 },
 });
 
 export default TripRequestDetailsScreen;

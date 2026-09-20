@@ -836,6 +836,9 @@ const CreateTripGoogleMaps = ({ navigation, route: navRoute }) => {
         destination: formData.destination,
         waypoints: formData.waypoints.filter(wp => wp.coordinates !== null),
         distanceKm,
+        // El trazado que ya calculó este mapa: la pantalla siguiente lo muestra de fondo. Sin
+        // esto sólo se veían los dos puntos y parecía que el recorrido no existía.
+        routePolyline,
       });
       return;
     }
