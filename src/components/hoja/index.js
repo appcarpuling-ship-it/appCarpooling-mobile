@@ -19,7 +19,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { MAP_PROVIDER } from '../../utils/mapProvider';
 import RutaPolyline from '../map/RutaPolyline';
 import DateTimeRow from '../ui/DateTimeRow';
-import { horaDeFecha, mismoDia, conMayuscula, NOMBRE_MES } from '../../utils/fechaViaje';
+import { horaDeFecha, mismoDia, conMayuscula, NOMBRE_MES, proximaHora } from '../../utils/fechaViaje';
 
 // Los mismos PNG que usa el mapa de elegir direcciones, para que el viaje se vea igual de
 // punta a punta.
@@ -83,7 +83,7 @@ export const Fila = ({ ui, rotulo, valor, sub, apagado, alerta, onPress, ultimo,
 );
 
 /** Un selector: una hoja que sube desde abajo, encima de la del viaje. */
-export const Selector = ({ ui, insets, visible, titulo, sub, onClose, children }) => (
+export const Selector = ({ ui, insets, visible, titulo, sub, onClose, listoApagado, children }) => (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
         <TouchableOpacity style={estilos.velo} activeOpacity={1} onPress={onClose} accessibilityLabel="Cerrar" />
         {/* El selector se apoya abajo, justo donde aparece el teclado: sin esto, al escribir el
@@ -98,7 +98,13 @@ export const Selector = ({ ui, insets, visible, titulo, sub, onClose, children }
             <T style={[estilos.selectorTitulo, { color: ui.text }]}>{titulo}</T>
             {!!sub && <T style={[estilos.selectorSub, { color: ui.textMuted }]}>{sub}</T>}
             {children}
-            <TouchableOpacity style={[estilos.boton, { backgroundColor: ui.invertBg }]} onPress={onClose} activeOpacity={0.85}>
+            <TouchableOpacity
+                style={[estilos.boton, { backgroundColor: ui.invertBg }, listoApagado && { opacity: 0.35 }]}
+                onPress={onClose}
+                disabled={listoApagado}
+                activeOpacity={0.85}
+                accessibilityState={{ disabled: !!listoApagado }}
+            >
                 <T style={[estilos.botonTexto, { color: ui.invertText }]}>Listo</T>
             </TouchableOpacity>
         </View>
@@ -113,8 +119,13 @@ const DIAS_EN_TIRA = 60;
  * —así la tira se corre sola cada día y nunca ofrece una fecha pasada— y la hora es la del
  * reloj del teléfono, con cualquier valor.
  */
-export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambiar, titulo = '¿Cuándo salís?', sub }) => {
+export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando: elegido, onCambiar, titulo = '¿Cuándo salís?', sub }) => {
     const [pickerHora, setPickerHora] = useState(false);
+    // `elegido` es null hasta que la persona toca un día: no se propone ninguna salida. La rueda
+    // de la hora arranca en la próxima hora en punto, y recién cuenta cuando hay día elegido.
+    const [cuando, setCuando] = useState(() => elegido || proximaHora());
+    // Si desde afuera cambia lo elegido, el selector lo sigue.
+    useEffect(() => { if (elegido) setCuando(elegido); }, [elegido]);
 
     const dias = useMemo(() => {
         const hoy = new Date();
@@ -129,6 +140,7 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambi
     const elegirDia = (dia) => {
         const nueva = new Date(cuando);
         nueva.setFullYear(dia.getFullYear(), dia.getMonth(), dia.getDate());
+        setCuando(nueva);
         onCambiar(nueva);
     };
 
@@ -137,31 +149,34 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambi
         if (!elegida || (Platform.OS === 'android' && event?.type !== 'set')) return;
         const nueva = new Date(cuando);
         nueva.setHours(elegida.getHours(), elegida.getMinutes(), 0, 0);
-        onCambiar(nueva);
+        setCuando(nueva);
+        // Sin día elegido la hora queda en la rueda pero no se guarda: elegir sólo la hora no
+        // fija una fecha, y hoy no es una fecha que se pueda dar por hecha.
+        if (elegido) onCambiar(nueva);
     };
 
     return (
-        <Selector ui={ui} insets={insets} visible={visible} titulo={titulo} sub={sub} onClose={onClose}>
+        <Selector ui={ui} insets={insets} visible={visible} titulo={titulo} sub={sub} onClose={onClose} listoApagado={!elegido}>
             <T style={[estilos.mes, { color: ui.text }]}>
                 {`${conMayuscula(NOMBRE_MES[cuando.getMonth()])} ${cuando.getFullYear()}`}
             </T>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.tira}>
                 {dias.map((dia) => {
-                    const elegido = mismoDia(dia, cuando);
+                    const seleccionado = !!elegido && mismoDia(dia, cuando);
                     return (
                         <TouchableOpacity
                             key={dia.toISOString()}
-                            style={[estilos.dia, { backgroundColor: elegido ? ui.text : ui.bg }]}
+                            style={[estilos.dia, { backgroundColor: seleccionado ? ui.text : ui.bg }]}
                             onPress={() => elegirDia(dia)}
                             activeOpacity={0.8}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: elegido }}
+                            accessibilityState={{ selected: seleccionado }}
                             accessibilityLabel={dia.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         >
-                            <T style={[estilos.diaSemana, { color: elegido ? ui.invertText : ui.textMuted }]}>
+                            <T style={[estilos.diaSemana, { color: seleccionado ? ui.invertText : ui.textMuted }]}>
                                 {dia.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}
                             </T>
-                            <T style={[estilos.diaNumero, { color: elegido ? ui.invertText : ui.text }]}>{dia.getDate()}</T>
+                            <T style={[estilos.diaNumero, { color: seleccionado ? ui.invertText : ui.text }]}>{dia.getDate()}</T>
                         </TouchableOpacity>
                     );
                 })}
@@ -179,7 +194,8 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando, onCambi
                         if (Number.isNaN(h) || Number.isNaN(m)) return;
                         const nueva = new Date(cuando);
                         nueva.setHours(h, m, 0, 0);
-                        onCambiar(nueva);
+                        setCuando(nueva);
+                        if (elegido) onCambiar(nueva);
                     }}
                     isLast
                     colors={{ textPrimary: ui.text, textMuted: ui.textMuted, divider: ui.border, isDark: ui.isDarkMode }}
@@ -334,53 +350,74 @@ export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 
 };
 
 /**
- * La hoja de abajo, arrastrable entre dos alturas.
+ * La hoja de abajo: mide lo que miden sus filas, y se puede bajar de un arrastre para mirar el
+ * mapa.
  *
- * Arranca alta —con el viaje entero a la vista, que es a lo que se vino— y se puede bajar de un
- * arrastre para mirar el mapa, que ahora se puede mover. Son dos posiciones y no libre: un sheet
- * que queda a cualquier altura obliga a acomodarlo, y acá sólo hay dos cosas que mirar.
+ * El alto lo da el contenido (con un tope) y no una fracción de la pantalla: con seis filas una
+ * hoja del 74% dejaba un hueco enorme en el medio. Bajarla no cambia su alto sino su posición
+ * (`translateY`, que además anda con el driver nativo): queda asomando el encabezado y el botón
+ * de publicar, así nunca se pierde de vista.
  *
- * La altura se anima sin native driver porque es `height` y no una transformación; el contenido
- * scrollea adentro, así que el botón de publicar queda siempre a la vista.
+ * Son dos posiciones y no libre: un sheet que queda a cualquier altura obliga a acomodarlo, y
+ * acá sólo hay dos cosas que mirar.
  */
-export const HojaArrastrable = ({ ui, insets, alta = 0.74, baja = 0.34, onAltura, children }) => {
-    const { height } = useWindowDimensions();
-    const ALTA = Math.round(height * alta);
-    const BAJA = Math.round(height * baja);
+export const HojaArrastrable = ({ ui, insets, onAltura, children }) => {
+    const { height: alturaPantalla } = useWindowDimensions();
+    const [alto, setAlto] = useState(0);
 
-    const alto = useRef(new Animated.Value(ALTA)).current;
-    const actual = useRef(ALTA);
+    const ty = useRef(new Animated.Value(0)).current;
+    const posicion = useRef(0); // dónde está apoyada: 0 arriba, `bajada` abajo
     // El PanResponder se crea una sola vez y no ve los valores de este render: los lee de refs.
-    const topes = useRef({ ALTA, BAJA });
-    topes.current = { ALTA, BAJA };
+    const medidas = useRef({ bajada: 0 });
+    // Cuánto asoma de la hoja cuando está bajada: agarre + encabezado + botón.
+    const asoma = 150 + Math.max(insets.bottom, 14);
+    medidas.current.bajada = Math.max(0, alto - asoma);
     const avisar = useRef(onAltura);
     avisar.current = onAltura;
 
-    useEffect(() => { avisar.current?.(ALTA); }, [ALTA]);
+    // El contenido cambió de tamaño (apareció una fila, se agrandó la letra): si estaba bajada,
+    // que no quede fuera de rango.
+    useEffect(() => {
+        if (posicion.current > medidas.current.bajada) {
+            posicion.current = medidas.current.bajada;
+            ty.setValue(posicion.current);
+        }
+    }, [alto, ty]);
 
     const pan = useRef(
         PanResponder.create({
             // Sólo si el gesto es claramente vertical: si no, se come los toques de las filas.
             onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx),
             onPanResponderMove: (_, g) => {
-                const { ALTA: A, BAJA: B } = topes.current;
-                alto.setValue(Math.min(A, Math.max(B, actual.current - g.dy)));
+                ty.setValue(Math.min(medidas.current.bajada, Math.max(0, posicion.current + g.dy)));
             },
             onPanResponderRelease: (_, g) => {
-                const { ALTA: A, BAJA: B } = topes.current;
-                const donde = Math.min(A, Math.max(B, actual.current - g.dy));
+                const { bajada } = medidas.current;
+                const donde = Math.min(bajada, Math.max(0, posicion.current + g.dy));
                 // Un movimiento rápido manda aunque no haya llegado a la mitad.
-                const destino = g.vy > 0.5 ? B : g.vy < -0.5 ? A : (donde > (A + B) / 2 ? A : B);
-                actual.current = destino;
-                Animated.spring(alto, { toValue: destino, useNativeDriver: false, bounciness: 2, speed: 14 }).start();
-                avisar.current?.(destino);
+                const destino = g.vy > 0.5 ? bajada : g.vy < -0.5 ? 0 : (donde > bajada / 2 ? bajada : 0);
+                posicion.current = destino;
+                Animated.spring(ty, { toValue: destino, useNativeDriver: true, bounciness: 2, speed: 14 }).start();
             },
         }),
     ).current;
 
     return (
         <Animated.View
-            style={[estilos.hoja, { height: alto, backgroundColor: ui.surface, paddingBottom: Math.max(insets.bottom, 14) + 6 }]}
+            onLayout={(e) => {
+                const nuevo = Math.round(e.nativeEvent.layout.height);
+                setAlto(nuevo);
+                avisar.current?.(nuevo);
+            }}
+            style={[
+                estilos.hoja,
+                {
+                    maxHeight: Math.round(alturaPantalla * 0.8),
+                    backgroundColor: ui.surface,
+                    paddingBottom: Math.max(insets.bottom, 14) + 6,
+                    transform: [{ translateY: ty }],
+                },
+            ]}
         >
             {/* El área de arrastre es toda la franja de arriba, no la rayita de 4px. */}
             <View {...pan.panHandlers} style={estilos.zonaAgarre} accessibilityRole="adjustable" accessibilityLabel="Arrastrá para ver el mapa">
@@ -436,7 +473,8 @@ export const estilos = StyleSheet.create({
     encabezado: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
     titulo: { fontSize: 21, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.7 },
     ruta: { fontSize: 12, fontFamily: 'Sora_400Regular', flexShrink: 1, textAlign: 'right' },
-    lista: { flex: 1 },
+    // Se achica antes que empujar el botón fuera de la pantalla, pero sin estirarse para llenar.
+    lista: { flexGrow: 0, flexShrink: 1 },
 
     fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
     filaRotulo: { fontSize: 13.5, fontFamily: 'Sora_500Medium', flexShrink: 1 },

@@ -10,7 +10,7 @@ import {
     estilos as hoja,
 } from '../../../components/hoja';
 import { decodePolyline } from '../../../utils/routePoints';
-import { horaDeFecha, fechaLegible, manianaALasOcho } from '../../../utils/fechaViaje';
+import { horaDeFecha, fechaLegible } from '../../../utils/fechaViaje';
 
 /**
  * Pedir un viaje: la misma hoja sobre el mapa con la que se publica uno.
@@ -35,8 +35,9 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
     const ui = useUI();
     const { showAlert } = useAlert();
 
-    const [cuando, setCuando] = useState(manianaALasOcho);
-    const [personas, setPersonas] = useState(1);
+    // Nada viene decidido: la salida y los lugares los elige quien pide el viaje.
+    const [cuando, setCuando] = useState(null);
+    const [personas, setPersonas] = useState(0);
     const [loading, setLoading] = useState(false);
     const [selector, setSelector] = useState(null);
     // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
@@ -61,6 +62,9 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
     }, [routePolyline, origin, destination, waypoints]);
 
     const publicar = async () => {
+        // Nada apaga el botón: si falta algo, abre la fila que lo resuelve, en orden.
+        if (!cuando) { setSelector('cuando'); return; }
+        if (!personas) { setSelector('personas'); return; }
         const salida = new Date(cuando);
         if (salida <= new Date()) {
             showAlert('Revisá la salida', 'La fecha y la hora tienen que ser futuras.');
@@ -121,7 +125,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
             <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
 
             {/* Arranca más baja que la de publicar: acá hay dos filas, no seis. */}
-            <HojaArrastrable ui={ui} insets={insets} alta={0.5} baja={0.3} onAltura={setAltoHoja}>
+            <HojaArrastrable ui={ui} insets={insets} onAltura={setAltoHoja}>
                 <View style={hoja.encabezado}>
                     <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
                     <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
@@ -134,13 +138,15 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                     <Fila
                         ui={ui}
                         rotulo="Salís"
-                        valor={`${fechaLegible(cuando)} · ${horaDeFecha(cuando)}`}
+                        valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                        apagado={!cuando}
                         onPress={() => setSelector('cuando')}
                     />
                     <Fila
                         ui={ui}
                         rotulo="Cuántos viajan"
-                        valor={`${personas} ${personas === 1 ? 'persona' : 'personas'}`}
+                        valor={personas ? `${personas} ${personas === 1 ? 'persona' : 'personas'}` : 'Elegí cuántos'}
+                        apagado={!personas}
                         onPress={() => setSelector('personas')}
                         ultimo
                     />
@@ -199,6 +205,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                 titulo="¿Cuántos viajan?"
                 sub="Contando a quien te acompañe"
                 onClose={() => setSelector(null)}
+                listoApagado={!personas}
             >
                 <View style={hoja.personas}>
                     {Array.from({ length: MAX_PERSONAS }, (_, i) => i + 1).map((n) => {
@@ -220,9 +227,11 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                     })}
                 </View>
                 <T style={[hoja.pie, { color: ui.textMuted }]}>
-                    {personas === 1
-                        ? 'Necesitás un lugar.'
-                        : `Necesitás ${personas} lugares juntos en el mismo auto.`}
+                    {!personas
+                        ? 'Tocá cuántas personas viajan.'
+                        : personas === 1
+                            ? 'Necesitás un lugar.'
+                            : `Necesitás ${personas} lugares juntos en el mismo auto.`}
                 </T>
             </Selector>
         </View>

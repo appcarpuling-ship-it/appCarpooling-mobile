@@ -39,11 +39,14 @@ const fechaLegible = (fecha) => {
     return `${diaSemana} ${fecha.getDate()} ${NOMBRE_MES[fecha.getMonth()].slice(0, 3)}`;
 };
 
-/** Mañana a las 8: el viaje más común, y nunca queda en el pasado. */
-const manianaALasOcho = () => {
+/**
+ * La próxima hora en punto. Es sólo de dónde arranca la rueda de la hora cuando todavía no se
+ * eligió nada: NO es una salida propuesta, y no se guarda hasta que la persona elige un día.
+ */
+const proximaHora = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(8, 0, 0, 0);
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
     return d;
 };
 
@@ -55,7 +58,7 @@ module.exports = {
     horaDeFecha,
     mismoDia,
     fechaLegible,
-    manianaALasOcho,
+    proximaHora,
     conMayuscula,
     conMiles,
     soloDigitos,

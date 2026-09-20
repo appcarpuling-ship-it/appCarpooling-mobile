@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decodePolyline } from '../../../utils/routePoints';
 import { senaLegible } from '../../../utils/sena';
 import { post_withauth, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
@@ -25,23 +24,24 @@ import {
     T, Toggle, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
     estilos as hoja,
 } from '../../../components/hoja';
-import { isoDeFecha, horaDeFecha, fechaLegible, manianaALasOcho, conMiles, soloDigitos } from '../../../utils/fechaViaje';
+import { isoDeFecha, horaDeFecha, fechaLegible, conMiles, soloDigitos } from '../../../utils/fechaViaje';
 
 /**
  * Publicar un viaje: una sola hoja sobre el mapa del recorrido.
  *
- * Reemplaza al formulario de tres pasos que había acá. La diferencia no es cosmética: el viaje
- * llega con TODO completo (mañana a las 8, el auto de siempre, todos sus asientos, el precio de
- * referencia de la ruta) y cada fila se toca sólo para corregir. Publicar es un toque, y el
- * botón nunca está deshabilitado porque nunca falta nada.
+ * Reemplaza al formulario de tres pasos que había acá. Todo el viaje se ve de un vistazo en una
+ * hoja, y cada fila abre un selector chico en vez de llevar a otro paso.
+ *
+ * NADA viene decidido de antemano: ni la salida, ni el vehículo, ni los lugares, ni el precio.
+ * Un valor por defecto es una decisión tomada en nombre del conductor —y con el precio, además,
+ * una cifra que no tiene ningún dato real detrás— así que las filas arrancan vacías y las elige
+ * él. El botón nunca está apagado: si falta algo, abre la fila que falta.
  *
  * Lo que se manda al backend y cómo se valida NO cambió: es el mismo POST /trips de antes.
  *
  * Las piezas comunes con "pedir un viaje" (el mapa, las filas, los selectores) viven en
  * `components/hoja`.
  */
-
-const ULTIMO_VEHICULO = '@carpuling:ultimo_vehiculo';
 
 /** Un asiento del auto. Tocarlo ofrece hasta ahí; tocar el último lo saca. */
 const AsientoTocable = ({ n, asientos, setAsientos, ui }) => {
@@ -73,8 +73,8 @@ const TripDetails = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false);
     const [selector, setSelector] = useState(null); // qué selector está abierto
 
-    // ── Los valores del viaje, todos con algo puesto de entrada ─────────────────────────
-    const [cuando, setCuando] = useState(manianaALasOcho);
+    // ── Los valores del viaje: todos vacíos hasta que el conductor los elige ───────────
+    const [cuando, setCuando] = useState(null);
     const [vehiculoId, setVehiculoId] = useState(null);
     const [asientos, setAsientos] = useState(0);
     const [precio, setPrecio] = useState('');
@@ -86,7 +86,6 @@ const TripDetails = ({ navigation, route }) => {
         womenOnly: false,
         largeLuggageAllowed: false,
     });
-    const [referencia, setReferencia] = useState(null); // { distanceKm, precioPorAsiento }
     const [alias, setAlias] = useState(user?.datosCobro?.alias || '');
     const [cvu, setCvu] = useState(user?.datosCobro?.cvu || '');
     const [guardandoCobro, setGuardandoCobro] = useState(false);
@@ -129,45 +128,11 @@ const TripDetails = ({ navigation, route }) => {
         }
     };
 
-    // Vehículo por defecto: el del último viaje que publicó, o el primero que tenga.
+    // Si cambia de vehículo y ya había elegido más lugares de los que tiene el nuevo, se ajustan al
+    // tope: nunca pueden quedar más lugares que asientos.
     useEffect(() => {
-        let vivo = true;
-        (async () => {
-            if (!vehicles.length) return;
-            let elegido = vehicles[0]._id;
-            try {
-                const guardado = await AsyncStorage.getItem(ULTIMO_VEHICULO);
-                if (guardado && vehicles.some((v) => v._id === guardado)) elegido = guardado;
-            } catch {
-                /* sin preferencia guardada queda el primero */
-            }
-            if (vivo) setVehiculoId(elegido);
-        })();
-        return () => { vivo = false; };
-    }, [vehicles]);
-
-    // Todos los asientos del auto, que es lo que más conviene al conductor. Si cambia de
-    // vehículo se recalcula, para que nunca queden más lugares que asientos.
-    useEffect(() => {
-        if (capacidad > 0) setAsientos((prev) => (prev > 0 && prev <= capacidad ? prev : capacidad));
+        if (capacidad > 0) setAsientos((prev) => (prev > capacidad ? capacidad : prev));
     }, [capacidad]);
-
-    // Cuánto se suele cobrar en esta ruta. Es sólo una referencia: si falla o no hay distancia,
-    // la pantalla anda igual y el precio arranca vacío.
-    useEffect(() => {
-        let vivo = true;
-        (async () => {
-            try {
-                const res = await post_withauth('/trips/precio-referencia', { origin, destination });
-                if (!vivo || !res?.success || !res.data?.disponible) return;
-                setReferencia(res.data);
-                setPrecio((actual) => (actual ? actual : conMiles(res.data.precioPorAsiento)));
-            } catch (e) {
-                reportError(e, { screen: 'TripDetails', action: 'precioReferencia' });
-            }
-        })();
-        return () => { vivo = false; };
-    }, [origin, destination]);
 
     // El trazado que ya calculó el mapa del paso anterior; sin él, al menos las dos puntas.
     const puntos = useMemo(() => {
@@ -196,13 +161,14 @@ const TripDetails = ({ navigation, route }) => {
     const faltaCobro = requiereSena && !sinPrecioFijo && !cobroLegible;
 
     const publicar = async () => {
-        // Nada bloquea el botón: si falta algo, se abre la fila que lo resuelve.
+        // Nada apaga el botón: si falta algo, se abre la fila que lo resuelve, de arriba para
+        // abajo, en el mismo orden en que se ven.
+        if (!cuando) { setSelector('cuando'); return; }
         if (faltaVehiculo) {
             if (vehicles.length) setSelector('vehiculo');
             else navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false });
             return;
         }
-        if (faltaPrecio) { setSelector('precio'); return; }
         // Sin asientos el backend rechaza el viaje. Con un vehículo sin capacidad cargada no hay
         // nada que elegir, así que ahí se manda a corregir el vehículo en vez de abrir un
         // selector vacío.
@@ -211,6 +177,7 @@ const TripDetails = ({ navigation, route }) => {
             showAlert('Revisá tu vehículo', 'No tiene cargada la cantidad de asientos. Editalo en Mis vehículos y volvé a publicar.');
             return;
         }
+        if (faltaPrecio) { setSelector('precio'); return; }
         if (cuando <= new Date()) {
             showAlert('Revisá la salida', 'La fecha y la hora tienen que ser futuras.');
             setSelector('cuando');
@@ -254,8 +221,6 @@ const TripDetails = ({ navigation, route }) => {
 
             const response = await post_withauth(ENDPOINTS.CREATE_TRIP, tripData);
             if (response.success) {
-                // Para preseleccionarlo la próxima vez.
-                AsyncStorage.setItem(ULTIMO_VEHICULO, vehiculo._id).catch(() => {});
                 navigation.navigate('Result', {
                     type: 'success',
                     title: 'Viaje publicado',
@@ -334,16 +299,16 @@ const TripDetails = ({ navigation, route }) => {
                     <Fila
                         ui={ui}
                         rotulo="Sale"
-                        valor={`${fechaLegible(cuando)} · ${horaDeFecha(cuando)}`}
+                        valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                        apagado={!cuando}
                         onPress={() => setSelector('cuando')}
                     />
                     <Fila
                         ui={ui}
                         rotulo="Vehículo"
-                        valor={vehiculo ? `${vehiculo.brand} ${vehiculo.model}` : 'Agregá tu vehículo'}
+                        valor={vehiculo ? `${vehiculo.brand} ${vehiculo.model}` : vehicles.length ? 'Elegí tu vehículo' : 'Agregá tu vehículo'}
                         sub={vehiculo?.licensePlate}
                         apagado={faltaVehiculo}
-                        alerta={faltaVehiculo}
                         onPress={() => (vehicles.length
                             ? setSelector('vehiculo')
                             : navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false }))}
@@ -353,12 +318,13 @@ const TripDetails = ({ navigation, route }) => {
                         rotulo="Lugares que ofrecés"
                         valor={asientos ? `${asientos} asiento${asientos !== 1 ? 's' : ''}` : 'Elegí cuántos'}
                         apagado={!asientos}
-                        onPress={vehiculo ? () => setSelector('asientos') : undefined}
+                        // Los lugares dependen del auto: sin vehículo, la fila lleva a elegirlo.
+                        onPress={() => setSelector(vehiculo ? 'asientos' : 'vehiculo')}
                     />
                     <Fila
                         ui={ui}
                         rotulo="Cada pasajero paga"
-                        valor={sinPrecioFijo ? 'A convenir' : precioNumero > 0 ? `$${conMiles(precioNumero)}` : 'Poné tu precio'}
+                        valor={sinPrecioFijo ? 'A convenir' : precioNumero > 0 ? `$${conMiles(precioNumero)}` : 'Poné el precio'}
                         apagado={faltaPrecio}
                         onPress={() => setSelector('precio')}
                     />
@@ -486,6 +452,7 @@ const TripDetails = ({ navigation, route }) => {
                 titulo="¿Cuántos lugares ofrecés?"
                 sub={vehiculo ? `Tu ${vehiculo.brand} ${vehiculo.model} tiene ${capacidad}` : undefined}
                 onClose={() => setSelector(null)}
+                listoApagado={!asientos}
             >
                 {/* El auto visto desde arriba: adelante el volante y el acompañante, atrás el
                     resto. Los lugares se ofrecen en orden —primero el de adelante— porque el
@@ -507,9 +474,11 @@ const TripDetails = ({ navigation, route }) => {
                     )}
                 </View>
                 <T style={[hoja.pie, { color: ui.textMuted }]}>
-                    {asientos === capacidad
-                        ? `Ofrecés los ${capacidad} lugares libres del auto.`
-                        : `Ofrecés ${asientos} de ${capacidad}. Los otros ${capacidad - asientos} te los guardás.`}
+                    {!asientos
+                        ? 'Tocá los asientos que ofrecés a pasajeros.'
+                        : asientos === capacidad
+                            ? `Ofrecés los ${capacidad} lugares libres del auto.`
+                            : `Ofrecés ${asientos} de ${capacidad}. Los otros ${capacidad - asientos} te los guardás.`}
                 </T>
             </Selector>
 
@@ -521,6 +490,7 @@ const TripDetails = ({ navigation, route }) => {
                 titulo="¿Cuánto cobrás?"
                 sub="Por pasajero"
                 onClose={() => setSelector(null)}
+                listoApagado={!sinPrecioFijo && precioNumero <= 0}
             >
                 <View style={[styles.segmento, { backgroundColor: ui.bg }]}>
                     {[
@@ -563,11 +533,7 @@ const TripDetails = ({ navigation, route }) => {
                             maxFontSizeMultiplier={1.1}
                             accessibilityLabel="Precio por pasajero"
                         />
-                        <T style={[hoja.pie, { color: ui.textMuted }]}>
-                            {referencia
-                                ? `En esta ruta (${referencia.distanceKm} km) se suele cobrar $${conMiles(referencia.precioPorAsiento)}`
-                                : 'Te lo pagan a vos, directo.'}
-                        </T>
+                        <T style={[hoja.pie, { color: ui.textMuted }]}>Te lo pagan a vos, directo.</T>
                     </>
                 )}
             </Selector>
