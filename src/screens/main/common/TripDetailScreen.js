@@ -103,6 +103,7 @@ const TripDetailScreen = ({ route, navigation }) => {
   const puntosEncuadreRef = useRef([]);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
+  const [repeatingTrip, setRepeatingTrip] = useState(false);
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -613,6 +614,25 @@ const TripDetailScreen = ({ route, navigation }) => {
       },
       successParams: { title: 'Viaje completado', message: 'Completaste el viaje. ¡Gracias por usar Carpuling!' },
       errorParams: { title: 'No se pudo completar' },
+    });
+  };
+
+  const handleRepeatTrip = () => {
+    navigation.navigate('Confirm', {
+      title: 'Repetir viaje',
+      message: 'Publicamos el mismo viaje (misma ruta, auto, horario y precio) para el próximo mismo día de la semana.',
+      confirmLabel: 'Sí, repetir',
+      onConfirm: async () => {
+        setRepeatingTrip(true);
+        try {
+          const response = await post_withauth(ENDPOINTS.REPEAT_TRIP(tripId));
+          if (!response.success) throw new Error(response.message || 'No se pudo repetir el viaje');
+        } finally {
+          setRepeatingTrip(false);
+        }
+      },
+      successParams: { title: 'Viaje publicado', message: 'Repetimos tu viaje para la semana que viene.' },
+      errorParams: { title: 'No se pudo repetir' },
     });
   };
 
@@ -1332,6 +1352,22 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               </>
             )}
+          </View>
+        )}
+
+        {/* Footer — driver, viaje ya terminado: ofrecer repetirlo la semana que viene */}
+        {isOwnTrip && (trip.status === 'completed' || trip.status === 'cancelled') && (
+          <View style={[styles.footer, { borderTopWidth: 0 }]}>
+            <TouchableOpacity
+              style={[styles.footerBtn, { backgroundColor: accent }, repeatingTrip && { opacity: 0.6 }]}
+              onPress={handleRepeatTrip}
+              disabled={repeatingTrip}
+            >
+              {repeatingTrip
+                ? <ActivityIndicator size="small" color={accentInverse} />
+                : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Repetir viaje</Text>
+              }
+            </TouchableOpacity>
           </View>
         )}
 
