@@ -45,26 +45,6 @@ import { isoDeFecha, horaDeFecha, fechaLegible, conMiles, soloDigitos } from '..
  * `components/hoja`.
  */
 
-/** Un asiento del auto. Tocarlo ofrece hasta ahí; tocar el último lo saca. */
-const AsientoTocable = ({ n, asientos, setAsientos, ui }) => {
-    const ofrecido = n <= asientos;
-    return (
-        <TouchableOpacity
-            style={[styles.asiento, { backgroundColor: ofrecido ? ui.text : ui.bg }]}
-            onPress={() => setAsientos(n === asientos ? n - 1 : n)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityState={{ selected: ofrecido }}
-            accessibilityLabel={`Ofrecer ${n} asiento${n !== 1 ? 's' : ''}`}
-        >
-            <Ionicons name={ofrecido ? 'person' : 'person-outline'} size={17} color={ofrecido ? ui.invertText : ui.textMuted} />
-            <T style={[styles.asientoTexto, { color: ofrecido ? ui.invertText : ui.textMuted }]}>
-                {ofrecido ? 'LIBRE' : '—'}
-            </T>
-        </TouchableOpacity>
-    );
-};
-
 const TripDetails = ({ navigation, route }) => {
     const { origin, destination, waypoints, distance, duration, routePolyline, vehicles = [] } = route.params;
     const insets = useSafeAreaInsets();
@@ -455,28 +435,19 @@ const TripDetails = ({ navigation, route }) => {
                 onClose={() => setSelector(null)}
                 listoApagado={!asientos}
             >
-                {/* El auto visto desde arriba: adelante el volante y el acompañante, atrás el
-                    resto. Los lugares se ofrecen en orden —primero el de adelante— porque el
-                    viaje guarda CUÁNTOS asientos hay libres, no cuáles. */}
-                <View style={styles.planoAuto}>
-                    <View style={styles.autoFila}>
-                        <View style={[styles.asiento, styles.asientoConductor, { borderColor: ui.border }]}>
-                            <Ionicons name="person" size={17} color={ui.textMuted} />
-                            <T style={[styles.asientoTexto, { color: ui.textMuted }]}>VOS</T>
-                        </View>
-                        {capacidad >= 1 && <AsientoTocable n={1} asientos={asientos} setAsientos={setAsientos} ui={ui} />}
-                    </View>
-                    {capacidad > 1 && (
-                        <View style={styles.autoFila}>
-                            {Array.from({ length: capacidad - 1 }, (_, i) => i + 2).map((n) => (
-                                <AsientoTocable key={n} n={n} asientos={asientos} setAsientos={setAsientos} ui={ui} />
-                            ))}
-                        </View>
-                    )}
-                </View>
+                <TextInput
+                    style={[styles.precioInput, { color: asientos > 0 ? ui.text : ui.textMuted }]}
+                    value={asientos > 0 ? String(asientos) : ''}
+                    onChangeText={(v) => setAsientos(Math.min(parseInt(soloDigitos(v), 10) || 0, capacidad))}
+                    placeholder="0"
+                    placeholderTextColor={ui.textMuted}
+                    keyboardType="number-pad"
+                    maxFontSizeMultiplier={1.1}
+                    accessibilityLabel="Lugares que ofrecés"
+                />
                 <T style={[hoja.pie, { color: ui.textMuted }]}>
                     {!asientos
-                        ? 'Tocá los asientos que ofrecés a pasajeros.'
+                        ? `Escribí cuántos lugares ofrecés (hasta ${capacidad}).`
                         : asientos === capacidad
                             ? `Ofrecés los ${capacidad} lugares libres del auto.`
                             : `Ofrecés ${asientos} de ${capacidad}. Los otros ${capacidad - asientos} te los guardás.`}
@@ -619,13 +590,6 @@ const styles = StyleSheet.create({
     lista: { flex: 1 },
     listaContenido: { paddingHorizontal: 20 },
     footer: { paddingHorizontal: 20, paddingTop: 12 },
-
-    // El auto visto desde arriba
-    planoAuto: { borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', padding: 12, marginTop: 14, gap: 10, alignSelf: 'center', borderColor: 'transparent' },
-    autoFila: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
-    asiento: { width: 66, paddingVertical: 11, borderRadius: 14, alignItems: 'center', gap: 3 },
-    asientoConductor: { borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: 'transparent' },
-    asientoTexto: { fontSize: 9.5, fontFamily: 'Sora_700Bold', letterSpacing: 0.3 },
 
     campo: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginTop: 10 },
     campoRotulo: { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.6 },

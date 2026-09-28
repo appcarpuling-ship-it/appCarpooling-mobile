@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,10 +9,9 @@ import {
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import DateTimeRow from '../ui/DateTimeRow';
-import { horaDeFecha, mismoDia, conMayuscula, NOMBRE_MES, proximaHora } from '../../utils/fechaViaje';
+import { mismoDia, NOMBRE_MES, proximaHora } from '../../utils/fechaViaje';
 
 /**
  * Las filas y los selectores con los que se arma un viaje, tanto cuando el conductor lo publica
@@ -103,17 +102,89 @@ export const Selector = ({ ui, insets, visible, titulo, sub, onClose, listoApaga
     </Modal>
 );
 
-const DIAS_EN_TIRA = 60;
+const DIAS_EN_RUEDA = 60;
+const MINUTOS_PASO = 5;
+const RUEDA_ITEM_ALTO = 44;
+// Impar de renglones visibles (2 arriba + el del medio + 2 abajo), como en la referencia.
+const RUEDA_ALTO = RUEDA_ITEM_ALTO * 5;
+const RUEDA_PADDING = (RUEDA_ALTO - RUEDA_ITEM_ALTO) / 2;
 
 /**
- * Cuándo sale el viaje. Nada prearmado: los días salen del calendario real arrancando en hoy
- * —así la tira se corre sola cada día y nunca ofrece una fecha pasada— y la hora es la del
- * reloj del teléfono, con cualquier valor.
+ * Una columna de la rueda: una lista que se scrollea y encastra ítem por ítem
+ * (`snapToInterval`). El de arriba y abajo quedan con padding para que el primer y el último
+ * ítem real puedan llegar al centro, bajo la franja resaltada.
+ *
+ * No confirma nada por su cuenta: sólo avisa qué índice quedó centrado, y sólo cuando fue un
+ * arrastre de la persona (`onScrollBeginDrag`) — el salto inicial a la posición de partida
+ * (`scrollTo` en el efecto) también dispara `onScroll`, y ese no cuenta como elegir.
+ *
+ * ponytail: en web (react-native-web) el ScrollView no tiene el snap nativo de iOS/Android —
+ * queda scrolleable igual, pero puede asentar unos px salteado del ítem exacto. Si algún día
+ * se nota, se arregla con un scroll-snap-type CSS específico para esa plataforma.
+ */
+const ColumnaRueda = ({ ui, items, formatear, indice, onElegirIndice, alinear = 'center', ancho }) => {
+    const scrollRef = useRef(null);
+    const arrastrando = useRef(false);
+    const [indiceVivo, setIndiceVivo] = useState(indice);
+
+    useEffect(() => {
+        setIndiceVivo(indice);
+        // Mientras la persona la está arrastrando, la columna ya sabe dónde está por su propio
+        // scroll — re-centrarla acá encima pelea con el gesto en curso.
+        if (!arrastrando.current) {
+            scrollRef.current?.scrollTo({ y: indice * RUEDA_ITEM_ALTO, animated: false });
+        }
+    }, [indice]);
+
+    const alScrollear = (e) => {
+        const y = e.nativeEvent.contentOffset.y;
+        const i = Math.max(0, Math.min(items.length - 1, Math.round(y / RUEDA_ITEM_ALTO)));
+        if (i !== indiceVivo) {
+            setIndiceVivo(i);
+            if (arrastrando.current) onElegirIndice(i);
+        }
+    };
+
+    return (
+        <ScrollView
+            ref={scrollRef}
+            style={{ flex: ancho || 1 }}
+            showsVerticalScrollIndicator={false}
+            snapToInterval={RUEDA_ITEM_ALTO}
+            decelerationRate="fast"
+            onScrollBeginDrag={() => { arrastrando.current = true; }}
+            // No en onScrollEndDrag: con snapToInterval, soltar el dedo sigue con inercia hasta
+            // encastrar, y esa animación también dispara onScroll — cortar acá antes de tiempo
+            // hace que el efecto de arriba pelee con la animación de encastre.
+            onMomentumScrollEnd={() => { arrastrando.current = false; }}
+            onScroll={alScrollear}
+            scrollEventThrottle={32}
+            contentContainerStyle={{ paddingVertical: RUEDA_PADDING }}
+        >
+            {items.map((it, i) => (
+                <View key={i} style={[estilos.ruedaItem, { alignItems: alinear === 'left' ? 'flex-start' : 'center' }]}>
+                    <T
+                        style={[
+                            estilos.ruedaItemTexto,
+                            { color: i === indiceVivo ? ui.text : ui.textMuted },
+                            i === indiceVivo && estilos.ruedaItemTextoCentro,
+                        ]}
+                    >
+                        {formatear(it)}
+                    </T>
+                </View>
+            ))}
+        </ScrollView>
+    );
+};
+
+/**
+ * Cuándo sale el viaje: una rueda de tres columnas (día, hora, minuto) que se scrollean cada
+ * una por su lado, con una franja fija resaltada en el medio — como el selector de horario de
+ * Uber. Nada prearmado: la rueda arranca mostrando hoy y la próxima hora en punto, pero eso NO
+ * se guarda como elegido hasta que la persona mueve alguna columna con el dedo.
  */
 export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando: elegido, onCambiar, titulo = '¿Cuándo salís?', sub }) => {
-    const [pickerHora, setPickerHora] = useState(false);
-    // `elegido` es null hasta que la persona toca un día: no se propone ninguna salida. La rueda
-    // de la hora arranca en la próxima hora en punto, y recién cuenta cuando hay día elegido.
     const [cuando, setCuando] = useState(() => elegido || proximaHora());
     // Si desde afuera cambia lo elegido, el selector lo sigue.
     useEffect(() => { if (elegido) setCuando(elegido); }, [elegido]);
@@ -121,106 +192,68 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando: elegido
     const dias = useMemo(() => {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
-        return Array.from({ length: DIAS_EN_TIRA }, (_, i) => {
+        return Array.from({ length: DIAS_EN_RUEDA }, (_, i) => {
             const d = new Date(hoy);
             d.setDate(hoy.getDate() + i);
             return d;
         });
     }, []);
+    const horas = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
+    const minutos = useMemo(() => Array.from({ length: 60 / MINUTOS_PASO }, (_, i) => i * MINUTOS_PASO), []);
 
-    const elegirDia = (dia) => {
-        const nueva = new Date(cuando);
-        nueva.setFullYear(dia.getFullYear(), dia.getMonth(), dia.getDate());
+    const diaIndice = Math.max(0, dias.findIndex((d) => mismoDia(d, cuando)));
+    const horaIndice = cuando.getHours();
+    const minutoIndice = Math.round(cuando.getMinutes() / MINUTOS_PASO) % minutos.length;
+
+    // Cada columna comparte esta misma lógica: arma la fecha nueva a partir de la actual y del
+    // índice que quedó centrado, y la comunica para afuera — mover cualquiera de las tres
+    // columnas cuenta como "elegir", no hace falta pasar primero por el día.
+    const comprometer = (nueva) => {
         setCuando(nueva);
         onCambiar(nueva);
     };
-
-    const onHora = (event, elegida) => {
-        if (Platform.OS === 'android') setPickerHora(false);
-        if (!elegida || (Platform.OS === 'android' && event?.type !== 'set')) return;
+    const onElegirDia = (i) => {
         const nueva = new Date(cuando);
-        nueva.setHours(elegida.getHours(), elegida.getMinutes(), 0, 0);
-        setCuando(nueva);
-        // Sin día elegido la hora queda en la rueda pero no se guarda: elegir sólo la hora no
-        // fija una fecha, y hoy no es una fecha que se pueda dar por hecha.
-        if (elegido) onCambiar(nueva);
+        nueva.setFullYear(dias[i].getFullYear(), dias[i].getMonth(), dias[i].getDate());
+        comprometer(nueva);
+    };
+    const onElegirHora = (i) => {
+        const nueva = new Date(cuando);
+        nueva.setHours(horas[i], cuando.getMinutes(), 0, 0);
+        comprometer(nueva);
+    };
+    const onElegirMinuto = (i) => {
+        const nueva = new Date(cuando);
+        nueva.setMinutes(minutos[i], 0, 0);
+        comprometer(nueva);
     };
 
     return (
         <Selector ui={ui} insets={insets} visible={visible} titulo={titulo} sub={sub} onClose={onClose} listoApagado={!elegido}>
-            <T style={[estilos.mes, { color: ui.text }]}>
-                {`${conMayuscula(NOMBRE_MES[cuando.getMonth()])} ${cuando.getFullYear()}`}
-            </T>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.tira}>
-                {dias.map((dia) => {
-                    const seleccionado = !!elegido && mismoDia(dia, cuando);
-                    return (
-                        <TouchableOpacity
-                            key={dia.toISOString()}
-                            style={[estilos.dia, { backgroundColor: seleccionado ? ui.text : ui.bg }]}
-                            onPress={() => elegirDia(dia)}
-                            activeOpacity={0.8}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: seleccionado }}
-                            accessibilityLabel={dia.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        >
-                            <T style={[estilos.diaSemana, { color: seleccionado ? ui.invertText : ui.textMuted }]}>
-                                {dia.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')}
-                            </T>
-                            <T style={[estilos.diaNumero, { color: seleccionado ? ui.invertText : ui.text }]}>{dia.getDate()}</T>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
-
-            {/* La hora, por plataforma. En web el picker nativo de RN no corre: se usa el
-                <input type="time"> del navegador. */}
-            {Platform.OS === 'web' ? (
-                <DateTimeRow
-                    mode="time"
-                    icon="time-outline"
-                    value={horaDeFecha(cuando)}
-                    onChange={(v) => {
-                        const [h, m] = String(v).split(':').map(Number);
-                        if (Number.isNaN(h) || Number.isNaN(m)) return;
-                        const nueva = new Date(cuando);
-                        nueva.setHours(h, m, 0, 0);
-                        setCuando(nueva);
-                        if (elegido) onCambiar(nueva);
-                    }}
-                    isLast
-                    colors={{ textPrimary: ui.text, textMuted: ui.textMuted, divider: ui.border, isDark: ui.isDarkMode }}
+            <View style={estilos.rueda}>
+                <View style={[estilos.ruedaResaltado, { backgroundColor: ui.bg }]} />
+                <ColumnaRueda ui={ui} items={dias} ancho={2.1} alinear="left" indice={diaIndice} onElegirIndice={onElegirDia}
+                    formatear={(d) => `${d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', '')} ${d.getDate()} ${NOMBRE_MES[d.getMonth()].slice(0, 3)}`}
                 />
-            ) : Platform.OS === 'ios' ? (
-                // `locale` es lo que saca el a.m./p.m.: sin esto la rueda sale en 12 horas según
-                // el idioma del teléfono, mientras el resto de la app muestra 24. El alto es
-                // explícito porque el spinner de iOS se recortaba arriba y abajo.
-                <DateTimePicker
-                    value={cuando}
-                    mode="time"
-                    display="spinner"
-                    locale="es-AR"
-                    onChange={onHora}
-                    textColor={ui.text}
-                    themeVariant={ui.isDarkMode ? 'dark' : 'light'}
-                    style={estilos.rueda}
+                <ColumnaRueda ui={ui} items={horas} indice={horaIndice} onElegirIndice={onElegirHora}
+                    formatear={(h) => String(h).padStart(2, '0')}
                 />
-            ) : (
-                <>
-                    <TouchableOpacity
-                        style={[estilos.horaCaja, { backgroundColor: ui.bg }]}
-                        onPress={() => setPickerHora(true)}
-                        activeOpacity={0.8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Hora de salida: ${horaDeFecha(cuando)}`}
-                    >
-                        <Ionicons name="time-outline" size={19} color={ui.textMuted} />
-                        <T style={[estilos.horaTexto, { color: ui.text }]}>{horaDeFecha(cuando)}</T>
-                        <Ionicons name="chevron-forward" size={16} color={ui.border} />
-                    </TouchableOpacity>
-                    {pickerHora && <DateTimePicker value={cuando} mode="time" display="default" is24Hour onChange={onHora} />}
-                </>
-            )}
+                <ColumnaRueda ui={ui} items={minutos} indice={minutoIndice} onElegirIndice={onElegirMinuto}
+                    formatear={(m) => String(m).padStart(2, '0')}
+                />
+                {/* Degradé arriba/abajo: RN no tiene mask-image, así que se simula con dos
+                    gradientes que se apoyan encima y se funden con el fondo de la hoja. */}
+                <LinearGradient
+                    colors={[ui.surface, `${ui.surface}00`]}
+                    style={estilos.ruedaDegradeArriba}
+                    pointerEvents="none"
+                />
+                <LinearGradient
+                    colors={[`${ui.surface}00`, ui.surface]}
+                    style={estilos.ruedaDegradeAbajo}
+                    pointerEvents="none"
+                />
+            </View>
         </Selector>
     );
 };
@@ -243,8 +276,10 @@ export const estilos = StyleSheet.create({
     totalRotulo: { fontSize: 12, fontFamily: 'Sora_400Regular', flexShrink: 1 },
     totalMonto: { fontSize: 18, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.5 },
 
-    boton: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
-    botonTexto: { fontSize: 15.5, fontFamily: 'Sora_600SemiBold' },
+    // Mismo pill que el resto de los botones primarios de la app (TripDetailScreen,
+    // MyTripsScreen): height fijo + borderRadius 999, no paddingVertical + radius chico.
+    boton: { height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+    botonTexto: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
 
     toggle: { width: 46, height: 27, borderRadius: 999, padding: 2.5, justifyContent: 'center' },
     toggleBola: { width: 22, height: 22, borderRadius: 11 },
@@ -259,14 +294,19 @@ export const estilos = StyleSheet.create({
     selectorTitulo: { fontSize: 20, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.6 },
     selectorSub: { fontSize: 12, fontFamily: 'Sora_400Regular', marginTop: 2 },
 
-    mes: { fontSize: 13, fontFamily: 'Sora_600SemiBold', marginTop: 14 },
-    tira: { gap: 8, paddingVertical: 10, paddingRight: 8 },
-    dia: { width: 50, paddingVertical: 9, borderRadius: 14, alignItems: 'center' },
-    diaSemana: { fontSize: 10, fontFamily: 'Sora_500Medium', textTransform: 'uppercase' },
-    diaNumero: { fontSize: 16, fontFamily: 'Sora_700Bold', letterSpacing: -0.3, marginTop: 1 },
-    rueda: { alignSelf: 'stretch', height: 190 },
-    horaCaja: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginTop: 4 },
-    horaTexto: { flex: 1, fontSize: 17, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 },
+    // La rueda de día/hora/minuto de SelectorDeCuando: tres columnas independientes con una
+    // franja fija resaltada en el medio (ruedaResaltado, detrás de las tres) y un degradé
+    // arriba/abajo que las funde con el fondo de la hoja.
+    rueda: { flexDirection: 'row', gap: 4, marginTop: 14, height: RUEDA_ALTO },
+    ruedaResaltado: {
+        position: 'absolute', left: 0, right: 0, top: (RUEDA_ALTO - RUEDA_ITEM_ALTO) / 2,
+        height: RUEDA_ITEM_ALTO, borderRadius: 14, zIndex: -1,
+    },
+    ruedaItem: { height: RUEDA_ITEM_ALTO, justifyContent: 'center', paddingHorizontal: 6 },
+    ruedaItemTexto: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+    ruedaItemTextoCentro: { fontSize: 18, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.3 },
+    ruedaDegradeArriba: { position: 'absolute', left: 0, right: 0, top: 0, height: RUEDA_PADDING, zIndex: 1 },
+    ruedaDegradeAbajo: { position: 'absolute', left: 0, right: 0, bottom: 0, height: RUEDA_PADDING, zIndex: 1 },
 
     // Las personas de "cuántos viajan" y los asientos que ofrece el conductor: la misma fila.
     personas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14, justifyContent: 'center' },
