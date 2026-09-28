@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,32 +7,23 @@ import {
     ScrollView,
     Modal,
     Platform,
-    Animated,
-    PanResponder,
-    useWindowDimensions,
     KeyboardAvoidingView,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import MapView, { Marker } from 'react-native-maps';
-import { MAP_PROVIDER } from '../../utils/mapProvider';
-import RutaPolyline from '../map/RutaPolyline';
 import DateTimeRow from '../ui/DateTimeRow';
 import { horaDeFecha, mismoDia, conMayuscula, NOMBRE_MES, proximaHora } from '../../utils/fechaViaje';
 
-// Los mismos PNG que usa el mapa de elegir direcciones, para que el viaje se vea igual de
-// punta a punta.
-const MARCADOR_ORIGEN = require('../../../assets/marker-origin.png');
-const MARCADOR_DESTINO = require('../../../assets/marker-dest.png');
-
 /**
- * Las piezas de "una hoja sobre el mapa": el patrón con el que se arma un viaje, tanto cuando
- * el conductor lo publica como cuando el pasajero lo pide.
+ * Las filas y los selectores con los que se arma un viaje, tanto cuando el conductor lo publica
+ * como cuando el pasajero lo pide: las dos pantallas son una lista de filas —una por dato, que
+ * se toca para corregir— así que viven acá y no duplicadas. Lo que cambia entre una y otra son
+ * las filas, que las pone cada pantalla.
  *
- * Las dos pantallas muestran lo mismo —el recorrido de fondo y una hoja con una fila por dato,
- * que se toca para corregir— así que el mapa, las filas y los selectores viven acá y no
- * duplicados. Lo que cambia entre una y otra son las filas, que las pone cada pantalla.
+ * Hasta hace poco esto también tenía el mapa de fondo y la hoja arrastrable que se le apoyaba
+ * encima (MapaDelRecorrido, HojaArrastrable, BotonVolver). Se sacó: el origen/destino ya se
+ * eligieron con mapa en el paso anterior, y un segundo MapView acá sólo sumaba RAM sin agregar
+ * información nueva.
  *
  * Todo esto está FUERA de los componentes de pantalla a propósito: definido adentro, React lo
  * recrea en cada render y desmonta su contenido — el campo del precio perdía el foco a cada
@@ -234,247 +225,11 @@ export const SelectorDeCuando = ({ ui, insets, visible, onClose, cuando: elegido
     );
 };
 
-/**
- * El recorrido de fondo, y se puede mover: arrastrar, hacer zoom y mirar el camino de verdad.
- * El botón de arriba a la derecha vuelve a encuadrar el viaje entero cuando te perdiste.
- *
- * Se desmonta al perder el foco (`useIsFocused`): el MapView nativo pesa cientos de MB y
- * apilar pantallas con mapa llevaba la RAM al límite hasta que iOS mataba la app.
- */
-export const MapaDelRecorrido = ({ ui, puntos, origin, destination, aireAbajo = 340, topBoton = 0 }) => {
-    const enfocada = useIsFocused();
-    const mapaRef = useRef(null);
-    const [listo, setListo] = useState(false);
-    const [ancho, setAncho] = useState(0);
-
-    const region = useMemo(() => {
-        if (!puntos?.length) return undefined;
-        const lats = puntos.map((p) => p.latitude);
-        const lngs = puntos.map((p) => p.longitude);
-        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-        return {
-            latitude: (minLat + maxLat) / 2,
-            longitude: (minLng + maxLng) / 2,
-            latitudeDelta: Math.max((maxLat - minLat) * 1.6, 0.05),
-            longitudeDelta: Math.max((maxLng - minLng) * 1.6, 0.05),
-        };
-    }, [puntos]);
-
-    // En Android `initialRegion` se aplica antes de que la vista nativa mida y queda ignorada:
-    // el encuadre se pide cuando el mapa está listo Y ya tiene ancho. El `bottom` es el alto de
-    // la hoja, para que el recorrido caiga en la franja que queda a la vista.
-    const cantidadDePuntos = puntos?.length || 0;
-    const encuadrar = useCallback((animado) => {
-        if (cantidadDePuntos < 2) return;
-        mapaRef.current?.fitToCoordinates(puntos, {
-            edgePadding: { top: 90, right: 50, bottom: aireAbajo, left: 50 },
-            animated: animado,
-        });
-        // `puntos` se arma nuevo en cada render: la dependencia es cuántos son.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cantidadDePuntos, aireAbajo]);
-
-    useEffect(() => {
-        if (!listo || !ancho) return;
-        encuadrar(false);
-    }, [listo, ancho, encuadrar]);
-
-    // Al volver de otra pantalla el mapa se remonta y nace sin encuadrar: las señales se
-    // reinician para que el efecto de arriba vuelva a correr.
-    useEffect(() => {
-        if (!enfocada) { setListo(false); setAncho(0); }
-    }, [enfocada]);
-
-    if (!enfocada || !region) return null;
-
-    return (
-        <>
-        <MapView
-            ref={mapaRef}
-            provider={MAP_PROVIDER}
-            style={StyleSheet.absoluteFill}
-            initialRegion={region}
-            // Se puede mirar el camino: mover y hacer zoom. Girar e inclinar quedan apagados
-            // porque desorientan y no aportan nada para ver una ruta entre ciudades.
-            scrollEnabled
-            zoomEnabled
-            rotateEnabled={false}
-            pitchEnabled={false}
-            toolbarEnabled={false}
-            onMapReady={() => setListo(true)}
-            onLayout={(e) => setAncho(e.nativeEvent.layout.width)}
-        >
-            {/* Con dos puntos (sólo las puntas) no hay trazado real que dibujar: sería una recta
-                que no es el camino. */}
-            {cantidadDePuntos > 2 && (
-                <RutaPolyline coordinates={puntos} width={5} color={ui.isDarkMode ? '#FFFFFF' : '#111111'} />
-            )}
-            {/* Los mismos marcadores que el mapa donde se eligieron las direcciones: el punto
-                negro con borde blanco, redondo el origen y cuadrado el destino. En Android van
-                como PNG porque la vista custom no sigue a la cámara y queda corrida del trazado
-                (mismo motivo que en CreateTripGoogleMaps). */}
-            {!!origin?.coordinates && (
-                Platform.OS === 'android'
-                    ? <Marker coordinate={origin.coordinates} anchor={{ x: 0.5, y: 0.5 }} image={MARCADOR_ORIGEN} />
-                    : (
-                        <Marker coordinate={origin.coordinates} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                            <View style={estilos.marcadorOrigen}><View style={estilos.marcadorPunto} /></View>
-                        </Marker>
-                    )
-            )}
-            {!!destination?.coordinates && (
-                Platform.OS === 'android'
-                    ? <Marker coordinate={destination.coordinates} anchor={{ x: 0.5, y: 0.5 }} image={MARCADOR_DESTINO} />
-                    : (
-                        <Marker coordinate={destination.coordinates} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-                            <View style={estilos.marcadorDestino}><View style={estilos.marcadorPunto} /></View>
-                        </Marker>
-                    )
-            )}
-        </MapView>
-        {/* Volver al recorrido completo. Aparece sólo si hay algo que encuadrar. */}
-        {cantidadDePuntos >= 2 && (
-            <TouchableOpacity
-                style={[estilos.recentrar, { backgroundColor: ui.surface, top: topBoton }]}
-                onPress={() => encuadrar(true)}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Ver el recorrido completo"
-            >
-                <Ionicons name="scan-outline" size={19} color={ui.text} />
-            </TouchableOpacity>
-        )}
-        </>
-    );
-};
-
-/**
- * La hoja de abajo: mide lo que miden sus filas, y se puede bajar de un arrastre para mirar el
- * mapa.
- *
- * El alto lo da el contenido (con un tope) y no una fracción de la pantalla: con seis filas una
- * hoja del 74% dejaba un hueco enorme en el medio. Bajarla no cambia su alto sino su posición
- * (`translateY`, que además anda con el driver nativo): queda asomando el encabezado y el botón
- * de publicar, así nunca se pierde de vista.
- *
- * Son dos posiciones y no libre: un sheet que queda a cualquier altura obliga a acomodarlo, y
- * acá sólo hay dos cosas que mirar.
- */
-export const HojaArrastrable = ({ ui, insets, onAltura, children }) => {
-    const { height: alturaPantalla } = useWindowDimensions();
-    const [alto, setAlto] = useState(0);
-
-    const ty = useRef(new Animated.Value(0)).current;
-    const posicion = useRef(0); // dónde está apoyada: 0 arriba, `bajada` abajo
-    // El PanResponder se crea una sola vez y no ve los valores de este render: los lee de refs.
-    const medidas = useRef({ bajada: 0 });
-    // Cuánto asoma de la hoja cuando está bajada: agarre + encabezado + botón.
-    const asoma = 150 + Math.max(insets.bottom, 14);
-    medidas.current.bajada = Math.max(0, alto - asoma);
-    const avisar = useRef(onAltura);
-    avisar.current = onAltura;
-
-    // El contenido cambió de tamaño (apareció una fila, se agrandó la letra): si estaba bajada,
-    // que no quede fuera de rango.
-    useEffect(() => {
-        if (posicion.current > medidas.current.bajada) {
-            posicion.current = medidas.current.bajada;
-            ty.setValue(posicion.current);
-        }
-    }, [alto, ty]);
-
-    const pan = useRef(
-        PanResponder.create({
-            // Sólo si el gesto es claramente vertical: si no, se come los toques de las filas.
-            onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx),
-            onPanResponderMove: (_, g) => {
-                ty.setValue(Math.min(medidas.current.bajada, Math.max(0, posicion.current + g.dy)));
-            },
-            onPanResponderRelease: (_, g) => {
-                const { bajada } = medidas.current;
-                const donde = Math.min(bajada, Math.max(0, posicion.current + g.dy));
-                // Un movimiento rápido manda aunque no haya llegado a la mitad.
-                const destino = g.vy > 0.5 ? bajada : g.vy < -0.5 ? 0 : (donde > bajada / 2 ? bajada : 0);
-                posicion.current = destino;
-                Animated.spring(ty, { toValue: destino, useNativeDriver: true, bounciness: 2, speed: 14 }).start();
-            },
-        }),
-    ).current;
-
-    return (
-        <Animated.View
-            onLayout={(e) => {
-                const nuevo = Math.round(e.nativeEvent.layout.height);
-                setAlto(nuevo);
-                avisar.current?.(nuevo);
-            }}
-            style={[
-                estilos.hoja,
-                {
-                    maxHeight: Math.round(alturaPantalla * 0.8),
-                    backgroundColor: ui.surface,
-                    paddingBottom: Math.max(insets.bottom, 14) + 6,
-                    transform: [{ translateY: ty }],
-                },
-            ]}
-        >
-            {/* El área de arrastre es toda la franja de arriba, no la rayita de 4px. */}
-            <View {...pan.panHandlers} style={estilos.zonaAgarre} accessibilityRole="adjustable" accessibilityLabel="Arrastrá para ver el mapa">
-                <View style={[estilos.agarre, { backgroundColor: ui.border }]} />
-            </View>
-            {children}
-        </Animated.View>
-    );
-};
-
-/** El botón de volver, flotando sobre el mapa (la pantalla no tiene header). */
-export const BotonVolver = ({ ui, top, onPress, label = 'Volver' }) => (
-    <TouchableOpacity
-        style={[estilos.volver, { backgroundColor: ui.surface, top }]}
-        onPress={onPress}
-        hitSlop={10}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-    >
-        <Ionicons name="chevron-back" size={22} color={ui.text} />
-    </TouchableOpacity>
-);
 
 export const estilos = StyleSheet.create({
     pantalla: { flex: 1 },
-    volver: {
-        position: 'absolute', left: 14, zIndex: 4,
-        width: 38, height: 38, borderRadius: 999,
-        alignItems: 'center', justifyContent: 'center',
-        shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
-    },
-
-    // La hoja no tiene alto fijo: crece con su contenido (y con la tipografía del sistema)
-    // hasta un tope, y de ahí en más la lista scrollea.
-    hoja: {
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 3,
-        borderTopLeftRadius: 26, borderTopRightRadius: 26,
-        paddingHorizontal: 18,
-        shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 12,
-    },
     agarre: { width: 38, height: 4, borderRadius: 9, alignSelf: 'center' },
-    // Franja de arriba de la hoja: es lo que se agarra para subirla o bajarla.
-    zonaAgarre: { paddingTop: 10, paddingBottom: 12, marginHorizontal: -18, alignItems: 'center' },
-    marcadorOrigen: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-    marcadorDestino: { width: 22, height: 22, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-    marcadorPunto: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#000000', borderWidth: 2, borderColor: '#FFFFFF' },
-    recentrar: {
-        position: 'absolute', right: 14, zIndex: 4,
-        width: 38, height: 38, borderRadius: 999,
-        alignItems: 'center', justifyContent: 'center',
-        shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
-    },
-    encabezado: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
     titulo: { fontSize: 21, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.7 },
-    ruta: { fontSize: 12, fontFamily: 'Sora_400Regular', flexShrink: 1, textAlign: 'right' },
-    // Se achica antes que empujar el botón fuera de la pantalla, pero sin estirarse para llenar.
-    lista: { flexGrow: 0, flexShrink: 1 },
 
     fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
     filaRotulo: { fontSize: 13.5, fontFamily: 'Sora_500Medium', flexShrink: 1 },

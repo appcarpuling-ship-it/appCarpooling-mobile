@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     TextInput,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { decodePolyline } from '../../../utils/routePoints';
 import { senaLegible } from '../../../utils/sena';
 import { post_withauth, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
@@ -21,16 +20,19 @@ import { ENDPOINTS } from '../../../config/api';
 import { imageForType } from '../../../utils/vehicleImage';
 import { reportError } from '../../../utils/sentry';
 import {
-    T, Toggle, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
+    T, Toggle, Fila, Selector, SelectorDeCuando,
     estilos as hoja,
 } from '../../../components/hoja';
 import { isoDeFecha, horaDeFecha, fechaLegible, conMiles, soloDigitos } from '../../../utils/fechaViaje';
 
 /**
- * Publicar un viaje: una sola hoja sobre el mapa del recorrido.
+ * Publicar un viaje: pantalla completa, sin mapa. El origen/destino ya se eligieron en el paso
+ * anterior (CreateTripGoogleMaps, que sí tiene mapa); acá sólo se completan los datos del viaje,
+ * fila por fila, y cada una abre un selector chico en vez de llevar a otro paso.
  *
- * Reemplaza al formulario de tres pasos que había acá. Todo el viaje se ve de un vistazo en una
- * hoja, y cada fila abre un selector chico en vez de llevar a otro paso.
+ * Antes esto era una hoja arrastrable sobre un segundo MapView (el mismo recorrido, de nuevo).
+ * Se sacó: un MapView nativo pesa cientos de MB, y esta pantalla no necesita mostrar el mapa otra
+ * vez para elegir vehículo, asientos o precio.
  *
  * NADA viene decidido de antemano: ni la salida, ni el vehículo, ni los lugares, ni el precio.
  * Un valor por defecto es una decisión tomada en nombre del conductor —y con el precio, además,
@@ -39,7 +41,7 @@ import { isoDeFecha, horaDeFecha, fechaLegible, conMiles, soloDigitos } from '..
  *
  * Lo que se manda al backend y cómo se valida NO cambió: es el mismo POST /trips de antes.
  *
- * Las piezas comunes con "pedir un viaje" (el mapa, las filas, los selectores) viven en
+ * Las filas y los selectores son piezas comunes con "pedir un viaje" y viven en
  * `components/hoja`.
  */
 
@@ -92,8 +94,6 @@ const TripDetails = ({ navigation, route }) => {
     const [alias, setAlias] = useState(user?.datosCobro?.alias || '');
     const [cvu, setCvu] = useState(user?.datosCobro?.cvu || '');
     const [guardandoCobro, setGuardandoCobro] = useState(false);
-    // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
-    const [altoHoja, setAltoHoja] = useState(0);
 
     const vehiculo = vehicles.find((v) => v._id === vehiculoId) || null;
     const capacidad = Number(vehiculo?.capacity) || 0;
@@ -136,15 +136,6 @@ const TripDetails = ({ navigation, route }) => {
     useEffect(() => {
         if (capacidad > 0) setAsientos((prev) => (prev > capacidad ? capacidad : prev));
     }, [capacidad]);
-
-    // El trazado que ya calculó el mapa del paso anterior; sin él, al menos las dos puntas.
-    const puntos = useMemo(() => {
-        const coords = routePolyline ? decodePolyline(routePolyline) : [];
-        if (coords.length) return coords;
-        return [origin?.coordinates, destination?.coordinates].filter(
-            (c) => Number.isFinite(c?.latitude) && Number.isFinite(c?.longitude),
-        );
-    }, [routePolyline, origin, destination]);
 
     // El botón físico de Android cierra el selector abierto antes que la pantalla.
     useEffect(() => {
@@ -279,107 +270,103 @@ const TripDetails = ({ navigation, route }) => {
 
     return (
         <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
-            <MapaDelRecorrido
-                ui={ui}
-                puntos={puntos}
-                origin={origin}
-                destination={destination}
-                aireAbajo={altoHoja + 40}
-                topBoton={insets.top + 8}
-            />
-            <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
-
-            {/* La hoja del viaje: arranca alta y se baja de un arrastre para mirar el mapa. */}
-            <HojaArrastrable ui={ui} insets={insets} onAltura={setAltoHoja}>
-                <View style={hoja.encabezado}>
-                    <T style={[hoja.titulo, { color: ui.text }]}>Tu viaje</T>
-                    <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
-                        {origin?.city || origin?.address} → {destination?.city || destination?.address}
-                        {waypoints?.length ? ` · ${waypoints.length} parada${waypoints.length !== 1 ? 's' : ''}` : ''}
-                    </T>
-                </View>
-
-                <ScrollView style={hoja.lista} showsVerticalScrollIndicator={false} bounces={false}>
-                    <Fila
-                        ui={ui}
-                        rotulo="Sale"
-                        valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
-                        apagado={!cuando}
-                        onPress={() => setSelector('cuando')}
-                    />
-                    <Fila
-                        ui={ui}
-                        rotulo="Repetir todas las semanas"
-                        sub="Al completarlo, se publica solo el de la semana que viene"
-                        onPress={() => setRepetirSemanalmente((v) => !v)}
-                    >
-                        <View style={hoja.filaValorCaja}>
-                            <Toggle on={repetirSemanalmente} ui={ui} />
-                        </View>
-                    </Fila>
-                    <Fila
-                        ui={ui}
-                        rotulo="Vehículo"
-                        valor={vehiculo ? `${vehiculo.brand} ${vehiculo.model}` : vehicles.length ? 'Elegí tu vehículo' : 'Agregá tu vehículo'}
-                        sub={vehiculo?.licensePlate}
-                        apagado={faltaVehiculo}
-                        onPress={() => (vehicles.length
-                            ? setSelector('vehiculo')
-                            : navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false }))}
-                    />
-                    <Fila
-                        ui={ui}
-                        rotulo="Lugares que ofrecés"
-                        valor={asientos ? `${asientos} asiento${asientos !== 1 ? 's' : ''}` : 'Elegí cuántos'}
-                        apagado={!asientos}
-                        // Los lugares dependen del auto: sin vehículo, la fila lleva a elegirlo.
-                        onPress={() => setSelector(vehiculo ? 'asientos' : 'vehiculo')}
-                    />
-                    <Fila
-                        ui={ui}
-                        rotulo="Cada pasajero paga"
-                        valor={sinPrecioFijo ? 'A convenir' : precioNumero > 0 ? `$${conMiles(precioNumero)}` : 'Poné el precio'}
-                        apagado={faltaPrecio}
-                        onPress={() => setSelector('precio')}
-                    />
-                    <Fila
-                        ui={ui}
-                        rotulo={senaPreview && !sinPrecioFijo ? `Pedir seña de ${senaPreview}` : 'Pedir seña'}
-                        onPress={sinPrecioFijo ? undefined : () => setRequiereSena((v) => !v)}
-                    >
-                        <View style={hoja.filaValorCaja}>
-                            <Toggle on={requiereSena && !sinPrecioFijo} ui={ui} />
-                        </View>
-                    </Fila>
-                    {requiereSena && !sinPrecioFijo && (
-                        <Fila
-                            ui={ui}
-                            rotulo="Te pagan a"
-                            valor={cobroLegible || 'Cargá tu CVU o alias'}
-                            apagado={!cobroLegible}
-                            alerta={faltaCobro}
-                            // Se edita en esta misma pantalla: salir a Perfil desmontaba el
-                            // formulario y al volver había que rehacer el viaje entero.
-                            onPress={() => setSelector('cobro')}
-                        />
-                    )}
-                    <Fila
-                        ui={ui}
-                        rotulo="Reglas del viaje"
-                        // Contadas y no listadas: con tres reglas el texto se comía dos renglones
-                        // y desbordaba la fila. Cuáles son se ven al tocarla.
-                        valor={reglasActivas.length
-                            ? `${reglasActivas.length} ${reglasActivas.length === 1 ? 'regla' : 'reglas'}`
-                            : 'Ninguna'}
-                        apagado={!reglasActivas.length}
-                        onPress={() => setSelector('reglas')}
-                        ultimo
-                    />
-
-                </ScrollView>
-
+            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                 <TouchableOpacity
-                    style={[hoja.boton, { backgroundColor: ui.invertBg }, loading && { opacity: 0.6 }]}
+                    style={[styles.volver, { backgroundColor: ui.surface }]}
+                    onPress={() => navigation.goBack()}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                >
+                    <Ionicons name="chevron-back" size={22} color={ui.text} />
+                </TouchableOpacity>
+                <T style={[hoja.titulo, { color: ui.text }]}>Tu viaje</T>
+            </View>
+
+            <ScrollView
+                style={styles.lista}
+                contentContainerStyle={styles.listaContenido}
+                showsVerticalScrollIndicator={false}
+            >
+                <Fila
+                    ui={ui}
+                    rotulo="Sale"
+                    valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                    apagado={!cuando}
+                    onPress={() => setSelector('cuando')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Repetir todas las semanas"
+                    onPress={() => setRepetirSemanalmente((v) => !v)}
+                >
+                    <View style={hoja.filaValorCaja}>
+                        <Toggle on={repetirSemanalmente} ui={ui} />
+                    </View>
+                </Fila>
+                <Fila
+                    ui={ui}
+                    rotulo="Vehículo"
+                    valor={vehiculo ? `${vehiculo.brand} ${vehiculo.model}` : vehicles.length ? 'Elegí tu vehículo' : 'Agregá tu vehículo'}
+                    sub={vehiculo?.licensePlate}
+                    apagado={faltaVehiculo}
+                    onPress={() => (vehicles.length
+                        ? setSelector('vehiculo')
+                        : navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false }))}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Lugares que ofrecés"
+                    valor={asientos ? `${asientos} asiento${asientos !== 1 ? 's' : ''}` : 'Elegí cuántos'}
+                    apagado={!asientos}
+                    // Los lugares dependen del auto: sin vehículo, la fila lleva a elegirlo.
+                    onPress={() => setSelector(vehiculo ? 'asientos' : 'vehiculo')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Cada pasajero paga"
+                    valor={sinPrecioFijo ? 'A convenir' : precioNumero > 0 ? `$${conMiles(precioNumero)}` : 'Poné el precio'}
+                    apagado={faltaPrecio}
+                    onPress={() => setSelector('precio')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo={senaPreview && !sinPrecioFijo ? `Pedir seña de ${senaPreview}` : 'Pedir seña'}
+                    onPress={sinPrecioFijo ? undefined : () => setRequiereSena((v) => !v)}
+                >
+                    <View style={hoja.filaValorCaja}>
+                        <Toggle on={requiereSena && !sinPrecioFijo} ui={ui} />
+                    </View>
+                </Fila>
+                {requiereSena && !sinPrecioFijo && (
+                    <Fila
+                        ui={ui}
+                        rotulo="Te pagan a"
+                        valor={cobroLegible || 'Cargá tu CVU o alias'}
+                        apagado={!cobroLegible}
+                        alerta={faltaCobro}
+                        // Se edita en esta misma pantalla: salir a Perfil desmontaba el
+                        // formulario y al volver había que rehacer el viaje entero.
+                        onPress={() => setSelector('cobro')}
+                    />
+                )}
+                <Fila
+                    ui={ui}
+                    rotulo="Reglas del viaje"
+                    // Contadas y no listadas: con tres reglas el texto se comía dos renglones
+                    // y desbordaba la fila. Cuáles son se ven al tocarla.
+                    valor={reglasActivas.length
+                        ? `${reglasActivas.length} ${reglasActivas.length === 1 ? 'regla' : 'reglas'}`
+                        : 'Ninguna'}
+                    apagado={!reglasActivas.length}
+                    onPress={() => setSelector('reglas')}
+                    ultimo
+                />
+            </ScrollView>
+
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
+                <TouchableOpacity
+                    style={[hoja.boton, { backgroundColor: ui.invertBg, marginTop: 0 }, loading && { opacity: 0.6 }]}
                     onPress={publicar}
                     disabled={loading}
                     activeOpacity={0.85}
@@ -389,7 +376,7 @@ const TripDetails = ({ navigation, route }) => {
                         ? <ActivityIndicator color={ui.invertText} size="small" />
                         : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar viaje</T>}
                 </TouchableOpacity>
-            </HojaArrastrable>
+            </View>
 
             <SelectorDeCuando
                 ui={ui}
@@ -626,6 +613,13 @@ const TripDetails = ({ navigation, route }) => {
 
 // Sólo lo que es propio de publicar un viaje; el resto sale de `components/hoja`.
 const styles = StyleSheet.create({
+    // Header de la pantalla (sin mapa detrás): volver arriba, título debajo.
+    header: { paddingHorizontal: 20, paddingBottom: 14 },
+    volver: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    lista: { flex: 1 },
+    listaContenido: { paddingHorizontal: 20 },
+    footer: { paddingHorizontal: 20, paddingTop: 12 },
+
     // El auto visto desde arriba
     planoAuto: { borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', padding: 12, marginTop: 14, gap: 10, alignSelf: 'center', borderColor: 'transparent' },
     autoFila: { flexDirection: 'row', gap: 10, justifyContent: 'center' },

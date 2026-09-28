@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,14 +6,14 @@ import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
 import {
-    T, Fila, Selector, SelectorDeCuando, MapaDelRecorrido, BotonVolver, HojaArrastrable,
+    T, Fila, Selector, SelectorDeCuando,
     estilos as hoja,
 } from '../../../components/hoja';
-import { decodePolyline } from '../../../utils/routePoints';
 import { horaDeFecha, fechaLegible } from '../../../utils/fechaViaje';
 
 /**
- * Pedir un viaje: la misma hoja sobre el mapa con la que se publica uno.
+ * Pedir un viaje: pantalla completa, sin mapa detrás (el origen/destino ya se eligieron en el
+ * paso anterior, que sí tiene mapa). Ver el comentario de TripDetails.js sobre por qué se sacó.
  *
  * El pasajero decide mucho menos que el conductor —el precio, el vehículo y el recorrido fino
  * los pone quien se postula—, así que son dos filas y el pedido sale de un toque.
@@ -30,7 +30,7 @@ import { horaDeFecha, fechaLegible } from '../../../utils/fechaViaje';
 const MAX_PERSONAS = 4;
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
-    const { origin, destination, waypoints, routePolyline } = route.params || {};
+    const { origin, destination, waypoints } = route.params || {};
     const insets = useSafeAreaInsets();
     const ui = useUI();
     const { showAlert } = useAlert();
@@ -40,8 +40,6 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
     const [personas, setPersonas] = useState(0);
     const [loading, setLoading] = useState(false);
     const [selector, setSelector] = useState(null);
-    // Cuánto ocupa la hoja: es el espacio que el mapa tiene que dejar libre al encuadrar.
-    const [altoHoja, setAltoHoja] = useState(0);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -50,16 +48,6 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
         });
         return () => sub.remove();
     }, [selector]);
-
-    // El trazado que calculó el mapa del paso anterior; si por algo no llegó, al menos los
-    // puntos (origen, paradas y destino) para que el mapa encuadre el viaje.
-    const puntos = useMemo(() => {
-        const trazado = routePolyline ? decodePolyline(routePolyline) : [];
-        if (trazado.length > 2) return trazado;
-        return [origin, ...(waypoints || []), destination]
-            .map((pt) => pt?.coordinates)
-            .filter((c) => Number.isFinite(c?.latitude) && Number.isFinite(c?.longitude));
-    }, [routePolyline, origin, destination, waypoints]);
 
     const publicar = async () => {
         // Nada apaga el botón: si falta algo, abre la fila que lo resuelve, en orden.
@@ -114,70 +102,68 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
     return (
         <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
-            <MapaDelRecorrido
-                ui={ui}
-                puntos={puntos}
-                origin={origin}
-                destination={destination}
-                aireAbajo={altoHoja + 40}
-                topBoton={insets.top + 8}
-            />
-            <BotonVolver ui={ui} top={insets.top + 8} onPress={() => navigation.goBack()} label="Volver al recorrido" />
-
-            {/* Arranca más baja que la de publicar: acá hay dos filas, no seis. */}
-            <HojaArrastrable ui={ui} insets={insets} onAltura={setAltoHoja}>
-                <View style={hoja.encabezado}>
-                    <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
-                    <T style={[hoja.ruta, { color: ui.textMuted }]} numberOfLines={1}>
-                        {origin?.city || origin?.address} → {destination?.city || destination?.address}
-                        {waypoints?.length ? ` · ${waypoints.length} parada${waypoints.length !== 1 ? 's' : ''}` : ''}
-                    </T>
-                </View>
-
-                <ScrollView style={hoja.lista} showsVerticalScrollIndicator={false} bounces={false}>
-                    <Fila
-                        ui={ui}
-                        rotulo="Salís"
-                        valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
-                        apagado={!cuando}
-                        onPress={() => setSelector('cuando')}
-                    />
-                    <Fila
-                        ui={ui}
-                        rotulo="Cuántos viajan"
-                        valor={personas ? `${personas} ${personas === 1 ? 'persona' : 'personas'}` : 'Elegí cuántos'}
-                        apagado={!personas}
-                        onPress={() => setSelector('personas')}
-                        ultimo
-                    />
-
-                    {/* Lo más importante de la pantalla: qué es lo que está por pasar. Va ANTES del
-                        botón, no después, porque es lo que decide si el pedido tiene sentido.
-                        Tres pasos en una línea de tiempo, sin caja: cada uno cabe en un renglón. */}
-                    <View style={styles.pasos}>
-                        {[
-                            'Los conductores de tu ruta ven el pedido',
-                            'Hasta 5 se postulan con su precio y su auto',
-                            'Elegís uno y recién ahí se arma el viaje',
-                        ].map((texto, i, todos) => (
-                            <View key={texto} style={styles.paso}>
-                                <View style={styles.pasoRiel}>
-                                    <View style={[styles.pasoNumero, { backgroundColor: ui.text }]}>
-                                        <T style={[styles.pasoNumeroTexto, { color: ui.invertText }]}>{i + 1}</T>
-                                    </View>
-                                    {i < todos.length - 1 && <View style={[styles.pasoLinea, { backgroundColor: ui.border }]} />}
-                                </View>
-                                <T style={[styles.pasoTexto, { color: ui.text }]}>{texto}</T>
-                            </View>
-                        ))}
-                    </View>
-                    <T style={[styles.gratis, { color: ui.textMuted }]}>
-                        Es gratis, dura 48 horas y podés cancelarlo cuando quieras.
-                    </T>
-                </ScrollView>
-
+            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                 <TouchableOpacity
-                    style={[hoja.boton, { backgroundColor: ui.invertBg }, loading && { opacity: 0.6 }]}
+                    style={[styles.volver, { backgroundColor: ui.surface }]}
+                    onPress={() => navigation.goBack()}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                >
+                    <Ionicons name="chevron-back" size={22} color={ui.text} />
+                </TouchableOpacity>
+                <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
+            </View>
+
+            <ScrollView
+                style={styles.lista}
+                contentContainerStyle={styles.listaContenido}
+                showsVerticalScrollIndicator={false}
+            >
+                <Fila
+                    ui={ui}
+                    rotulo="Salís"
+                    valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                    apagado={!cuando}
+                    onPress={() => setSelector('cuando')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Cuántos viajan"
+                    valor={personas ? `${personas} ${personas === 1 ? 'persona' : 'personas'}` : 'Elegí cuántos'}
+                    apagado={!personas}
+                    onPress={() => setSelector('personas')}
+                    ultimo
+                />
+
+                {/* Lo más importante de la pantalla: qué es lo que está por pasar. Va ANTES del
+                    botón, no después, porque es lo que decide si el pedido tiene sentido.
+                    Tres pasos en una línea de tiempo, sin caja: cada uno cabe en un renglón. */}
+                <View style={styles.pasos}>
+                    {[
+                        'Los conductores de tu ruta ven el pedido',
+                        'Hasta 5 se postulan con su precio y su auto',
+                        'Elegís uno y recién ahí se arma el viaje',
+                    ].map((texto, i, todos) => (
+                        <View key={texto} style={styles.paso}>
+                            <View style={styles.pasoRiel}>
+                                <View style={[styles.pasoNumero, { backgroundColor: ui.text }]}>
+                                    <T style={[styles.pasoNumeroTexto, { color: ui.invertText }]}>{i + 1}</T>
+                                </View>
+                                {i < todos.length - 1 && <View style={[styles.pasoLinea, { backgroundColor: ui.border }]} />}
+                            </View>
+                            <T style={[styles.pasoTexto, { color: ui.text }]}>{texto}</T>
+                        </View>
+                    ))}
+                </View>
+                <T style={[styles.gratis, { color: ui.textMuted }]}>
+                    Es gratis, dura 48 horas y podés cancelarlo cuando quieras.
+                </T>
+            </ScrollView>
+
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
+                <TouchableOpacity
+                    style={[hoja.boton, { backgroundColor: ui.invertBg, marginTop: 0 }, loading && { opacity: 0.6 }]}
                     onPress={publicar}
                     disabled={loading}
                     activeOpacity={0.85}
@@ -187,7 +173,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                         ? <ActivityIndicator color={ui.invertText} size="small" />
                         : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar pedido</T>}
                 </TouchableOpacity>
-            </HojaArrastrable>
+            </View>
 
             <SelectorDeCuando
                 ui={ui}
@@ -239,6 +225,13 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+    // Header de la pantalla (sin mapa detrás): volver arriba, título debajo.
+    header: { paddingHorizontal: 20, paddingBottom: 14 },
+    volver: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    lista: { flex: 1 },
+    listaContenido: { paddingHorizontal: 20 },
+    footer: { paddingHorizontal: 20, paddingTop: 12 },
+
     pasos: { marginTop: 18 },
     paso: { flexDirection: 'row', gap: 14 },
     pasoRiel: { alignItems: 'center', width: 24 },
