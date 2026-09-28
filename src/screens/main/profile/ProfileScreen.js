@@ -32,6 +32,12 @@ import { useMinDuration } from '../../../hooks/useMinDuration';
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
 
+// Cache en memoria del proceso, fuera del componente: sin esto, cada vez que se vuelve a
+// Perfil "Viajes semanales" arranca oculto y aparece recién cuando responde el fetch —un
+// parpadeo feo que se repite en cada visita. Con esto, después de la primera vez la sección
+// aparece de una con el último valor conocido, y el fetch de abajo sólo la actualiza si cambió.
+let hasVehicleCache = null;
+
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
@@ -40,7 +46,8 @@ const ProfileScreen = () => {
   const lastProfileFetchAtRef = useRef(0);
   // "Viajes semanales" sólo tiene sentido con un vehículo cargado (sin auto no se puede
   // publicar nada). limit:1 porque acá sólo importa si hay al menos uno, no la lista.
-  const [hasVehicle, setHasVehicle] = useState(false);
+  // Arranca con el valor cacheado (ver hasVehicleCache) para no parpadear en cada visita.
+  const [hasVehicle, setHasVehicle] = useState(() => hasVehicleCache ?? false);
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
@@ -101,7 +108,11 @@ const ProfileScreen = () => {
   useFocusEffect(
     useCallback(() => {
       get_withauth(ENDPOINTS.MY_VEHICLES, { page: 1, limit: 1 })
-        .then((res) => setHasVehicle(res.success && Array.isArray(res.data) && res.data.length > 0))
+        .then((res) => {
+          const tiene = res.success && Array.isArray(res.data) && res.data.length > 0;
+          hasVehicleCache = tiene;
+          setHasVehicle(tiene);
+        })
         .catch(() => {});
     }, [])
   );
