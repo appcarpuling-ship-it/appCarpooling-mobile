@@ -29,9 +29,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const bg          = ui.bg;
   const cardBg      = ui.surface;
   const border      = ui.border;
-  const textPrimary = ui.invertBg;
+  const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const iconBg      = ui.bg;
+  // Antes era ui.bg, el mismo color que el fondo de la pantalla: el círculo detrás del
+  // ícono quedaba invisible en los dos temas. ui.invertBg (con el ícono en invertText,
+  // como el logoContainer de ResetPasswordScreen) sí contrasta en claro y oscuro.
+  const iconBg      = ui.invertBg;
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -68,7 +71,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           {/* Header */}
           <View style={styles.header}>
             <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
-              <Ionicons name="key-outline" size={32} color={textPrimary} />
+              <Ionicons name="key-outline" size={32} color={ui.invertText} />
             </View>
             <Text style={[styles.title, { color: textPrimary }]}>Recuperar contraseña</Text>
             <Text style={[styles.subtitle, { color: textMuted }]}>

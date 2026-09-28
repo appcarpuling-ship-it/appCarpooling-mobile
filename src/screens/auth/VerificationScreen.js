@@ -31,9 +31,11 @@ const VerificationScreen = ({ route, navigation }) => {
   const bg          = ui.bg;
   const cardBg      = ui.surface;
   const border      = ui.border;
-  const textPrimary = ui.invertBg;
+  const textPrimary = ui.text;
   const textMuted   = ui.textMuted;
-  const iconBg      = ui.bg;
+  // Antes era ui.bg, el mismo color que el fondo de la pantalla: el círculo detrás del
+  // ícono quedaba invisible en los dos temas.
+  const iconBg      = ui.invertBg;
 
   const autoSendStarted = useRef(false);
   useEffect(() => {
@@ -132,7 +134,7 @@ const VerificationScreen = ({ route, navigation }) => {
           {/* Icon */}
           <View style={styles.header}>
             <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
-              <Ionicons name="mail-outline" size={32} color={textPrimary} />
+              <Ionicons name="mail-outline" size={32} color={ui.invertText} />
             </View>
             <Text style={[styles.title, { color: textPrimary }]}>Verificar Email</Text>
             <Text style={[styles.subtitle, { color: textMuted }]}>Enviamos un código de verificación a</Text>
