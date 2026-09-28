@@ -19,7 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
-import { buildImageUri } from '../../../services/apiService';
+import { buildImageUri, get_withauth } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
@@ -37,6 +38,9 @@ const ProfileScreen = () => {
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
   const showAuthSkeleton = useMinDuration(authLoading && !user);
   const lastProfileFetchAtRef = useRef(0);
+  // "Viajes semanales" sólo tiene sentido con un vehículo cargado (sin auto no se puede
+  // publicar nada). limit:1 porque acá sólo importa si hay al menos uno, no la lista.
+  const [hasVehicle, setHasVehicle] = useState(false);
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
@@ -96,6 +100,14 @@ const ProfileScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      get_withauth(ENDPOINTS.MY_VEHICLES, { page: 1, limit: 1 })
+        .then((res) => setHasVehicle(res.success && Array.isArray(res.data) && res.data.length > 0))
+        .catch(() => {});
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       const now = Date.now();
       if (now - lastProfileFetchAtRef.current < PROFILE_REFRESH_GAP_MS) {
         return;
@@ -140,6 +152,19 @@ const ProfileScreen = () => {
   ];
 
   const menuSections = [
+    // Sólo con vehículo cargado: sin auto no se puede publicar un viaje, y mucho menos uno
+    // que se repita solo. Vive en el stack de Carpoolings (reusa MyTripsScreen), no en el
+    // de Perfil — por eso navega cruzando de tab.
+    ...(hasVehicle ? [{
+      title: 'Conductor',
+      items: [
+        {
+          id: 20, title: 'Viajes semanales', subtitle: 'Los que publicaste para repetirse solos',
+          icon: 'repeat-outline',
+          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', params: { weeklyMode: true } }),
+        },
+      ],
+    }] : []),
     {
       title: 'Privacidad',
       items: [

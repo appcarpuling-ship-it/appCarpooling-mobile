@@ -80,6 +80,9 @@ const TripDetails = ({ navigation, route }) => {
     const [precio, setPrecio] = useState('');
     const [sinPrecioFijo, setSinPrecioFijo] = useState(false);
     const [requiereSena, setRequiereSena] = useState(false);
+    // Para conductores con ruta/día/horario fijos: cuando este viaje se complete, el server
+    // publica solo el de la semana que viene (mismo día/hora), sin que haya que repetirlo a mano.
+    const [repetirSemanalmente, setRepetirSemanalmente] = useState(false);
     const [reglas, setReglas] = useState({
         allowSmoking: false,
         allowPets: false,
@@ -210,6 +213,7 @@ const TripDetails = ({ navigation, route }) => {
                 // Con "gastos compartidos" no hay precio del cual sacar la mitad; el server lo
                 // normaliza igual (backend/utils/sena.js).
                 requiereSena: !sinPrecioFijo && requiereSena,
+                repetirSemanalmente,
                 notes: '',
                 rules: {
                     smokingAllowed: reglas.allowSmoking,
@@ -303,6 +307,16 @@ const TripDetails = ({ navigation, route }) => {
                         apagado={!cuando}
                         onPress={() => setSelector('cuando')}
                     />
+                    <Fila
+                        ui={ui}
+                        rotulo="Repetir todas las semanas"
+                        sub="Al completarlo, se publica solo el de la semana que viene"
+                        onPress={() => setRepetirSemanalmente((v) => !v)}
+                    >
+                        <View style={hoja.filaValorCaja}>
+                            <Toggle on={repetirSemanalmente} ui={ui} />
+                        </View>
+                    </Fila>
                     <Fila
                         ui={ui}
                         rotulo="Vehículo"

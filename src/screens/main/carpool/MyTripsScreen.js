@@ -29,7 +29,14 @@ import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
 // historyMode: usado por HistoryScreen, que ya pone su propio switch Viajes/Solicitudes
 // arriba. Ahí no tiene sentido otro título + otro toggle Próximos/Pasados: el historial
 // es, por definición, solo lo pasado.
-const MyTripsScreen = ({ navigation, historyMode = false }) => {
+//
+// weeklyMode: "Viajes semanales" del Perfil, para conductores con ruta fija. Se llega acá
+// navegando con route.params (no como prop directo, como historyMode) porque esta pantalla
+// se abre desde otro stack: navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', params: { weeklyMode: true } }).
+// Sólo importa "Próximos" — un viaje que se auto-repite siempre tiene, a lo sumo, una
+// ocurrencia activa a la vez (la próxima recién se crea cuando ésta se completa).
+const MyTripsScreen = ({ navigation, route, historyMode = false, weeklyMode: weeklyModeProp = false }) => {
+  const weeklyMode = weeklyModeProp || route?.params?.weeklyMode === true;
   const ui = useUI();
   const { refreshUser } = useAuth();
   const { showAlert } = useAlert();
@@ -82,7 +89,9 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
       // el FlatList vuelve a pedir "más" apenas termina cada fetch, y el spinner parpadeaba
       // varias veces seguidas hasta agotar el total real.
       const status = activeTab === 'upcoming' ? 'active,started' : 'completed,cancelled';
-      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, { page: pageNum, limit: LIST_PAGE_SIZE, status });
+      const params = { page: pageNum, limit: LIST_PAGE_SIZE, status };
+      if (weeklyMode) params.repetirSemanalmente = 'true';
+      const response = await get_withauth(ENDPOINTS.MY_TRIPS_DRIVER, params);
       if (response.success) {
         setTrips(prev => reset ? response.data : [...prev, ...response.data]);
         setPage(pageNum);
@@ -382,7 +391,16 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: ui.bg }]}>
-      {!historyMode && (
+      {weeklyMode && (
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: ui.text }]}>
+            Viajes{'\n'}
+            <Text style={styles.titleStrong}>semanales</Text>
+          </Text>
+        </View>
+      )}
+
+      {!historyMode && !weeklyMode && (
         <>
           <View style={styles.header}>
             <Text style={[styles.title, { color: ui.text }]}>
@@ -468,12 +486,14 @@ const MyTripsScreen = ({ navigation, historyMode = false }) => {
             <Ionicons name="car-outline" size={36} color={textMuted} />
           </View>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>
-            {activeTab === 'upcoming' ? 'Sin viajes próximos' : 'Sin viajes pasados'}
+            {weeklyMode ? 'Sin viajes semanales' : activeTab === 'upcoming' ? 'Sin viajes próximos' : 'Sin viajes pasados'}
           </Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
-            {activeTab === 'upcoming'
-              ? 'Creá tu primer viaje y compartí gastos'
-              : 'Tus viajes completados aparecerán aquí'}
+            {weeklyMode
+              ? 'Activá "Repetir todas las semanas" al publicar un viaje para que aparezca acá'
+              : activeTab === 'upcoming'
+                ? 'Creá tu primer viaje y compartí gastos'
+                : 'Tus viajes completados aparecerán aquí'}
           </Text>
         </View>
       )}
