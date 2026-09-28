@@ -103,7 +103,7 @@ export const Selector = ({ ui, insets, visible, titulo, sub, onClose, listoApaga
 );
 
 const DIAS_EN_RUEDA = 60;
-const MINUTOS_PASO = 5;
+const MINUTOS_PASO = 1;
 const RUEDA_ITEM_ALTO = 44;
 // Impar de renglones visibles (2 arriba + el del medio + 2 abajo), como en la referencia.
 const RUEDA_ALTO = RUEDA_ITEM_ALTO * 5;
@@ -308,11 +308,12 @@ export const estilos = StyleSheet.create({
     ruedaDegradeArriba: { position: 'absolute', left: 0, right: 0, top: 0, height: RUEDA_PADDING, zIndex: 1 },
     ruedaDegradeAbajo: { position: 'absolute', left: 0, right: 0, bottom: 0, height: RUEDA_PADDING, zIndex: 1 },
 
-    // Las personas de "cuántos viajan" y los asientos que ofrece el conductor: la misma fila.
-    personas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14, justifyContent: 'center' },
-    persona: { width: 58, paddingVertical: 10, borderRadius: 14, alignItems: 'center', gap: 2 },
-    personaVolante: { borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: 'transparent' },
-    personaNum: { fontSize: 10, fontFamily: 'Sora_700Bold', letterSpacing: 0.2 },
+    // El input grande y centrado de un selector con un solo número: precio, asientos,
+    // personas. Un solo lugar así los tres quedan iguales.
+    numeroGrande: {
+        fontSize: 42, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1.6,
+        textAlign: 'center', paddingVertical: 14, lineHeight: 52,
+    },
 
     pie: { fontSize: 11.5, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 8, textAlign: 'center' },
 });

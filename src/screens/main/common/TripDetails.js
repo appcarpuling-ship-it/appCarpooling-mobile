@@ -436,7 +436,7 @@ const TripDetails = ({ navigation, route }) => {
                 listoApagado={!asientos}
             >
                 <TextInput
-                    style={[styles.precioInput, { color: asientos > 0 ? ui.text : ui.textMuted }]}
+                    style={[hoja.numeroGrande, { color: asientos > 0 ? ui.text : ui.textMuted }]}
                     value={asientos > 0 ? String(asientos) : ''}
                     onChangeText={(v) => setAsientos(Math.min(parseInt(soloDigitos(v), 10) || 0, capacidad))}
                     placeholder="0"
@@ -496,7 +496,7 @@ const TripDetails = ({ navigation, route }) => {
                 ) : (
                     <>
                         <TextInput
-                            style={[styles.precioInput, { color: precioNumero > 0 ? ui.text : ui.textMuted }]}
+                            style={[hoja.numeroGrande, { color: precioNumero > 0 ? ui.text : ui.textMuted }]}
                             value={precioNumero > 0 ? `$${conMiles(precioNumero)}` : ''}
                             onChangeText={(v) => setPrecio(conMiles(soloDigitos(v)))}
                             placeholder="$0"
@@ -609,10 +609,6 @@ const styles = StyleSheet.create({
     segmentoBoton: { flex: 1, borderRadius: 11, paddingVertical: 11, alignItems: 'center' },
     segmentoTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
 
-    precioInput: {
-        fontSize: 42, fontFamily: 'Sora_800ExtraBold', letterSpacing: -1.6,
-        textAlign: 'center', paddingVertical: 14, lineHeight: 52,
-    },
     explica: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 16, textAlign: 'center' },
 
     regla: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, marginTop: 2 },

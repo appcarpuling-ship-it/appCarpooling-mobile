@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, BackHandler } from 'react-native';
+import { View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../../theme/ui';
@@ -9,14 +9,14 @@ import {
     T, Fila, Selector, SelectorDeCuando,
     estilos as hoja,
 } from '../../../components/hoja';
-import { horaDeFecha, fechaLegible } from '../../../utils/fechaViaje';
+import { horaDeFecha, fechaLegible, soloDigitos } from '../../../utils/fechaViaje';
 
 /**
  * Pedir un viaje: pantalla completa, sin mapa detrás (el origen/destino ya se eligieron en el
  * paso anterior, que sí tiene mapa). Ver el comentario de TripDetails.js sobre por qué se sacó.
  *
  * El pasajero decide mucho menos que el conductor —el precio, el vehículo y el recorrido fino
- * los pone quien se postula—, así que son dos filas y el pedido sale de un toque.
+ * los pone quien se postula—, así que son dos filas y la solicitud sale de un toque.
  *
  * Lo que sí hace falta es explicar el mecanismo: pedir un viaje NO es reservarlo. Quien nunca
  * usó la app no tiene forma de saber que lo que sigue son propuestas para comparar, y si eso
@@ -24,7 +24,7 @@ import { horaDeFecha, fechaLegible } from '../../../utils/fechaViaje';
  */
 
 /**
- * Tope de lugares por pedido. Es de la app: el modelo admite hasta 8, pero pedir más de 4
+ * Tope de lugares por solicitud. Es de la app: el modelo admite hasta 8, pero pedir más de 4
  * lugares juntos no entra en un auto particular, que es de lo que se trata acá.
  */
 const MAX_PERSONAS = 4;
@@ -86,14 +86,14 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
 
             navigation.navigate('Result', {
                 type: 'success',
-                title: '¡Pedido publicado!',
+                title: '¡Solicitud publicada!',
                 message: 'Los conductores que hagan esta ruta ya pueden ofrecerte lugar.',
             });
         } catch (err) {
             navigation.navigate('Result', {
                 type: 'error',
                 title: 'Ocurrió algo',
-                message: err?.response?.data?.message || 'No se pudo publicar el pedido.',
+                message: err?.response?.data?.message || 'No se pudo publicar la solicitud.',
             });
         } finally {
             setLoading(false);
@@ -112,7 +112,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                 >
                     <Ionicons name="chevron-back" size={22} color={ui.text} />
                 </TouchableOpacity>
-                <T style={[hoja.titulo, { color: ui.text }]}>Tu pedido</T>
+                <T style={[hoja.titulo, { color: ui.text }]}>Tu solicitud</T>
             </View>
 
             <ScrollView
@@ -137,11 +137,11 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                 />
 
                 {/* Lo más importante de la pantalla: qué es lo que está por pasar. Va ANTES del
-                    botón, no después, porque es lo que decide si el pedido tiene sentido.
+                    botón, no después, porque es lo que decide si la solicitud tiene sentido.
                     Tres pasos en una línea de tiempo, sin caja: cada uno cabe en un renglón. */}
                 <View style={styles.pasos}>
                     {[
-                        'Los conductores de tu ruta ven el pedido',
+                        'Los conductores ven tu solicitud',
                         'Hasta 5 se postulan con su precio y su auto',
                         'Elegís uno y recién ahí se arma el viaje',
                     ].map((texto, i, todos) => (
@@ -171,7 +171,7 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                 >
                     {loading
                         ? <ActivityIndicator color={ui.invertText} size="small" />
-                        : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar pedido</T>}
+                        : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar solicitud</T>}
                 </TouchableOpacity>
             </View>
 
@@ -193,28 +193,19 @@ const TripRequestDetailsScreen = ({ route, navigation }) => {
                 onClose={() => setSelector(null)}
                 listoApagado={!personas}
             >
-                <View style={hoja.personas}>
-                    {Array.from({ length: MAX_PERSONAS }, (_, i) => i + 1).map((n) => {
-                        const incluida = n <= personas;
-                        return (
-                            <TouchableOpacity
-                                key={n}
-                                style={[hoja.persona, { backgroundColor: incluida ? ui.text : ui.bg }]}
-                                onPress={() => setPersonas(n)}
-                                activeOpacity={0.8}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected: n === personas }}
-                                accessibilityLabel={`${n} ${n === 1 ? 'persona' : 'personas'}`}
-                            >
-                                <Ionicons name={incluida ? 'person' : 'person-outline'} size={18} color={incluida ? ui.invertText : ui.textMuted} />
-                                <T style={[hoja.personaNum, { color: incluida ? ui.invertText : ui.textMuted }]}>{n}</T>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
+                <TextInput
+                    style={[hoja.numeroGrande, { color: personas > 0 ? ui.text : ui.textMuted }]}
+                    value={personas > 0 ? String(personas) : ''}
+                    onChangeText={(v) => setPersonas(Math.min(parseInt(soloDigitos(v), 10) || 0, MAX_PERSONAS))}
+                    placeholder="0"
+                    placeholderTextColor={ui.textMuted}
+                    keyboardType="number-pad"
+                    maxFontSizeMultiplier={1.1}
+                    accessibilityLabel="Cuántos viajan"
+                />
                 <T style={[hoja.pie, { color: ui.textMuted }]}>
                     {!personas
-                        ? 'Tocá cuántas personas viajan.'
+                        ? `Escribí cuántas personas viajan (hasta ${MAX_PERSONAS}).`
                         : personas === 1
                             ? 'Necesitás un lugar.'
                             : `Necesitás ${personas} lugares juntos en el mismo auto.`}
