@@ -161,7 +161,10 @@ const ProfileScreen = () => {
         {
           id: 20, title: 'Viajes semanales', subtitle: 'Los que publicaste para repetirse solos',
           icon: 'repeat-outline',
-          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', params: { weeklyMode: true } }),
+          // initial: false fuerza a que el stack de Carpoolings arranque en su raíz y
+          // apile MyTrips encima — sin esto, MyTrips queda como única pantalla del stack
+          // (primera vez que se visita ese tab) y no aparece la flecha de volver.
+          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', params: { weeklyMode: true }, initial: false }),
         },
       ],
     }] : []),
