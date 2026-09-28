@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -23,13 +24,16 @@ import PermissionModal from '../../../components/modals/PermissionModal';
 import RemoteImageWithLoader from '../../../components/RemoteImageWithLoader';
 import PillButton from '../../../components/ui/PillButton';
 import { appendFile } from '../../../utils/formDataFile';
-import { imageForType } from '../../../utils/vehicleImage';
 import DocumentoUpload from '../../../components/vehicle/DocumentoUpload';
+import { T, Selector, Toggle } from '../../../components/hoja';
 
 const VehicleFormScreen = ({ navigation, route }) => {
   const ui = useUI();
+  const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
   const headerHeight = useHeaderHeight();
+  // Cuál de los dos selectores (Tipo / Características) está abierto, o ninguno.
+  const [selector, setSelector] = useState(null);
 
   const isDarkMode  = ui.isDarkMode;
   const bg          = ui.bg;
@@ -539,32 +543,23 @@ const VehicleFormScreen = ({ navigation, route }) => {
             </ScrollView>
           </View>
 
-          {/* Tipo de vehículo */}
+          {/* Tipo de vehículo: antes chips sueltos acá mismo, desordenados con 4-6 opciones.
+              Ahora una sola fila que abre un selector, como el resto de la app. */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Tipo</Text>
-            <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Elegí el que más se parece a tu vehículo.
-            </Text>
-            <View style={styles.chipsWrap}>
-              {TYPE_CHIP_GROUPS.map((g) => {
-                const on = g.keys.includes(selectedType);
-                return (
-                  <TouchableOpacity
-                    key={g.label}
-                    style={[styles.chip, { backgroundColor: on ? ui.invertBg : cardBg }]}
-                    onPress={() => handleTypeChange(g.canonicalKey)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                  >
-                    {/* La misma imagen que se ve después al elegir el vehículo: elegir el tipo
-                        a ciegas y encontrarse con otro dibujo desconcertaba. */}
-                    <Image source={imageForType(g.canonicalKey)} style={styles.chipImage} resizeMode="contain" />
-                    <Text style={[styles.chipText, { color: on ? ui.invertText : textPrimary }]}>{g.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <TouchableOpacity
+              style={[styles.field, { backgroundColor: cardBg, borderColor: 'transparent' }]}
+              onPress={() => setSelector('tipo')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.fieldLabel, { color: textMuted }]}>TIPO</Text>
+              <View style={styles.fieldPickerRow}>
+                <Text style={[styles.fieldInput, { color: textPrimary }]}>
+                  {TYPE_CHIP_GROUPS.find((g) => g.keys.includes(selectedType))?.label || 'Elegí uno'}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={textMuted} />
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Tarjeta verde / cédula */}
@@ -692,30 +687,25 @@ const VehicleFormScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* Features: chips que se prenden, como los tags de la referencia */}
+          {/* Características: antes 5 chips sueltos acá mismo. Ahora una fila que abre un
+              selector con un toggle por característica, igual que "Reglas del viaje". */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: textMuted }]}>Características</Text>
-            <Text style={[styles.sectionHint, { color: textMuted }]}>
-              Tocá lo que ofrecés a bordo.
-            </Text>
-            <View style={styles.chipsWrap}>
-              {featuresList.map((f) => {
-                const on = features[f.key];
-                return (
-                  <TouchableOpacity
-                    key={f.key}
-                    style={[styles.featureChip, { backgroundColor: on ? ui.invertBg : cardBg }]}
-                    onPress={() => toggleFeature(f.key)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                  >
-                    <Ionicons name={f.icon} size={16} color={on ? ui.invertText : textMuted} />
-                    <Text style={[styles.featureChipText, { color: on ? ui.invertText : textPrimary }]}>{f.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <TouchableOpacity
+              style={[styles.field, { backgroundColor: cardBg, borderColor: 'transparent' }]}
+              onPress={() => setSelector('caracteristicas')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.fieldLabel, { color: textMuted }]}>CARACTERÍSTICAS</Text>
+              <View style={styles.fieldPickerRow}>
+                <Text style={[styles.fieldInput, { color: textPrimary }]}>
+                  {featuresList.filter((f) => features[f.key]).length === 0
+                    ? 'Ninguna'
+                    : `${featuresList.filter((f) => features[f.key]).length} de ${featuresList.length}`}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={textMuted} />
+              </View>
+            </TouchableOpacity>
           </View>
 
           <PillButton
@@ -737,6 +727,58 @@ const VehicleFormScreen = ({ navigation, route }) => {
         onOpenSettings={openSettings}
         onRefreshPermissions={forceRefreshPermissions}
       />
+
+      {/* ── Tipo de vehículo ───────────────────────────────────────────────────────────── */}
+      <Selector
+        ui={ui}
+        insets={insets}
+        visible={selector === 'tipo'}
+        titulo="Tipo de vehículo"
+        sub="Elegí el que más se parece al tuyo."
+        onClose={() => setSelector(null)}
+      >
+        {TYPE_CHIP_GROUPS.map((g, i) => {
+          const on = g.keys.includes(selectedType);
+          return (
+            <TouchableOpacity
+              key={g.label}
+              style={[styles.opcion, i < TYPE_CHIP_GROUPS.length - 1 && { borderBottomColor: border, borderBottomWidth: StyleSheet.hairlineWidth }]}
+              onPress={() => { handleTypeChange(g.canonicalKey); setSelector(null); }}
+              activeOpacity={0.7}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+            >
+              <T style={[styles.opcionTexto, { color: textPrimary }]}>{g.label}</T>
+              {on && <Ionicons name="checkmark" size={20} color={textPrimary} />}
+            </TouchableOpacity>
+          );
+        })}
+      </Selector>
+
+      {/* ── Características ────────────────────────────────────────────────────────────── */}
+      <Selector
+        ui={ui}
+        insets={insets}
+        visible={selector === 'caracteristicas'}
+        titulo="Características"
+        sub="Tocá lo que ofrecés a bordo."
+        onClose={() => setSelector(null)}
+      >
+        {featuresList.map((f, i) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[styles.opcion, i < featuresList.length - 1 && { borderBottomColor: border, borderBottomWidth: StyleSheet.hairlineWidth }]}
+            onPress={() => toggleFeature(f.key)}
+            activeOpacity={0.7}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: !!features[f.key] }}
+          >
+            <Ionicons name={f.icon} size={20} color={textPrimary} />
+            <T style={[styles.opcionTexto, styles.opcionTextoConIcono, { color: textPrimary }]}>{f.label}</T>
+            <Toggle on={!!features[f.key]} ui={ui} />
+          </TouchableOpacity>
+        ))}
+      </Selector>
     </View>
   );
 };
@@ -864,30 +906,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // Chips (tipo y caracteristicas)
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 999,
-  },
-  chipImage: { width: 22, height: 22 },
   declaracion: { flexDirection: 'row', gap: 10, marginTop: 18, padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
   declaracionBox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   declaracionText: { flex: 1, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17 },
-  chipText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
-  featureChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 999,
-  },
-  featureChipText: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Campos
   fieldStack: { gap: 14 },
@@ -906,6 +927,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
+  // Fila de Tipo/Características: mismo texto que fieldInput, pero en una fila con la
+  // flechita a la derecha en vez de ser un TextInput editable.
+  fieldPickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
+
+  // Opciones dentro de los selectores de Tipo y Características (Selector, de components/hoja).
+  opcion: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  opcionTexto: { flex: 1, fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+  opcionTextoConIcono: { fontFamily: 'Sora_500Medium' },
+
   fieldInput: {
     fontFamily: 'Sora_500Medium',
     fontSize: 16,
