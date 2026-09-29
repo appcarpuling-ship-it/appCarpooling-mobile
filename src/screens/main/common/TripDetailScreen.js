@@ -16,7 +16,10 @@ import {
 
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import MapView, { Marker } from 'react-native-maps';
+import FlyerViaje from '../../../components/trip/FlyerViaje';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 
@@ -104,6 +107,10 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
   const [repeatingTrip, setRepeatingTrip] = useState(false);
+  const [sharingTrip, setSharingTrip] = useState(false);
+  // El flyer se monta siempre (fuera de la pantalla, ver el render de abajo): react-native-view-shot
+  // necesita la vista realmente montada y con layout para poder capturarla.
+  const flyerRef = useRef(null);
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -636,6 +643,27 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  // Arma el flyer (FlyerViaje, montado fuera de la pantalla) como PNG y abre la bandeja nativa
+  // de compartir. Nada de esto pasa por el backend: los datos ya los tiene la pantalla.
+  const handleCompartir = async () => {
+    if (sharingTrip) return;
+    setSharingTrip(true);
+    try {
+      const uri = await captureRef(flyerRef, { format: 'png', quality: 1, result: 'tmpfile' });
+      const disponible = await Sharing.isAvailableAsync();
+      if (!disponible) {
+        showAlert('No disponible', 'Tu dispositivo no puede compartir archivos.');
+        return;
+      }
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir viaje' });
+    } catch (error) {
+      reportError(error, { screen: 'TripDetailScreen', action: 'compartirFlyer' });
+      showAlert('Ocurrió algo', 'No pudimos generar la imagen para compartir.');
+    } finally {
+      setSharingTrip(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: bg }]}>
@@ -737,6 +765,13 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      {/* Fuera de la pantalla a propósito: no es UI, es lo que handleCompartir captura como
+          imagen. Sólo se monta para el dueño del viaje — un pasajero no comparte SU flyer. */}
+      {isOwnTrip && (
+        <View pointerEvents="none" style={styles.flyerOffscreen}>
+          <FlyerViaje ref={flyerRef} trip={trip} />
+        </View>
+      )}
       <ScrollView
         // Sin style el alto queda sin acotar y en web la rueda no encuentra
         // contenedor scrolleable. Es el único ScrollView principal de la app
@@ -1298,6 +1333,16 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }, sharingTrip && { opacity: 0.6 }]}
+                    onPress={handleCompartir}
+                    disabled={sharingTrip}
+                  >
+                    {sharingTrip
+                      ? <ActivityIndicator size="small" color={textPrimary} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Compartir</Text>
+                    }
+                  </TouchableOpacity>
                   {/* Editar: oculto temporalmente
                   <TouchableOpacity
                     style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }]}
@@ -1593,6 +1638,9 @@ const TripDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  // Bien afuera de la pantalla (no opacity:0 ni display:none): tiene que tener layout real
+  // para que react-native-view-shot la pueda capturar.
+  flyerOffscreen: { position: 'absolute', top: 0, left: -2000 },
   jumpToSena: {
     position: 'absolute', alignSelf: 'center', bottom: 28,
     flexDirection: 'row', alignItems: 'center', gap: 8,

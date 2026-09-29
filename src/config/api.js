@@ -179,4 +179,8 @@ export const ENDPOINTS = {
   ACCEPT_TRIP_REQUEST_APPLICATION: (id, appId) => `/trip-requests/${id}/accept/${appId}`,
   CANCEL_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
   CANCEL_TRIP_REQUEST_APPLICATION: (id) => `/trip-requests/${id}/apply`,
+
+  // Assets versionados del backend (no subidos por usuarios). Cambiar el diseño del flyer es
+  // reemplazar ese archivo en el repo del backend, no algo que se toque desde acá.
+  FLYER_BACKGROUND: '/static/flyer/background.png',
 };
