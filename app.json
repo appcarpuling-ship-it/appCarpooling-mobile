@@ -115,6 +115,10 @@
                 "modular_headers": true
               }
             ]
+          },
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],
