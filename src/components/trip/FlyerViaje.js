@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { buildImageUri } from '../../services/apiService';
 import { ENDPOINTS } from '../../config/api';
 import { fechaLegible } from '../../utils/fechaViaje';
+import { senaLegible } from '../../utils/sena';
 
 const ANCHO = 360;
 const ALTO = 640; // 9:16 — mismo formato que la imagen de fondo (1080x1920)
@@ -43,6 +44,10 @@ const FlyerViaje = forwardRef(({ trip, onFondo }, ref) => {
   const precio = trip.sinPrecioFijo
     ? { etiqueta: 'Modalidad', valor: 'Gastos compartidos', chico: true }
     : { etiqueta: 'Por asiento', valor: `$${Number(trip.driverPrice || 0).toLocaleString('es-AR')}` };
+  // requiereSena es incompatible con sinPrecioFijo (el server lo fuerza a false), asi que
+  // aca no hay que volver a chequearlo: sin precio por asiento senaLegible ya devuelve ''.
+  const sena = trip.requiereSena ? senaLegible(trip.driverPrice) : '';
+  const vehiculo = [trip.vehicle?.brand, trip.vehicle?.model].filter(Boolean).join(' ');
 
   return (
     <View ref={ref} collapsable={false} style={styles.flyer}>
@@ -81,7 +86,12 @@ const FlyerViaje = forwardRef(({ trip, onFondo }, ref) => {
           locations={[0, 0.35, 1]}
           style={StyleSheet.absoluteFill}
         />
-        <Text allowFontScaling={false} style={styles.precioEtiqueta}>{precio.etiqueta}</Text>
+        <View style={styles.filaEtiqueta}>
+          <Text allowFontScaling={false} style={styles.precioEtiqueta}>{precio.etiqueta}</Text>
+          {!!sena && (
+            <Text allowFontScaling={false} style={styles.sena}>Seña {sena}</Text>
+          )}
+        </View>
         <Text
           allowFontScaling={false}
           style={[styles.precioValor, precio.chico && styles.precioValorChico]}
@@ -95,10 +105,18 @@ const FlyerViaje = forwardRef(({ trip, onFondo }, ref) => {
             <View style={styles.avatar}>
               <Text allowFontScaling={false} style={styles.avatarTexto}>{iniciales(nombreConductor)}</Text>
             </View>
-            <View style={{ flexShrink: 1 }}>
+            <View style={styles.conductorTexto}>
               <Text allowFontScaling={false} style={styles.conductorEtiqueta}>CONDUCTOR</Text>
               <Text allowFontScaling={false} style={styles.conductorNombre} numberOfLines={1}>{nombreConductor}</Text>
             </View>
+            {/* A la derecha y no debajo: abajo esta el pie de la imagen ("Carpuling · Viaja
+                distinto") y no queda alto libre. */}
+            {!!vehiculo && (
+              <View style={styles.vehiculoTexto}>
+                <Text allowFontScaling={false} style={styles.conductorEtiqueta}>VEHÍCULO</Text>
+                <Text allowFontScaling={false} style={styles.conductorNombre} numberOfLines={1}>{vehiculo}</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -149,7 +167,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 18,
   },
+  filaEtiqueta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   precioEtiqueta: { color: '#FFFFFF', opacity: 0.75, fontSize: 12, fontWeight: '600', ...sombra },
+  sena: {
+    color: '#FFFFFF', fontSize: 12, fontWeight: '700',
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden',
+  },
   precioValor: { color: '#FFFFFF', fontSize: 42, fontWeight: '800', letterSpacing: -1.2, ...sombra },
   precioValorChico: { fontSize: 26, letterSpacing: -0.6 },
 
@@ -159,6 +183,10 @@ const styles = StyleSheet.create({
   },
   avatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  // flex 1 en los dos: un nombre largo y un auto largo se reparten el ancho en vez de que
+  // uno empuje al otro fuera del flyer.
+  conductorTexto: { flex: 1, minWidth: 0 },
+  vehiculoTexto: { flex: 1, minWidth: 0, alignItems: 'flex-end' },
   conductorEtiqueta: { color: '#FFFFFF', opacity: 0.7, fontSize: 10, fontWeight: '600', letterSpacing: 0.4, ...sombra },
   conductorNombre: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', ...sombra },
 });
