@@ -36,7 +36,7 @@ const iniciales = (nombre) =>
  * `allowFontScaling={false}` en todo: es una imagen que se exporta, tiene que salir igual sin
  * importar el tamaño de letra del sistema de quien la genera.
  */
-const FlyerViaje = forwardRef(({ trip }, ref) => {
+const FlyerViaje = forwardRef(({ trip, onFondo }, ref) => {
   if (!trip) return null;
 
   const nombreConductor = [trip.driver?.firstName, trip.driver?.lastName].filter(Boolean).join(' ');
@@ -50,6 +50,10 @@ const FlyerViaje = forwardRef(({ trip }, ref) => {
         source={{ uri: buildImageUri(ENDPOINTS.FLYER_BACKGROUND) }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
+        // Quien captura necesita saber cuándo la foto está realmente pintada: si el snapshot
+        // sale antes, el PNG queda con el backgroundColor negro de abajo y nadie se entera.
+        onLoad={() => onFondo?.(true)}
+        onError={() => onFondo?.(false)}
       />
 
       {/* Franja del cielo: ruta y salida */}

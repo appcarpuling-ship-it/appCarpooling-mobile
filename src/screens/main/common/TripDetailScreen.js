@@ -120,6 +120,9 @@ const TripDetailScreen = ({ route, navigation }) => {
     const url = buildImageUri(ENDPOINTS.FLYER_BACKGROUND);
     if (url) Image.prefetch(url).catch(() => {});
   }, []);
+  // 'cargando' | 'ok' | 'error'. El prefetch de arriba acelera, pero no garantiza nada: lo
+  // único que prueba que la foto está pintada es el onLoad del <Image> del flyer.
+  const fondoFlyer = useRef('cargando');
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -658,6 +661,20 @@ const TripDetailScreen = ({ route, navigation }) => {
     if (sharingTrip) return;
     setSharingTrip(true);
     try {
+      // Capturar antes de que cargue el fondo produce un PNG negro sin ningún error: hay que
+      // esperarlo a mano. 10s es el techo — más que eso, la red no va a mejorar sola.
+      for (let i = 0; fondoFlyer.current === 'cargando' && i < 67; i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (fondoFlyer.current !== 'ok') {
+        showAlert(
+          'No pudimos cargar la imagen',
+          `El fondo del flyer no llegó desde el servidor. Revisá tu conexión y probá de nuevo.
+
+${buildImageUri(ENDPOINTS.FLYER_BACKGROUND)}`
+        );
+        return;
+      }
       const uri = await captureRef(flyerRef, { format: 'png', quality: 1, result: 'tmpfile' });
       const disponible = await Sharing.isAvailableAsync();
       if (!disponible) {
@@ -778,7 +795,11 @@ const TripDetailScreen = ({ route, navigation }) => {
           imagen. Sólo se monta para el dueño del viaje — un pasajero no comparte SU flyer. */}
       {isOwnTrip && (
         <View pointerEvents="none" style={styles.flyerOffscreen}>
-          <FlyerViaje ref={flyerRef} trip={trip} />
+          <FlyerViaje
+            ref={flyerRef}
+            trip={trip}
+            onFondo={(ok) => { fondoFlyer.current = ok ? 'ok' : 'error'; }}
+          />
         </View>
       )}
       <ScrollView
