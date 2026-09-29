@@ -182,5 +182,7 @@ export const ENDPOINTS = {
 
   // Assets versionados del backend (no subidos por usuarios). Cambiar el diseño del flyer es
   // reemplazar ese archivo en el repo del backend, no algo que se toque desde acá.
-  FLYER_BACKGROUND: '/static/flyer/background.png',
+  // Con /api/static y no /static a secas: nginx en el server de dev sólo tiene un location
+  // para /api/ (ver docker/nginx/carpooling.dev.conf) — /static solo a secas da 404 ahí.
+  FLYER_BACKGROUND: '/api/static/flyer/background.png',
 };
