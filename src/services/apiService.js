@@ -415,8 +415,12 @@ export const buildImageUri = (imagePath) => {
     return sanitizeImageUrl(cleanPath) || cleanPath;
   }
 
-  // Construye la URI base sin '/api'
-  const baseUrl = API_CONFIG.BASE_URL.replace('/api', '');
+  // Construye la URI base sin '/api'.
+  // Anclado al final a proposito: un replace('/api','') pelado matchea PRIMERO el '/api' que
+  // vive dentro de '//api.appcarpuling.bid' y se come el hostname, devolviendo
+  // 'https:/.appcarpuling.bid/api'. No se notaba porque casi todas las imagenes son URLs
+  // absolutas de Cloudinary y salen por el return de arriba, sin llegar aca.
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/api\/?$/, '');
 
   // Asegura que el path empiece con /
   const path = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;

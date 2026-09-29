@@ -16,7 +16,10 @@ import {
 
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import MapView, { Marker } from 'react-native-maps';
+import FlyerViaje from '../../../components/trip/FlyerViaje';
 import { MAP_PROVIDER } from '../../../utils/mapProvider';
 import RutaPolyline from '../../../components/map/RutaPolyline';
 
@@ -103,6 +106,23 @@ const TripDetailScreen = ({ route, navigation }) => {
   const puntosEncuadreRef = useRef([]);
   const [startingTrip, setStartingTrip] = useState(false);
   const [cancellingTrip, setCancellingTrip] = useState(false);
+  const [repeatingTrip, setRepeatingTrip] = useState(false);
+  const [sharingTrip, setSharingTrip] = useState(false);
+  // El flyer se monta siempre, DENTRO de la pantalla pero tapado por el contenido (ver el
+  // render): en iOS, captureRef sobre una vista corrida fuera del área visible devuelve una
+  // imagen negra — la vista tiene que estar realmente en el window para que el snapshot tenga
+  // algo que dibujar.
+  const flyerRef = useRef(null);
+
+  // La foto del flyer pesa ~2 MB y viene del backend: si se descarga recién al tocar
+  // "Compartir", la captura sale antes que la imagen y queda el fondo negro. Se pide al entrar.
+  useEffect(() => {
+    const url = buildImageUri(ENDPOINTS.FLYER_BACKGROUND);
+    if (url) Image.prefetch(url).catch(() => {});
+  }, []);
+  // 'cargando' | 'ok' | 'error'. El prefetch de arriba acelera, pero no garantiza nada: lo
+  // único que prueba que la foto está pintada es el onLoad del <Image> del flyer.
+  const fondoFlyer = useRef('cargando');
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -616,6 +636,60 @@ const TripDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  const handleRepeatTrip = () => {
+    navigation.navigate('Confirm', {
+      title: 'Repetir viaje',
+      message: 'Publicamos el mismo viaje (misma ruta, auto, horario y precio) para el próximo mismo día de la semana.',
+      confirmLabel: 'Sí, repetir',
+      onConfirm: async () => {
+        setRepeatingTrip(true);
+        try {
+          const response = await post_withauth(ENDPOINTS.REPEAT_TRIP(tripId));
+          if (!response.success) throw new Error(response.message || 'No se pudo repetir el viaje');
+        } finally {
+          setRepeatingTrip(false);
+        }
+      },
+      successParams: { title: 'Viaje publicado', message: 'Repetimos tu viaje para la semana que viene.' },
+      errorParams: { title: 'No se pudo repetir' },
+    });
+  };
+
+  // Arma el flyer (FlyerViaje, montado fuera de la pantalla) como PNG y abre la bandeja nativa
+  // de compartir. Nada de esto pasa por el backend: los datos ya los tiene la pantalla.
+  const handleCompartir = async () => {
+    if (sharingTrip) return;
+    setSharingTrip(true);
+    try {
+      // Capturar antes de que cargue el fondo produce un PNG negro sin ningún error: hay que
+      // esperarlo a mano. 10s es el techo — más que eso, la red no va a mejorar sola.
+      for (let i = 0; fondoFlyer.current === 'cargando' && i < 67; i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (fondoFlyer.current !== 'ok') {
+        showAlert(
+          'No pudimos cargar la imagen',
+          `El fondo del flyer no llegó desde el servidor. Revisá tu conexión y probá de nuevo.
+
+${buildImageUri(ENDPOINTS.FLYER_BACKGROUND)}`
+        );
+        return;
+      }
+      const uri = await captureRef(flyerRef, { format: 'png', quality: 1, result: 'tmpfile' });
+      const disponible = await Sharing.isAvailableAsync();
+      if (!disponible) {
+        showAlert('No disponible', 'Tu dispositivo no puede compartir archivos.');
+        return;
+      }
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir viaje' });
+    } catch (error) {
+      reportError(error, { screen: 'TripDetailScreen', action: 'compartirFlyer' });
+      showAlert('Ocurrió algo', 'No pudimos generar la imagen para compartir.');
+    } finally {
+      setSharingTrip(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: bg }]}>
@@ -717,11 +791,23 @@ const TripDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
+      {/* Fuera de la pantalla a propósito: no es UI, es lo que handleCompartir captura como
+          imagen. Sólo se monta para el dueño del viaje — un pasajero no comparte SU flyer. */}
+      {isOwnTrip && (
+        <View pointerEvents="none" style={styles.flyerOffscreen}>
+          <FlyerViaje
+            ref={flyerRef}
+            trip={trip}
+            onFondo={(ok) => { fondoFlyer.current = ok ? 'ok' : 'error'; }}
+          />
+        </View>
+      )}
       <ScrollView
         // Sin style el alto queda sin acotar y en web la rueda no encuentra
         // contenedor scrolleable. Es el único ScrollView principal de la app
         // que no lo tenía.
-        style={styles.container}
+        // El backgroundColor es lo que tapa al flyer, que vive debajo (ver flyerOffscreen).
+        style={[styles.container, { backgroundColor: bg }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={64}
@@ -1278,6 +1364,16 @@ const TripDetailScreen = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
                 <View style={[styles.footerRow, { marginTop: 10 }]}>
+                  <TouchableOpacity
+                    style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }, sharingTrip && { opacity: 0.6 }]}
+                    onPress={handleCompartir}
+                    disabled={sharingTrip}
+                  >
+                    {sharingTrip
+                      ? <ActivityIndicator size="small" color={textPrimary} />
+                      : <Text style={[styles.footerBtnOutlineText, { color: textPrimary }]}>Compartir</Text>
+                    }
+                  </TouchableOpacity>
                   {/* Editar: oculto temporalmente
                   <TouchableOpacity
                     style={[styles.footerBtnOutline, { borderColor: divider, flex: 1 }]}
@@ -1332,6 +1428,22 @@ const TripDetailScreen = ({ route, navigation }) => {
                 </View>
               </>
             )}
+          </View>
+        )}
+
+        {/* Footer — driver, viaje ya terminado: ofrecer repetirlo la semana que viene */}
+        {isOwnTrip && (trip.status === 'completed' || trip.status === 'cancelled') && (
+          <View style={[styles.footer, { borderTopWidth: 0 }]}>
+            <TouchableOpacity
+              style={[styles.footerBtn, { backgroundColor: accent }, repeatingTrip && { opacity: 0.6 }]}
+              onPress={handleRepeatTrip}
+              disabled={repeatingTrip}
+            >
+              {repeatingTrip
+                ? <ActivityIndicator size="small" color={accentInverse} />
+                : <Text style={[styles.footerBtnText, { color: accentInverse }]}>Repetir viaje</Text>
+              }
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1557,6 +1669,10 @@ const TripDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  // Dentro del window (no corrido afuera, no opacity:0, no display:none): en iOS el snapshot
+  // de una vista fuera del área visible sale negro. Queda debajo del ScrollView, que es opaco,
+  // así que nunca se ve.
+  flyerOffscreen: { position: 'absolute', top: 0, left: 0, zIndex: -1 },
   jumpToSena: {
     position: 'absolute', alignSelf: 'center', bottom: 28,
     flexDirection: 'row', alignItems: 'center', gap: 8,

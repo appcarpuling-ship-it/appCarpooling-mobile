@@ -1,252 +1,167 @@
-﻿import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     TextInput,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
     ScrollView,
-    Platform,
-    Modal,
-    Keyboard,
-    TouchableWithoutFeedback,
     BackHandler,
+    Image,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import DateTimeRow from '../../../components/ui/DateTimeRow';
 import { senaLegible } from '../../../utils/sena';
-import { post_withauth } from '../../../services/apiService';
+import { post_withauth, put_withauth_formdata, buildImageUri } from '../../../services/apiService';
 import { useAlert } from '../../../context/AlertContext';
-import { useColors } from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { useAuth } from '../../../context/AuthContext';
 import { ENDPOINTS } from '../../../config/api';
+import { imageForType } from '../../../utils/vehicleImage';
+import { reportError } from '../../../utils/sentry';
+import {
+    T, Toggle, Fila, Selector, SelectorDeCuando,
+    estilos as hoja,
+} from '../../../components/hoja';
+import { isoDeFecha, horaDeFecha, fechaLegible, conMiles, soloDigitos } from '../../../utils/fechaViaje';
 
-// El alta del viaje en pasos. El primero —elegir las direcciones en el mapa— es la pantalla
-// anterior (CreateTripGoogleMaps); acá empieza el segundo. Una sola pantalla con `step` en vez
-// de tres pantallas porque el formulario es uno solo: partirlo obligaría a arrastrar formData
-// entre rutas y a validar lo mismo en tres lugares.
-const PASOS = [
-    { titulo: 'Vehículo y asientos' },
-    { titulo: 'Fecha y hora' },
-    { titulo: 'Preferencias' },
-];
+/**
+ * Publicar un viaje: pantalla completa, sin mapa. El origen/destino ya se eligieron en el paso
+ * anterior (CreateTripGoogleMaps, que sí tiene mapa); acá sólo se completan los datos del viaje,
+ * fila por fila, y cada una abre un selector chico en vez de llevar a otro paso.
+ *
+ * Antes esto era una hoja arrastrable sobre un segundo MapView (el mismo recorrido, de nuevo).
+ * Se sacó: un MapView nativo pesa cientos de MB, y esta pantalla no necesita mostrar el mapa otra
+ * vez para elegir vehículo, asientos o precio.
+ *
+ * NADA viene decidido de antemano: ni la salida, ni el vehículo, ni los lugares, ni el precio.
+ * Un valor por defecto es una decisión tomada en nombre del conductor —y con el precio, además,
+ * una cifra que no tiene ningún dato real detrás— así que las filas arrancan vacías y las elige
+ * él. El botón nunca está apagado: si falta algo, abre la fila que falta.
+ *
+ * Lo que se manda al backend y cómo se valida NO cambió: es el mismo POST /trips de antes.
+ *
+ * Las filas y los selectores son piezas comunes con "pedir un viaje" y viven en
+ * `components/hoja`.
+ */
 
 const TripDetails = ({ navigation, route }) => {
-    const { origin, destination, waypoints, distance, duration, routePolyline, vehicles } = route.params;
+    const { origin, destination, waypoints, distance, duration, routePolyline, vehicles = [] } = route.params;
     const insets = useSafeAreaInsets();
     const { showAlert } = useAlert();
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
+    const ui = useUI();
 
-    const ui          = useUI();
-    const bg          = ui.bg;
-    const cardBg      = ui.surface;
-    const border      = ui.border;
-    const textPrimary = ui.text;
-    const textMuted   = ui.textMuted;
-    const divider     = ui.bg;
-
-    const [step, setStep] = useState(1);
-    const scrollRef = useRef(null);
-
-    // El botón "Continuar" vive al final del scroll (como el resto de la app) pero con
-    // `marginTop:'auto'` sobre un contentContainer `flexGrow:1`: cuando el paso es corto queda
-    // pegado abajo igual que un footer fijo; cuando es largo, queda después del contenido y se
-    // scrollea. Antes era un footer fijo que el teclado tapaba.
-    //
-    // Con el teclado abierto en Android (SDK 54 no achica la ventana): se suma su alto como
-    // espacio al final para poder scrollear el input a la vista. iOS lo sube solo con
-    // `automaticallyAdjustKeyboardInsets`.
-    const [alturaTeclado, setAlturaTeclado] = useState(0);
-    useEffect(() => {
-        if (Platform.OS !== 'android') return undefined;
-        const show = Keyboard.addListener('keyboardDidShow', (e) => setAlturaTeclado(e.endCoordinates?.height || 0));
-        const hide = Keyboard.addListener('keyboardDidHide', () => setAlturaTeclado(0));
-        return () => { show.remove(); hide.remove(); };
-    }, []);
-    // Al enfocar asientos/precio, un scroll suave para acercar el input al tope. `scrollToEnd`
-    // scrolleaba de más (dejaba todo el paso pegado al teclado); esto lo acerca sin exagerar.
-    const scrollFieldAboveKeyboard = () => {
-        if (Platform.OS !== 'android') return;
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 260, animated: true }));
-        });
-    };
     const [loading, setLoading] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [selector, setSelector] = useState(null); // qué selector está abierto
 
-    const [date, setDate] = useState(new Date());
-    const [time, setTime] = useState(new Date());
-
-    const [formData, setFormData] = useState({
-        vehicle:        '',
-        departureDate:  '',
-        departureTime:  '',
-        availableSeats: '',
-        driverPrice:    '',
-        sinPrecioFijo:  false,
-        requiereSena:   false,
-
-        notes:          '',
-        allowSmoking:        false,
-        allowPets:           false,
-        womenOnly:           false,
+    // ── Los valores del viaje: todos vacíos hasta que el conductor los elige ───────────
+    const [cuando, setCuando] = useState(null);
+    const [vehiculoId, setVehiculoId] = useState(null);
+    const [asientos, setAsientos] = useState(0);
+    const [precio, setPrecio] = useState('');
+    const [sinPrecioFijo, setSinPrecioFijo] = useState(false);
+    const [requiereSena, setRequiereSena] = useState(false);
+    // Para conductores con ruta/día/horario fijos: cuando este viaje se complete, el server
+    // publica solo el de la semana que viene (mismo día/hora), sin que haya que repetirlo a mano.
+    const [repetirSemanalmente, setRepetirSemanalmente] = useState(false);
+    const [reglas, setReglas] = useState({
+        allowSmoking: false,
+        allowPets: false,
+        womenOnly: false,
         largeLuggageAllowed: false,
     });
+    const [alias, setAlias] = useState(user?.datosCobro?.alias || '');
+    const [cvu, setCvu] = useState(user?.datosCobro?.cvu || '');
+    const [guardandoCobro, setGuardandoCobro] = useState(false);
 
-    const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
-
-    // Vista previa de la seña mientras escribe el precio. El número final lo deriva el
-    // server con la misma regla (la mitad), esto es sólo para que sepa qué está ofreciendo.
-    const senaPreview = senaLegible(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) || 0);
-    // Sin CVU ni alias cargados, pedir seña no sirve: el pasajero no tiene a dónde transferir.
-    const tieneDatosCobro = Boolean(user?.datosCobro?.cvu || user?.datosCobro?.alias);
-
-    // Mínimo para el <input type="date"> de web (equivalente a minimumDate={new Date()}).
-    const todayStr = (() => {
-        const n = new Date();
-        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-    })();
-
-    const onDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate && event?.type === 'set') {
-            setDate(selectedDate);
-            const y = selectedDate.getFullYear();
-            const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
-            const d = String(selectedDate.getDate()).padStart(2, '0');
-            handleChange('departureDate', `${y}-${m}-${d}`);
-        }
-    };
-
-    const onTimeChange = (event, selectedTime) => {
-        setShowTimePicker(false);
-        if (selectedTime && event?.type === 'set') {
-            setTime(selectedTime);
-            const h = selectedTime.getHours().toString().padStart(2, '0');
-            const m = selectedTime.getMinutes().toString().padStart(2, '0');
-            handleChange('departureTime', `${h}:${m}`);
-        }
-    };
-
-    const formatDateDisplay = (s) => {
-        if (!s) return '';
-        const [y, m, d] = s.split('-');
-        return `${d}/${m}/${y}`;
-    };
-
-    const formatTimeDisplay = (s) => {
-        if (!s) return '';
-        const [h, m] = s.split(':');
-        const hour = parseInt(h);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-        return `${display}:${m} ${ampm}`;
-    };
-
-    const esUltimoPaso = step === PASOS.length;
-
-    const selectedVehicle = vehicles?.find(v => v?._id === formData.vehicle);
-    /** Tope de asientos: los que tiene el auto elegido. Lo mismo lo revisa el backend. */
-    const maxAsientos = Number(selectedVehicle?.capacity) || 0;
+    const vehiculo = vehicles.find((v) => v._id === vehiculoId) || null;
+    const capacidad = Number(vehiculo?.capacity) || 0;
+    const cobroLegible = (alias || cvu || '').trim();
 
     /**
-     * Qué le falta al paso actual, en texto. Devuelve null si está completo.
-     * Se valida por paso y no sólo al publicar: llegar al final para que recién ahí te digan
-     * que faltaba el vehículo es peor que no tener pasos.
+     * Guarda el alias y el CVU al cerrar el selector, con el mismo endpoint que la pantalla de
+     * datos de cobro del perfil. Se guarda al cerrar y no con un botón aparte: el botón de ese
+     * selector ya dice "Listo".
      */
-    const faltante = (() => {
-        if (step === 1) {
-            if (!formData.vehicle) return 'Elegí con qué vehículo vas a viajar';
-            const asientos = parseInt(formData.availableSeats, 10);
-            if (!asientos || asientos < 1) return 'Indicá cuántos asientos ofrecés';
-            // Red de seguridad: el campo ya no deja escribir de más, pero si el auto se cambia
-            // DESPUÉS de cargar los asientos, el número viejo puede quedar pasado de tope.
-            if (maxAsientos && asientos > maxAsientos) {
-                return `Tu ${selectedVehicle.brand} ${selectedVehicle.model} tiene ${maxAsientos} asiento${maxAsientos !== 1 ? 's' : ''}`;
-            }
-            // El precio se valida acá y no recién al publicar: está marcado con * en este paso,
-            // y enterarse dos pasos después de que faltaba es lo que los pasos vienen a evitar.
-            // En "Gastos compartidos" no hay precio que poner: es carpooling real, se
-            // arregla directo con los pasajeros.
-            if (!formData.sinPrecioFijo && !(parseInt(String(formData.driverPrice).replace(/\./g, ''), 10) > 0)) {
-                return 'Poné cuánto le cobrás a cada pasajero';
-            }
-            return null;
-        }
-        if (step === 2) {
-            if (!formData.departureDate) return 'Elegí la fecha de salida';
-            if (!formData.departureTime) return 'Elegí la hora de salida';
-            return null;
-        }
-        return null; // las preferencias son todas opcionales
-    })();
-
-    const irAlSiguientePaso = () => {
-        if (faltante) return;
-        Keyboard.dismiss();
-        setStep((s) => Math.min(s + 1, PASOS.length));
-        // Sin esto el paso nuevo arranca a mitad de scroll, donde quedó el anterior.
-        scrollRef.current?.scrollTo({ y: 0, animated: false });
-    };
-
-    const volver = () => {
-        if (step > 1) {
-            setStep((s) => s - 1);
-            scrollRef.current?.scrollTo({ y: 0, animated: false });
-            return true;
-        }
-        return false; // en el primer paso, atrás es volver al mapa
-    };
-
-    // La flecha del header y el botón físico de Android tienen que retroceder de paso, no
-    // salir del formulario: salir tira todo lo cargado hasta acá.
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            title: PASOS[step - 1].titulo,
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => { if (!volver()) navigation.goBack(); }}
-                    style={{ paddingVertical: 10, paddingRight: 10, paddingLeft: 4, marginLeft: Platform.OS === 'android' ? 6 : 4 }}
-                    hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Volver"
-                >
-                    <Ionicons name="chevron-back" size={26} color={textPrimary} />
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation, step, textPrimary]);
-
-    useEffect(() => {
-        const sub = BackHandler.addEventListener('hardwareBackPress', volver);
-        return () => sub.remove();
-    }, [step]);
-
-    const handleCreateTrip = async () => {
-        const { vehicle, departureDate, departureTime, availableSeats, driverPrice } = formData;
-        if (!vehicle || !departureDate || !departureTime || !availableSeats) {
-            showAlert('Ocurrió algo', 'Por favor completá todos los campos obligatorios');
+    const guardarCobro = async () => {
+        setSelector(null);
+        const nuevoAlias = alias.trim();
+        const nuevoCvu = cvu.trim();
+        if (nuevoAlias === (user?.datosCobro?.alias || '') && nuevoCvu === (user?.datosCobro?.cvu || '')) return;
+        if (nuevoCvu && nuevoCvu.length !== 22) {
+            showAlert('Revisá el CVU', `Tiene que tener 22 dígitos y pusiste ${nuevoCvu.length}.`);
             return;
         }
+        setGuardandoCobro(true);
+        try {
+            const fd = new FormData();
+            // Se mandan siempre, incluso vacíos, para poder borrar un dato que ya no querés.
+            fd.append('datosCobro_alias', nuevoAlias);
+            fd.append('datosCobro_cvu', nuevoCvu);
+            fd.append('datosCobro_titular', user?.datosCobro?.titular || '');
+            const res = await put_withauth_formdata(ENDPOINTS.UPDATE_PROFILE, fd);
+            if (!res?.success) throw new Error(res?.message || 'No se pudo guardar');
+            await refreshUser();
+        } catch (e) {
+            reportError(e, { screen: 'TripDetails', action: 'guardarDatosCobro' });
+            showAlert('Ocurrió algo', 'No pudimos guardar tus datos de cobro. Probá de nuevo.');
+        } finally {
+            setGuardandoCobro(false);
+        }
+    };
 
-        // El precio es obligatorio y lo pone el conductor: es lo que el pasajero ve antes de
-        // reservar y con lo que se compara contra los demás viajes. Sin esto, publicar sin
-        // querer un viaje en $0 es un click de distancia.
-        const precioConductor = parseInt(String(driverPrice).replace(/\./g, ''), 10) || 0;
-        if (!formData.sinPrecioFijo && precioConductor <= 0) {
-            showAlert('Falta el precio', 'Poné cuánto le cobrás a cada pasajero por el viaje.');
+    // Si cambia de vehículo y ya había elegido más lugares de los que tiene el nuevo, se ajustan al
+    // tope: nunca pueden quedar más lugares que asientos.
+    useEffect(() => {
+        if (capacidad > 0) setAsientos((prev) => (prev > capacidad ? capacidad : prev));
+    }, [capacidad]);
+
+    // El botón físico de Android cierra el selector abierto antes que la pantalla.
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (selector) { setSelector(null); return true; }
+            return false;
+        });
+        return () => sub.remove();
+    }, [selector]);
+
+    // ── Publicar ────────────────────────────────────────────────────────────────────────
+    const precioNumero = soloDigitos(precio);
+    const senaPreview = senaLegible(precioNumero);
+
+    const faltaVehiculo = !vehiculo;
+    const faltaPrecio = !sinPrecioFijo && precioNumero <= 0;
+    const faltaCobro = requiereSena && !sinPrecioFijo && !cobroLegible;
+
+    const publicar = async () => {
+        // Nada apaga el botón: si falta algo, se abre la fila que lo resuelve, de arriba para
+        // abajo, en el mismo orden en que se ven.
+        if (!cuando) { setSelector('cuando'); return; }
+        if (faltaVehiculo) {
+            if (vehicles.length) setSelector('vehiculo');
+            else navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false });
+            return;
+        }
+        // Sin asientos el backend rechaza el viaje. Con un vehículo sin capacidad cargada no hay
+        // nada que elegir, así que ahí se manda a corregir el vehículo en vez de abrir un
+        // selector vacío.
+        if (!asientos) {
+            if (capacidad > 0) { setSelector('asientos'); return; }
+            showAlert('Revisá tu vehículo', 'No tiene cargada la cantidad de asientos. Editalo en Mis vehículos y volvé a publicar.');
+            return;
+        }
+        if (faltaPrecio) { setSelector('precio'); return; }
+        if (cuando <= new Date()) {
+            showAlert('Revisá la salida', 'La fecha y la hora tienen que ser futuras.');
+            setSelector('cuando');
             return;
         }
 
         setLoading(true);
         try {
             const tripData = {
-                vehicle,
+                vehicle: vehiculo._id,
                 origin,
                 destination,
                 intermediateStops: (waypoints || []).map((wp, i) => ({
@@ -258,25 +173,24 @@ const TripDetails = ({ navigation, route }) => {
                 })),
                 // Ruta ya calculada en el mapa: se guarda para no volver a pedir Directions al verla.
                 ...(routePolyline && { routePolyline }),
-                departureDate: formData.departureDate,
-                departureTime: formData.departureTime,
-                availableSeats: parseInt(availableSeats),
+                departureDate: isoDeFecha(cuando),
+                departureTime: horaDeFecha(cuando),
+                availableSeats: asientos,
                 pricePerSeat: 0,
                 // Lo que le cobra a cada pasajero, y que le pagan a él al llegar. La conexión
                 // (lo que cobra la app) la calcula el server aparte y no se manda desde acá.
-                driverPrice: precioConductor,
-                // El server lo ignora igual si sinPrecioFijo viene en true: fuerza 0.
-                sinPrecioFijo: formData.sinPrecioFijo === true,
-                // El pasajero adelanta la mitad para reservar. Con "gastos compartidos" no
-                // hay precio del cual sacarla, así que se apaga acá también (el server la
-                // normaliza igual — ver backend/utils/sena.js).
-                requiereSena: formData.sinPrecioFijo !== true && formData.requiereSena === true,
-                notes: formData.notes,
+                driverPrice: sinPrecioFijo ? 0 : precioNumero,
+                sinPrecioFijo,
+                // Con "gastos compartidos" no hay precio del cual sacar la mitad; el server lo
+                // normaliza igual (backend/utils/sena.js).
+                requiereSena: !sinPrecioFijo && requiereSena,
+                repetirSemanalmente,
+                notes: '',
                 rules: {
-                    smokingAllowed:      formData.allowSmoking,
-                    petsAllowed:         formData.allowPets,
-                    womenOnly:           formData.womenOnly,
-                    largeLuggageAllowed: formData.largeLuggageAllowed,
+                    smokingAllowed: reglas.allowSmoking,
+                    petsAllowed: reglas.allowPets,
+                    womenOnly: reglas.womenOnly,
+                    largeLuggageAllowed: reglas.largeLuggageAllowed,
                 },
             };
 
@@ -284,8 +198,8 @@ const TripDetails = ({ navigation, route }) => {
             if (response.success) {
                 navigation.navigate('Result', {
                     type: 'success',
-                    title: 'Viaje Publicado',
-                    message: 'Tu viaje ha sido creado con éxito. Ahora otros usuarios podrán verlo.',
+                    title: 'Viaje publicado',
+                    message: 'Ya pueden verlo y reservar tu viaje.',
                     primaryLabel: 'Continuar',
                     onPrimary: () => navigation.navigate('Main', {
                         screen: 'CarpoolingsTab',
@@ -296,17 +210,17 @@ const TripDetails = ({ navigation, route }) => {
                 navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: response.message || 'No pudimos crear el viaje en este momento.' });
             }
         } catch (error) {
-            // Bloqueado por saldo pendiente. Se trata aparte del resto de los errores porque
-            // NO es una falla: el conductor puede resolverlo, y lo que necesita es entender
-            // por qué y adónde ir. Un "Ocurrió algo" genérico lo dejaría sin saber qué hacer.
+            // Bloqueado por saldo pendiente. Se trata aparte del resto de los errores porque NO
+            // es una falla: el conductor puede resolverlo, y lo que necesita es entender por qué
+            // y adónde ir.
             if (error.response?.data?.code === 'SALDO_PENDIENTE') {
                 showAlert(
                     'Tenés saldo pendiente',
                     error.response.data.message || 'Saldá tu cuenta para volver a publicar viajes.',
                     [
                         { text: 'Ahora no', style: 'cancel' },
-                        { text: 'Ver mi saldo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Saldo', initial: false }) }
-                    ]
+                        { text: 'Ver mi saldo', onPress: () => navigation.navigate('ProfileTab', { screen: 'Saldo', initial: false }) },
+                    ],
                 );
                 return;
             }
@@ -316,748 +230,391 @@ const TripDetails = ({ navigation, route }) => {
         }
     };
 
-    // El recorrido completo, con las paradas que el conductor eligió en el mapa. Antes esta
-    // tarjeta mostraba sólo origen y destino: las paradas se mandaban igual al backend, pero
-    // acá no aparecían por ningún lado y parecía que se habían perdido.
-    const textoDelPunto = (p) => [p?.address, p?.city, p?.province].filter(Boolean).join(', ');
-    const puntosDelViaje = [
-        { tipo: 'origen', label: 'Origen', texto: textoDelPunto(origin) },
-        ...(waypoints || []).map((wp, i) => ({
-            tipo: 'parada',
-            label: `Parada ${i + 1}`,
-            texto: textoDelPunto(wp),
-        })),
-        { tipo: 'destino', label: 'Destino', texto: textoDelPunto(destination) },
+    const REGLAS = [
+        { key: 'allowSmoking', label: 'Se puede fumar', icon: 'flame-outline' },
+        { key: 'allowPets', label: 'Acepto mascotas', icon: 'paw-outline' },
+        { key: 'largeLuggageAllowed', label: 'Equipaje grande', icon: 'bag-handle-outline' },
+        // Sólo para conductoras, igual que en la pantalla anterior.
+        ...(user?.gender === 'female'
+            ? [{ key: 'womenOnly', label: 'Solo mujeres', icon: 'woman-outline', sub: 'Sólo lo ven pasajeras' }]
+            : []),
     ];
+    const reglasActivas = REGLAS.filter((r) => reglas[r.key]);
 
-    const preferences = [
-        { key: 'allowSmoking',        label: 'Permitir fumar',        icon: 'ban-outline' },
-        { key: 'allowPets',           label: 'Permitir mascotas',     icon: 'paw-outline' },
-        ...(user?.gender === 'female' ? [{ key: 'womenOnly', label: 'Solo mujeres', icon: 'woman-outline' }] : []),
-        { key: 'largeLuggageAllowed', label: 'Equipaje grande',       icon: 'bag-handle-outline' },
-    ];
+    const fotoDelVehiculo = (v) => {
+        const fotos = (v.photos || []).filter(Boolean);
+        // `photo` es el campo viejo, y su default es una de picsum que no es el auto de nadie.
+        const suelta = v.photo && !v.photo.includes('picsum') ? v.photo : null;
+        return fotos[0] || suelta || null;
+    };
 
     return (
-        <>
-            <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={['left', 'right']}>
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    {/* `automaticallyAdjustKeyboardInsets` en vez de KeyboardAwareScrollView.
-                        Esa librería (0.9.5, sin mantenimiento desde 2021) llama a APIs del
-                        renderer viejo —UIManager.viewIsDescendantOf, measureInWindow sobre un
-                        findNodeHandle— que en la New Architecture de Expo SDK 54 no existen, y
-                        justo se disparan al enfocar un input: es la causa más probable de que
-                        la app se cerrara sola en esta pantalla. En iOS ajusta el contentInset
-                        solo con el teclado y sube el campo enfocado, sin JS de por medio. */}
-                    <ScrollView
-                        ref={scrollRef}
-                        style={styles.flex}
-                        contentContainerStyle={[
-                            styles.scroll,
-                            { paddingBottom: (alturaTeclado > 0 ? alturaTeclado : Math.max(insets.bottom, 12)) + 16 },
-                        ]}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        automaticallyAdjustKeyboardInsets
-                    >
+        <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+                <TouchableOpacity
+                    style={[styles.volver, { backgroundColor: ui.surface }]}
+                    onPress={() => navigation.goBack()}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                >
+                    <Ionicons name="chevron-back" size={22} color={ui.text} />
+                </TouchableOpacity>
+                <T style={[hoja.titulo, { color: ui.text }]}>Tu viaje</T>
+            </View>
 
-                        {/* Progreso: en qué paso estás y cuántos faltan. Sin esto el formulario por pasos se
-                            siente más largo que el de una sola pantalla, porque no se ve el final. */}
-                        <View style={styles.progreso}>
-                            {PASOS.map((_, i) => (
-                                <View
-                                    key={i}
-                                    style={[
-                                        styles.progresoTramo,
-                                        { backgroundColor: i < step ? textPrimary : divider },
-                                    ]}
-                                />
-                            ))}
-                        </View>
-                        <Text style={[styles.progresoTexto, { color: textMuted }]}>
-                            Paso {step} de {PASOS.length} · {PASOS[step - 1].titulo}
-                        </Text>
+            <ScrollView
+                style={styles.lista}
+                contentContainerStyle={styles.listaContenido}
+                showsVerticalScrollIndicator={false}
+            >
+                <Fila
+                    ui={ui}
+                    rotulo="Sale"
+                    valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                    apagado={!cuando}
+                    onPress={() => setSelector('cuando')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Repetir todas las semanas"
+                    onPress={() => setRepetirSemanalmente((v) => !v)}
+                >
+                    <View style={hoja.filaValorCaja}>
+                        <Toggle on={repetirSemanalmente} ui={ui} />
+                    </View>
+                </Fila>
+                <Fila
+                    ui={ui}
+                    rotulo="Vehículo"
+                    valor={vehiculo ? `${vehiculo.brand} ${vehiculo.model}` : vehicles.length ? 'Elegí tu vehículo' : 'Agregá tu vehículo'}
+                    sub={vehiculo?.licensePlate}
+                    apagado={faltaVehiculo}
+                    onPress={() => (vehicles.length
+                        ? setSelector('vehiculo')
+                        : navigation.navigate('ProfileTab', { screen: 'VehicleForm', initial: false }))}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Lugares que ofrecés"
+                    valor={asientos ? `${asientos} asiento${asientos !== 1 ? 's' : ''}` : 'Elegí cuántos'}
+                    apagado={!asientos}
+                    // Los lugares dependen del auto: sin vehículo, la fila lleva a elegirlo.
+                    onPress={() => setSelector(vehiculo ? 'asientos' : 'vehiculo')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Cada pasajero paga"
+                    valor={sinPrecioFijo ? 'A convenir' : precioNumero > 0 ? `$${conMiles(precioNumero)}` : 'Poné el precio'}
+                    apagado={faltaPrecio}
+                    onPress={() => setSelector('precio')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo={senaPreview && !sinPrecioFijo ? `Pedir seña de ${senaPreview}` : 'Pedir seña'}
+                    onPress={sinPrecioFijo ? undefined : () => setRequiereSena((v) => !v)}
+                >
+                    <View style={hoja.filaValorCaja}>
+                        <Toggle on={requiereSena && !sinPrecioFijo} ui={ui} />
+                    </View>
+                </Fila>
+                {requiereSena && !sinPrecioFijo && (
+                    <Fila
+                        ui={ui}
+                        rotulo="Te pagan a"
+                        valor={cobroLegible || 'Cargá tu CVU o alias'}
+                        apagado={!cobroLegible}
+                        alerta={faltaCobro}
+                        // Se edita en esta misma pantalla: salir a Perfil desmontaba el
+                        // formulario y al volver había que rehacer el viaje entero.
+                        onPress={() => setSelector('cobro')}
+                    />
+                )}
+                <Fila
+                    ui={ui}
+                    rotulo="Reglas del viaje"
+                    // Contadas y no listadas: con tres reglas el texto se comía dos renglones
+                    // y desbordaba la fila. Cuáles son se ven al tocarla.
+                    valor={reglasActivas.length
+                        ? `${reglasActivas.length} ${reglasActivas.length === 1 ? 'regla' : 'reglas'}`
+                        : 'Ninguna'}
+                    apagado={!reglasActivas.length}
+                    onPress={() => setSelector('reglas')}
+                    ultimo
+                />
+            </ScrollView>
 
-                        {/* Ruta */}
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            {/* Cada punto es UNA fila con su círculo al lado de su texto, igual que en
-                                el detalle del viaje. Con la columna de círculos aparte —alto fijo— las
-                                paradas intermedias desincronizaban el punto de su dirección. */}
-                            <View style={styles.routeList}>
-                                {puntosDelViaje.map((punto, i) => (
-                                    <View key={`punto-${i}`} style={styles.routePoint}>
-                                        <View style={styles.routeRail}>
-                                            {punto.tipo === 'origen'
-                                                ? <View style={[styles.dotOrigin, { borderColor: textPrimary }]} />
-                                                : punto.tipo === 'destino'
-                                                    ? <View style={[styles.dotDest, { backgroundColor: textPrimary }]} />
-                                                    : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
-                                            {i < puntosDelViaje.length - 1 && (
-                                                <View style={[styles.line, { backgroundColor: border }]} />
-                                            )}
-                                        </View>
-                                        <View style={[styles.routeBody, i < puntosDelViaje.length - 1 && styles.routeBodyGap]}>
-                                            <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
-                                            <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={1}>
-                                                {punto.texto}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                ))}
-                            </View>
-                            {distance && duration && (
-                                <Text style={[styles.routeMeta, { color: textMuted, borderTopColor: divider }]}>
-                                    {distance} · {duration}
-                                </Text>
-                            )}
-                        </View>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
+                <TouchableOpacity
+                    style={[hoja.boton, { backgroundColor: ui.invertBg, marginTop: 0 }, loading && { opacity: 0.6 }]}
+                    onPress={publicar}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                >
+                    {loading
+                        ? <ActivityIndicator color={ui.invertText} size="small" />
+                        : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar viaje</T>}
+                </TouchableOpacity>
+            </View>
 
+            <SelectorDeCuando
+                ui={ui}
+                insets={insets}
+                visible={selector === 'cuando'}
+                cuando={cuando}
+                onCambiar={setCuando}
+                onClose={() => setSelector(null)}
+                sub={distance && duration ? `${distance} · ${duration}` : undefined}
+            />
 
-                        {step === 1 && (
-                            <>
-                        {/* Vehículo */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>VEHÍCULO</Text>
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
+            {/* ── Vehículo ────────────────────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'vehiculo'}
+                titulo="¿Con qué vehículo?"
+                sub="Los lugares se ajustan al que elijas"
+                onClose={() => setSelector(null)}
+            >
+                <ScrollView style={styles.listaAutos} showsVerticalScrollIndicator={false}>
+                    {vehicles.map((v) => {
+                        const elegido = v._id === vehiculoId;
+                        const foto = fotoDelVehiculo(v);
+                        return (
                             <TouchableOpacity
-                                style={styles.vehicleRow}
-                                onPress={() => navigation.navigate('VehiclePicker', {
-                                    vehicles,
-                                    selectedId: formData.vehicle,
-                                    onSelect: (vehicleId) => handleChange('vehicle', vehicleId),
-                                })}
-                                activeOpacity={0.7}
-                            >
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[
-                                        selectedVehicle ? styles.vehicleName : styles.selectText,
-                                        { color: selectedVehicle ? textPrimary : textMuted },
-                                    ]}>
-                                        {selectedVehicle
-                                            ? `${selectedVehicle.brand} ${selectedVehicle.model}`
-                                            : 'Seleccionar vehículo'}
-                                    </Text>
-                                    {/* La placa y los asientos alcanzan para reconocer el auto: ya
-                                        es el SUYO, no hace falta que decida nada más con este dato —
-                                        las características (A/C, música, etc.) no aportaban acá. */}
-                                    {selectedVehicle && (
-                                        <Text style={[styles.vehicleSub, { color: textMuted }]} numberOfLines={1}>
-                                            {selectedVehicle.licensePlate}
-                                            {selectedVehicle.capacity ? `  ·  ${selectedVehicle.capacity} asientos` : ''}
-                                        </Text>
-                                    )}
-                                </View>
-                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Detalles */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>ASIENTOS Y PRECIO</Text>
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }, !selectedVehicle && { opacity: 0.5 }]}>
-                                <Ionicons name="people-outline" size={19} color={textPrimary} />
-                                <TextInput
-                                    style={[styles.input, { color: textPrimary }]}
-                                    placeholder={
-                                        selectedVehicle
-                                            ? `Asientos disponibles * (hasta ${maxAsientos})`
-                                            : 'Primero elegí un vehículo'
-                                    }
-                                    placeholderTextColor={textMuted}
-                                    value={formData.availableSeats}
-                                    editable={!!selectedVehicle}
-                                    onFocus={scrollFieldAboveKeyboard}
-                                    // No se puede ofrecer más de lo que entra en el auto: el campo
-                                    // recorta al tope en vez de dejar escribir un número que el
-                                    // backend va a rechazar recién al publicar, tres pasos después.
-                                    onChangeText={(v) => {
-                                        const digitos = v.replace(/\D/g, '');
-                                        if (!digitos) return handleChange('availableSeats', '');
-                                        const n = Math.min(parseInt(digitos, 10), maxAsientos || 8);
-                                        handleChange('availableSeats', String(n));
-                                    }}
-                                    keyboardType="numeric"
-                                    maxLength={2}
-                                />
-                            </View>
-
-                            {/* Cómo cobrás. Es una elección entre dos modalidades, no una
-                                casilla suelta: con precio fijo no hay nada que "compartir", y
-                                con gastos compartidos no hay precio que fijar. Por eso el campo
-                                de precio de abajo desaparece cuando esto se prende, en vez de
-                                quedar ahí pidiendo un número que no va a usar nadie.
-
-                                Lo que Carpuling cobra NO cambia entre modalidades: son los
-                                mismos $2.000 por asiento ocupado en los dos casos. Se dice
-                                explícito acá para que no parezca que "compartir gastos" es una
-                                forma de no pagar la comisión. */}
-                            {/* El toggle es el mismo que usan las preferencias del viaje, no el
-                                Switch nativo: el verde de iOS es el unico color fuerte en una
-                                pantalla en blanco y negro y se lleva toda la atencion.
-                                Toda la fila es tocable, como en preferencias. */}
-                            <TouchableOpacity
-                                style={[styles.inputRow, { alignItems: 'flex-start' }]}
-                                onPress={() => handleChange('sinPrecioFijo', !formData.sinPrecioFijo)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="pricetags-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
-                                <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
-                                            Gastos compartidos
-                                        </Text>
-                                        <View style={[
-                                            styles.toggle,
-                                            { backgroundColor: formData.sinPrecioFijo ? textPrimary : divider },
-                                        ]}>
-                                            <View style={[
-                                                styles.toggleCircle,
-                                                { backgroundColor: formData.sinPrecioFijo ? ui.invertText : textMuted },
-                                                formData.sinPrecioFijo && styles.toggleOn,
-                                            ]} />
-                                        </View>
-                                    </View>
-                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
-                                        {formData.sinPrecioFijo
-                                            ? 'Arreglás los gastos directo con tus pasajeros.'
-                                            : 'Vos fijás el precio y te pagan directo a vos.'} Carpuling cobra $2.000 por asiento aparte.
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-
-                            {/* El precio va pegado a los asientos porque es "por asiento" igual que
-                                ellos. Es libre: es con lo que el conductor compite contra los otros
-                                viajes, y el pasajero lo ve antes de reservar. Con gastos compartidos
-                                se deshabilita en vez de desaparecer: sacarlo de golpe del layout
-                                hacía que todo lo de abajo saltara feo al tocar el toggle. */}
-                            <View
-                                style={[styles.inputRow, formData.sinPrecioFijo && { opacity: 0.4 }]}
-                                pointerEvents={formData.sinPrecioFijo ? 'none' : 'auto'}
-                            >
-                                <Ionicons name="cash-outline" size={19} color={textPrimary} />
-                                <TextInput
-                                    style={[styles.input, { color: textPrimary }]}
-                                    placeholder="Precio por pasajero *"
-                                    placeholderTextColor={textMuted}
-                                    value={formData.driverPrice ? `$${formData.driverPrice}` : ''}
-                                    editable={!formData.sinPrecioFijo}
-                                    onFocus={scrollFieldAboveKeyboard}
-                                    onChangeText={v => {
-                                        const digits = v.replace(/\D/g, '');
-                                        handleChange('driverPrice', digits
-                                            ? Number(digits).toLocaleString('es-AR')
-                                            : '');
-                                    }}
-                                    keyboardType="number-pad"
-                                    // Es el último campo del paso y el teclado lo tapaba. El scroll
-                                    // de acá cubre el caso de venir de otro input (teclado ya
-                                    // arriba); el de keyboardDidShow, el de abrirlo desde cero.
-                                />
-                            </View>
-
-                            {/* Seña: el pasajero adelanta la mitad para reservar. Es el
-                                compromiso contra el que se baja a último momento, cuando el
-                                conductor ya contaba con esa plata.
-                                Se deshabilita con "Gastos compartidos" en vez de desaparecer
-                                (sin precio por asiento no hay mitad que calcular; el server lo
-                                fuerza igual, ver utils/sena.js) — mismo criterio que el precio,
-                                para que el toggle no haga saltar todo el formulario. */}
-                            <TouchableOpacity
-                                style={[styles.inputRow, { alignItems: 'flex-start' }, formData.sinPrecioFijo && { opacity: 0.4 }]}
-                                onPress={() => handleChange('requiereSena', !formData.requiereSena)}
-                                activeOpacity={0.7}
-                                disabled={formData.sinPrecioFijo}
-                            >
-                                <Ionicons name="shield-checkmark-outline" size={19} color={textPrimary} style={{ marginTop: 2 }} />
-                                <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <Text style={{ color: textPrimary, fontSize: 15, fontFamily: 'Sora_500Medium', flex: 1 }}>
-                                            Pedir seña
-                                        </Text>
-                                        <View style={[
-                                            styles.toggle,
-                                            { backgroundColor: formData.requiereSena ? textPrimary : divider },
-                                        ]}>
-                                            <View style={[
-                                                styles.toggleCircle,
-                                                { backgroundColor: formData.requiereSena ? ui.invertText : textMuted },
-                                                formData.requiereSena && styles.toggleOn,
-                                            ]} />
-                                        </View>
-                                    </View>
-                                    <Text style={{ color: textMuted, fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 17, marginTop: 4 }}>
-                                        {senaPreview
-                                            ? `Te adelanta ${senaPreview} por asiento, el resto, al subir.`
-                                            : 'Te adelanta la mitad para reservar, el resto, al subir.'}
-                                    </Text>
-                                    {/* Tocable: sin esto el conductor lee "cargá tu CVU" y tiene
-                                        que salir a buscar dónde. Lleva derecho a la pantalla. */}
-                                    {formData.requiereSena && !tieneDatosCobro && (
-                                        <TouchableOpacity
-                                            onPress={() => navigation.navigate('ProfileTab', { screen: 'DatosCobro', initial: false })}
-                                            activeOpacity={0.7}
-                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}
-                                        >
-                                            <Text style={{ color: '#B45309', fontSize: 12, fontFamily: 'Sora_500Medium', lineHeight: 17, flex: 1 }}>
-                                                Cargá tu CVU o alias, si no el pasajero no sabe a dónde transferirte.
-                                            </Text>
-                                            <Ionicons name="chevron-forward" size={14} color="#B45309" />
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                        {/* <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
-                            <Ionicons name="document-text-outline" size={19} color={textMuted} style={{ marginTop: 2 }} />
-                            <TextInput
-                                style={[styles.input, styles.textArea, { color: textPrimary }]}
-                                placeholder="Notas adicionales (opcional)"
-                                placeholderTextColor={textMuted}
-                                value={formData.notes}
-                                onChangeText={v => handleChange('notes', v)}
-                                multiline
-                                numberOfLines={3}
-                                textAlignVertical="top"
-                            />
-                        </View> */}
-
-                            </>
-                        )}
-
-                        {step === 2 && (
-                            <>
-                        {/* Fecha y hora */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>FECHA Y HORA DE SALIDA</Text>
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            {Platform.OS === 'web' ? (
-                                <>
-                                    <DateTimeRow
-                                        mode="date"
-                                        icon="calendar-outline"
-                                        value={formData.departureDate}
-                                        min={todayStr}
-                                        onChange={(v) => handleChange('departureDate', v)}
-                                        colors={{ textPrimary, textMuted, divider, isDark: ui.isDarkMode }}
-                                    />
-                                    <DateTimeRow
-                                        mode="time"
-                                        icon="time-outline"
-                                        value={formData.departureTime}
-                                        onChange={(v) => handleChange('departureTime', v)}
-                                        isLast
-                                        colors={{ textPrimary, textMuted, divider, isDark: ui.isDarkMode }}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                            <TouchableOpacity
-                                style={[styles.selectRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider }]}
-                                onPress={() => setShowDatePicker(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="calendar-outline" size={19} color={textPrimary} />
-                                <Text style={[styles.selectText, { color: formData.departureDate ? textPrimary : textMuted }]}>
-                                    {formData.departureDate ? formatDateDisplay(formData.departureDate) : 'Seleccionar fecha'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.selectRow}
-                                onPress={() => setShowTimePicker(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="time-outline" size={19} color={textPrimary} />
-                                <Text style={[styles.selectText, { color: formData.departureTime ? textPrimary : textMuted }]}>
-                                    {formData.departureTime ? formatTimeDisplay(formData.departureTime) : 'Seleccionar hora'}
-                                </Text>
-                                <Ionicons name="chevron-forward" size={16} color={textPrimary} />
-                            </TouchableOpacity>
-                                </>
-                            )}
-                        </View>
-
-                            </>
-                        )}
-
-                        {step === 3 && (
-                            <>
-                        {/* Preferencias */}
-                        <Text style={[styles.sectionLabel, { color: textPrimary }]}>PREFERENCIAS</Text>
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-                            {preferences.map((p, index) => (
-                                <TouchableOpacity
-                                    key={p.key}
-                                    style={[
-                                        styles.prefRow,
-                                        index < preferences.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: divider },
-                                    ]}
-                                    onPress={() => handleChange(p.key, !formData[p.key])}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={[styles.prefIcon, { backgroundColor: divider }]}>
-                                        <Ionicons name={p.icon} size={17} color={textPrimary} />
-                                    </View>
-                                    <Text style={[styles.prefText, { color: textPrimary }]}>{p.label}</Text>
-                                    <View style={[
-                                        styles.toggle,
-                                        { backgroundColor: formData[p.key] ? textPrimary : divider },
-                                    ]}>
-                                        <View style={[
-                                            styles.toggleCircle,
-                                            { backgroundColor: formData[p.key] ? (ui.invertText) : textMuted },
-                                            formData[p.key] && styles.toggleOn,
-                                        ]} />
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                            </>
-                        )}
-
-                        {/* El botón, al final del contenido y no en un footer fijo. El texto de
-                            "qué falta" se renderiza siempre (vacío si no hay nada) para que el
-                            botón no cambie de alto entre pasos. */}
-                        <View style={[styles.footerScroll, { borderTopColor: divider }]}>
-                            <Text style={[styles.faltante, { color: textMuted }]} numberOfLines={1}>
-                                {faltante || ' '}
-                            </Text>
-                            <TouchableOpacity
-                                style={[
-                                    styles.submitBtn,
-                                    { backgroundColor: ui.invertBg },
-                                    (loading || !!faltante) && { opacity: 0.4 },
-                                ]}
-                                onPress={esUltimoPaso ? handleCreateTrip : irAlSiguientePaso}
-                                disabled={loading || !!faltante}
+                                key={v._id}
+                                style={[styles.auto, { backgroundColor: elegido ? ui.text : ui.bg }]}
+                                onPress={() => { setVehiculoId(v._id); setSelector(null); }}
                                 activeOpacity={0.85}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: elegido }}
                             >
-                                {loading
-                                    ? <ActivityIndicator color={ui.invertText} size="small" />
-                                    : <Text style={[styles.submitText, { color: ui.invertText }]}>
-                                        {esUltimoPaso ? 'Publicar viaje' : 'Continuar'}
-                                      </Text>
-                                }
+                                <Image
+                                    source={foto ? { uri: buildImageUri(foto) } : imageForType(v.type)}
+                                    style={[styles.autoFoto, { backgroundColor: ui.surface }]}
+                                    resizeMode={foto ? 'cover' : 'contain'}
+                                />
+                                <View style={styles.autoTexto}>
+                                    <T style={[styles.autoNombre, { color: elegido ? ui.invertText : ui.text }]} numberOfLines={1}>
+                                        {v.brand} {v.model}
+                                    </T>
+                                    <T style={[styles.autoSub, { color: elegido ? ui.invertText : ui.textMuted }]} numberOfLines={1}>
+                                        {[v.licensePlate, v.capacity ? `${v.capacity} lugares` : null].filter(Boolean).join(' · ')}
+                                    </T>
+                                </View>
+                                {elegido && <Ionicons name="checkmark" size={20} color={ui.invertText} />}
                             </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+                {/* El carrusel con fotos y papeles ya existe: para el que quiera mirar el detalle. */}
+                <TouchableOpacity
+                    onPress={() => {
+                        setSelector(null);
+                        navigation.navigate('VehiclePicker', {
+                            vehicles,
+                            selectedId: vehiculoId,
+                            onSelect: (id) => setVehiculoId(id),
+                        });
+                    }}
+                    activeOpacity={0.7}
+                    style={styles.verDetalle}
+                >
+                    <T style={[styles.verDetalleTexto, { color: ui.textMuted }]}>Ver fotos y documentación</T>
+                </TouchableOpacity>
+            </Selector>
+
+            {/* ── Asientos ────────────────────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'asientos'}
+                titulo="¿Cuántos lugares ofrecés?"
+                sub={vehiculo ? `Tu ${vehiculo.brand} ${vehiculo.model} tiene ${capacidad}` : undefined}
+                onClose={() => setSelector(null)}
+                listoApagado={!asientos}
+            >
+                <TextInput
+                    style={[hoja.numeroGrande, { color: asientos > 0 ? ui.text : ui.textMuted }]}
+                    value={asientos > 0 ? String(asientos) : ''}
+                    onChangeText={(v) => setAsientos(Math.min(parseInt(soloDigitos(v), 10) || 0, capacidad))}
+                    placeholder="0"
+                    placeholderTextColor={ui.textMuted}
+                    keyboardType="number-pad"
+                    maxFontSizeMultiplier={1.1}
+                    accessibilityLabel="Lugares que ofrecés"
+                />
+                <T style={[hoja.pie, { color: ui.textMuted }]}>
+                    {!asientos
+                        ? `Escribí cuántos lugares ofrecés (hasta ${capacidad}).`
+                        : asientos === capacidad
+                            ? `Ofrecés los ${capacidad} lugares libres del auto.`
+                            : `Ofrecés ${asientos} de ${capacidad}. Los otros ${capacidad - asientos} te los guardás.`}
+                </T>
+            </Selector>
+
+            {/* ── Precio ──────────────────────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'precio'}
+                titulo="¿Cuánto cobrás?"
+                sub="Por pasajero"
+                onClose={() => setSelector(null)}
+                listoApagado={!sinPrecioFijo && precioNumero <= 0}
+            >
+                <View style={[styles.segmento, { backgroundColor: ui.bg }]}>
+                    {[
+                        { fijo: false, label: 'Precio fijo' },
+                        { fijo: true, label: 'Gastos compartidos' },
+                    ].map((op) => {
+                        const activo = sinPrecioFijo === op.fijo;
+                        return (
+                            <TouchableOpacity
+                                key={op.label}
+                                style={[styles.segmentoBoton, activo && { backgroundColor: ui.surface }]}
+                                onPress={() => {
+                                    setSinPrecioFijo(op.fijo);
+                                    // Sin precio no hay mitad que calcular: la seña se apaga sola.
+                                    if (op.fijo) setRequiereSena(false);
+                                }}
+                                activeOpacity={0.8}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: activo }}
+                            >
+                                <T style={[styles.segmentoTexto, { color: activo ? ui.text : ui.textMuted }]}>{op.label}</T>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {sinPrecioFijo ? (
+                    <T style={[styles.explica, { color: ui.textMuted }]}>
+                        No fijás un precio: los gastos del viaje los arreglás directo con cada pasajero.
+                    </T>
+                ) : (
+                    <>
+                        <TextInput
+                            style={[hoja.numeroGrande, { color: precioNumero > 0 ? ui.text : ui.textMuted }]}
+                            value={precioNumero > 0 ? `$${conMiles(precioNumero)}` : ''}
+                            onChangeText={(v) => setPrecio(conMiles(soloDigitos(v)))}
+                            placeholder="$0"
+                            placeholderTextColor={ui.textMuted}
+                            keyboardType="number-pad"
+                            maxFontSizeMultiplier={1.1}
+                            accessibilityLabel="Precio por pasajero"
+                        />
+                        <T style={[hoja.pie, { color: ui.textMuted }]}>Te lo pagan a vos, directo.</T>
+                    </>
+                )}
+            </Selector>
+
+            {/* ── Dónde te pagan la seña ──────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'cobro'}
+                titulo="¿Dónde te pagan?"
+                sub="Es lo que ve el pasajero para transferirte"
+                onClose={guardarCobro}
+            >
+                <View style={[styles.campo, { backgroundColor: ui.bg }]}>
+                    <T style={[styles.campoRotulo, { color: ui.textMuted }]}>ALIAS</T>
+                    <TextInput
+                        style={[styles.campoInput, { color: ui.text }]}
+                        value={alias}
+                        onChangeText={setAlias}
+                        placeholder="tu.alias.mp"
+                        placeholderTextColor={ui.textMuted}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        maxFontSizeMultiplier={1.2}
+                    />
+                </View>
+                <View style={[styles.campo, { backgroundColor: ui.bg }]}>
+                    <T style={[styles.campoRotulo, { color: ui.textMuted }]}>CVU O CBU</T>
+                    <TextInput
+                        style={[styles.campoInput, { color: ui.text }]}
+                        value={cvu}
+                        onChangeText={(t) => setCvu(t.replace(/\D/g, '').slice(0, 22))}
+                        placeholder="22 dígitos"
+                        placeholderTextColor={ui.textMuted}
+                        keyboardType="number-pad"
+                        maxFontSizeMultiplier={1.2}
+                    />
+                </View>
+                <T style={[hoja.pie, { color: ui.textMuted }]}>
+                    {guardandoCobro
+                        ? 'Guardando…'
+                        : 'Con uno de los dos alcanza. Queda guardado en tu perfil.'}
+                </T>
+            </Selector>
+
+            {/* ── Reglas ──────────────────────────────────────────────────────────────────── */}
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'reglas'}
+                titulo="Reglas del viaje"
+                sub="Opcional. Aparecen en tu aviso."
+                onClose={() => setSelector(null)}
+            >
+                {REGLAS.map((r, i) => (
+                    <TouchableOpacity
+                        key={r.key}
+                        style={[styles.regla, i < REGLAS.length - 1 && { borderBottomColor: ui.border, borderBottomWidth: StyleSheet.hairlineWidth }]}
+                        onPress={() => setReglas((prev) => ({ ...prev, [r.key]: !prev[r.key] }))}
+                        activeOpacity={0.7}
+                        accessibilityRole="switch"
+                        accessibilityState={{ checked: !!reglas[r.key] }}
+                    >
+                        <Ionicons name={r.icon} size={20} color={ui.text} />
+                        <View style={styles.reglaTexto}>
+                            <T style={[styles.reglaLabel, { color: ui.text }]}>{r.label}</T>
+                            {!!r.sub && <T style={[styles.reglaSub, { color: ui.textMuted }]}>{r.sub}</T>}
                         </View>
-
-                    </ScrollView>
-                    </TouchableWithoutFeedback>
-
-            </SafeAreaView>
-
-            {/* Date Picker */}
-            {Platform.OS === 'android' && showDatePicker && (
-                <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} minimumDate={new Date()} />
-            )}
-            {Platform.OS === 'ios' && (
-                <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
-                    <View style={styles.pickerOverlay}>
-                        <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-                            <View style={styles.pickerHeader}>
-                                <Text style={[styles.pickerHeaderTitle, { color: textPrimary }]}>Fecha de salida</Text>
-                                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                    <Ionicons name="close" size={24} color={textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
-                                <DateTimePicker
-                                    value={date}
-                                    mode="date"
-                                    display="spinner"
-                                    onChange={(_, d) => { if (d) setDate(d); }}
-                                    minimumDate={new Date()}
-                                    textColor={textPrimary}
-                                    themeVariant={ui.isDarkMode ? 'dark' : 'light'}
-                                />
-                            </View>
-                            <View style={styles.pickerButtons}>
-                                <TouchableOpacity style={[styles.pickerButton, { borderColor: border }]} onPress={() => setShowDatePicker(false)}>
-                                    <Text style={[styles.pickerButtonText, { color: textMuted }]}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.pickerButton, { backgroundColor: ui.invertBg, borderColor: ui.invertBg }]} onPress={() => onDateChange({ type: 'set' }, date)}>
-                                    <Text style={[styles.pickerButtonText, { color: ui.invertText }]}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-            )}
-
-            {/* Time Picker */}
-            {Platform.OS === 'android' && showTimePicker && (
-                <DateTimePicker value={time} mode="time" display="default" onChange={onTimeChange} />
-            )}
-            {Platform.OS === 'ios' && (
-                <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => setShowTimePicker(false)}>
-                    <View style={styles.pickerOverlay}>
-                        <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-                            <View style={styles.pickerHeader}>
-                                <Text style={[styles.pickerHeaderTitle, { color: textPrimary }]}>Hora de salida</Text>
-                                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                                    <Ionicons name="close" size={24} color={textPrimary} />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
-                                <DateTimePicker
-                                    value={time}
-                                    mode="time"
-                                    display="spinner"
-                                    onChange={(_, t) => { if (t) setTime(t); }}
-                                    textColor={textPrimary}
-                                    themeVariant={ui.isDarkMode ? 'dark' : 'light'}
-                                />
-                            </View>
-                            <View style={styles.pickerButtons}>
-                                <TouchableOpacity style={[styles.pickerButton, { borderColor: border }]} onPress={() => setShowTimePicker(false)}>
-                                    <Text style={[styles.pickerButtonText, { color: textMuted }]}>Cancelar</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.pickerButton, { backgroundColor: ui.invertBg, borderColor: ui.invertBg }]} onPress={() => onTimeChange({ type: 'set' }, time)}>
-                                    <Text style={[styles.pickerButtonText, { color: ui.invertText }]}>Confirmar</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-            )}
-        </>
+                        <Toggle on={!!reglas[r.key]} ui={ui} />
+                    </TouchableOpacity>
+                ))}
+            </Selector>
+        </View>
     );
 };
 
+// Sólo lo que es propio de publicar un viaje; el resto sale de `components/hoja`.
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    flex:      { flex: 1 },
-    // flexGrow: el contenido ocupa al menos toda la altura del scroll aunque el paso sea corto,
-    // para que el footer (marginTop:'auto') pueda irse al fondo. paddingBottom se pone inline
-    // (safe area / alto del teclado).
-    scroll:    { padding: 16, gap: 8, flexGrow: 1 },
+    // Header de la pantalla (sin mapa detrás): volver arriba, título debajo.
+    header: { paddingHorizontal: 20, paddingBottom: 14 },
+    volver: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    lista: { flex: 1 },
+    listaContenido: { paddingHorizontal: 20 },
+    footer: { paddingHorizontal: 20, paddingTop: 12 },
 
-    sectionLabel: {
-        fontSize: 11,
-        fontFamily: 'Sora_600SemiBold',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        marginLeft: 4,
-        marginTop: 8,
-        marginBottom: 4,
-    },
+    campo: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginTop: 10 },
+    campoRotulo: { fontSize: 10, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.6 },
+    campoInput: { fontSize: 16, fontFamily: 'Sora_600SemiBold', paddingVertical: 4, marginTop: 2 },
 
-    card: {
-        borderRadius: 24,
-        borderWidth: 1,
-        overflow: 'hidden',
-    },
+    // Tope de alto: con muchos vehículos la lista empujaba el botón fuera de la pantalla.
+    listaAutos: { flexGrow: 0, maxHeight: 290, marginTop: 12 },
+    auto: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 10, marginBottom: 8 },
+    autoFoto: { width: 56, height: 42, borderRadius: 10 },
+    autoTexto: { flex: 1, minWidth: 0 },
+    autoNombre: { fontSize: 14.5, fontFamily: 'Sora_700Bold', letterSpacing: -0.2 },
+    autoSub: { fontSize: 11.5, fontFamily: 'Sora_400Regular', marginTop: 1 },
+    verDetalle: { paddingVertical: 10, alignItems: 'center' },
+    verDetalleTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
 
-    // Route
-    routeList: {
-        padding: 16,
-    },
-    routePoint: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    routeRail: {
-        width: 9,
-        alignItems: 'center',
-        paddingTop: 3,
-    },
-    dotOrigin: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        borderWidth: 2,
-    },
-    dotDest: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-    },
-    dotParada: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginVertical: 1.5,
-    },
-    line: {
-        width: 1,
-        flex: 1,
-        marginVertical: 4,
-        minHeight: 18,
-    },
-    routeBody: {
-        flex: 1,
-    },
-    routeBodyGap: {
-        paddingBottom: 14,
-    },
-    routeLabel: {
-        fontSize: 11,
-        fontFamily: 'Sora_600SemiBold',
-        textTransform: 'uppercase',
-        letterSpacing: 0.4,
-        marginBottom: 2,
-    },
-    routeText: {
-        fontSize: 14,
-        fontFamily: 'Sora_600SemiBold',
-    },
-    routeMeta: {
-        fontSize: 13,
-        textAlign: 'center',
-        paddingVertical: 10,
-        borderTopWidth: 1,
-    },
+    segmento: { flexDirection: 'row', borderRadius: 14, padding: 4, gap: 4, marginTop: 14 },
+    segmentoBoton: { flex: 1, borderRadius: 11, paddingVertical: 11, alignItems: 'center' },
+    segmentoTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
 
-    // Select row
-    selectRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        gap: 12,
-    },
-    selectText: {
-        flex: 1,
-        fontSize: 15,
-    },
+    explica: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 16, textAlign: 'center' },
 
-    // Vehicle row
-    vehicleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        gap: 12,
-    },
-    vehicleName: {
-        fontSize: 17,
-        fontFamily: 'Sora_700Bold',
-    },
-    vehicleSub: {
-        fontSize: 13,
-        fontFamily: 'Sora_500Medium',
-        marginTop: 2,
-    },
-
-    // Input row
-    inputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        gap: 12,
-    },
-    input: {
-        flex: 1,
-        fontSize: 15,
-    },
-    textArea: {
-        minHeight: 72,
-        paddingTop: 0,
-    },
-    // Preferences
-    prefRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        gap: 14,
-    },
-    prefIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    prefText: {
-        flex: 1,
-        fontSize: 15,
-        fontFamily: 'Sora_500Medium',
-    },
-    toggle: {
-        width: 46,
-        height: 26,
-        borderRadius: 13,
-        padding: 2,
-        justifyContent: 'center',
-    },
-    toggleCircle: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-    },
-    toggleOn: {
-        alignSelf: 'flex-end',
-    },
-
-    // Submit
-    progreso: { flexDirection: 'row', gap: 6, marginTop: 18 },
-    progresoTramo: { flex: 1, height: 3, borderRadius: 999 },
-    progresoTexto: { fontSize: 12, fontFamily: 'Sora_500Medium', marginTop: 8, marginBottom: 4 },
-    faltante: { fontSize: 13, fontFamily: 'Sora_400Regular', textAlign: 'center', marginBottom: 10 },
-    // `marginTop:'auto'` empuja el botón al fondo del scroll cuando el paso es corto (queda
-    // como un footer fijo); cuando el contenido llena la pantalla, colapsa a 0 y el botón va
-    // después del contenido. Los márgenes negativos devuelven la línea al ancho completo.
-    footerScroll: {
-        marginTop: 'auto',
-        marginHorizontal: -16,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    submitBtn: {
-        borderRadius: 999,
-        paddingVertical: 16,
-        alignItems: 'center',
-    },
-    submitText: {
-        fontSize: 16,
-        fontFamily: 'Sora_600SemiBold',
-    },
-
-
-    // Pickers
-    pickerOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pickerBox: {
-        borderRadius: 28,
-        marginHorizontal: 24,
-        width: '88%',
-        maxHeight: '85%',
-        overflow: 'hidden',
-    },
-    pickerHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingTop: 22,
-        paddingBottom: 14,
-    },
-    pickerHeaderTitle: {
-        fontSize: 22,
-        fontFamily: 'Sora_800ExtraBold',
-        letterSpacing: -0.5,
-    },
-    pickerButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        padding: 16,
-    },
-    pickerButton: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 999,
-        borderWidth: 1,
-        alignItems: 'center',
-    },
-    pickerButtonText: {
-        fontSize: 15,
-        fontFamily: 'Sora_600SemiBold',
-    },
+    regla: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, marginTop: 2 },
+    reglaTexto: { flex: 1, minWidth: 0 },
+    reglaLabel: { fontSize: 14, fontFamily: 'Sora_500Medium' },
+    reglaSub: { fontSize: 11, fontFamily: 'Sora_400Regular', marginTop: 1 },
 });
 
 export default TripDetails;

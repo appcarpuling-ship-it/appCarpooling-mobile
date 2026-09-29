@@ -137,6 +137,46 @@ const RequestDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const estadoSena = {
+    esperando: {
+      icon: 'hourglass-outline',
+      texto: request.sena?.rechazadaAt
+        ? 'Le dijiste que no te llegó. Está esperando para mandar otro comprobante.'
+        : request.sena?.venceAt && new Date(request.sena.venceAt) < new Date()
+          ? 'Se pasó el plazo y todavía no mandó el comprobante. Podés esperarlo o rechazar la solicitud.'
+          : `Esperando el comprobante del pasajero${request.sena?.venceAt ? ` (hasta el ${fmtFechaHora(request.sena.venceAt)})` : ''}.`,
+    },
+    enviada: {
+      icon: 'time-outline',
+      texto: `Mandó el comprobante${request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Mirá tu cuenta y confirmá si te llegó.`,
+    },
+    confirmada: {
+      icon: 'checkmark-circle-outline',
+      texto: `Confirmaste que te llegó${request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.`,
+    },
+  }[sena];
+
+  /**
+   * "No me llegó": rechaza el comprobante, no la reserva. La transferencia puede no haberse
+   * acreditado todavía o la captura ser de otra operación; con esto el pasajero se entera y
+   * manda otra, en vez de que el conductor tenga que cancelarle el lugar para señalar el error.
+   */
+  const rechazarComprobante = async () => {
+    const requestId = request._id || request.id;
+    setErrorConfirmar('');
+    setConfirmando(true);
+    try {
+      const res = await put_withauth(`/bookings/${requestId}/sena`, { accion: 'rechazar' });
+      if (!res.success) throw new Error(res.message || 'No se pudo avisar');
+      navigation.goBack();
+      onConfirmarSena?.();
+    } catch (e) {
+      setErrorConfirmar(e.message || 'No se pudo avisar');
+    } finally {
+      setConfirmando(false);
+    }
+  };
+
   // Pendiente, sin pill de estado con quien compartir la fila (los botones Aceptar/Rechazar
   // ya dicen eso): el precio va solo y alineado a la izquierda como cualquier otro dato de la
   // tarjeta, no empujado a la derecha por un `<View />` vacío haciendo de espaciador.
@@ -235,7 +275,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
 
           {!!request.message && (
             <View style={[styles.section, { borderTopColor: ui.border }]}>
-              <Text style={[styles.mensaje, { color: ui.textMuted }]}>"{request.message}"</Text>
+              <Text style={[styles.mensaje, { color: ui.textMuted }]}>«{request.message}»</Text>
             </View>
           )}
 
@@ -310,32 +350,14 @@ const RequestDetailScreen = ({ route, navigation }) => {
                 )}
               </View>
 
-              {/* {sena === 'esperando' && (
+              {/* Qué le toca a cada uno: el estado dicho en una línea, para que el conductor
+                  sepa si tiene algo que hacer o si está esperando al pasajero. */}
+              {!!estadoSena && (
                 <View style={styles.senaEstado}>
-                  <Ionicons name="hourglass-outline" size={16} color={ui.textMuted} />
-                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                    Esperando comprobante del pasajero.
-                  </Text>
+                  <Ionicons name={estadoSena.icon} size={16} color={ui.textMuted} />
+                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>{estadoSena.texto}</Text>
                 </View>
-              )} */}
-
-              {/* {sena === 'enviada' && (
-                <View style={styles.senaEstado}>
-                  <Ionicons name="time-outline" size={16} color={ui.textMuted} />
-                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                    Mandó el comprobante{request.sena?.enviadaAt ? ` el ${fmtFechaHora(request.sena.enviadaAt)}` : ''}. Confirmá si te llegó.
-                  </Text>
-                </View>
-              )} */}
-
-              {/* {sena === 'confirmada' && (
-                <View style={styles.senaEstado}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
-                  <Text style={[styles.senaEstadoText, { color: ui.textMuted }]}>
-                    Confirmaste que te llegó{request.sena?.confirmadaAt ? ` el ${fmtFechaHora(request.sena.confirmadaAt)}` : ''}.
-                  </Text>
-                </View>
-              )} */}
+              )}
 
               {/* Una captura se edita, así que no prueba nada por sí sola: sirve para que el
                   conductor sepa qué buscar en su cuenta. Quien confirma es él. */}
@@ -398,6 +420,12 @@ const RequestDetailScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
           </View>
+        )}
+
+        {pendiente && sena === 'enviada' && (
+          <TouchableOpacity onPress={rechazarComprobante} disabled={confirmando} activeOpacity={0.7} hitSlop={8}>
+            <Text style={[styles.noLlego, { color: ui.textMuted }]}>No me llegó la transferencia</Text>
+          </TouchableOpacity>
         )}
 
         {!!errorConfirmar && (
@@ -480,6 +508,7 @@ const styles = StyleSheet.create({
   },
 
   acciones: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  noLlego: { fontSize: 13, fontFamily: 'Sora_600SemiBold', textAlign: 'center', marginTop: 16 },
   // Rojo sólido, como el resto de las acciones destructivas de la app (Cancelar viaje,
   // Retirar postulación): antes era un contorno gris que no se leía como "rechazar".
   btnReject: { flex: 1, height: 48, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', alignItems: 'center' },

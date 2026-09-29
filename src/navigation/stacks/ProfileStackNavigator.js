@@ -14,6 +14,7 @@ import HelpScreen from '../../screens/main/profile/HelpScreen';
 import NotificationsScreen from '../../screens/main/profile/NotificationsScreen';
 import VehiclesScreen from '../../screens/main/profile/VehiclesScreen';
 import VehicleFormScreen from '../../screens/main/profile/VehicleFormScreen';
+import VehicleDetailScreen from '../../screens/main/profile/VehicleDetailScreen';
 import UserReviewsScreen from '../../screens/main/common/UserReviewsScreen';
 import CreateReviewScreen from '../../screens/main/common/CreateReviewScreen';
 // La bandeja de mensajes se saco de la barra de tabs, asi que su unica entrada es el acceso
@@ -75,7 +76,14 @@ const ProfileStackNavigator = () => {
       <Stack.Screen
         name="Vehicles"
         component={VehiclesScreen}
-        options={{ title: 'Mis Vehículos' }}
+        // Trae su propio encabezado (título grande + contador) y su flecha de volver: con el
+        // nativo encima quedaban dos títulos, igual que en Profile y Notifications.
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="VehicleDetail"
+        component={VehicleDetailScreen}
+        options={{ title: 'Vehículo' }}
       />
       <Stack.Screen
         name="VehicleForm"

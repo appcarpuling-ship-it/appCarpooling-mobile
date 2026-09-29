@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,63 +15,174 @@ import { useScreenWidth } from '../../hooks/useScreenWidth';
 import PillButton from '../ui/PillButton';
 import { navigationRef } from '../../navigation/rootNavigation';
 
+/**
+ * La guía enseña cómo funciona Carpuling, no sólo dónde están los botones. Cada paso es una idea:
+ * un título, una línea, y a lo sumo tres filas cortas (`rows`). Van agrupados por `seccion`
+ * (el rótulo de arriba del título) para que se note cuándo se pasa de "pasajero" a "conductor".
+ *
+ * `tabNav` lleva la app de fondo a una pantalla que tenga que ver con lo que se explica.
+ */
+const HOME = { tab: 'HomeTab', screen: 'Home' };
+const TRASLADOS = { tab: 'CarpoolingsTab', screen: 'Carpoolings' };
+const HISTORIAL = { tab: 'HistoryTab', screen: 'History' };
+const PERFIL = { tab: 'ProfileTab', screen: 'Profile' };
+
 const STEPS = [
   {
     key: 'welcome',
     showLogo: true,
-    title: '¡Bienvenido a Carpuling!',
-    body: 'En unos pasos te contamos cómo moverte por la app: buscar o publicar un viaje, verificar tu identidad y usar el chat con confianza.',
-    tabNav: { tab: 'HomeTab', screen: 'Home' },
+    title: 'Viajá compartiendo',
+    body: 'Carpuling conecta a quien viaja entre ciudades con quien ya va para el mismo lado. En un minuto te mostramos cómo funciona.',
+    tabNav: HOME,
   },
   {
-    key: 'home',
-    icon: 'home',
-    illustration: require('../../../assets/illustrations/tutorial-home.png'),
-    title: 'Inicio',
-    body: 'Buscá por origen y destino, o mirá directo los próximos viajes cerca tuyo. Antes de reservar, revisá el perfil del conductor: sus reseñas y si tiene el DNI verificado.',
-    tabNav: { tab: 'HomeTab', screen: 'Home' },
+    key: 'concepto',
+    seccion: 'Qué es Carpuling',
+    icon: 'people',
+    title: 'No es un taxi',
+    body: 'Es carpooling: compartir un viaje que alguien ya iba a hacer.',
+    rows: [
+      { icon: 'car-outline', t: 'Un conductor va de una ciudad a otra y le sobran asientos.' },
+      { icon: 'person-add-outline', t: 'Vos ocupás uno y aportás para los gastos: nafta y peajes.' },
+      { icon: 'swap-horizontal-outline', t: 'Nadie te cobra por «llevarte»: se comparte un viaje que ya existe.' },
+    ],
+    tabNav: HOME,
   },
   {
-    key: 'requests',
+    key: 'pasajero-reservar',
+    seccion: 'Si viajás como pasajero',
+    icon: 'search',
+    title: 'Buscá y reservá',
+    rows: [
+      { icon: 'search-outline', t: 'Elegí origen, destino y día. Vas a ver los viajes publicados.' },
+      { icon: 'shield-checkmark-outline', t: 'Mirá al conductor antes: reseñas, DNI verificado y su vehículo.' },
+      { icon: 'hand-right-outline', t: 'Tocá «Reservar» para pedirle lugar. Todavía no está confirmado.' },
+    ],
+    tabNav: HOME,
+  },
+  {
+    key: 'pasajero-despues',
+    seccion: 'Si viajás como pasajero',
+    icon: 'checkmark-circle',
+    title: 'Y después de reservar',
+    rows: [
+      { icon: 'time-outline', t: 'El conductor recibe tu pedido y lo acepta o lo rechaza.' },
+      { icon: 'notifications-outline', t: 'Te avisamos apenas responde. Lo seguís en «Traslados».' },
+      { icon: 'chatbubbles-outline', t: 'Con el viaje aceptado, chateás con él para coordinar el punto de encuentro.' },
+    ],
+    tabNav: TRASLADOS,
+  },
+  {
+    key: 'sena',
+    seccion: 'Si viajás como pasajero',
+    icon: 'shield-checkmark',
+    title: 'La seña, si el conductor la pide',
+    body: 'Algunos conductores piden adelantar la mitad del precio para asegurar el lugar.',
+    rows: [
+      { icon: 'swap-horizontal-outline', t: 'Se la transferís directo a él, a su alias o CVU. Carpuling no la toca.' },
+      { icon: 'camera-outline', t: 'Subís la captura del comprobante en la reserva.' },
+      { icon: 'checkmark-done-outline', t: 'Tu lugar es tuyo cuando el conductor confirma que le llegó. Hasta ahí no está asegurado.' },
+    ],
+    tabNav: TRASLADOS,
+  },
+  {
+    key: 'solicitudes',
+    seccion: 'Si no encontrás viaje',
     icon: 'megaphone',
     illustration: require('../../../assets/illustrations/tutorial-requests.png'),
-    title: 'Solicitudes de viaje',
-    body: 'Si no encontrás un viaje que te sirva, pedilo vos: tocá «Solicitudes» en Inicio, publicá a dónde querés ir y esperá que un conductor se postule. Vos elegís con cuál viajar.',
-    tabNav: { tab: 'HomeTab', screen: 'Home' },
+    title: 'Pedilo vos',
+    body: 'Si no hay un viaje que te sirva, publicá a dónde querés ir.',
+    rows: [
+      { icon: 'people-outline', t: 'Hasta 5 conductores se postulan con su precio y su vehículo.' },
+      { icon: 'git-compare-outline', t: 'Comparás las propuestas y aceptás la que más te convenga.' },
+      { icon: 'flag-outline', t: 'Recién al aceptar se arma el viaje y tu reserva.' },
+    ],
+    tabNav: HOME,
   },
   {
-    key: 'carpool',
+    key: 'conductor-publicar',
+    seccion: 'Si manejás',
     icon: 'car',
-    illustration: require('../../../assets/illustrations/tutorial-carpool.png'),
-    title: 'Traslados',
-    body: 'Acá administrás todo lo tuyo, separado por rol: como conductor tus viajes publicados y las reservas que te piden, y como pasajero tus reservas y postulaciones.',
-    tabNav: { tab: 'CarpoolingsTab', screen: 'Carpoolings' },
+    title: 'Publicá tu viaje',
+    rows: [
+      { icon: 'map-outline', t: 'Marcá tu ruta en el mapa, con las paradas que quieras.' },
+      { icon: 'speedometer-outline', t: 'Elegí tu vehículo, cuántos asientos ofrecés y el día y la hora.' },
+      { icon: 'cash-outline', t: 'Poné cuánto cobra cada pasajero, o elegí «Gastos compartidos» y lo arreglás con ellos.' },
+    ],
+    tabNav: TRASLADOS,
   },
   {
-    key: 'history',
-    icon: 'time',
-    // Sin ilustración propia todavía: reusar la de Traslados quedaba repetida
-    // (mismo dibujo dos pasos seguidos). Cae al ícono grande, como Asistente
-    // antes de sacarse. Cambiar si se genera una ilustración para este paso.
-    title: 'Historial',
-    body: 'Todo lo que ya viajaste, como conductor o pasajero. Cuando termina un viaje tenés que calificarlo: es obligatorio, y es lo que mantiene confiable a toda la comunidad.',
-    tabNav: { tab: 'HistoryTab', screen: 'History' },
+    key: 'conductor-gestionar',
+    seccion: 'Si manejás',
+    icon: 'clipboard',
+    title: 'Tus pasajeros',
+    rows: [
+      { icon: 'person-outline', t: 'Cada pedido te llega con el perfil del pasajero: aceptás o rechazás.' },
+      { icon: 'shield-checkmark-outline', t: 'Si pedís seña, mirá tu banco y confirmá cuando te llegue. Si no está, tocá «No me llegó».' },
+      { icon: 'play-circle-outline', t: 'Al salir, iniciás el viaje. Al llegar, lo completás.' },
+    ],
+    tabNav: TRASLADOS,
   },
   {
-    key: 'profile',
-    icon: 'person',
-    illustration: require('../../../assets/illustrations/tutorial-profile.png'),
-    title: 'Perfil',
-    body: 'Cargá tu DNI y, si vas a manejar, tu licencia de conducir: sin eso no podés publicar viajes. También administrás tus vehículos, notificaciones y podés volver a ver esta guía cuando quieras.',
-    tabNav: { tab: 'ProfileTab', screen: 'Profile' },
+    key: 'vehiculos',
+    seccion: 'Tu vehículo',
+    icon: 'document-text',
+    title: 'Tu auto, en regla',
+    body: 'Te pedimos los datos y los papeles para que los pasajeros sepan que viajan bien.',
+    rows: [
+      { icon: 'camera-outline', t: 'Fotos, patente y capacidad: es lo que ve el pasajero antes de reservar.' },
+      { icon: 'document-attach-outline', t: 'Seguro, VTV y cédula verde: cargalos y mantenelos vigentes.' },
+      { icon: 'alert-circle-outline', t: 'Te avisamos antes del vencimiento. Con la documentación al día, tus viajes se muestran primero y con una insignia.' },
+    ],
+    tabNav: PERFIL,
+  },
+  {
+    key: 'pagos',
+    seccion: 'Los pagos',
+    icon: 'wallet',
+    title: 'Tres plata distintas',
+    body: 'Nunca se mezclan entre sí.',
+    rows: [
+      { icon: 'car-outline', t: 'El viaje: el pasajero le paga directo al conductor, en efectivo o transferencia.' },
+      { icon: 'shield-checkmark-outline', t: 'La seña: si el conductor la pide, es la mitad del viaje y va también directo a él.' },
+      { icon: 'receipt-outline', t: 'Carpuling: le cobra al conductor un monto fijo por cada asiento ocupado, al completar el viaje.' },
+    ],
+    tabNav: PERFIL,
+  },
+  {
+    key: 'saldo',
+    seccion: 'Los pagos',
+    icon: 'card',
+    title: 'El saldo del conductor',
+    body: 'El pasajero nunca paga nada a Carpuling.',
+    rows: [
+      { icon: 'add-circle-outline', t: 'Cuando completás un viaje, se suma lo que corresponde a los asientos ocupados.' },
+      { icon: 'card-outline', t: 'Lo pagás desde Perfil → Mi saldo.' },
+      { icon: 'lock-closed-outline', t: 'Si se acumula mucho, no podés publicar viajes nuevos hasta saldarlo.' },
+    ],
+    tabNav: PERFIL,
+  },
+  {
+    key: 'confianza',
+    seccion: 'Seguridad y confianza',
+    icon: 'heart',
+    title: 'Viajar tranquilo',
+    rows: [
+      { icon: 'id-card-outline', t: 'Perfiles con DNI y, para conducir, licencia verificados.' },
+      { icon: 'star-outline', t: 'Al terminar, ambos se califican. Es obligatorio y es lo que cuida a la comunidad.' },
+      { icon: 'chatbubble-ellipses-outline', t: 'Hablá siempre por el chat de la app y coordiná el punto de encuentro antes de salir.' },
+      { icon: 'flag-outline', t: 'Si algo no está bien, reportá o bloqueá al usuario desde su perfil.' },
+    ],
+    tabNav: HISTORIAL,
   },
   {
     key: 'tabs',
+    seccion: 'Listo',
     icon: 'apps',
     illustration: require('../../../assets/illustrations/tutorial-tabs.png'),
-    title: 'Navegación inferior',
-    body: 'Usá los botones de abajo para cambiar de sección en cualquier momento. ¡Ya estás listo para usar Carpuling!',
-    tabNav: { tab: 'HomeTab', screen: 'Home' },
+    title: 'Todo desde la barra de abajo',
+    body: 'Inicio para buscar y publicar, Traslados para tus reservas y viajes, Historial para lo ya hecho y Perfil para tu cuenta, vehículos y saldo. Esta guía la podés volver a ver desde Perfil.',
+    tabNav: HOME,
   },
 ];
 
@@ -158,31 +270,58 @@ const AppTutorialOverlay = ({ onComplete }) => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.body}>
-            <View style={[styles.iconWrap, { backgroundColor: ui.surface }]}>
-              {current.showLogo ? (
-                <Image
-                  source={LOGO}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                  accessibilityIgnoresInvertColors
-                />
-              ) : current.illustration ? (
-                <Image
-                  // key por paso: fuerza remount para que RN refresque el source al pasar de paso.
-                  key={current.key}
-                  source={current.illustration}
-                  style={styles.illustrationImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Ionicons name={current.icon} size={96} color={ui.text} />
-              )}
-            </View>
+          {/* ScrollView por si un paso con filas no entra en una pantalla chica: se lee
+              scrolleando en vez de cortarse. Con contenido corto queda centrado, como antes. */}
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {current.rows ? (
+              // Pasos con filas: sólo un ícono chico, para que el espacio sea del texto.
+              <View style={[styles.iconChico, { backgroundColor: ui.surface }]}>
+                <Ionicons name={current.icon} size={30} color={ui.text} />
+              </View>
+            ) : (
+              <View style={[styles.iconWrap, { backgroundColor: ui.surface }]}>
+                {current.showLogo ? (
+                  <Image
+                    source={LOGO}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                    accessibilityIgnoresInvertColors
+                  />
+                ) : current.illustration ? (
+                  <Image
+                    // key por paso: fuerza remount para que RN refresque el source al pasar de paso.
+                    key={current.key}
+                    source={current.illustration}
+                    style={styles.illustrationImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Ionicons name={current.icon} size={96} color={ui.text} />
+                )}
+              </View>
+            )}
 
+            {!!current.seccion && (
+              <Text style={[styles.seccion, { color: ui.textMuted }]}>{current.seccion.toUpperCase()}</Text>
+            )}
             <Text style={[styles.title, { color: ui.text }]}>{current.title}</Text>
-            <Text style={[styles.paragraph, { color: ui.textMuted }]}>{current.body}</Text>
-          </View>
+            {!!current.body && <Text style={[styles.paragraph, { color: ui.textMuted }]}>{current.body}</Text>}
+
+            {!!current.rows && (
+              <View style={styles.rows}>
+                {current.rows.map((r) => (
+                  <View key={r.t} style={styles.row}>
+                    <Ionicons name={r.icon} size={20} color={ui.text} style={styles.rowIcon} />
+                    <Text style={[styles.rowText, { color: ui.text }]}>{r.t}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
 
           <View style={styles.dots}>
             {STEPS.map((s, i) => (
@@ -228,13 +367,20 @@ const styles = StyleSheet.create({
   topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 },
   stepLabel:  { fontFamily: 'Sora_500Medium', fontSize: 14, letterSpacing: 0.2 },
   skip:       { fontFamily: 'Sora_500Medium', fontSize: 15 },
-  body:       { flex: 1, justifyContent: 'center' },
+  body:       { flex: 1 },
+  bodyContent: { flexGrow: 1, justifyContent: 'center', paddingBottom: 8 },
+  iconChico:  { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+  seccion:    { fontFamily: 'Sora_600SemiBold', fontSize: 11, letterSpacing: 1.1, marginBottom: 10 },
+  rows:       { marginTop: 22, gap: 16 },
+  row:        { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  rowIcon:    { marginTop: 1 },
+  rowText:    { flex: 1, fontFamily: 'Sora_500Medium', fontSize: 15, lineHeight: 22 },
   // Elástico: el paso de "Solicitudes" tiene un texto largo y con alto fijo
   // desbordaba en pantallas chicas. El ícono cede el espacio que pide el texto.
   iconWrap:   { flex: 1, maxHeight: 260, minHeight: 110, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   logoImage:  { width: 96, height: 96 },
   illustrationImage: { width: '80%', height: '80%' },
-  title:      { fontFamily: 'Sora_800ExtraBold', fontSize: 32, lineHeight: 39, letterSpacing: -1 },
+  title:      { fontFamily: 'Sora_800ExtraBold', fontSize: 30, lineHeight: 37, letterSpacing: -1 },
   paragraph:  { fontFamily: 'Sora_400Regular', fontSize: 15, lineHeight: 23, marginTop: 14 },
   dots:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
   dot:        { width: 6, height: 6, borderRadius: 999 },

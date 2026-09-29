@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 // El contador de no leídos que alimenta el acceso a Mensajes. Montarlo acá es seguro desde
 // que socketService admite varios listeners por evento: antes, dos consumidores se pisaban.
@@ -19,7 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { useAlert } from '../../../context/AlertContext';
-import { buildImageUri } from '../../../services/apiService';
+import { buildImageUri, get_withauth } from '../../../services/apiService';
+import { ENDPOINTS } from '../../../config/api';
 import useColors from '../../../hooks/useColors';
 import { useUI } from '../../../theme/ui';
 import { TAB_BAR_SPACE } from '../../../components/ui/FloatingTabBar';
@@ -31,12 +33,37 @@ import { useMinDuration } from '../../../hooks/useMinDuration';
 /** Evitar refetch infinito al cambiar de tab; disparaba loader de avatar en bucle */
 const PROFILE_REFRESH_GAP_MS = 10000;
 
+// Cache en memoria del proceso, fuera del componente: sin esto, cada vez que se vuelve a
+// Perfil "Viajes semanales" arranca oculto y aparece recién cuando responde el fetch —un
+// parpadeo feo que se repite en cada visita. Con esto, después de la primera vez la sección
+// aparece de una con el último valor conocido, y el fetch de abajo sólo la actualiza si cambió.
+//
+// Esta variable muere con el proceso, así que arrancando la app de cero volvía a arrancar en
+// null y la sección aparecía sola igual: el caché se respalda en disco (HAS_VEHICLE_KEY) y se
+// relee al montar. Leerlo tarda un tick contra los cientos de ms del fetch, que es lo que se
+// notaba. El dato es una pista de pintado, no una verdad: quien manda sigue siendo el fetch.
+//
+// Va por usuario: el logout sólo borra token y user (ver AuthContext), así que un flag pelado
+// sobrevivía al cambio de cuenta y la siguiente persona veía un instante una sección que no
+// le corresponde. Por eso la clave lleva el id y el caché en memoria recuerda de quién es.
+let hasVehicleCache = null;
+let hasVehicleCacheUserId = null;
+const claveVehiculo = (userId) => `perfil.tieneVehiculo.${userId}`;
+
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const { user, logout, loading: authLoading, refreshUser } = useAuth();
   const showAuthSkeleton = useMinDuration(authLoading && !user);
   const lastProfileFetchAtRef = useRef(0);
+  // "Viajes semanales" sólo tiene sentido con un vehículo cargado (sin auto no se puede
+  // publicar nada). limit:1 porque acá sólo importa si hay al menos uno, no la lista.
+  // Arranca con el valor cacheado (ver hasVehicleCache) para no parpadear en cada visita.
+  // El caché sólo sirve si es de esta misma cuenta; si no, arranca oculta y decide el fetch.
+  const [hasVehicle, setHasVehicle] = useState(
+    () => (hasVehicleCacheUserId && hasVehicleCacheUserId === user?._id ? hasVehicleCache : null) ?? false
+  );
+  const userId = user?._id;
   const { getCurrentThemeMode, setThemeMode } = useColors();
   const { resetTutorial } = useTutorial();
 
@@ -94,6 +121,49 @@ const ProfileScreen = () => {
     };
   }, [avatarUri]);
 
+  // Primer arranque de la app: el caché en memoria está vacío, así que se levanta el del
+  // disco antes de que conteste la red. Sólo si todavía no hay nada en memoria — un valor ya
+  // cargado en esta sesión es más nuevo que el guardado.
+  useEffect(() => {
+    if (!userId) return undefined;
+
+    // Cuenta distinta a la del caché: lo que haya en memoria es de otra persona.
+    if (hasVehicleCacheUserId !== userId) {
+      hasVehicleCache = null;
+      hasVehicleCacheUserId = userId;
+      setHasVehicle(false);
+    } else if (hasVehicleCache !== null) {
+      return undefined;
+    }
+
+    let vivo = true;
+    AsyncStorage.getItem(claveVehiculo(userId))
+      .then((guardado) => {
+        if (!vivo || guardado == null || hasVehicleCache !== null) return;
+        const tiene = guardado === '1';
+        hasVehicleCache = tiene;
+        setHasVehicle(tiene);
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      get_withauth(ENDPOINTS.MY_VEHICLES, { page: 1, limit: 1 })
+        .then((res) => {
+          const tiene = res.success && Array.isArray(res.data) && res.data.length > 0;
+          hasVehicleCache = tiene;
+          hasVehicleCacheUserId = userId;
+          setHasVehicle(tiene);
+          if (userId) AsyncStorage.setItem(claveVehiculo(userId), tiene ? '1' : '0').catch(() => {});
+        })
+        .catch(() => {});
+    }, [userId])
+  );
+
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
@@ -140,6 +210,22 @@ const ProfileScreen = () => {
   ];
 
   const menuSections = [
+    // Sólo con vehículo cargado: sin auto no se puede publicar un viaje, y mucho menos uno
+    // que se repita solo. Vive en el stack de Carpoolings (reusa MyTripsScreen), no en el
+    // de Perfil — por eso navega cruzando de tab.
+    ...(hasVehicle ? [{
+      title: 'Conductor',
+      items: [
+        {
+          id: 20, title: 'Viajes semanales', subtitle: 'Los que publicaste para repetirse solos',
+          icon: 'repeat-outline',
+          // initial: false fuerza a que el stack de Carpoolings arranque en su raíz y
+          // apile MyTrips encima — sin esto, MyTrips queda como única pantalla del stack
+          // (primera vez que se visita ese tab) y no aparece la flecha de volver.
+          onPress: () => navigation.navigate('CarpoolingsTab', { screen: 'MyTrips', params: { weeklyMode: true }, initial: false }),
+        },
+      ],
+    }] : []),
     {
       title: 'Privacidad',
       items: [

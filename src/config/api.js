@@ -109,6 +109,7 @@ export const ENDPOINTS = {
   MY_TRIPS_PASSENGER: '/trips/my-trips/passenger',
   UPDATE_TRIP: (id) => `/trips/${id}`,
   CANCEL_TRIP: (id) => `/trips/${id}/cancel`,
+  REPEAT_TRIP: (id) => `/trips/${id}/repeat`,
   START_TRIP: (id) => `/trips/${id}/start`,
   COMPLETE_TRIP: (id) => `/trips/${id}/complete`,
   NOTIFY_PICKUP_ARRIVAL: (id) => `/trips/${id}/notify-arrival`,
@@ -178,4 +179,10 @@ export const ENDPOINTS = {
   ACCEPT_TRIP_REQUEST_APPLICATION: (id, appId) => `/trip-requests/${id}/accept/${appId}`,
   CANCEL_TRIP_REQUEST: (id) => `/trip-requests/${id}`,
   CANCEL_TRIP_REQUEST_APPLICATION: (id) => `/trip-requests/${id}/apply`,
+
+  // Assets versionados del backend (no subidos por usuarios). Cambiar el diseño del flyer es
+  // reemplazar ese archivo en el repo del backend, no algo que se toque desde acá.
+  // Con /api/static y no /static a secas: nginx en el server de dev sólo tiene un location
+  // para /api/ (ver docker/nginx/carpooling.dev.conf) — /static solo a secas da 404 ahí.
+  FLYER_BACKGROUND: '/api/static/flyer/flyer.png',
 };

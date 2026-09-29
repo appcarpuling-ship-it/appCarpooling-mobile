@@ -1,3 +1,6 @@
+import { Linking } from 'react-native';
+import { isAppDestinationKey, resolveAppDestination } from './appDestinations';
+
 /**
  * Navegación compartida: lista de notificaciones in-app y notificación push del sistema.
  *
@@ -208,6 +211,19 @@ export function navigateFromNotification(navigation, notification, options = {})
   const conversationId = getConversationId();
 
   if (notification.actionUrl) {
+    // Link externo (Instagram, YouTube, lo que sea): el destino de una notificación manual
+    // puede ser esto en vez de una pantalla de la app. Va antes que nada — nunca es un path
+    // interno válido, así que no tiene sentido intentar matchearlo contra los de abajo.
+    if (/^https?:\/\//i.test(notification.actionUrl)) {
+      Linking.openURL(notification.actionUrl).catch(() => {});
+      return;
+    }
+    // Pantalla "genérica" del registro compartido con banners (home, my_trips, saldo, etc.):
+    // el destino de una notificación manual, elegido de una lista en vez de escrito a mano.
+    if (isAppDestinationKey(notification.actionUrl)) {
+      resolveAppDestination(navigation, notification.actionUrl, useMainStack);
+      return;
+    }
     const path = notification.actionUrl.replace(/^\//, '');
     const parts = path.split('/');
     if (path.startsWith('trips/')) {

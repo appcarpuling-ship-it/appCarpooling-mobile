@@ -171,6 +171,13 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
                 />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={ui.textMuted}
+                  />
+                </TouchableOpacity>
               </View>
 
               {/* Reset Button */}

@@ -36,6 +36,11 @@ import Skeleton from '../../../components/ui/Skeleton';
 const fmtFecha = (d) =>
   new Date(d).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' });
 
+const fmtFechaHora = (d) => {
+  const f = new Date(d);
+  return `${f.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' })} ${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}`;
+};
+
 const PagarSenaScreen = ({ route, navigation }) => {
   const ui = useUI();
   const insets = useSafeAreaInsets();
@@ -130,7 +135,10 @@ const PagarSenaScreen = ({ route, navigation }) => {
   const viajeEnCurso = trip.status === 'started';
   const monto = montoSena(trip.driverPrice, asientos);
   const cobro = trip.driverDatosCobro;
-  const enviada = booking.sena?.enviadaAt ? new Date(booking.sena.enviadaAt) : null;
+  const vencimiento = booking.sena?.venceAt ? new Date(booking.sena.venceAt) : null;
+  // El conductor miró su banco y no encontró la transferencia: hay que decírselo al pasajero
+  // con todas las letras, porque de otro modo vuelve a "esperando" sin que nadie sepa por qué.
+  const fueRechazada = estado === 'esperando' && !!booking.sena?.rechazadaAt;
   const alConductor = (Number(trip.driverPrice) || 0) * asientos;
   const nombreConductor = [trip.driver?.firstName, trip.driver?.lastName].filter(Boolean).join(' ') || 'Tu conductor';
   const avatarUrl = trip.driver?.avatar ? buildImageUri(trip.driver.avatar) : null;
@@ -178,26 +186,34 @@ const PagarSenaScreen = ({ route, navigation }) => {
             esperando: {
               rotulo: 'Seña a pagar',
               monto: pesos(monto),
-              // Sin "vence el ...": `sena.venceAt` no lo hace cumplir nadie (no hay job que
-              // venza una seña impaga). Lo real es que al salir el viaje la reserva se cierra,
-              // y la fecha de salida ya está abajo — prometer una hora exacta que el backend
-              // no respeta era peor que no decir nada.
-              chip: null,
+              // El plazo es una guía, no una cancelación automática: pasado el plazo el
+              // conductor decide si te espera o le da el lugar a otro (el asiento nunca estuvo
+              // retenido). Por eso se dice qué puede pasar, no que la reserva "se cae".
+              chip: vencimiento
+                ? vencimiento > new Date()
+                  ? { icon: 'time-outline', t: `Mandala antes del ${fmtFechaHora(vencimiento)}` }
+                  : { icon: 'alert-circle-outline', t: 'Se pasó el plazo: escribile al conductor' }
+                : null,
               pie: `Total del viaje: ${pesos(alConductor)}`,
             },
             enviada: {
               rotulo: 'Seña enviada',
               monto: pesos(monto),
-              // chip: { icon: 'time-outline', t: 'Esperando confirmación' },
+              chip: { icon: 'hourglass-outline', t: 'Falta que el conductor confirme' },
               pie: `Total del viaje: ${pesos(alConductor)}`,
             },
             confirmada: {
               rotulo: 'Seña confirmada',
               monto: pesos(monto),
-              // chip: { icon: 'checkmark-circle', t: 'Ya le llegó', color: '#10B981' },
+              chip: { icon: 'checkmark-circle', t: 'Tu lugar está asegurado' },
               pie: `Total del viaje: ${pesos(alConductor)}`,
             },
           }[estado];
+
+  // Dónde está la reserva en el camino de la seña. Transferir y mandar el comprobante son un
+  // solo tramo para el pasajero (la app no sabe si ya transfirió), así que arrancan juntos.
+  const pasoActual = estado === 'confirmada' ? 3 : estado === 'enviada' ? 2 : 0;
+  const PASOS_SENA = ['Transferís la seña', 'Mandás el comprobante', 'El conductor confirma'];
 
   const filaCopiable = (icon, rotulo, valor, conBorde) =>
     !!valor && (
@@ -252,6 +268,44 @@ const PagarSenaScreen = ({ route, navigation }) => {
           <Text style={[styles.montoPie, { color: ui.textMuted }]}>{hero.pie}</Text>
         )}
       </View>
+
+      {fueRechazada && (
+        <View style={[styles.aviso, { backgroundColor: ui.surface }]}>
+          <Ionicons name="alert-circle-outline" size={19} color={ui.text} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.filaValor, { color: ui.text, marginTop: 0 }]}>El conductor no encontró tu transferencia</Text>
+            <Text style={[styles.avisoTexto, { color: ui.textMuted }]}>
+              {booking.sena.rechazoMotivo ? `"${booking.sena.rechazoMotivo}". ` : ''}
+              Revisá que se haya acreditado y mandá el comprobante de nuevo.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Qué sigue. Tres pasos y dónde estás parado: sin esto, "Seña enviada" no dice si ya
+          está todo o si falta algo de tu parte. */}
+      {senaResuelta && (
+        <View style={styles.pasos}>
+          {PASOS_SENA.map((p, i) => {
+            const hecho = i < pasoActual;
+            const actual = i === pasoActual || (pasoActual === 0 && i === 1);
+            return (
+              <View key={p} style={styles.pasoFila}>
+                <View style={[
+                  styles.pasoCirculo,
+                  { borderColor: hecho || actual ? ui.text : ui.border },
+                  hecho && { backgroundColor: ui.text },
+                ]}>
+                  {hecho
+                    ? <Ionicons name="checkmark" size={12} color={ui.bg} />
+                    : <Text style={[styles.pasoNum, { color: actual ? ui.text : ui.textMuted }]}>{i + 1}</Text>}
+                </View>
+                <Text style={[styles.pasoTexto, { color: hecho || actual ? ui.text : ui.textMuted }]}>{p}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* Cómo. Lo único con fondo en la pantalla, porque es lo único que se toca. */}
       {mostrarTransferirA && (
@@ -379,6 +433,14 @@ const styles = StyleSheet.create({
   },
   chipTexto: { fontSize: 12.5, fontFamily: 'Sora_600SemiBold' },
   montoPie: { fontSize: 12.5, fontFamily: 'Sora_400Regular', marginTop: 12 },
+
+  aviso: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 24, padding: 16, borderRadius: 18 },
+  avisoTexto: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 4 },
+  pasos: { marginTop: 24, gap: 12 },
+  pasoFila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pasoCirculo: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  pasoNum: { fontSize: 11, fontFamily: 'Sora_600SemiBold' },
+  pasoTexto: { fontSize: 14, fontFamily: 'Sora_500Medium' },
 
   // Cómo
   card: { borderRadius: 22, marginTop: 28, overflow: 'hidden' },

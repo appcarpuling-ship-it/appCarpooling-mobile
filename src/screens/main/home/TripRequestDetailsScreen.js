@@ -1,461 +1,237 @@
-import React, { useState } from 'react';
-import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Platform, KeyboardAvoidingView, Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useTheme } from '../../../context/ThemeContext';
+import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { createTripRequest } from '../../../services/tripRequestService';
-import { useUI } from '../../../theme/ui';
-import PillButton from '../../../components/ui/PillButton';
-import DateTimeRow from '../../../components/ui/DateTimeRow';
+import {
+    T, Fila, Selector, SelectorDeCuando,
+    estilos as hoja,
+} from '../../../components/hoja';
+import { horaDeFecha, fechaLegible, soloDigitos } from '../../../utils/fechaViaje';
 
-const pad = (n) => String(n).padStart(2, '0');
-const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const formatDateInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/**
+ * Pedir un viaje: pantalla completa, sin mapa detrás (el origen/destino ya se eligieron en el
+ * paso anterior, que sí tiene mapa). Ver el comentario de TripDetails.js sobre por qué se sacó.
+ *
+ * El pasajero decide mucho menos que el conductor —el precio, el vehículo y el recorrido fino
+ * los pone quien se postula—, así que son dos filas y la solicitud sale de un toque.
+ *
+ * Lo que sí hace falta es explicar el mecanismo: pedir un viaje NO es reservarlo. Quien nunca
+ * usó la app no tiene forma de saber que lo que sigue son propuestas para comparar, y si eso
+ * no se dice antes de publicar, se entera esperando una confirmación que no va a llegar.
+ */
 
-// "mar 11 de agosto" se lee de un vistazo; 11/08/2026 hay que descifrarlo.
-const fechaLarga = (d) =>
-  d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'long' }).replace('.', '');
-
-const ciudadDe = (p) => [p?.city, p?.province].filter(Boolean).join(', ');
-
-/** Origen, paradas y destino en una sola lista, lista para numerar y renderizar. */
-const armarPuntos = (origin, destination, waypoints) => [
-  { tipo: 'origen', label: 'Origen', loc: origin },
-  ...(waypoints || []).map((wp, i) => ({ tipo: 'parada', label: `Parada ${i + 1}`, loc: wp })),
-  { tipo: 'destino', label: 'Destino', loc: destination },
-].map((p) => {
-  const ciudad = ciudadDe(p.loc);
-  return {
-    ...p,
-    direccion: p.loc?.address || ciudad || 'Sin especificar',
-    // No se repite la ciudad si es lo mismo que ya se muestra arriba.
-    ciudad: ciudad && ciudad !== p.loc?.address ? ciudad : '',
-  };
-});
+/**
+ * Tope de lugares por solicitud. Es de la app: el modelo admite hasta 8, pero pedir más de 4
+ * lugares juntos no entra en un auto particular, que es de lo que se trata acá.
+ */
+const MAX_PERSONAS = 4;
 
 const TripRequestDetailsScreen = ({ route, navigation }) => {
-  const { origin, destination, waypoints } = route.params || {};
-  const puntos = armarPuntos(origin, destination, waypoints);
-  const { isDarkMode } = useTheme();
-  const { showAlert } = useAlert();
+    const { origin, destination, waypoints } = route.params || {};
+    const insets = useSafeAreaInsets();
+    const ui = useUI();
+    const { showAlert } = useAlert();
 
-  const dark = isDarkMode;
-  const ui = useUI();
-  const bg       = ui.bg;
-  const cardBg   = ui.surface;
-  const border   = ui.border;  const divider  = ui.bg;
-  const textPrimary = ui.text;
-  const textMuted   = ui.textMuted;
+    // Nada viene decidido: la salida y los lugares los elige quien pide el viaje.
+    const [cuando, setCuando] = useState(null);
+    const [personas, setPersonas] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [selector, setSelector] = useState(null);
 
-  const tomorrow = new Date(Date.now() + 86400000);
-  tomorrow.setHours(8, 0, 0, 0);
+    useEffect(() => {
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (selector) { setSelector(null); return true; }
+            return false;
+        });
+        return () => sub.remove();
+    }, [selector]);
 
-  const [date, setDate]               = useState(tomorrow);
-  const [tempDate, setTempDate]       = useState(tomorrow);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+    const publicar = async () => {
+        // Nada apaga el botón: si falta algo, abre la fila que lo resuelve, en orden.
+        if (!cuando) { setSelector('cuando'); return; }
+        if (!personas) { setSelector('personas'); return; }
+        const salida = new Date(cuando);
+        if (salida <= new Date()) {
+            showAlert('Revisá la salida', 'La fecha y la hora tienen que ser futuras.');
+            setSelector('cuando');
+            return;
+        }
 
-  const [time, setTime]               = useState(tomorrow);
-  const [tempTime, setTempTime]       = useState(tomorrow);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+        setLoading(true);
+        try {
+            await createTripRequest({
+                origin: { address: origin.address, city: origin.city, province: origin.province || '', coordinates: origin.coordinates },
+                destination: { address: destination.address, city: destination.city, province: destination.province || '', coordinates: destination.coordinates },
+                intermediateStops: (waypoints || []).map((wp, i) => ({
+                    address: wp.address,
+                    city: wp.city || wp.province || '',
+                    province: wp.province || '',
+                    coordinates: wp.coordinates,
+                    order: i + 1,
+                })),
+                // El DÍA de calendario a medianoche UTC, que es el contrato que asumen el backend
+                // (filtros de próximas/pasadas) y las pantallas que lo formatean con timeZone UTC.
+                // Mandar el momento local convertido a UTC rompía las dos cosas: en UTC-3, una
+                // solicitud para hoy a las 22:00 se guardaba como la 01:00 UTC de mañana y se
+                // mostraba —y se filtraba— como del día siguiente. La hora viaja aparte.
+                departureDate: new Date(Date.UTC(cuando.getFullYear(), cuando.getMonth(), cuando.getDate())).toISOString(),
+                departureTime: horaDeFecha(cuando),
+                seatsNeeded: personas,
+                // El precio y la distancia los calcula el backend con el parámetro costoViaje y
+                // descarta lo que mande el cliente.
+            });
 
-  const [seatsNeeded, setSeatsNeeded] = useState(1);
-  const [loading, setLoading]         = useState(false);
+            navigation.navigate('Result', {
+                type: 'success',
+                title: '¡Solicitud publicada!',
+                message: 'Los conductores que hagan esta ruta ya pueden ofrecerte lugar.',
+            });
+        } catch (err) {
+            navigation.navigate('Result', {
+                type: 'error',
+                title: 'Ocurrió algo',
+                message: err?.response?.data?.message || 'No se pudo publicar la solicitud.',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Apiladas, con varias paradas la lista se hacía larguísima. Igual que en Detalles del
-  // viaje: colapsadas se ven sólo las dos puntas, y los puntitos en la línea + la flechita
-  // avisan que hay algo más en el medio sin ocultarlo del todo.
-  const [paradasAbiertas, setParadasAbiertas] = useState(false);
-  const cantidadParadas = puntos.length - 2;
-  const hayParadasIntermedias = cantidadParadas > 0;
-  const puntosVisibles = paradasAbiertas || !hayParadasIntermedias
-    ? puntos
-    : [puntos[0], puntos[puntos.length - 1]];
-
-  const onDateChange = (_, selected) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (selected) setDate(selected);
-    } else {
-      if (selected) setTempDate(selected);
-    }
-  };
-
-  const onTimeChange = (_, selected) => {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-      if (selected) setTime(selected);
-    } else {
-      if (selected) setTempTime(selected);
-    }
-  };
-
-  const handleSubmit = async () => {
-    // Momento real elegido, en hora local: solo para validar que sea futuro.
-    const departureLocal = new Date(date);
-    departureLocal.setHours(time.getHours(), time.getMinutes(), 0, 0);
-
-    if (departureLocal <= new Date()) {
-      showAlert('Fecha inválida', 'La fecha y hora deben ser futuras.');
-      return;
-    }
-
-    // Lo que viaja al backend es el DÍA de calendario a medianoche UTC, que es el contrato
-    // que asumen el backend (tripRequestController: filtros de próximas/pasadas) y las
-    // pantallas que lo formatean con timeZone UTC. Mandar el momento local convertido a UTC
-    // rompía las dos cosas: en UTC-3, una solicitud para hoy 22:00 se guardaba como las
-    // 01:00 UTC de mañana y se mostraba —y se filtraba— como del día siguiente.
-    // La hora no se pierde: viaja aparte en departureTime.
-    const departureDay = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-
-    setLoading(true);
-    try {
-      await createTripRequest({
-        origin:      { address: origin.address, city: origin.city, province: origin.province || '', coordinates: origin.coordinates },
-        destination: { address: destination.address, city: destination.city, province: destination.province || '', coordinates: destination.coordinates },
-        intermediateStops: (waypoints || []).map((wp, i) => ({
-          address: wp.address,
-          city: wp.city || wp.province || '',
-          province: wp.province || '',
-          coordinates: wp.coordinates,
-          order: i + 1,
-        })),
-        departureDate: departureDay.toISOString(),
-        departureTime: formatTime(time),
-        seatsNeeded,
-        // El precio y la distancia los calcula el backend con el parámetro costoViaje
-        // (tripRequestController ~L104-112) y descarta lo que mande el cliente.
-      });
-
-      navigation.navigate('Result', {
-        type: 'success',
-        title: '¡Solicitud publicada!',
-        message: 'Los conductores podrán postularse a tu viaje.',
-        // Sin onPrimary: cae en el default de Result, que lleva al home. El boton
-        // "Ver" solo cambiaba de tab dentro del home y parecia que no hacia nada.
-      });
-    } catch (err) {
-      navigation.navigate('Result', { type: 'error', title: 'Ocurrió algo', message: err?.response?.data?.message || 'No se pudo publicar la solicitud.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={['bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-
-          {/* Una sola tarjeta para todo el formulario, con cada bloque separado por una línea
-              fina en vez de cajas sueltas — mismo diseño haya o no paradas en el medio, en
-              vez de un "hero" aparte sólo para el caso de dos puntas y el riel para el resto:
-              eran dos pantallas distintas según cuántos puntos tenía la ruta. */}
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-
-            <View style={styles.routeCard}>
-              <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>Tu recorrido</Text>
-
-              {hayParadasIntermedias && (
+    return (
+        <View style={[hoja.pantalla, { backgroundColor: ui.bg }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                 <TouchableOpacity
-                  style={styles.paradasToggle}
-                  onPress={() => setParadasAbiertas((v) => !v)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: paradasAbiertas }}
-                  accessibilityLabel={paradasAbiertas ? 'Ocultar paradas intermedias' : 'Ver paradas intermedias'}
+                    style={[styles.volver, { backgroundColor: ui.surface }]}
+                    onPress={() => navigation.goBack()}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
                 >
-                  <Text style={[styles.paradasToggleText, { color: textMuted }]}>
-                    {paradasAbiertas ? 'Ocultar paradas' : `${cantidadParadas} parada${cantidadParadas !== 1 ? 's' : ''} en el camino`}
-                  </Text>
-                  <Ionicons
-                    name={paradasAbiertas ? 'chevron-up' : 'chevron-down'}
-                    size={16}
-                    color={textMuted}
-                  />
+                    <Ionicons name="chevron-back" size={22} color={ui.text} />
                 </TouchableOpacity>
-              )}
+                <T style={[hoja.titulo, { color: ui.text }]}>Tu solicitud</T>
+            </View>
 
-              {puntosVisibles.map((punto, i) => (
-                <View key={`punto-${i}`} style={styles.routePoint}>
-                  <View style={styles.routeRail}>
-                    {punto.tipo === 'origen'
-                      ? <View style={[styles.dot, { borderColor: textPrimary }]} />
-                      : punto.tipo === 'destino'
-                        ? <View style={[styles.dotFilled, { backgroundColor: textPrimary }]} />
-                        : <View style={[styles.dotParada, { backgroundColor: textMuted }]} />}
-                    {i < puntosVisibles.length - 1 && (
-                      <View style={[styles.railLine, { backgroundColor: border }]}>
-                        {!paradasAbiertas && hayParadasIntermedias && (
-                          <TouchableOpacity
-                            style={[styles.railPuntos, { backgroundColor: cardBg }]}
-                            onPress={() => setParadasAbiertas((v) => !v)}
-                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                            activeOpacity={0.6}
-                            accessibilityRole="button"
-                            accessibilityLabel="Ver paradas intermedias"
-                          >
-                            <Ionicons name="ellipsis-vertical" size={13} color={textMuted} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                  <View style={[styles.routeBody, i < puntosVisibles.length - 1 && styles.routeBodyGap]}>
-                    <Text style={[styles.routeLabel, { color: textMuted }]}>{punto.label}</Text>
-                    <Text style={[styles.routeText, { color: textPrimary }]} numberOfLines={2}>
-                      {punto.direccion}
-                    </Text>
-                    {!!punto.ciudad && (
-                      <Text style={[styles.routeCity, { color: textMuted }]} numberOfLines={1}>
-                        {punto.ciudad}
-                      </Text>
-                    )}
-                  </View>
+            <ScrollView
+                style={styles.lista}
+                contentContainerStyle={styles.listaContenido}
+                showsVerticalScrollIndicator={false}
+            >
+                <Fila
+                    ui={ui}
+                    rotulo="Salís"
+                    valor={cuando ? `${fechaLegible(cuando)} · ${horaDeFecha(cuando)}` : 'Elegí cuándo'}
+                    apagado={!cuando}
+                    onPress={() => setSelector('cuando')}
+                />
+                <Fila
+                    ui={ui}
+                    rotulo="Cuántos viajan"
+                    valor={personas ? `${personas} ${personas === 1 ? 'persona' : 'personas'}` : 'Elegí cuántos'}
+                    apagado={!personas}
+                    onPress={() => setSelector('personas')}
+                    ultimo
+                />
+
+                {/* Lo más importante de la pantalla: qué es lo que está por pasar. Va ANTES del
+                    botón, no después, porque es lo que decide si la solicitud tiene sentido.
+                    Tres pasos en una línea de tiempo, sin caja: cada uno cabe en un renglón. */}
+                <View style={styles.pasos}>
+                    {[
+                        'Los conductores ven tu solicitud',
+                        'Hasta 5 se postulan con su precio y su auto',
+                        'Elegís uno y recién ahí se arma el viaje',
+                    ].map((texto, i, todos) => (
+                        <View key={texto} style={styles.paso}>
+                            <View style={styles.pasoRiel}>
+                                <View style={[styles.pasoNumero, { backgroundColor: ui.text }]}>
+                                    <T style={[styles.pasoNumeroTexto, { color: ui.invertText }]}>{i + 1}</T>
+                                </View>
+                                {i < todos.length - 1 && <View style={[styles.pasoLinea, { backgroundColor: ui.border }]} />}
+                            </View>
+                            <T style={[styles.pasoTexto, { color: ui.text }]}>{texto}</T>
+                        </View>
+                    ))}
                 </View>
-              ))}
-            </View>
+                <T style={[styles.gratis, { color: ui.textMuted }]}>
+                    Es gratis, dura 48 horas y podés cancelarlo cuando quieras.
+                </T>
+            </ScrollView>
 
-            {/* Fecha y hora juntas: son una sola decisión. */}
-            <View style={[styles.section, { borderTopColor: border }]}>
-              <Text style={[styles.label, { color: textMuted, marginTop: 0 }]}>¿Cuándo salís?</Text>
-              {/* @react-native-community/datetimepicker no corre en web: mismo patrón que
-                  TripDetails.js (Crear Viaje), un <input type="date|time"> real del
-                  navegador en vez de un picker que ahí no hace nada. */}
-              {Platform.OS === 'web' ? (
-                <>
-                  <DateTimeRow
-                    mode="date"
-                    icon="calendar-outline"
-                    value={formatDateInput(date)}
-                    min={formatDateInput(new Date())}
-                    onChange={(v) => {
-                      const [y, m, d] = v.split('-').map(Number);
-                      if (!y || !m || !d) return;
-                      const nueva = new Date(date);
-                      nueva.setFullYear(y, m - 1, d);
-                      setDate(nueva);
-                    }}
-                    colors={{ textPrimary, textMuted, divider: border, isDark: dark }}
-                  />
-                  <DateTimeRow
-                    mode="time"
-                    icon="time-outline"
-                    value={formatTime(time)}
-                    onChange={(v) => {
-                      const [h, mi] = v.split(':').map(Number);
-                      if (Number.isNaN(h) || Number.isNaN(mi)) return;
-                      const nueva = new Date(time);
-                      nueva.setHours(h, mi, 0, 0);
-                      setTime(nueva);
-                    }}
-                    isLast
-                    colors={{ textPrimary, textMuted, divider: border, isDark: dark }}
-                  />
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.pickRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border }]}
-                    onPress={() => { setTempDate(date); setShowDatePicker(true); }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="calendar-outline" size={19} color={textMuted} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.pickLabel, { color: textMuted }]}>Fecha</Text>
-                      <Text style={[styles.pickValue, { color: textPrimary }]}>{fechaLarga(date)}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.pickRow}
-                    onPress={() => { setTempTime(time); setShowTimePicker(true); }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="time-outline" size={19} color={textMuted} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.pickLabel, { color: textMuted }]}>Hora</Text>
-                      <Text style={[styles.pickValue, { color: textPrimary }]}>{formatTime(time)}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={textMuted} />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-
-            {/* Asientos: la cuenta a la derecha y el rótulo a la izquierda, en vez de un +/-
-                solo en el medio de una tarjeta vacía. */}
-            <View style={[styles.section, styles.seatsCard, { borderTopColor: border }]}>
-              <Ionicons name="people-outline" size={19} color={textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: textMuted, marginTop: 0, marginBottom: 6 }]}>¿Cuántos viajan?</Text>
-                <Text style={[styles.pickValue, { color: textPrimary }]}>
-                  {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''}
-                </Text>
-                <Text style={[styles.pickLabel, { color: textMuted, marginTop: 2 }]}>
-                  Los que necesitás para vos y quien te acompañe
-                </Text>
-              </View>
-              <View style={styles.seatsRow}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
                 <TouchableOpacity
-                  style={[styles.seatsBtn, { borderColor: border }, seatsNeeded <= 1 && { opacity: 0.35 }]}
-                  onPress={() => setSeatsNeeded(s => Math.max(1, s - 1))}
-                  disabled={seatsNeeded <= 1}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={[hoja.boton, { backgroundColor: ui.invertBg, marginTop: 0 }, loading && { opacity: 0.6 }]}
+                    onPress={publicar}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
                 >
-                  <Ionicons name="remove" size={20} color={textPrimary} />
+                    {loading
+                        ? <ActivityIndicator color={ui.invertText} size="small" />
+                        : <T style={[hoja.botonTexto, { color: ui.invertText }]}>Publicar solicitud</T>}
                 </TouchableOpacity>
-                <Text style={[styles.seatsNum, { color: textPrimary }]}>{seatsNeeded}</Text>
-                <TouchableOpacity
-                  style={[styles.seatsBtn, { borderColor: border }, seatsNeeded >= 4 && { opacity: 0.35 }]}
-                  onPress={() => setSeatsNeeded(s => Math.min(4, s + 1))}
-                  disabled={seatsNeeded >= 4}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <Ionicons name="add" size={20} color={textPrimary} />
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
 
-          {/* Cierra la pantalla con lo que estás por publicar, en una frase. */}
-          <Text style={[styles.resumen, { color: textMuted }]}>
-            Vas a pedir {seatsNeeded} asiento{seatsNeeded !== 1 ? 's' : ''} para el {fechaLarga(date)} a las {formatTime(time)}.
-            Los conductores que hagan ese viaje van a poder ofrecerte lugar.
-          </Text>
+            <SelectorDeCuando
+                ui={ui}
+                insets={insets}
+                visible={selector === 'cuando'}
+                cuando={cuando}
+                onCambiar={setCuando}
+                onClose={() => setSelector(null)}
+            />
 
-          {/* marginTop:'auto' sobre un contentContainer con flexGrow:1: con contenido corto
-              (sin paradas) el botón se pega abajo en vez de dejar un hueco vacío colgando
-              entre el resumen y un footer fijo aparte. */}
-          <View style={[styles.footer, { borderTopWidth: 0 }]}>
-            <PillButton label="Publicar solicitud" onPress={handleSubmit} loading={loading} />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Date Picker */}
-      {Platform.OS === 'android' && showDatePicker && (
-        <DateTimePicker value={date} mode="date" display="default" minimumDate={new Date()} onChange={onDateChange} />
-      )}
-      {Platform.OS === 'ios' && (
-        <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
-          <View style={styles.pickerOverlay}>
-            <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary, borderBottomColor: divider }]}>Fecha de salida</Text>
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display="spinner"
-                minimumDate={new Date()}
-                onChange={onDateChange}
-                textColor={textPrimary}
-              />
-              <View style={[styles.pickerFooter, { borderTopColor: divider }]}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={[styles.pickerBtn, { color: textMuted }]}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setDate(tempDate); setShowDatePicker(false); }}>
-                  <Text style={[styles.pickerBtn, { color: textPrimary, fontWeight: '600' }]}>Confirmar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
-
-      {/* Time Picker */}
-      {Platform.OS === 'android' && showTimePicker && (
-        <DateTimePicker value={time} mode="time" display="default" is24Hour onChange={onTimeChange} />
-      )}
-      {Platform.OS === 'ios' && (
-        <Modal transparent animationType="fade" visible={showTimePicker} onRequestClose={() => setShowTimePicker(false)}>
-          <View style={styles.pickerOverlay}>
-            <View style={[styles.pickerBox, { backgroundColor: cardBg }]}>
-              <Text style={[styles.pickerTitle, { color: textPrimary, borderBottomColor: divider }]}>Hora de salida</Text>
-              <DateTimePicker
-                value={tempTime}
-                mode="time"
-                display="spinner"
-                is24Hour
-                onChange={onTimeChange}
-                textColor={textPrimary}
-              />
-              <View style={[styles.pickerFooter, { borderTopColor: divider }]}>
-                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                  <Text style={[styles.pickerBtn, { color: textMuted }]}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setTime(tempTime); setShowTimePicker(false); }}>
-                  <Text style={[styles.pickerBtn, { color: textPrimary, fontWeight: '600' }]}>Confirmar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
-    </SafeAreaView>
-  );
+            <Selector
+                ui={ui}
+                insets={insets}
+                visible={selector === 'personas'}
+                titulo="¿Cuántos viajan?"
+                sub="Contando a quien te acompañe"
+                onClose={() => setSelector(null)}
+                listoApagado={!personas}
+            >
+                <TextInput
+                    style={[hoja.numeroGrande, { color: personas > 0 ? ui.text : ui.textMuted }]}
+                    value={personas > 0 ? String(personas) : ''}
+                    onChangeText={(v) => setPersonas(Math.min(parseInt(soloDigitos(v), 10) || 0, MAX_PERSONAS))}
+                    placeholder="0"
+                    placeholderTextColor={ui.textMuted}
+                    keyboardType="number-pad"
+                    maxFontSizeMultiplier={1.1}
+                    accessibilityLabel="Cuántos viajan"
+                />
+                <T style={[hoja.pie, { color: ui.textMuted }]}>
+                    {!personas
+                        ? `Escribí cuántas personas viajan (hasta ${MAX_PERSONAS}).`
+                        : personas === 1
+                            ? 'Necesitás un lugar.'
+                            : `Necesitás ${personas} lugares juntos en el mismo auto.`}
+                </T>
+            </Selector>
+        </View>
+    );
 };
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
-  scroll: { padding: 16, flexGrow: 1 },
-  label: {
-    fontSize: 11,
-    fontFamily: 'Sora_600SemiBold',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginTop: 14,
-    marginBottom: 10,
-  },
-  card: {
-    borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-    paddingHorizontal: 16,
-  },
-  // Cada bloque de acá para abajo, separado del anterior por una línea fina.
-  section: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 18, paddingBottom: 14 },
-  routeCard: { paddingTop: 16, paddingBottom: 14 },
-  paradasToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14 },
-  paradasToggleText: { fontSize: 13, fontFamily: 'Sora_600SemiBold' },
-  routePoint: { flexDirection: 'row', gap: 12 },
-  routeRail: { width: 9, alignItems: 'center', paddingTop: 5 },
-  dot: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.5 },
-  dotFilled: { width: 9, height: 9, borderRadius: 5 },
-  dotParada: { width: 7, height: 7, borderRadius: 4, marginVertical: 1 },
-  railLine: { width: 1.5, flex: 1, minHeight: 18, marginVertical: 4 },
-  // Los puntitos se centran sobre la línea desbordando a los lados (left negativo, ancho
-  // fijo) — si no quedarían recortados. El fondo de la card los recorta contra la línea.
-  railPuntos: {
-    position: 'absolute', top: '50%', marginTop: -11, left: -6.25,
-    width: 14, alignItems: 'center', paddingVertical: 3,
-  },
-  routeBody: { flex: 1 },
-  routeBodyGap: { paddingBottom: 16 },
-  routeLabel: {
-    fontSize: 11, fontFamily: 'Sora_600SemiBold',
-    textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2,
-  },
-  routeText: { fontSize: 15, fontFamily: 'Sora_600SemiBold', lineHeight: 20 },
-  routeCity: { fontSize: 13, marginTop: 1 },
-  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  pickLabel: { fontSize: 11, fontFamily: 'Sora_500Medium', letterSpacing: 0.3, textTransform: 'uppercase' },
-  pickValue: { fontSize: 16, fontFamily: 'Sora_600SemiBold', marginTop: 2 },
-  seatsCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  seatsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  seatsBtn: { width: 36, height: 36, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  seatsNum: { fontSize: 18, fontFamily: 'Sora_700Bold', minWidth: 22, textAlign: 'center' },
-  resumen: { fontSize: 13, fontFamily: 'Sora_400Regular', lineHeight: 19, marginTop: 24, paddingHorizontal: 4 },
-  footer: { marginTop: 'auto', paddingTop: 24, borderTopWidth: StyleSheet.hairlineWidth },
-  // Pickers
-  pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  pickerBox:     { borderRadius: 14, margin: 20, minWidth: 300, overflow: 'hidden' },
-  pickerTitle:   { fontSize: 15, fontFamily: 'Sora_600SemiBold', textAlign: 'center', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  pickerFooter:  { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  pickerBtn:     { fontSize: 16, paddingHorizontal: 12 },
+    // Header de la pantalla (sin mapa detrás): volver arriba, título debajo.
+    header: { paddingHorizontal: 20, paddingBottom: 14 },
+    volver: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    lista: { flex: 1 },
+    listaContenido: { paddingHorizontal: 20 },
+    footer: { paddingHorizontal: 20, paddingTop: 12 },
+
+    pasos: { marginTop: 18 },
+    paso: { flexDirection: 'row', gap: 14 },
+    pasoRiel: { alignItems: 'center', width: 24 },
+    pasoNumero: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    pasoNumeroTexto: { fontSize: 11.5, fontFamily: 'Sora_700Bold' },
+    pasoLinea: { width: 2, flex: 1, minHeight: 14, marginVertical: 3, borderRadius: 1 },
+    // El texto va centrado con el número y deja aire abajo para que la línea llegue al siguiente.
+    pasoTexto: { flex: 1, fontSize: 13.5, fontFamily: 'Sora_500Medium', lineHeight: 20, paddingTop: 2, paddingBottom: 12 },
+    gratis: { fontSize: 12, fontFamily: 'Sora_400Regular', lineHeight: 18, marginTop: 4 },
 });
 
 export default TripRequestDetailsScreen;
