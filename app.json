@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carpuling",
     "slug": "carpuling",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/logo/1024x1024.jpg",
@@ -50,7 +50,7 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCZrthjojUC8UfaaUaO7_3w_RmJMoALrz8"
       },
-      "buildNumber": "41"
+      "buildNumber": "42"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
