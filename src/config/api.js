@@ -184,5 +184,5 @@ export const ENDPOINTS = {
   // reemplazar ese archivo en el repo del backend, no algo que se toque desde acá.
   // Con /api/static y no /static a secas: nginx en el server de dev sólo tiene un location
   // para /api/ (ver docker/nginx/carpooling.dev.conf) — /static solo a secas da 404 ahí.
-  FLYER_BACKGROUND: '/api/static/flyer/background.png',
+  FLYER_BACKGROUND: '/api/static/flyer/flyer.png',
 };
