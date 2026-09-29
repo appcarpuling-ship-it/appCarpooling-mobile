@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -10,32 +11,44 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { get_withauth, delete_withauth } from '../../../services/apiService';
+import { get_withauth, buildImageUri } from '../../../services/apiService';
 import { ENDPOINTS } from '../../../config/api';
 import { useUI } from '../../../theme/ui';
 import { useAlert } from '../../../context/AlertContext';
 import { LIST_PAGE_SIZE } from '../../../constants/pagination';
 import { reportError } from '../../../utils/sentry';
-import VehicleShowcase from '../../../components/vehicle/VehicleShowcase';
-import { useScreenWidth } from '../../../hooks/useScreenWidth';
+import { imageForType } from '../../../utils/vehicleImage';
 
 /**
- * Mis vehículos: un auto por pantalla, con su foto grande arriba y el detalle scrolleando
- * abajo. Se pasa de auto con swipe o con las flechas de los costados.
+ * Mis vehículos: el índice. Una fila por auto, encabezada por la PATENTE, que es como uno
+ * distingue sus propios autos ("el del AB 123") y no por la marca, que se repite.
  *
- * Es la misma pantalla que VehiclePickerScreen —el selector de vehículo para un viaje—, con
- * la única diferencia de los dos botones que flotan sobre la foto: acá editar y borrar, allá
- * ninguno. Antes era una lista de tarjetas chicas donde la foto del auto casi no se veía.
+ * Antes era un carrusel de una pantalla por auto: para ver el segundo había que deslizar, y
+ * cada página traía la ficha completa (papeles, comodidades, fotos) aunque uno sólo estuviera
+ * buscando cuál tocar. Todo eso se mudó a VehicleDetailScreen y acá quedó lo que sirve para
+ * elegir: patente, qué auto es y cuántos asientos tiene.
+ *
+ * Sin cards: filas separadas por líneas finas, que es la dirección del rediseño.
  */
+
+// Mismas etiquetas que VehicleShowcase y el selector de VehicleFormScreen: si difieren, el
+// mismo tipo aparece con dos nombres según la pantalla.
+const TYPE_LABELS = {
+  sedan: 'Auto',
+  hatchback: 'Auto',
+  suv: 'Auto-camioneta',
+  van: 'Camioneta',
+  pickup: 'Camioneta',
+  otro: 'Otro',
+};
+
 const VehiclesScreen = () => {
-  const SCREEN_W = useScreenWidth();
   const navigation = useNavigation();
   const { showAlert } = useAlert();
   const ui = useUI();
   const insets = useSafeAreaInsets();
 
   const [vehicles, setVehicles] = useState([]);
-  const [index, setIndex] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,14 +56,6 @@ const VehiclesScreen = () => {
   const fetchLock = useRef(false);
   const hasDataRef = useRef(false);
   const loadVehiclesRef = useRef(null);
-  const listRef = useRef(null);
-
-  useEffect(() => {
-    hasDataRef.current = vehicles.length > 0;
-    // Borrar el último auto de la lista dejaba el índice apuntando a una página que ya no
-    // existe (flechas y puntitos de un vehículo fantasma).
-    setIndex((i) => Math.min(i, Math.max(0, vehicles.length - 1)));
-  }, [vehicles.length]);
 
   const loadVehicles = async (pageNum = 1, reset = false, opts = {}) => {
     const { skipMainLoading = false } = opts;
@@ -66,10 +71,12 @@ const VehiclesScreen = () => {
       if (response.success && Array.isArray(response.data)) {
         const rows = response.data;
         setVehicles((prev) => (reset || pageNum === 1 ? rows : [...prev, ...rows]));
+        hasDataRef.current = rows.length > 0 || pageNum > 1;
         setPage(pageNum);
         setHasMore(response.hasMore === true);
       } else if (reset || pageNum === 1) {
         setVehicles([]);
+        hasDataRef.current = false;
         setHasMore(false);
       }
     } catch (error) {
@@ -96,40 +103,65 @@ const VehiclesScreen = () => {
     loadVehicles(page + 1, false);
   };
 
-  const goTo = (i) => {
-    const next = Math.min(Math.max(i, 0), vehicles.length - 1);
-    listRef.current?.scrollToIndex({ index: next, animated: true });
-    setIndex(next);
+  const renderItem = ({ item }) => {
+    // Mismo criterio que VehicleShowcase: las fotos de relleno del seeder (picsum) no son el
+    // auto, así que para esas vale más la silueta del tipo que una playa al azar.
+    const fotos = (item.photos || []).filter(Boolean);
+    const suelta = item.photo && !item.photo.includes('picsum') ? item.photo : null;
+    const foto = fotos[0] || suelta;
+
+    const tipo = TYPE_LABELS[item.type] || item.type;
+    const subtitulo = [item.brand, item.model].filter(Boolean).join(' ');
+    const detalle = [item.year, tipo, item.color].filter(Boolean).join(' · ');
+
+    return (
+      <TouchableOpacity
+        style={[styles.fila, { borderTopColor: ui.border }]}
+        onPress={() => navigation.navigate('VehicleDetail', { vehicle: item })}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel={`${subtitulo}, patente ${item.licensePlate || 'sin cargar'}`}
+      >
+        <View style={styles.filaTexto}>
+          <Text style={[styles.patente, { color: ui.text }]} numberOfLines={1}>
+            {item.licensePlate || 'Sin patente'}
+          </Text>
+          {!!detalle && (
+            <Text style={[styles.linea, { color: ui.textMuted }]} numberOfLines={1}>
+              {subtitulo ? `${subtitulo} · ${detalle}` : detalle}
+            </Text>
+          )}
+          {!!item.capacity && (
+            <Text style={[styles.linea, { color: ui.textMuted }]}>{item.capacity} asientos</Text>
+          )}
+        </View>
+
+        <View style={[styles.foto, { backgroundColor: ui.surface }]}>
+          <Image
+            source={foto ? { uri: buildImageUri(foto) } : imageForType(item.type)}
+            style={foto ? styles.fotoReal : styles.fotoFallback}
+            resizeMode={foto ? 'cover' : 'contain'}
+          />
+        </View>
+      </TouchableOpacity>
+    );
   };
 
-  const handleDelete = (vehicleId) => {
-    navigation.navigate('Confirm', {
-      title: 'Eliminar Vehículo',
-      message: '¿Seguro que querés eliminar este vehículo?',
-      confirmLabel: 'Eliminar',
-      destructive: true,
-      onConfirm: async () => {
-        const response = await delete_withauth(ENDPOINTS.DELETE_VEHICLE(vehicleId));
-        if (!response.success) throw new Error(response.message || 'No se pudo eliminar el vehículo');
-        loadVehicles(1, true, { skipMainLoading: true });
-      },
-      successParams: { title: 'Vehículo eliminado', message: 'Ya no figura en tu lista.' },
-      errorParams: { title: 'Ocurrió algo' },
-    });
-  };
-
-  const renderItem = ({ item }) => (
-    <VehicleShowcase
-      vehicle={item}
-      width={SCREEN_W}
-      // El FAB de nuevo vehículo flota sobre el scroll: sin este aire, al llegar al fondo
-      // tapaba la última fila de documentación. 56 del botón + los 20 que lo separan del piso.
-      aireAbajo={insets.bottom + 76}
-      acciones={[
-        { icon: 'create-outline', label: 'Editar vehículo', onPress: () => navigation.navigate('VehicleForm', { vehicle: item }) },
-        { icon: 'trash-outline', label: 'Eliminar vehículo', onPress: () => handleDelete(item._id) },
-      ]}
-    />
+  // "Agregar" como una fila más y no como botón flotante: no tapa la última fila y queda en el
+  // mismo renglón de lectura que el resto.
+  const filaAgregar = (
+    <TouchableOpacity
+      style={[styles.fila, styles.filaAgregar, { borderTopColor: ui.border, borderBottomColor: ui.border }]}
+      onPress={() => navigation.navigate('VehicleForm')}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      accessibilityLabel="Agregar vehículo"
+    >
+      <View style={[styles.mas, { borderColor: ui.textMuted }]}>
+        <Ionicons name="add" size={20} color={ui.text} />
+      </View>
+      <Text style={[styles.agregarTexto, { color: ui.text }]}>Agregar vehículo</Text>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -141,85 +173,53 @@ const VehiclesScreen = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: ui.bg }]}>
-      {vehicles.length > 0 ? (
-        <>
-          <View style={styles.carousel}>
-            {vehicles.length > 1 && index > 0 && (
-              <TouchableOpacity
-                style={[styles.arrow, styles.arrowLeft, { backgroundColor: ui.bg }]}
-                onPress={() => goTo(index - 1)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Vehículo anterior"
-              >
-                <Ionicons name="chevron-back" size={22} color={ui.text} />
-              </TouchableOpacity>
-            )}
+    <View style={[styles.container, { backgroundColor: ui.bg, paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        {/* Sólo si hay a dónde volver: a esta pantalla se llega desde el perfil (con stack
+            detrás) pero también desde otras tabs sin `initial: false` (ver
+            CreateTripGoogleMaps), donde queda como raíz y goBack no hace nada — una flecha
+            muerta es peor que ninguna. */}
+        {navigation.canGoBack() && (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <Ionicons name="chevron-back" size={26} color={ui.text} />
+          </TouchableOpacity>
+        )}
+        <Text style={[styles.titulo, { color: ui.text }]}>Mis vehículos</Text>
+        <Text style={[styles.contador, { color: ui.textMuted }]}>
+          {vehicles.length === 1 ? '1 vehículo' : `${vehicles.length} vehículos`}
+        </Text>
+      </View>
 
-            <FlatList
-              ref={listRef}
-              data={vehicles}
-              keyExtractor={(item) => item._id}
-              renderItem={renderItem}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
-              onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W))}
-              onEndReached={onEndReached}
-              onEndReachedThreshold={0.35}
-            />
-
-            {vehicles.length > 1 && index < vehicles.length - 1 && (
-              <TouchableOpacity
-                style={[styles.arrow, styles.arrowRight, { backgroundColor: ui.bg }]}
-                onPress={() => goTo(index + 1)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Vehículo siguiente"
-              >
-                <Ionicons name="chevron-forward" size={22} color={ui.text} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {vehicles.length > 1 && (
-            <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
-              {vehicles.map((v, i) => (
-                <View
-                  key={v._id}
-                  style={[styles.dot, { backgroundColor: i === index ? ui.text : ui.border }, i === index && styles.dotActive]}
-                />
-              ))}
+      <FlatList
+        data={vehicles}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.35}
+        ListFooterComponent={
+          <>
+            {loadingMore && <ActivityIndicator style={styles.masCargando} color={ui.textMuted} />}
+            {filaAgregar}
+          </>
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: ui.surface, borderColor: ui.border }]}>
+              <Ionicons name="car-sport-outline" size={36} color={ui.textMuted} />
             </View>
-          )}
-        </>
-      ) : (
-        <View style={styles.empty}>
-          {/* Antes una ilustración 3D a color, sobra del rediseño B/N viejo. Ícono simple,
-              mismo criterio que el resto de las pantallas vacías de la app. */}
-          <View style={[styles.emptyIconWrap, { backgroundColor: ui.surface, borderColor: ui.border }]}>
-            <Ionicons name="car-sport-outline" size={36} color={ui.textMuted} />
+            <Text style={[styles.emptyTitle, { color: ui.text }]}>Sin vehículos</Text>
+            <Text style={[styles.emptySubtitle, { color: ui.textMuted }]}>
+              Cargá tu primer vehículo para empezar a publicar viajes.
+            </Text>
           </View>
-          <Text style={[styles.emptyTitle, { color: ui.text }]}>Sin vehículos</Text>
-          <Text style={[styles.emptySubtitle, { color: ui.textMuted }]}>
-            Cargá tu primer vehículo para empezar a publicar viajes.
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        // bottom fijo no alcanza: en Android la app dibuja debajo de la barra de
-        // navegacion, asi que con los 3 botones el FAB quedaba medio tapado.
-        style={[styles.fab, { backgroundColor: ui.invertBg, bottom: insets.bottom + 20 }]}
-        onPress={() => navigation.navigate('VehicleForm')}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Agregar vehículo"
-      >
-        <Ionicons name="add" size={28} color={ui.invertText} />
-      </TouchableOpacity>
+        }
+      />
     </View>
   );
 };
@@ -228,39 +228,40 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  carousel: { flex: 1, paddingTop: 12 },
-  // Sobre la foto, no sobre el detalle: es la altura donde el dedo espera encontrarlas y no
-  // tapan texto. HERO_H del showcase es ~36% de la pantalla, así que 18% cae en su medio.
-  arrow: { position: 'absolute', zIndex: 2, top: '18%', width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  arrowLeft: { left: 24 },
-  arrowRight: { right: 24 },
+  header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20, gap: 6 },
+  titulo: { fontSize: 30, fontFamily: 'Sora_800ExtraBold', letterSpacing: -0.8, marginTop: 10 },
+  contador: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingTop: 12 },
-  dot: { width: 6, height: 6, borderRadius: 999 },
-  dotActive: { width: 22 },
+  fila: {
+    marginHorizontal: 24,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  filaTexto: { flex: 1, minWidth: 0, gap: 5 },
+  // La patente es el título de la fila: grande y espaciada, como se lee en una chapa.
+  patente: { fontSize: 26, fontFamily: 'Sora_800ExtraBold', letterSpacing: 2.5 },
+  linea: { fontSize: 13, fontFamily: 'Sora_500Medium' },
 
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
+  foto: { width: 92, height: 92, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  fotoReal: { width: '100%', height: '100%' },
+  fotoFallback: { width: '62%', height: '62%', opacity: 0.55 },
+
+  filaAgregar: { borderBottomWidth: 1, gap: 14 },
+  mas: { width: 40, height: 40, borderRadius: 999, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  agregarTexto: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
+
+  masCargando: { marginVertical: 16 },
+
+  empty: { alignItems: 'center', paddingHorizontal: 32, paddingTop: 48, gap: 12 },
   emptyIconWrap: {
     width: 88, height: 88, borderRadius: 44, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center', marginBottom: 4,
   },
-  emptyTitle:    { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
+  emptyTitle: { fontSize: 17, fontFamily: 'Sora_600SemiBold' },
   emptySubtitle: { fontSize: 14, textAlign: 'center' },
-
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 999,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
 });
 
 export default VehiclesScreen;
