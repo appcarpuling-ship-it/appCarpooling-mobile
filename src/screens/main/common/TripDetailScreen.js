@@ -108,9 +108,18 @@ const TripDetailScreen = ({ route, navigation }) => {
   const [cancellingTrip, setCancellingTrip] = useState(false);
   const [repeatingTrip, setRepeatingTrip] = useState(false);
   const [sharingTrip, setSharingTrip] = useState(false);
-  // El flyer se monta siempre (fuera de la pantalla, ver el render de abajo): react-native-view-shot
-  // necesita la vista realmente montada y con layout para poder capturarla.
+  // El flyer se monta siempre, DENTRO de la pantalla pero tapado por el contenido (ver el
+  // render): en iOS, captureRef sobre una vista corrida fuera del área visible devuelve una
+  // imagen negra — la vista tiene que estar realmente en el window para que el snapshot tenga
+  // algo que dibujar.
   const flyerRef = useRef(null);
+
+  // La foto del flyer pesa ~2 MB y viene del backend: si se descarga recién al tocar
+  // "Compartir", la captura sale antes que la imagen y queda el fondo negro. Se pide al entrar.
+  useEffect(() => {
+    const url = buildImageUri(ENDPOINTS.FLYER_BACKGROUND);
+    if (url) Image.prefetch(url).catch(() => {});
+  }, []);
   const [cancellingReservation, setCancellingReservation] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [passengers, setPassengers] = useState([]);
@@ -776,7 +785,8 @@ const TripDetailScreen = ({ route, navigation }) => {
         // Sin style el alto queda sin acotar y en web la rueda no encuentra
         // contenedor scrolleable. Es el único ScrollView principal de la app
         // que no lo tenía.
-        style={styles.container}
+        // El backgroundColor es lo que tapa al flyer, que vive debajo (ver flyerOffscreen).
+        style={[styles.container, { backgroundColor: bg }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={64}
@@ -1638,9 +1648,10 @@ const TripDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 24 },
-  // Bien afuera de la pantalla (no opacity:0 ni display:none): tiene que tener layout real
-  // para que react-native-view-shot la pueda capturar.
-  flyerOffscreen: { position: 'absolute', top: 0, left: -2000 },
+  // Dentro del window (no corrido afuera, no opacity:0, no display:none): en iOS el snapshot
+  // de una vista fuera del área visible sale negro. Queda debajo del ScrollView, que es opaco,
+  // así que nunca se ve.
+  flyerOffscreen: { position: 'absolute', top: 0, left: 0, zIndex: -1 },
   jumpToSena: {
     position: 'absolute', alignSelf: 'center', bottom: 28,
     flexDirection: 'row', alignItems: 'center', gap: 8,
