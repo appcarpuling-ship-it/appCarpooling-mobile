@@ -141,45 +141,10 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
         );
       })()}
 
-      {/* Título y acciones en el mismo renglón: Editar/Eliminar en texto, no más círculos
-          flotando sobre la foto. */}
-      <View style={styles.filaTitulo}>
-        <View style={styles.tituloTexto}>
-          <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={2}>
-            {vehicle.brand} {vehicle.model}
-          </Text>
-          {!!subtitulo && <Text style={[styles.subtitulo, { color: ui.textMuted }]}>{subtitulo}</Text>}
-        </View>
-
-        {(editarAccion || eliminarAccion) && (
-          <View style={styles.acciones}>
-            {!!editarAccion && (
-              <TouchableOpacity
-                onPress={editarAccion.onPress}
-                hitSlop={8}
-                style={styles.accionBtn}
-                accessibilityRole="button"
-                accessibilityLabel={editarAccion.label}
-              >
-                <Ionicons name="create-outline" size={15} color={ui.text} />
-                <Text style={[styles.accionTexto, { color: ui.text }]}>Editar</Text>
-              </TouchableOpacity>
-            )}
-            {!!eliminarAccion && (
-              <TouchableOpacity
-                onPress={eliminarAccion.onPress}
-                hitSlop={8}
-                style={styles.accionBtn}
-                accessibilityRole="button"
-                accessibilityLabel={eliminarAccion.label}
-              >
-                <Ionicons name="trash-outline" size={15} color={ui.textMuted} />
-                <Text style={[styles.accionTexto, { color: ui.textMuted }]}>Eliminar</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
+      <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={2}>
+        {vehicle.brand} {vehicle.model}
+      </Text>
+      {!!subtitulo && <Text style={[styles.subtitulo, { color: ui.textMuted }]}>{subtitulo}</Text>}
 
       <View style={styles.chips}>
         {!!vehicle.licensePlate && (
@@ -236,6 +201,34 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
           <Text style={[styles.cargaText, { color: ui.text }]}>{carga.join(' · ')}</Text>
         </View>
       )}
+
+      {/* Editar/Eliminar al pie, mismo patrón que Compartir/Cancelar en el detalle del viaje:
+          dos botones pill a flex 1, dentro del flujo del scroll (no una barra fija). Sólo en
+          la ficha propia — el selector de vehículo no pasa `acciones`. */}
+      {(editarAccion || eliminarAccion) && (
+        <View style={styles.footer}>
+          {!!editarAccion && (
+            <TouchableOpacity
+              style={[styles.footerBtnOutline, { borderColor: ui.border }]}
+              onPress={editarAccion.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={editarAccion.label}
+            >
+              <Text style={[styles.footerBtnOutlineText, { color: ui.text }]}>Editar</Text>
+            </TouchableOpacity>
+          )}
+          {!!eliminarAccion && (
+            <TouchableOpacity
+              style={[styles.footerBtnOutline, { backgroundColor: '#EF4444', borderColor: '#EF4444' }]}
+              onPress={eliminarAccion.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={eliminarAccion.label}
+            >
+              <Text style={[styles.footerBtnOutlineText, { color: '#FFFFFF' }]}>Eliminar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -253,14 +246,8 @@ const styles = StyleSheet.create({
   // pantalla.
   miniatura: { height: 80, borderRadius: 14, borderWidth: 2 },
 
-  filaTitulo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginTop: 20 },
-  tituloTexto: { flex: 1, minWidth: 0 },
-  nombre: { fontFamily: 'Sora_800ExtraBold', fontSize: 24, letterSpacing: -0.6 },
+  nombre: { fontFamily: 'Sora_800ExtraBold', fontSize: 24, letterSpacing: -0.6, marginTop: 20 },
   subtitulo: { fontFamily: 'Sora_500Medium', fontSize: 13, marginTop: 4 },
-
-  acciones: { flexDirection: 'row', gap: 16, paddingTop: 4, flexShrink: 0 },
-  accionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  accionTexto: { fontFamily: 'Sora_700Bold', fontSize: 13 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
@@ -276,6 +263,15 @@ const styles = StyleSheet.create({
   docEstado: { fontFamily: 'Sora_500Medium', fontSize: 13 },
   docEstadoAlerta: { fontFamily: 'Sora_700Bold' },
   cargaText: { fontFamily: 'Sora_500Medium', fontSize: 14, marginTop: 8 },
+
+  // Mismas medidas que footerBtnOutline en TripDetailScreen (52 de alto, pill, 1.5 de borde):
+  // es el estilo de botón de acción de toda la app, no algo nuevo para esta pantalla.
+  footer: { flexDirection: 'row', gap: 10, marginTop: 28 },
+  footerBtnOutline: {
+    flex: 1, height: 52, borderRadius: 999, borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  footerBtnOutlineText: { fontSize: 15, fontFamily: 'Sora_600SemiBold' },
 });
 
 export default VehicleShowcase;
