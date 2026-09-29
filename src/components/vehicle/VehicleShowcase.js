@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useUI } from '../../theme/ui';
 import { imageForType } from '../../utils/vehicleImage';
 import { buildImageUri } from '../../services/apiService';
 
-const { height: SCREEN_H } = Dimensions.get('window');
-// La foto ocupa poco más de un tercio: lo suficiente para que el auto se reconozca de un
-// vistazo sin comerse los detalles, que son lo que hay que poder leer scrolleando.
-const HERO_H = Math.min(Math.round(SCREEN_H * 0.36), 320);
+// La foto ocupa un alto fijo, pero ATENCIÓN: fijo no es lo mismo que pegada arriba de la
+// pantalla. Es un elemento más del ScrollView (ver el render) — sube y baja con el resto del
+// detalle. Antes vivía en un View aparte por encima del scroll, con los botones de
+// editar/eliminar y el resumen de papeles flotando arriba: quedaba fija mientras el detalle se
+// movía debajo, y encima tapaba parte de la foto. Ahora la foto queda limpia y esas dos cosas
+// bajaron a texto plano (ver acciones y DOCUMENTACIÓN).
+const HERO_H = 220;
 
 const FEATURES = [
-  { key: 'ac', label: 'A/C', icon: 'snow-outline' },
+  { key: 'ac', label: 'Aire acondicionado', icon: 'snow-outline' },
   { key: 'music', label: 'Música', icon: 'musical-notes-outline' },
   { key: 'smoking', label: 'Se puede fumar', icon: 'flame-outline' },
   { key: 'pets', label: 'Mascotas', icon: 'paw-outline' },
@@ -40,26 +43,26 @@ const fecha = (d) => {
  * vencido es tan inservible como no tenerlo, así que no alcanza con "cargado / no cargado".
  */
 const estadoDoc = (url, vence) => {
-  if (!url) return { icon: 'ellipse-outline', texto: 'Falta cargarlo', alerta: true };
+  if (!url) return { texto: 'Falta cargarlo', alerta: true };
   const f = vence ? new Date(vence) : null;
-  if (f && !isNaN(f) && f < new Date()) return { icon: 'alert-circle', texto: `Vencido el ${fecha(vence)}`, alerta: true };
-  if (f && !isNaN(f)) return { icon: 'checkmark-circle', texto: `Vence el ${fecha(vence)}`, alerta: false };
-  return { icon: 'checkmark-circle', texto: 'Cargado', alerta: false };
+  if (f && !isNaN(f) && f < new Date()) return { texto: `Vencido el ${fecha(vence)}`, alerta: true };
+  if (f && !isNaN(f)) return { texto: `Vence el ${fecha(vence)}`, alerta: false };
+  return { texto: 'Cargado', alerta: false };
 };
 
 /**
- * Un vehículo a página completa: la foto arriba y todo el detalle scrolleando abajo.
+ * Un vehículo a página completa: la foto arriba y todo el detalle scrolleando abajo, TODO
+ * dentro del mismo scroll — nada queda fijo mientras el resto se mueve.
  *
- * Lo usan "Mis vehículos" y el selector de vehículo para un viaje, que son la misma pantalla
- * con distintos botones: `acciones` son los circulitos que flotan sobre la foto —editar y
- * borrar en la lista propia, ninguno cuando sólo se está eligiendo—.
+ * Lo usan "Mis vehículos" (VehicleDetailScreen, al tocar una fila del índice) y el selector
+ * de vehículo para un viaje, que son la misma pantalla con distintos botones: `acciones` son
+ * Editar/Eliminar, en texto junto al título — en la lista propia sí, en el selector no.
  *
  * @param {Object} vehicle
- * @param {number} width        ancho de la página; lo fija el carrusel que la contiene
- * @param {Array}  acciones     [{ icon, onPress, label }], arriba a la derecha de la foto
+ * @param {number} width        ancho de la página
+ * @param {Array}  acciones     [{ icon, onPress, label }], junto al título
  * @param {number} aireAbajo    espacio extra al final del scroll, para lo que flote encima
- *                              de la pantalla (el botón de nuevo vehículo tapaba la última
- *                              fila de documentación al llegar al fondo)
+ *                              de la pantalla
  */
 const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
   const ui = useUI();
@@ -82,10 +85,8 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
     { label: 'Cédula verde', ...estadoDoc(vehicle.registrationCardUrl, null) },
   ];
 
-  // El estado de los papeles a la vista, sobre la foto: publicar con un seguro vencido no se
-  // puede, y enterarse recién al scrollear hasta el final del detalle era enterarse tarde.
-  const faltan = docs.filter((d) => d.alerta).length;
-  const editar = acciones.find((a) => a.icon === 'create-outline')?.onPress;
+  const editarAccion = acciones.find((a) => a.icon === 'create-outline');
+  const eliminarAccion = acciones.find((a) => a.icon === 'trash-outline');
 
   // Hasta 4 fotos entran repartidas a lo ancho de la pantalla, que se ven mejor que
   // amontonadas a la izquierda. De 5 para arriba no entrarían sin achicarse a nada: ahí pasa
@@ -101,7 +102,11 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
   ].filter(Boolean);
 
   return (
-    <View style={{ width, flex: 1 }}>
+    <ScrollView
+      style={{ width, flex: 1 }}
+      contentContainerStyle={[styles.content, { paddingBottom: 24 + aireAbajo }]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={[styles.hero, { height: HERO_H, backgroundColor: ui.surface }]}>
         {fotoActual ? (
           <Image source={{ uri: buildImageUri(fotoActual) }} style={styles.heroImg} resizeMode="cover" />
@@ -110,160 +115,166 @@ const VehicleShowcase = ({ vehicle, width, acciones = [], aireAbajo = 0 }) => {
           // y un sedán sin fotos se vieran idénticos.
           <Image source={imageForType(vehicle.type)} style={styles.heroFallback} resizeMode="contain" />
         )}
+      </View>
 
-        <TouchableOpacity
-          style={[styles.estadoDocs, { backgroundColor: ui.bg }]}
-          onPress={faltan > 0 ? editar : undefined}
-          disabled={faltan === 0 || !editar}
-          activeOpacity={0.8}
-          accessibilityRole={faltan > 0 && editar ? 'button' : 'text'}
-          accessibilityLabel={faltan === 0 ? 'Documentación al día' : `Documentación: ${faltan} para revisar. Tocá para completarla`}
-        >
-          <Ionicons name={faltan === 0 ? 'shield-checkmark' : 'alert-circle'} size={14} color={ui.text} />
-          <Text style={[styles.estadoDocsTexto, { color: ui.text }]}>
-            {faltan === 0 ? 'Papeles al día' : `${faltan} papel${faltan !== 1 ? 'es' : ''} para revisar`}
+      {/* Miniaturas: tocarlas cambia la foto grande, en vez de ser una fila decorativa. */}
+      {galeria.length > 1 && (() => {
+        const minis = galeria.map((foto, i) => (
+          <TouchableOpacity key={`${foto}-${i}`} onPress={() => setFotoIndex(i)} activeOpacity={0.8}>
+            <Image
+              source={{ uri: buildImageUri(foto) }}
+              style={[
+                styles.miniatura,
+                { width: anchoMini },
+                { backgroundColor: ui.surface, borderColor: i === fotoIndex ? ui.text : 'transparent' },
+              ]}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        ));
+        return enCarrusel ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.miniaturas}>
+            {minis}
+          </ScrollView>
+        ) : (
+          <View style={styles.miniaturas}>{minis}</View>
+        );
+      })()}
+
+      {/* Título y acciones en el mismo renglón: Editar/Eliminar en texto, no más círculos
+          flotando sobre la foto. */}
+      <View style={styles.filaTitulo}>
+        <View style={styles.tituloTexto}>
+          <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={2}>
+            {vehicle.brand} {vehicle.model}
           </Text>
-          {faltan > 0 && !!editar && <Ionicons name="chevron-forward" size={13} color={ui.text} />}
-        </TouchableOpacity>
+          {!!subtitulo && <Text style={[styles.subtitulo, { color: ui.textMuted }]}>{subtitulo}</Text>}
+        </View>
 
-        {acciones.length > 0 && (
+        {(editarAccion || eliminarAccion) && (
           <View style={styles.acciones}>
-            {acciones.map((a) => (
+            {!!editarAccion && (
               <TouchableOpacity
-                key={a.icon}
-                style={[styles.accionBtn, { backgroundColor: ui.bg }]}
-                onPress={a.onPress}
+                onPress={editarAccion.onPress}
                 hitSlop={8}
-                activeOpacity={0.75}
+                style={styles.accionBtn}
                 accessibilityRole="button"
-                accessibilityLabel={a.label}
+                accessibilityLabel={editarAccion.label}
               >
-                <Ionicons name={a.icon} size={19} color={ui.text} />
+                <Ionicons name="create-outline" size={15} color={ui.text} />
+                <Text style={[styles.accionTexto, { color: ui.text }]}>Editar</Text>
               </TouchableOpacity>
-            ))}
+            )}
+            {!!eliminarAccion && (
+              <TouchableOpacity
+                onPress={eliminarAccion.onPress}
+                hitSlop={8}
+                style={styles.accionBtn}
+                accessibilityRole="button"
+                accessibilityLabel={eliminarAccion.label}
+              >
+                <Ionicons name="trash-outline" size={15} color={ui.textMuted} />
+                <Text style={[styles.accionTexto, { color: ui.textMuted }]}>Eliminar</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
 
-      <ScrollView
-        style={styles.detalle}
-        contentContainerStyle={[styles.detalleContent, { paddingBottom: 24 + aireAbajo }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={[styles.nombre, { color: ui.text }]} numberOfLines={2}>
-          {vehicle.brand} {vehicle.model}
-        </Text>
-        {!!subtitulo && <Text style={[styles.subtitulo, { color: ui.textMuted }]}>{subtitulo}</Text>}
-
-        <View style={styles.chips}>
-          {!!vehicle.licensePlate && (
-            <View style={[styles.chip, { backgroundColor: ui.invertBg }]}>
-              <Text style={[styles.chipText, { color: ui.invertText }]}>{vehicle.licensePlate}</Text>
-            </View>
-          )}
-          {!!vehicle.capacity && (
-            <View style={[styles.chip, { backgroundColor: ui.surface }]}>
-              <Text style={[styles.chipText, { color: ui.text }]}>{vehicle.capacity} asientos</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Miniaturas: tocarlas cambia la foto grande, en vez de ser una fila decorativa. */}
-        {galeria.length > 1 && (() => {
-          const minis = galeria.map((foto, i) => (
-            <TouchableOpacity key={`${foto}-${i}`} onPress={() => setFotoIndex(i)} activeOpacity={0.8}>
-              <Image
-                source={{ uri: buildImageUri(foto) }}
-                style={[
-                  styles.miniatura,
-                  { width: anchoMini },
-                  { backgroundColor: ui.surface, borderColor: i === fotoIndex ? ui.text : 'transparent' },
-                ]}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          ));
-          return enCarrusel ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.miniaturas}>
-              {minis}
-            </ScrollView>
-          ) : (
-            <View style={styles.miniaturas}>{minis}</View>
-          );
-        })()}
-
-        {activas.length > 0 && (
-          <View style={styles.bloque}>
-            <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>COMODIDADES</Text>
-            <View style={styles.chips}>
-              {activas.map((f) => (
-                <View key={f.key} style={[styles.chip, styles.chipIcono, { backgroundColor: ui.surface }]}>
-                  <Ionicons name={f.icon} size={13} color={ui.text} />
-                  <Text style={[styles.chipText, { color: ui.text }]}>{f.label}</Text>
-                </View>
-              ))}
-            </View>
+      <View style={styles.chips}>
+        {!!vehicle.licensePlate && (
+          <View style={[styles.chip, { backgroundColor: ui.invertBg }]}>
+            <Text style={[styles.chipText, { color: ui.invertText }]}>{vehicle.licensePlate}</Text>
           </View>
         )}
+        {!!vehicle.capacity && (
+          <View style={[styles.chip, { backgroundColor: ui.surface }]}>
+            <Text style={[styles.chipText, { color: ui.text }]}>{vehicle.capacity} asientos</Text>
+          </View>
+        )}
+      </View>
 
+      {/* Comodidades y documentación comparten el mismo patrón: renglones separados por una
+          línea fina, sin chips ni pastillas — es lo que reemplaza a las dos versiones viejas,
+          una en chips y otra en filas sueltas con íconos de estado. */}
+      {activas.length > 0 && (
         <View style={styles.bloque}>
-          <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>DOCUMENTACIÓN</Text>
-          {docs.map((d) => (
-            <View key={d.label} style={styles.docFila}>
-              <Ionicons name={d.icon} size={16} color={d.alerta ? ui.textMuted : ui.text} />
-              <Text style={[styles.docLabel, { color: ui.text }]}>{d.label}</Text>
-              <Text style={[styles.docEstado, { color: ui.textMuted }]}>{d.texto}</Text>
+          <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>COMODIDADES</Text>
+          {activas.map((f, i) => (
+            <View
+              key={f.key}
+              style={[styles.renglon, { borderTopColor: ui.border }, i === activas.length - 1 && { borderBottomWidth: 1, borderBottomColor: ui.border }]}
+            >
+              <Ionicons name={f.icon} size={18} color={ui.text} />
+              <Text style={[styles.renglonTexto, { color: ui.text }]}>{f.label}</Text>
             </View>
           ))}
         </View>
+      )}
 
-        {carga.length > 0 && (
-          <View style={styles.bloque}>
-            <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>CARGA</Text>
-            <Text style={[styles.cargaText, { color: ui.text }]}>{carga.join(' · ')}</Text>
+      <View style={styles.bloque}>
+        <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>DOCUMENTACIÓN</Text>
+        {docs.map((d, i) => (
+          <View
+            key={d.label}
+            style={[styles.renglon, styles.renglonDoc, { borderTopColor: ui.border }, i === docs.length - 1 && { borderBottomWidth: 1, borderBottomColor: ui.border }]}
+          >
+            <Text style={[styles.docLabel, { color: ui.text }]}>{d.label}</Text>
+            <View style={styles.docEstadoFila}>
+              {d.alerta && <Ionicons name="alert-circle" size={14} color={ui.text} />}
+              <Text style={[styles.docEstado, { color: d.alerta ? ui.text : ui.textMuted }, d.alerta && styles.docEstadoAlerta]}>
+                {d.texto}
+              </Text>
+            </View>
           </View>
-        )}
-      </ScrollView>
-    </View>
+        ))}
+      </View>
+
+      {carga.length > 0 && (
+        <View style={styles.bloque}>
+          <Text style={[styles.bloqueTitulo, { color: ui.textMuted }]}>CARGA</Text>
+          <Text style={[styles.cargaText, { color: ui.text }]}>{carga.join(' · ')}</Text>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  // A todo el ancho de la pantalla: es la foto del auto, lo primero que se mira. Redondeada
-  // sólo abajo — arriba pega contra el header y un radio ahí deja dos muescas de fondo.
-  hero: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' },
+  content: { paddingHorizontal: 20, paddingTop: 16 },
+
+  hero: { borderRadius: 20, overflow: 'hidden' },
   heroImg: { width: '100%', height: '100%' },
   heroFallback: { width: '100%', height: '100%', padding: 24 },
-  acciones: { position: 'absolute', top: 12, right: 12, gap: 10 },
-  estadoDocs: {
-    position: 'absolute', left: 12, bottom: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-  },
-  estadoDocsTexto: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
-  accionBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 
-  detalle: { flex: 1 },
-  detalleContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
-  nombre: { fontFamily: 'Sora_800ExtraBold', fontSize: 24, letterSpacing: -0.6 },
-  subtitulo: { fontFamily: 'Sora_500Medium', fontSize: 13, marginTop: 4 },
-
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
-  chipIcono: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  chipText: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
-
-  miniaturas: { flexDirection: 'row', gap: 8, paddingTop: 14 },
+  miniaturas: { flexDirection: 'row', gap: 8, paddingTop: 10 },
   // Alto fijo y ancho variable: repartidas a lo ancho quedan apaisadas, que es la forma de
   // una foto de auto. Cuadradas y grandes (dos fotos = dos cuadrados enormes) se comían la
   // pantalla.
   miniatura: { height: 80, borderRadius: 14, borderWidth: 2 },
 
+  filaTitulo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginTop: 20 },
+  tituloTexto: { flex: 1, minWidth: 0 },
+  nombre: { fontFamily: 'Sora_800ExtraBold', fontSize: 24, letterSpacing: -0.6 },
+  subtitulo: { fontFamily: 'Sora_500Medium', fontSize: 13, marginTop: 4 },
+
+  acciones: { flexDirection: 'row', gap: 16, paddingTop: 4, flexShrink: 0 },
+  accionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  accionTexto: { fontFamily: 'Sora_700Bold', fontSize: 13 },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 },
+  chipText: { fontFamily: 'Sora_600SemiBold', fontSize: 12 },
+
   bloque: { marginTop: 22 },
-  bloqueTitulo: { fontFamily: 'Sora_600SemiBold', fontSize: 11, letterSpacing: 0.6 },
-  docFila: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
-  docLabel: { fontFamily: 'Sora_500Medium', fontSize: 14, flex: 1 },
-  docEstado: { fontFamily: 'Sora_400Regular', fontSize: 12 },
+  bloqueTitulo: { fontFamily: 'Sora_700Bold', fontSize: 11, letterSpacing: 0.6, marginBottom: 2 },
+  renglon: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderTopWidth: 1 },
+  renglonTexto: { fontFamily: 'Sora_500Medium', fontSize: 14, flex: 1 },
+  renglonDoc: { justifyContent: 'space-between' },
+  docLabel: { fontFamily: 'Sora_600SemiBold', fontSize: 14 },
+  docEstadoFila: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  docEstado: { fontFamily: 'Sora_500Medium', fontSize: 13 },
+  docEstadoAlerta: { fontFamily: 'Sora_700Bold' },
   cargaText: { fontFamily: 'Sora_500Medium', fontSize: 14, marginTop: 8 },
 });
 
